@@ -2,12 +2,12 @@ version: '3.8'
 
 services:
   ucs503-api:
-    image: ghcr.io/<GITHUB_OWNER>/ucs503-api:latest
+    image: ghcr.io/zylus08/ucs503-api:latest
     restart: always
     env_file:
       - .env
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     # If you prefer to proxy via nginx on the host, expose only on 127.0.0.1:8080
     # ports:
     #   - "127.0.0.1:8080:8080"
@@ -16,6 +16,13 @@ services:
       options:
         max-size: "50m"
         max-file: "3"
+    volumes:
+      - api_uploads:/app/uploads
+      - api_data:/app/data
+
+volumes:
+  api_uploads:
+  api_data:
 
 # optional: nginx service example (if you want to run proxy in compose)
 #  nginx:

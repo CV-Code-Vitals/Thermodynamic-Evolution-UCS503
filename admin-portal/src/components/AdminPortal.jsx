@@ -7,6 +7,8 @@ import {
 import './AdminPortal.css';
 
 const apiBase = import.meta.env.VITE_API_BASE || '/api';
+const publicApiBase = apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase;
+const archiveFileUrl = (url) => new URL(url, `${publicApiBase.replace(/\/$/, '')}/`).href;
 
 const readResponse = async (response) => {
   const text = await response.text();
@@ -295,7 +297,7 @@ const AdminPortal = () => {
 
             {/* Direct link served by Go's static file handler */}
             <a
-              href={lastDeliverable.file_url}
+              href={archiveFileUrl(lastDeliverable.url)}
               target="_blank"
               rel="noopener noreferrer"
               className="cyber-button"
@@ -524,17 +526,16 @@ const AdminPortal = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Reverse so newest entries appear at top */}
-                    {[...deliverables].reverse().map((d) => (
-                      <tr key={d.id}>
-                        <td className="archive-id">{String(d.id).padStart(3, '0')}</td>
+                    {deliverables.map((d, index) => (
+                      <tr key={d.filename}>
+                        <td className="archive-id">{String(index + 1).padStart(3, '0')}</td>
                         <td className="archive-title-cell">{d.title}</td>
                         <td className="archive-version">{d.version}</td>
-                        <td className="archive-date">{d.date}</td>
+                        <td className="archive-date">{new Date(d.uploadedAt).toLocaleDateString()}</td>
                         <td className="archive-summary">{d.summary || '—'}</td>
                         <td>
                           <a
-                            href={d.file_url}
+                            href={archiveFileUrl(d.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="archive-download-link"
