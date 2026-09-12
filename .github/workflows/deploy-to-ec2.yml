@@ -36,4 +36,4 @@ jobs:
     if: ${{ vars.EC2_DEPLOY_ENABLED != 'true' }}
     steps:
       - name: Explain skipped deployment
-        run: echo "EC2 deployment skipped: configure EC2_HOST, EC2_USER, and EC2_SSH_PRIVATE_KEY repository secrets."
+        run: 'echo "EC2 deployment skipped: configure EC2_HOST, EC2_USER, and EC2_SSH_PRIVATE_KEY repository secrets."'
