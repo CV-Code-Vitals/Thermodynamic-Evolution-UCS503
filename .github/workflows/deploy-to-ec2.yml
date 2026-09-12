@@ -10,12 +10,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: ${{ vars.EC2_DEPLOY_ENABLED == 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Pull image tag
-        run: echo "IMAGE=ghcr.io/${{ github.repository_owner }}/ucs503-api:latest" >> $GITHUB_ENV
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v0.1.9
@@ -27,8 +25,15 @@ jobs:
           script: |
             set -e
             echo "Logging into ghcr..."
-            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-            docker pull $IMAGE
+            echo '${{ secrets.GHCR_PAT }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
+            docker pull ghcr.io/zylus08/ucs503-api:latest
             # If you use docker-compose on the server, update the image reference in the compose file or rely on image:latest
             docker compose pull || true
-            docker compose up -d --no-build
+            docker compose up -d --no-build --remove-orphans
+
+  deployment-not-configured:
+    runs-on: ubuntu-latest
+    if: ${{ vars.EC2_DEPLOY_ENABLED != 'true' }}
+    steps:
+      - name: Explain skipped deployment
+        run: echo "EC2 deployment skipped: configure EC2_HOST, EC2_USER, and EC2_SSH_PRIVATE_KEY repository secrets."

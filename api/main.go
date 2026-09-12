@@ -43,10 +43,21 @@ type ArchiveEntry struct {
 }
 
 var (
-	archivesFile = "archives.json"
-	uploadsDir   = "uploads"
-	mu           sync.Mutex
-	adminPasskey = func() string {
+	archivesFile = func() string {
+		if v := os.Getenv("ARCHIVES_FILE"); v != "" {
+			return v
+		}
+		return "data/archives.json"
+	}()
+	uploadsDir = func() string {
+		if v := os.Getenv("UPLOADS_DIR"); v != "" {
+			return v
+		}
+		return "uploads"
+	}()
+	mu                sync.Mutex
+	archiveMutationMu sync.Mutex // serializes read-modify-write archive updates
+	adminPasskey      = func() string {
 		if v := os.Getenv("ADMIN_PASSKEY"); v != "" {
 			return v
 		}
@@ -60,8 +71,6 @@ var (
 	s3Region string
 	s3Client *s3.Client
 	useS3    bool
-
-	presignExpire = 24 * time.Hour
 
 	sessionTTL    = 8 * time.Hour
 	sessionMu     sync.Mutex
@@ -111,28 +120,44 @@ func constantTimeEquals(a, b string) bool {
 }
 
 func sessionSameSite(r *http.Request) http.SameSite {
-	if r != nil && r.TLS != nil {
+	// TLS is commonly terminated by a trusted reverse proxy. Do not infer this
+	// from arbitrary client headers unless TRUST_PROXY is explicitly enabled.
+	if r != nil && (r.TLS != nil || (os.Getenv("TRUST_PROXY") == "true" && r.Header.Get("X-Forwarded-Proto") == "https")) {
 		return http.SameSiteNoneMode
 	}
 	return http.SameSiteLaxMode
 }
 
-func corsMiddleware(next http.Handler) http.Handler {
-	allowedOrigins := map[string]struct{}{
-		"http://localhost:5173":     {},
-		"http://127.0.0.1:5173":     {},
-		"https://zylus08.github.io": {},
+func requestIsHTTPS(r *http.Request) bool {
+	return r.TLS != nil || (os.Getenv("TRUST_PROXY") == "true" && r.Header.Get("X-Forwarded-Proto") == "https")
+}
+
+func isAllowedOrigin(origin string) bool {
+	if origin == "" {
+		return false
 	}
-	for _, origin := range strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",") {
-		origin = strings.TrimSpace(strings.TrimRight(origin, "/"))
-		if origin != "" {
-			allowedOrigins[origin] = struct{}{}
+	origin = strings.TrimRight(origin, "/")
+	for _, configured := range strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), ",") {
+		if origin == strings.TrimRight(strings.TrimSpace(configured), "/") && origin != "" {
+			return true
 		}
 	}
+	return origin == "http://localhost:5173" || origin == "http://127.0.0.1:5173" || origin == "https://zylus08.github.io"
+}
 
+// Browser form posts bypass CORS. Require a configured Origin for cookie-authenticated mutations.
+func requireTrustedOrigin(w http.ResponseWriter, r *http.Request) bool {
+	if r.Header.Get("Origin") == "" || !isAllowedOrigin(r.Header.Get("Origin")) {
+		http.Error(w, "Origin not allowed", http.StatusForbidden)
+		return false
+	}
+	return true
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := strings.TrimRight(r.Header.Get("Origin"), "/")
-		if _, allowed := allowedOrigins[origin]; allowed {
+		if isAllowedOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-API-Token, Authorization")
@@ -144,13 +169,22 @@ func corsMiddleware(next http.Handler) http.Handler {
 				http.Error(w, "Origin required", http.StatusForbidden)
 				return
 			}
-			if _, allowed := allowedOrigins[origin]; !allowed {
+			if !isAllowedOrigin(origin) {
 				http.Error(w, "Origin not allowed", http.StatusForbidden)
 				return
 			}
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "no-referrer")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -210,11 +244,6 @@ func saveArchives(entries []ArchiveEntry) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		_, err := dbPool.Exec(ctx, "CREATE TABLE IF NOT EXISTS archives (filename text PRIMARY KEY, original_name text, title text, version text, summary text, uploaded_at timestamptz, url text)")
-		if err != nil {
-			return err
-		}
-
 		for _, e := range entries {
 			uploaded, _ := time.Parse(time.RFC3339, e.UploadedAt)
 			_, err := dbPool.Exec(ctx, "INSERT INTO archives (filename, original_name, title, version, summary, uploaded_at, url) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (filename) DO UPDATE SET original_name=EXCLUDED.original_name, title=EXCLUDED.title, version=EXCLUDED.version, summary=EXCLUDED.summary, uploaded_at=EXCLUDED.uploaded_at, url=EXCLUDED.url",
@@ -229,15 +258,30 @@ func saveArchives(entries []ArchiveEntry) error {
 	mu.Lock()
 	defer mu.Unlock()
 
-	f, err := os.Create(archivesFile)
+	if err := ensureArchivesDir(); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(archivesFile), ".archives-*.json")
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName)
 
-	enc := json.NewEncoder(f)
+	enc := json.NewEncoder(tmp)
 	enc.SetIndent("", "  ")
-	return enc.Encode(entries)
+	if err := enc.Encode(entries); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, archivesFile)
+}
+
+func ensureArchivesDir() error {
+	return os.MkdirAll(filepath.Dir(archivesFile), 0o750)
 }
 
 func authorized(r *http.Request) bool {
@@ -270,7 +314,7 @@ func runMigrations(pool *pgxpool.Pool) error {
 	migrationsDir := "migrations"
 	files, err := os.ReadDir(migrationsDir)
 	if err != nil {
-		return nil
+		return fmt.Errorf("read migrations directory: %w", err)
 	}
 
 	var names []string
@@ -337,10 +381,10 @@ func main() {
 			useDB = true
 			log.Printf("[SYS] Postgres enabled for metadata storage")
 			if err := ensureMigrationsTable(dbPool); err != nil {
-				log.Printf("[WARN] unable to ensure migrations table: %v", err)
+				log.Fatalf("[FATAL] unable to ensure migrations table: %v", err)
 			}
 			if err := runMigrations(dbPool); err != nil {
-				log.Printf("[WARN] migrations failed: %v", err)
+				log.Fatalf("[FATAL] migrations failed: %v", err)
 			}
 		}
 	}
@@ -382,6 +426,9 @@ func main() {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
+		if !requireTrustedOrigin(w, r) {
+			return
+		}
 
 		var payload struct {
 			Passkey string `json:"passkey"`
@@ -410,7 +457,7 @@ func main() {
 			HttpOnly: true,
 			Path:     "/",
 			SameSite: sessionSameSite(r),
-			Secure:   r.TLS != nil,
+			Secure:   requestIsHTTPS(r),
 			MaxAge:   int(sessionTTL.Seconds()),
 		})
 
@@ -426,6 +473,9 @@ func main() {
 			http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 			return
 		}
+		if !requireTrustedOrigin(w, r) {
+			return
+		}
 		if cookie, err := r.Cookie(sessionCookie); err == nil && cookie.Value != "" {
 			sessionMu.Lock()
 			delete(sessionStore, cookie.Value)
@@ -438,7 +488,7 @@ func main() {
 			HttpOnly: true,
 			MaxAge:   -1,
 			SameSite: sessionSameSite(r),
-			Secure:   r.TLS != nil,
+			Secure:   requestIsHTTPS(r),
 		})
 		w.WriteHeader(http.StatusOK)
 	}
@@ -458,7 +508,12 @@ func main() {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+		if !requireTrustedOrigin(w, r) {
+			return
+		}
 
+		const maxFileSize = 100 << 20
+		r.Body = http.MaxBytesReader(w, r.Body, maxFileSize+(1<<20))
 		if err := r.ParseMultipartForm(250 << 20); err != nil {
 			http.Error(w, "Invalid multipart/form-data", http.StatusBadRequest)
 			return
@@ -511,10 +566,9 @@ func main() {
 			}
 		}
 
-		const maxFileSize = 100 << 20
 		reader := io.MultiReader(bytes.NewReader(sample[:n]), file)
 		ts := time.Now().UTC().Format("20060102T150405Z")
-		safeName := ts + "__" + filepath.Base(header.Filename)
+		safeName := ts + "__" + randomSessionToken()[:16] + "__" + filepath.Base(header.Filename)
 		outPath := filepath.Join(uploadsDir, safeName)
 
 		if useS3 {
@@ -523,10 +577,31 @@ func main() {
 				http.Error(w, "Server error: S3 is not configured", http.StatusInternalServerError)
 				return
 			}
-			_, err := s3Client.PutObject(ctx, &s3.PutObjectInput{
+			staged, err := os.CreateTemp("", "archive-upload-*")
+			if err != nil {
+				http.Error(w, "Server error: unable to stage upload", http.StatusInternalServerError)
+				return
+			}
+			stageName := staged.Name()
+			defer os.Remove(stageName)
+			written, err := io.Copy(staged, io.LimitReader(reader, maxFileSize+1))
+			if closeErr := staged.Close(); err == nil {
+				err = closeErr
+			}
+			if err != nil || written > maxFileSize {
+				http.Error(w, "File exceeds maximum allowed size (100MB)", http.StatusRequestEntityTooLarge)
+				return
+			}
+			staged, err = os.Open(stageName)
+			if err != nil {
+				http.Error(w, "Server error: unable to stage upload", http.StatusInternalServerError)
+				return
+			}
+			defer staged.Close()
+			_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
 				Bucket:      &s3Bucket,
 				Key:         &safeName,
-				Body:        io.LimitReader(reader, maxFileSize+1),
+				Body:        staged,
 				ContentType: &detected,
 			})
 			if err != nil {
@@ -569,7 +644,8 @@ func main() {
 				entry.URL = fmt.Sprintf("https://%s.s3.amazonaws.com/%s", s3Bucket, safeName)
 			}
 		}
-
+		archiveMutationMu.Lock()
+		defer archiveMutationMu.Unlock()
 		entries, err := loadArchives()
 		if err != nil {
 			http.Error(w, "Server error: unable to load archives", http.StatusInternalServerError)
@@ -626,12 +702,18 @@ func main() {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
+		if !requireTrustedOrigin(w, r) {
+			return
+		}
 
-		filename := r.URL.Query().Get("filename")
-		if filename == "" {
+		requestedFilename := r.URL.Query().Get("filename")
+		filename := filepath.Base(requestedFilename)
+		if filename == "" || filename == "." || filename != requestedFilename {
 			http.Error(w, "filename required", http.StatusBadRequest)
 			return
 		}
+		archiveMutationMu.Lock()
+		defer archiveMutationMu.Unlock()
 
 		if useS3 {
 			ctx := context.Background()
@@ -644,6 +726,14 @@ func main() {
 			p := filepath.Join(uploadsDir, filename)
 			if err := os.Remove(p); err != nil {
 				http.Error(w, "Unable to remove file", http.StatusInternalServerError)
+				return
+			}
+		}
+		if useDB && dbPool != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+			defer cancel()
+			if _, err := dbPool.Exec(ctx, "DELETE FROM archives WHERE filename=$1", filename); err != nil {
+				http.Error(w, "Unable to remove archive metadata", http.StatusInternalServerError)
 				return
 			}
 		}
@@ -683,7 +773,12 @@ func main() {
 	}
 	addr := ":" + port
 	log.Printf("[SYS] Starting Go API on internal port %s...", addr)
-	if err := http.ListenAndServe(addr, corsMiddleware(mux)); err != nil {
+	server := &http.Server{
+		Addr: addr, Handler: securityHeaders(corsMiddleware(mux)),
+		ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 2 * time.Minute,
+		WriteTimeout: 2 * time.Minute, IdleTimeout: 60 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("[FATAL] Server failed to start: %v", err)
 	}
 }

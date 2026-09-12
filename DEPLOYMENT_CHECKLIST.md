@@ -31,6 +31,7 @@ This checklist gathers the final items to confirm before pushing to GitHub and d
 - EC2_HOST
 - EC2_USER
 - EC2_SSH_PRIVATE_KEY (SSH private key contents)
+- Repository variable `EC2_DEPLOY_ENABLED=true` (required to run the EC2 deploy job)
 - (Optional) S3_PRESIGN_EXPIRE_HOURS
 
 4) CI / Workflows

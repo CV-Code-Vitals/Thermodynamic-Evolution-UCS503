@@ -3,7 +3,7 @@ README - Deploy & Local Run
 This document collects the exact commands to run locally, build, and deploy the API and frontend.
 
 Local dev - API (Go)
-1) Install Go 1.21
+1) Install Go 1.25
 2) From repository root, preferred quick start (Windows PowerShell):
    .\scripts\run-local.ps1
 

@@ -48,13 +48,29 @@ function sendFile(res, filePath) {
       return;
     }
 
-    res.writeHead(200, { 'Content-Type': contentType });
+    res.writeHead(200, {
+      'Content-Type': contentType,
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'self'; frame-ancestors 'none'",
+    });
     res.end(content);
   });
 }
 
 const server = http.createServer((req, res) => {
-  const requestUrl = decodeURIComponent(req.url.split('?')[0]);
+  let requestUrl;
+  try {
+    requestUrl = decodeURIComponent(req.url.split('?')[0]);
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    res.end('400 Bad Request');
+    return;
+  }
+  if (requestUrl.split('/').some((segment) => segment.startsWith('.') && segment.length > 1)) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('404 Not Found');
+    return;
+  }
   const { redirect, file } = getFilePath(requestUrl);
 
   if (redirect) {
@@ -63,13 +79,13 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (!file || !file.startsWith(ROOT_DIR) && !file.startsWith(ADMIN_DIST)) {
+  const resolvedPath = file && path.resolve(file);
+  const allowedRoot = requestUrl.startsWith('/admin-portal/') ? ADMIN_DIST : ROOT_DIR;
+  if (!resolvedPath || (resolvedPath !== allowedRoot && !resolvedPath.startsWith(allowedRoot + path.sep))) {
     res.writeHead(400, { 'Content-Type': 'text/plain' });
     res.end('400 Bad Request');
     return;
   }
-
-  const resolvedPath = path.resolve(file);
 
   fs.stat(resolvedPath, (err, stats) => {
     if (err) {

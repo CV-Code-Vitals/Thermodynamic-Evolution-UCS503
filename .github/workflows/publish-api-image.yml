@@ -38,8 +38,8 @@ jobs:
           file: ./api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/ucs503-api:latest
-            ghcr.io/${{ github.repository_owner }}/ucs503-api:${{ github.sha }}
+            ghcr.io/zylus08/ucs503-api:latest
+            ghcr.io/zylus08/ucs503-api:${{ github.sha }}
 
       # Render deployment is not used in this repo.
       # If you later add Render, use a valid condition like:
