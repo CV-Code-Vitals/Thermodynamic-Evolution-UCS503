@@ -397,13 +397,6 @@ func main() {
 
 	log.Printf("[AUTH] adminPasskey configured=%t", adminPasskey != "")
 
-	if v := os.Getenv("S3_PRESIGN_EXPIRE_HOURS"); v != "" {
-		if h, err := time.ParseDuration(v + "h"); err == nil {
-			presignExpire = h
-			log.Printf("[SYS] S3 presign TTL set to %v", presignExpire)
-		}
-	}
-
 	mux := http.NewServeMux()
 
 	statusHandler := func(w http.ResponseWriter, r *http.Request) {
