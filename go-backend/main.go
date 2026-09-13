@@ -470,48 +470,18 @@ func analyzeHandler(enginePath string, engineTimeout time.Duration, maxUploadByt
 // § 7  Server bootstrap
 // =============================================================================
 
-func main() {
-	// ── Read configuration ────────────────────────────────────────────────────
-	enginePath    := resolveEnginePath()
-	port          := envOr("PORT", "8080")
-	timeoutSec    := envOrInt("ENGINE_TIMEOUT_SEC", 300)
-	maxUploadMB   := envOrInt("MAX_UPLOAD_MB", 50)
-
-	engineTimeout  := time.Duration(timeoutSec) * time.Second
-	maxUploadBytes := int64(maxUploadMB) << 20 // MiB -> bytes
-
-	// Validate that the engine binary exists at startup so we fail fast
-	if _, err := os.Stat(enginePath); errors.Is(err, os.ErrNotExist) {
-		log.Printf("[WARN] Engine binary not found at %q -- set ENGINE_PATH env var if it is elsewhere.", enginePath)
-	} else {
-		log.Printf("[INFO] Engine binary confirmed: %s", enginePath)
-	}
-
-	// ── Set up Gin ────────────────────────────────────────────────────────────
+// setupEngine configures middleware and all application routes.
+func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes int64, deliverableStore DeliverableStore) *gin.Engine {
 	if os.Getenv("GIN_MODE") == "" {
-		gin.SetMode(gin.DebugMode)
+		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.New()
 
 	// ── Middleware ────────────────────────────────────────────────────────────
-
-	// Structured request logger
-	r.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
-		return fmt.Sprintf("[%s] %s %s %d %s\n",
-			param.TimeStamp.Format(time.RFC3339),
-			param.Method,
-			param.Path,
-			param.StatusCode,
-			param.Latency,
-		)
-	}))
-
-	// Recovery -- converts panics to 500 responses instead of crashing
 	r.Use(gin.Recovery())
 
 	// CORS -- allow the React dev server (Vite default: 5173) and common ports.
-	// Tighten AllowOrigins in production.
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://localhost:3001", "http://localhost:8000"},
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
@@ -547,20 +517,44 @@ func main() {
 	r.POST("/scan", scanH)
 
 	// Deliverables & Admin Portal endpoints (backed by PostgreSQL / JSON storage)
-	deliverableStore := initDeliverableStore()
-	uploadDelivH := uploadDeliverableHandler(deliverableStore, maxUploadBytes)
-	r.POST("/api/upload", uploadDelivH)
-	r.POST("/upload", uploadDelivH)
+	if deliverableStore != nil {
+		uploadDelivH := uploadDeliverableHandler(deliverableStore, maxUploadBytes)
+		r.POST("/api/upload", uploadDelivH)
+		r.POST("/upload", uploadDelivH)
 
-	getDelivH := getDeliverablesHandler(deliverableStore)
-	r.GET("/api/deliverables", getDelivH)
-	r.GET("/deliverables", getDelivH)
+		getDelivH := getDeliverablesHandler(deliverableStore)
+		r.GET("/api/deliverables", getDelivH)
+		r.GET("/deliverables", getDelivH)
+	}
 
 	// Secure static file server for uploaded archives
 	uploadsDir := "./uploads"
 	_ = os.MkdirAll(uploadsDir, 0o750)
 	r.GET("/uploads/:filename", serveUploadFileHandler(uploadsDir))
 	r.GET("/api/uploads/:filename", serveUploadFileHandler(uploadsDir))
+
+	return r
+}
+
+func main() {
+	// ── Read configuration ────────────────────────────────────────────────────
+	enginePath    := resolveEnginePath()
+	port          := envOr("PORT", "8080")
+	timeoutSec    := envOrInt("ENGINE_TIMEOUT_SEC", 300)
+	maxUploadMB   := envOrInt("MAX_UPLOAD_MB", 50)
+
+	engineTimeout  := time.Duration(timeoutSec) * time.Second
+	maxUploadBytes := int64(maxUploadMB) << 20 // MiB -> bytes
+
+	// Validate that the engine binary exists at startup so we fail fast
+	if _, err := os.Stat(enginePath); errors.Is(err, os.ErrNotExist) {
+		log.Printf("[WARN] Engine binary not found at %q -- set ENGINE_PATH env var if it is elsewhere.", enginePath)
+	} else {
+		log.Printf("[INFO] Engine binary confirmed: %s", enginePath)
+	}
+
+	deliverableStore := initDeliverableStore()
+	r := setupEngine(enginePath, engineTimeout, maxUploadBytes, deliverableStore)
 
 	// ── Start ─────────────────────────────────────────────────────────────────
 	addr := ":" + port
