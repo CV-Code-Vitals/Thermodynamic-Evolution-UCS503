@@ -48,6 +48,13 @@ cd admin-portal
 npm run build
 # output will be in admin-portal/dist
 
+GitHub Pages setup
+- In the repository, open Settings > Pages and set the Source to "GitHub Actions".
+- Do not select "Deploy from a branch"; the frontend workflow uploads the built site
+  as a Pages artifact.
+- After pushing to `main`, wait for the "Deploy Frontend to GitHub Pages" workflow
+  to finish before opening `/Thermodynamic-Evolution-UCS503/admin-portal/`.
+
 Build and run Docker image locally (API)
 # from repo root
 cd api

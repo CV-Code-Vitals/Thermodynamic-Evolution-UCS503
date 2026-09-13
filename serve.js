@@ -4,7 +4,12 @@ const path = require('path');
 
 const PORT = process.env.PORT || 8000;
 const ROOT_DIR = path.resolve(__dirname);
-const ADMIN_DIST = path.join(ROOT_DIR, 'admin-portal');
+const ADMIN_SOURCE = path.join(ROOT_DIR, 'admin-portal');
+const ADMIN_DIST = path.join(ADMIN_SOURCE, 'dist');
+
+function getAdminRoot() {
+  return fs.existsSync(ADMIN_DIST) ? ADMIN_DIST : ADMIN_SOURCE;
+}
 
 const mimeTypes = {
   '.html': 'text/html',
@@ -22,6 +27,8 @@ const mimeTypes = {
 };
 
 function getFilePath(urlPath) {
+  const adminRoot = getAdminRoot();
+
   if (urlPath === '/admin-portal') {
     return { redirect: '/admin-portal/' };
   }
@@ -29,7 +36,7 @@ function getFilePath(urlPath) {
   if (urlPath.startsWith('/admin-portal/')) {
     const subPath = urlPath.replace('/admin-portal/', '');
     const safePath = subPath ? path.normalize(subPath) : 'index.html';
-    const targetPath = path.join(ADMIN_DIST, safePath);
+    const targetPath = path.join(adminRoot, safePath);
     return { file: targetPath };
   }
 
@@ -107,7 +114,7 @@ const server = http.createServer((req, res) => {
   }
 
   const resolvedPath = file && path.resolve(file);
-  const allowedRoot = requestUrl.startsWith('/admin-portal/') ? ADMIN_DIST : ROOT_DIR;
+  const allowedRoot = requestUrl.startsWith('/admin-portal/') ? getAdminRoot() : ROOT_DIR;
   if (!resolvedPath || (resolvedPath !== allowedRoot && !resolvedPath.startsWith(allowedRoot + path.sep))) {
     res.writeHead(400, { 'Content-Type': 'text/plain' });
     res.end('400 Bad Request');
