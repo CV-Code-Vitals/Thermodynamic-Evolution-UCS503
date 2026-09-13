@@ -15,11 +15,11 @@ services:
       - api
     restart: unless-stopped
 
-  # Go API Backend
+  # Unified Go Backend (Analysis Engine + Deliverables + Git Scanner)
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./go-backend/Dockerfile
     container_name: ucs503_api
     expose:
       - "8080" # Exposed only to the internal Docker bridge network

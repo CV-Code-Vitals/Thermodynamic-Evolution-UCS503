@@ -1,17 +1,282 @@
 {
   "engine_version": "0.1.0",
-  "generated_at": "2026-08-13T20:37:06.528707600+00:00",
-  "scanned_directory": ".\\test_samples\\",
-  "files_analyzed": 3,
-  "total_hotspots": 76,
-  "global_entropy": 1611.0,
+  "generated_at": "2026-09-13T06:42:09.214949+00:00",
+  "scanned_directory": ".",
+  "files_analyzed": 8,
+  "total_hotspots": 217,
+  "global_entropy": 2538.0,
   "file_reports": [
     {
-      "file_path": ".\\test_samples\\crawler.go",
+      "file_path": "./thermodynamic-ast-engine/test_samples/data_pipeline.py",
+      "language": "Python",
+      "lines_scanned": 84,
+      "total_entropy": 762.0,
+      "mean_hotspot_entropy": 23.81,
+      "hotspots": [
+        {
+          "function_name": "process_batch",
+          "line_number": 100,
+          "source_snippet": "for key, val in rec.items():     # loop ×3 — triple nesting",
+          "entropy_score": 82.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Loop construct detected - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "fetch_user_data",
+          "line_number": 25,
+          "source_snippet": "response = requests.get(             # BlockingIO",
+          "entropy_score": 54.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking I/O call on critical path - latency spike risk"
+        },
+        {
+          "function_name": "fetch_user_data",
+          "line_number": 33,
+          "source_snippet": "time.sleep(2 ** attempt)          # BlockingIO inside nested loop",
+          "entropy_score": 54.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking I/O call on critical path - latency spike risk"
+        },
+        {
+          "function_name": "fetch_user_data",
+          "line_number": 23,
+          "source_snippet": "for attempt in range(3):                      # loop ×2 — deep nesting",
+          "entropy_score": 45.0,
+          "vulnerability_type": "DeepNesting",
+          "description": "Loop construct detected - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "build_feature_matrix",
+          "line_number": 48,
+          "source_snippet": "for j, field in enumerate(record.get(\"fields\", [])):   # loop ×2",
+          "entropy_score": 45.0,
+          "vulnerability_type": "DeepNesting",
+          "description": "Loop construct detected - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 99,
+          "source_snippet": "for rec in chunk:                    # loop ×2",
+          "entropy_score": 45.0,
+          "vulnerability_type": "DeepNesting",
+          "description": "Loop construct detected - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 101,
+          "source_snippet": "if val and key and not key.startswith(\"_\"):",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 102,
+          "source_snippet": "if isinstance(val, str) and len(val) > 0:",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 86,
+          "source_snippet": "raw = requests.get(                  # BlockingIO",
+          "entropy_score": 27.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking I/O call on critical path - latency spike risk"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 92,
+          "source_snippet": "time.sleep(5)",
+          "entropy_score": 27.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking I/O call on critical path - latency spike risk"
+        },
+        {
+          "function_name": "fetch_user_data",
+          "line_number": 22,
+          "source_snippet": "for uid in user_ids:                              # loop ×1",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Loop construct detected - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "build_feature_matrix",
+          "line_number": 46,
+          "source_snippet": "for i, record in enumerate(records):              # loop ×1",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Loop construct detected - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "recursive_flatten",
+          "line_number": 65,
+          "source_snippet": "for item in data:                             # loop inside recursion",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Loop construct detected - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 85,
+          "source_snippet": "for bid in batch_ids:                    # loop ×1",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Loop construct detected - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "<module>",
+          "line_number": 14,
+          "source_snippet": "_cache_lock = threading.Lock()",
+          "entropy_score": 22.0,
+          "vulnerability_type": "SyncContention",
+          "description": "Synchronisation primitive - potential lock contention hotspot"
+        },
+        {
+          "function_name": "__init__",
+          "line_number": 76,
+          "source_snippet": "self._lock = threading.RLock()               # SyncContention",
+          "entropy_score": 22.0,
+          "vulnerability_type": "SyncContention",
+          "description": "Synchronisation primitive - potential lock contention hotspot"
+        },
+        {
+          "function_name": "build_feature_matrix",
+          "line_number": 47,
+          "source_snippet": "features = np.zeros(512)                      # allocation inside loop",
+          "entropy_score": 18.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "Heap allocation inside potentially hot path"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 96,
+          "source_snippet": "chunk = list(records)                # allocation",
+          "entropy_score": 18.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "Heap allocation inside potentially hot path"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 97,
+          "source_snippet": "local_buf = dict()                   # allocation",
+          "entropy_score": 18.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "Heap allocation inside potentially hot path"
+        },
+        {
+          "function_name": "fetch_user_data",
+          "line_number": 29,
+          "source_snippet": "if response.status_code == 200:",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "fetch_user_data",
+          "line_number": 32,
+          "source_snippet": "elif response.status_code == 429:",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "fetch_user_data",
+          "line_number": 35,
+          "source_snippet": "if attempt == 2:",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "build_feature_matrix",
+          "line_number": 49,
+          "source_snippet": "if field and isinstance(field, (int, float)):",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "build_feature_matrix",
+          "line_number": 50,
+          "source_snippet": "if field > 0:",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "build_feature_matrix",
+          "line_number": 51,
+          "source_snippet": "if j < 512:",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "build_feature_matrix",
+          "line_number": 44,
+          "source_snippet": "matrix = np.zeros((n, 512))                       # allocation",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "Heap allocation inside potentially hot path"
+        },
+        {
+          "function_name": "recursive_flatten",
+          "line_number": 66,
+          "source_snippet": "if isinstance(item, list):",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 89,
+          "source_snippet": "if not raw or raw.status_code != 200:",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "process_batch",
+          "line_number": 91,
+          "source_snippet": "elif raw.status_code == 503:",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "<module>",
+          "line_number": 4,
+          "source_snippet": "and high cyclomatic complexity.",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "recursive_flatten",
+          "line_number": 61,
+          "source_snippet": "if depth > 50:",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        },
+        {
+          "function_name": "recursive_flatten",
+          "line_number": 64,
+          "source_snippet": "if isinstance(data, list):",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean operator increases cyclomatic complexity"
+        }
+      ]
+    },
+    {
+      "file_path": "./thermodynamic-ast-engine/test_samples/crawler.go",
       "language": "Go",
       "lines_scanned": 135,
-      "total_entropy": 819.0,
-      "mean_hotspot_entropy": 19.98,
+      "total_entropy": 659.0,
+      "mean_hotspot_entropy": 19.97,
       "hotspots": [
         {
           "function_name": "BuildIndex",
@@ -132,70 +397,6 @@
           "entropy_score": 22.0,
           "vulnerability_type": "SyncContention",
           "description": "sync.Mutex/atomic - potential throughput bottleneck"
-        },
-        {
-          "function_name": "NewCrawler",
-          "line_number": 31,
-          "source_snippet": "func NewCrawler(timeout time.Duration) *Crawler {",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Exported function call - checked for self-recursion"
-        },
-        {
-          "function_name": "CrawlBatch",
-          "line_number": 39,
-          "source_snippet": "func (c *Crawler) CrawlBatch(urls []string) []CrawlResult {",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Exported function call - checked for self-recursion"
-        },
-        {
-          "function_name": "BuildIndex",
-          "line_number": 79,
-          "source_snippet": "func BuildIndex(results []CrawlResult) map[string][]string {",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Exported function call - checked for self-recursion"
-        },
-        {
-          "function_name": "RecursiveMerge",
-          "line_number": 113,
-          "source_snippet": "func RecursiveMerge(dst, src map[string]interface{}) map[string]interface{} {",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Exported function call - checked for self-recursion"
-        },
-        {
-          "function_name": "SaveResults",
-          "line_number": 129,
-          "source_snippet": "func SaveResults(results []CrawlResult, path string) error {",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Exported function call - checked for self-recursion"
-        },
-        {
-          "function_name": "main",
-          "line_number": 154,
-          "source_snippet": "crawler := NewCrawler(10 * time.Second)",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Exported function call - checked for self-recursion"
-        },
-        {
-          "function_name": "main",
-          "line_number": 160,
-          "source_snippet": "index   := BuildIndex(results)",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Exported function call - checked for self-recursion"
-        },
-        {
-          "function_name": "main",
-          "line_number": 162,
-          "source_snippet": "if err  := SaveResults(results, \"out.txt\"); err != nil {",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Exported function call - checked for self-recursion"
         },
         {
           "function_name": "CrawlBatch",
@@ -344,280 +545,1252 @@
       ]
     },
     {
-      "file_path": ".\\test_samples\\data_pipeline.py",
-      "language": "Python",
-      "lines_scanned": 84,
-      "total_entropy": 782.0,
-      "mean_hotspot_entropy": 23.7,
+      "file_path": "./go-backend/main.go",
+      "language": "Go",
+      "lines_scanned": 373,
+      "total_entropy": 350.5,
+      "mean_hotspot_entropy": 7.01,
       "hotspots": [
         {
-          "function_name": "process_batch",
-          "line_number": 100,
-          "source_snippet": "for key, val in rec.items():     # loop ×3 — triple nesting",
-          "entropy_score": 82.5,
-          "vulnerability_type": "DeepNesting",
-          "description": "Loop construct detected - nesting depth multiplier applied"
-        },
-        {
-          "function_name": "fetch_user_data",
-          "line_number": 25,
-          "source_snippet": "response = requests.get(             # BlockingIO",
-          "entropy_score": 54.0,
-          "vulnerability_type": "BlockingIO",
-          "description": "Blocking I/O call on critical path - latency spike risk"
-        },
-        {
-          "function_name": "fetch_user_data",
-          "line_number": 33,
-          "source_snippet": "time.sleep(2 ** attempt)          # BlockingIO inside nested loop",
-          "entropy_score": 54.0,
-          "vulnerability_type": "BlockingIO",
-          "description": "Blocking I/O call on critical path - latency spike risk"
-        },
-        {
-          "function_name": "fetch_user_data",
-          "line_number": 23,
-          "source_snippet": "for attempt in range(3):                      # loop ×2 — deep nesting",
-          "entropy_score": 45.0,
-          "vulnerability_type": "DeepNesting",
-          "description": "Loop construct detected - nesting depth multiplier applied"
-        },
-        {
-          "function_name": "build_feature_matrix",
-          "line_number": 48,
-          "source_snippet": "for j, field in enumerate(record.get(\"fields\", [])):   # loop ×2",
-          "entropy_score": 45.0,
-          "vulnerability_type": "DeepNesting",
-          "description": "Loop construct detected - nesting depth multiplier applied"
-        },
-        {
-          "function_name": "process_batch",
-          "line_number": 99,
-          "source_snippet": "for rec in chunk:                    # loop ×2",
-          "entropy_score": 45.0,
-          "vulnerability_type": "DeepNesting",
-          "description": "Loop construct detected - nesting depth multiplier applied"
-        },
-        {
-          "function_name": "process_batch",
-          "line_number": 101,
-          "source_snippet": "if val and key and not key.startswith(\"_\"):",
-          "entropy_score": 27.5,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "process_batch",
-          "line_number": 102,
-          "source_snippet": "if isinstance(val, str) and len(val) > 0:",
-          "entropy_score": 27.5,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "process_batch",
-          "line_number": 86,
-          "source_snippet": "raw = requests.get(                  # BlockingIO",
-          "entropy_score": 27.0,
-          "vulnerability_type": "BlockingIO",
-          "description": "Blocking I/O call on critical path - latency spike risk"
-        },
-        {
-          "function_name": "process_batch",
-          "line_number": 92,
-          "source_snippet": "time.sleep(5)",
-          "entropy_score": 27.0,
-          "vulnerability_type": "BlockingIO",
-          "description": "Blocking I/O call on critical path - latency spike risk"
-        },
-        {
-          "function_name": "fetch_user_data",
-          "line_number": 22,
-          "source_snippet": "for uid in user_ids:                              # loop ×1",
+          "function_name": "resolveEnginePath",
+          "line_number": 89,
+          "source_snippet": "for _, c := range candidates {",
           "entropy_score": 22.5,
           "vulnerability_type": "DeepNesting",
-          "description": "Loop construct detected - nesting depth multiplier applied"
+          "description": "Go for-loop - nesting depth multiplier applied"
         },
         {
-          "function_name": "build_feature_matrix",
-          "line_number": 46,
-          "source_snippet": "for i, record in enumerate(records):              # loop ×1",
+          "function_name": "extractZip",
+          "line_number": 186,
+          "source_snippet": "for _, f := range r.File {",
           "entropy_score": 22.5,
           "vulnerability_type": "DeepNesting",
-          "description": "Loop construct detected - nesting depth multiplier applied"
+          "description": "Go for-loop - nesting depth multiplier applied"
         },
         {
-          "function_name": "recursive_flatten",
-          "line_number": 65,
-          "source_snippet": "for item in data:                             # loop inside recursion",
-          "entropy_score": 22.5,
-          "vulnerability_type": "DeepNesting",
-          "description": "Loop construct detected - nesting depth multiplier applied"
-        },
-        {
-          "function_name": "process_batch",
-          "line_number": 85,
-          "source_snippet": "for bid in batch_ids:                    # loop ×1",
-          "entropy_score": 22.5,
-          "vulnerability_type": "DeepNesting",
-          "description": "Loop construct detected - nesting depth multiplier applied"
-        },
-        {
-          "function_name": "<module>",
-          "line_number": 14,
-          "source_snippet": "_cache_lock = threading.Lock()",
-          "entropy_score": 22.0,
-          "vulnerability_type": "SyncContention",
-          "description": "Synchronisation primitive - potential lock contention hotspot"
-        },
-        {
-          "function_name": "__init__",
-          "line_number": 76,
-          "source_snippet": "self._lock = threading.RLock()               # SyncContention",
-          "entropy_score": 22.0,
-          "vulnerability_type": "SyncContention",
-          "description": "Synchronisation primitive - potential lock contention hotspot"
-        },
-        {
-          "function_name": "build_feature_matrix",
-          "line_number": 43,
-          "source_snippet": "n = len(records)",
-          "entropy_score": 20.0,
-          "vulnerability_type": "RecursiveCall",
-          "description": "Possible recursive invocation - stack-depth risk"
-        },
-        {
-          "function_name": "build_feature_matrix",
-          "line_number": 47,
-          "source_snippet": "features = np.zeros(512)                      # allocation inside loop",
+          "function_name": "analyzeHandler",
+          "line_number": 382,
+          "source_snippet": "time.Sleep(500 * time.Millisecond)",
           "entropy_score": 18.0,
-          "vulnerability_type": "HotAllocation",
-          "description": "Heap allocation inside potentially hot path"
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking stdlib I/O call - goroutine contention risk"
         },
         {
-          "function_name": "process_batch",
-          "line_number": 96,
-          "source_snippet": "chunk = list(records)                # allocation",
-          "entropy_score": 18.0,
-          "vulnerability_type": "HotAllocation",
-          "description": "Heap allocation inside potentially hot path"
-        },
-        {
-          "function_name": "process_batch",
-          "line_number": 97,
-          "source_snippet": "local_buf = dict()                   # allocation",
-          "entropy_score": 18.0,
-          "vulnerability_type": "HotAllocation",
-          "description": "Heap allocation inside potentially hot path"
-        },
-        {
-          "function_name": "fetch_user_data",
-          "line_number": 29,
-          "source_snippet": "if response.status_code == 200:",
-          "entropy_score": 15.0,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "fetch_user_data",
-          "line_number": 32,
-          "source_snippet": "elif response.status_code == 429:",
-          "entropy_score": 15.0,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "fetch_user_data",
-          "line_number": 35,
-          "source_snippet": "if attempt == 2:",
-          "entropy_score": 15.0,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "build_feature_matrix",
-          "line_number": 49,
-          "source_snippet": "if field and isinstance(field, (int, float)):",
-          "entropy_score": 15.0,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "build_feature_matrix",
-          "line_number": 50,
-          "source_snippet": "if field > 0:",
-          "entropy_score": 15.0,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "build_feature_matrix",
-          "line_number": 51,
-          "source_snippet": "if j < 512:",
-          "entropy_score": 15.0,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "build_feature_matrix",
-          "line_number": 44,
-          "source_snippet": "matrix = np.zeros((n, 512))                       # allocation",
+          "function_name": "resolveEnginePath",
+          "line_number": 81,
+          "source_snippet": "candidates := []string{",
           "entropy_score": 12.0,
           "vulnerability_type": "HotAllocation",
-          "description": "Heap allocation inside potentially hot path"
+          "description": "make/new/slice-literal allocation in hot path"
         },
         {
-          "function_name": "recursive_flatten",
-          "line_number": 66,
-          "source_snippet": "if isinstance(item, list):",
+          "function_name": "main",
+          "line_number": 516,
+          "source_snippet": "AllowOrigins:     []string{\"http://localhost:5173\", \"http://localhost:3000\", \"http://localhost:3001\", \"http://localhost:",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "main",
+          "line_number": 517,
+          "source_snippet": "AllowMethods:     []string{\"GET\", \"POST\", \"OPTIONS\"},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "main",
+          "line_number": 518,
+          "source_snippet": "AllowHeaders:     []string{\"Origin\", \"Content-Type\", \"Accept\", \"Authorization\"},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "main",
+          "line_number": 519,
+          "source_snippet": "ExposeHeaders:    []string{\"Content-Length\"},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "resolveEnginePath",
+          "line_number": 90,
+          "source_snippet": "if fi, err := os.Stat(c); err == nil && !fi.IsDir() {",
           "entropy_score": 7.5,
           "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
+          "description": "Branch/boolean expression increases cyclomatic complexity"
         },
         {
-          "function_name": "process_batch",
-          "line_number": 89,
-          "source_snippet": "if not raw or raw.status_code != 200:",
-          "entropy_score": 7.5,
-          "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
-        },
-        {
-          "function_name": "process_batch",
+          "function_name": "resolveEnginePath",
           "line_number": 91,
-          "source_snippet": "elif raw.status_code == 503:",
+          "source_snippet": "if abs, err := filepath.Abs(c); err == nil {",
           "entropy_score": 7.5,
           "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
+          "description": "Branch/boolean expression increases cyclomatic complexity"
         },
         {
-          "function_name": "<module>",
-          "line_number": 4,
-          "source_snippet": "and high cyclomatic complexity.",
-          "entropy_score": 5.0,
+          "function_name": "extractZip",
+          "line_number": 193,
+          "source_snippet": "if !strings.HasPrefix(",
+          "entropy_score": 7.5,
           "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
+          "description": "Branch/boolean expression increases cyclomatic complexity"
         },
         {
-          "function_name": "recursive_flatten",
-          "line_number": 61,
-          "source_snippet": "if depth > 50:",
-          "entropy_score": 5.0,
+          "function_name": "extractZip",
+          "line_number": 200,
+          "source_snippet": "if f.FileInfo().IsDir() {",
+          "entropy_score": 7.5,
           "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
+          "description": "Branch/boolean expression increases cyclomatic complexity"
         },
         {
-          "function_name": "recursive_flatten",
-          "line_number": 64,
-          "source_snippet": "if isinstance(data, list):",
+          "function_name": "extractZip",
+          "line_number": 202,
+          "source_snippet": "if err := os.MkdirAll(targetPath, 0o750); err != nil {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "extractZip",
+          "line_number": 210,
+          "source_snippet": "if err := os.MkdirAll(filepath.Dir(targetPath), 0o750); err != nil {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "extractZip",
+          "line_number": 214,
+          "source_snippet": "if err := extractSingleFile(f, targetPath); err != nil {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "envOr",
+          "line_number": 55,
+          "source_snippet": "if v := os.Getenv(key); v != \"\" {",
           "entropy_score": 5.0,
           "vulnerability_type": "CognitiveBranch",
-          "description": "Branch/boolean operator increases cyclomatic complexity"
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "envOrInt",
+          "line_number": 62,
+          "source_snippet": "if v := os.Getenv(key); v != \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "envOrInt",
+          "line_number": 63,
+          "source_snippet": "if i, err := strconv.Atoi(v); err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "resolveEnginePath",
+          "line_number": 72,
+          "source_snippet": "if custom := os.Getenv(\"ENGINE_PATH\"); custom != \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "resolveEnginePath",
+          "line_number": 77,
+          "source_snippet": "if runtime.GOOS == \"windows\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "extractZip",
+          "line_number": 175,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "extractZip",
+          "line_number": 182,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "extractSingleFile",
+          "line_number": 227,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "extractSingleFile",
+          "line_number": 234,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "extractSingleFile",
+          "line_number": 241,
+          "source_snippet": "if _, err := io.Copy(out, io.LimitReader(rc, maxBytes+1)); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "runEngine",
+          "line_number": 270,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "runEngine",
+          "line_number": 272,
+          "source_snippet": "if errors.Is(ctx.Err(), context.DeadlineExceeded) {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "readReport",
+          "line_number": 289,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "readReport",
+          "line_number": 294,
+          "source_snippet": "if err := json.Unmarshal(data, &report); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 316,
+          "source_snippet": "if err := c.Request.ParseMultipartForm(32 << 20); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 327,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 338,
+          "source_snippet": "if !strings.HasSuffix(strings.ToLower(filename), \".zip\") {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 348,
+          "source_snippet": "if err := os.MkdirAll(uploadsDir, 0o750); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 357,
+          "source_snippet": "if err := c.SaveUploadedFile(fileHeader, zipDest); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 369,
+          "source_snippet": "if err := os.MkdirAll(extractDir, 0o750); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 383,
+          "source_snippet": "if err := os.RemoveAll(extractDir); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 385,
+          "source_snippet": "} else {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 388,
+          "source_snippet": "if err := os.Remove(zipDest); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 390,
+          "source_snippet": "} else {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 398,
+          "source_snippet": "if err := extractZip(zipDest, extractDir); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 400,
+          "source_snippet": "if strings.Contains(err.Error(), \"zip slip\") {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 424,
+          "source_snippet": "if engineOutput != \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 427,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 430,
+          "source_snippet": "if errors.Is(ctx.Err(), context.DeadlineExceeded) {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "analyzeHandler",
+          "line_number": 448,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "main",
+          "line_number": 484,
+          "source_snippet": "if _, err := os.Stat(enginePath); errors.Is(err, os.ErrNotExist) {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "main",
+          "line_number": 485,
+          "source_snippet": "log.Printf(\"[WARN] Engine binary not found at %q -- set ENGINE_PATH env var if it is elsewhere.\", enginePath)",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "main",
+          "line_number": 486,
+          "source_snippet": "} else {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "main",
+          "line_number": 491,
+          "source_snippet": "if os.Getenv(\"GIN_MODE\") == \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "main",
+          "line_number": 571,
+          "source_snippet": "if err := r.Run(addr); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
         }
       ]
     },
     {
-      "file_path": ".\\test_samples\\utils.py",
+      "file_path": "./go-backend/main_test.go",
+      "language": "Go",
+      "lines_scanned": 212,
+      "total_entropy": 307.5,
+      "mean_hotspot_entropy": 7.5,
+      "hotspots": [
+        {
+          "function_name": "makeTestZip",
+          "line_number": 29,
+          "source_snippet": "for name, content := range entries {",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "TestAllowedFileExtensions",
+          "line_number": 260,
+          "source_snippet": "for _, ext := range valid {",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "TestAllowedFileExtensions",
+          "line_number": 267,
+          "source_snippet": "for _, ext := range invalid {",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "makeTestZip",
+          "line_number": 20,
+          "source_snippet": "f, err := os.Create(path)",
+          "entropy_score": 18.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking stdlib I/O call - goroutine contention risk"
+        },
+        {
+          "function_name": "TestExtractZip_ZipSlip",
+          "line_number": 78,
+          "source_snippet": "f, _ := os.Create(zipPath)",
+          "entropy_score": 18.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking stdlib I/O call - goroutine contention risk"
+        },
+        {
+          "function_name": "TestAllowedFileExtensions",
+          "line_number": 259,
+          "source_snippet": "valid := []string{\".ppt\", \".pptx\", \".pdf\", \".zip\", \".txt\", \".md\"}",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestAllowedFileExtensions",
+          "line_number": 266,
+          "source_snippet": "invalid := []string{\".exe\", \".sh\", \".bat\", \".py\", \".js\", \".html\"}",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "makeTestZip",
+          "line_number": 31,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "makeTestZip",
+          "line_number": 34,
+          "source_snippet": "if _, err := entry.Write([]byte(content)); err != nil {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestAllowedFileExtensions",
+          "line_number": 261,
+          "source_snippet": "if !allowedExtensions[ext] {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestAllowedFileExtensions",
+          "line_number": 268,
+          "source_snippet": "if allowedExtensions[ext] {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "makeTestZip",
+          "line_number": 21,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestExtractZip_HappyPath",
+          "line_number": 51,
+          "source_snippet": "if err := extractZip(zipPath, destDir); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestExtractZip_HappyPath",
+          "line_number": 59,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestExtractZip_HappyPath",
+          "line_number": 63,
+          "source_snippet": "if string(got) != want {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestExtractZip_ZipSlip",
+          "line_number": 88,
+          "source_snippet": "if err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestExtractZip_CorruptZip",
+          "line_number": 99,
+          "source_snippet": "if err := os.WriteFile(zipPath, []byte(\"this is not a zip file\"), 0o640); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestExtractZip_CorruptZip",
+          "line_number": 104,
+          "source_snippet": "if err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestReadReport_Valid",
+          "line_number": 127,
+          "source_snippet": "if err := os.WriteFile(reportPath, []byte(json), 0o640); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestReadReport_Valid",
+          "line_number": 132,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestReadReport_Valid",
+          "line_number": 136,
+          "source_snippet": "if report.FilesAnalyzed != 2 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestReadReport_Valid",
+          "line_number": 139,
+          "source_snippet": "if report.GlobalEntropy != 123.45 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestReadReport_Valid",
+          "line_number": 142,
+          "source_snippet": "if report.EngineVersion != \"0.1.0\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestReadReport_MissingFile",
+          "line_number": 150,
+          "source_snippet": "if err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestReadReport_InvalidJSON",
+          "line_number": 160,
+          "source_snippet": "if err := os.WriteFile(path, []byte(\"{broken json\"), 0o640); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestReadReport_InvalidJSON",
+          "line_number": 165,
+          "source_snippet": "if err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestEnvOr",
+          "line_number": 175,
+          "source_snippet": "if got := envOr(\"TEST_KEY\", \"fallback\"); got != \"hello\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestEnvOr",
+          "line_number": 178,
+          "source_snippet": "if got := envOr(\"UNSET_KEY_XYZ\", \"fallback\"); got != \"fallback\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestEnvOrInt",
+          "line_number": 185,
+          "source_snippet": "if got := envOrInt(\"TEST_INT\", 0); got != 42 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestEnvOrInt",
+          "line_number": 188,
+          "source_snippet": "if got := envOrInt(\"UNSET_INT_XYZ\", 99); got != 99 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestResolveEnginePath",
+          "line_number": 196,
+          "source_snippet": "if got := resolveEnginePath(); got != \"/custom/path/engine\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestResolveEnginePath",
+          "line_number": 203,
+          "source_snippet": "if got == \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 213,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 218,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 221,
+          "source_snippet": "if len(items) != 0 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 233,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 236,
+          "source_snippet": "if saved.ID != 1 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 242,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 247,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 250,
+          "source_snippet": "if len(items) != 1 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestJSONStore_SaveAndGetAll",
+          "line_number": 253,
+          "source_snippet": "if items[0].Title != \"Test Deck\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        }
+      ]
+    },
+    {
+      "file_path": "./go-backend/deliverables.go",
+      "language": "Go",
+      "lines_scanned": 279,
+      "total_entropy": 256.0,
+      "mean_hotspot_entropy": 7.76,
+      "hotspots": [
+        {
+          "function_name": "GetAll",
+          "line_number": 82,
+          "source_snippet": "for rows.Next() {",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "NewJSONStore",
+          "line_number": 114,
+          "source_snippet": "for _, item := range s.items {",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "GetAll",
+          "line_number": 100,
+          "source_snippet": "mu       sync.RWMutex",
+          "entropy_score": 22.0,
+          "vulnerability_type": "SyncContention",
+          "description": "sync.Mutex/atomic - potential throughput bottleneck"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 166,
+          "source_snippet": "db, err := sql.Open(\"postgres\", connStr)",
+          "entropy_score": 18.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking stdlib I/O call - goroutine contention risk"
+        },
+        {
+          "function_name": "GetAll",
+          "line_number": 92,
+          "source_snippet": "list = []Deliverable{}",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "NewJSONStore",
+          "line_number": 108,
+          "source_snippet": "items:    []Deliverable{},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "GetAll",
+          "line_number": 149,
+          "source_snippet": "result := make([]Deliverable, len(s.items))",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "GetAll",
+          "line_number": 85,
+          "source_snippet": "if err := rows.Scan(&d.ID, &d.Title, &d.Version, &d.Date, &d.Summary, &d.Filename, &d.FileURL, &uploadedAt); err != nil ",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "NewJSONStore",
+          "line_number": 115,
+          "source_snippet": "if item.ID >= s.nextID {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "Save",
+          "line_number": 62,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "GetAll",
+          "line_number": 76,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "GetAll",
+          "line_number": 91,
+          "source_snippet": "if list == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "NewJSONStore",
+          "line_number": 112,
+          "source_snippet": "if data, err := os.ReadFile(filePath); err == nil && len(data) > 0 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "NewJSONStore",
+          "line_number": 113,
+          "source_snippet": "if err := json.Unmarshal(data, &s.items); err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "Save",
+          "line_number": 134,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "Save",
+          "line_number": 138,
+          "source_snippet": "if err := os.WriteFile(s.filePath, data, 0o640); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 162,
+          "source_snippet": "if dbHost != \"\" && dbUser != \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 167,
+          "source_snippet": "if err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 168,
+          "source_snippet": "if err := db.Ping(); err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 182,
+          "source_snippet": "if _, err := db.Exec(createTableQuery); err == nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 185,
+          "source_snippet": "} else {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 188,
+          "source_snippet": "} else {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 199,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "initDeliverableStore",
+          "line_number": 201,
+          "source_snippet": "} else {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadDeliverableHandler",
+          "line_number": 226,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadDeliverableHandler",
+          "line_number": 236,
+          "source_snippet": "if !allowedExtensions[ext] {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadDeliverableHandler",
+          "line_number": 245,
+          "source_snippet": "if title == \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadDeliverableHandler",
+          "line_number": 253,
+          "source_snippet": "if err := os.MkdirAll(uploadsDir, 0o750); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadDeliverableHandler",
+          "line_number": 267,
+          "source_snippet": "if err := c.SaveUploadedFile(fileHeader, savedPath); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadDeliverableHandler",
+          "line_number": 286,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "getDeliverablesHandler",
+          "line_number": 307,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "serveUploadFileHandler",
+          "line_number": 331,
+          "source_snippet": "if !strings.HasPrefix(absTarget, cleanedUploads) {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "serveUploadFileHandler",
+          "line_number": 336,
+          "source_snippet": "if fi, err := os.Stat(absTarget); err != nil || fi.IsDir() {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        }
+      ]
+    },
+    {
+      "file_path": "./api/main.go",
+      "language": "Go",
+      "lines_scanned": 164,
+      "total_entropy": 140.0,
+      "mean_hotspot_entropy": 7.78,
+      "hotspots": [
+        {
+          "function_name": "<module>",
+          "line_number": 53,
+          "source_snippet": "mu           sync.RWMutex   // protects deliverables from concurrent access",
+          "entropy_score": 22.0,
+          "vulnerability_type": "SyncContention",
+          "description": "sync.Mutex/atomic - potential throughput bottleneck"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 126,
+          "source_snippet": "dest, err := os.Create(savedPath)",
+          "entropy_score": 18.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking stdlib I/O call - goroutine contention risk"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 128,
+          "source_snippet": "log.Printf(\"[ERROR] os.Create: %v\", err)",
+          "entropy_score": 18.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking stdlib I/O call - goroutine contention risk"
+        },
+        {
+          "function_name": "deliverablesHandler",
+          "line_number": 194,
+          "source_snippet": "snapshot := make([]Deliverable, len(deliverables))",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 76,
+          "source_snippet": "if r.Method == http.MethodOptions {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 81,
+          "source_snippet": "if r.Method != http.MethodPost {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 88,
+          "source_snippet": "if err := r.ParseMultipartForm(maxMemory); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 96,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 113,
+          "source_snippet": "if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 127,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 135,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "uploadHandler",
+          "line_number": 169,
+          "source_snippet": "if err := json.NewEncoder(w).Encode(resp); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "deliverablesHandler",
+          "line_number": 182,
+          "source_snippet": "if r.Method == http.MethodOptions {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "deliverablesHandler",
+          "line_number": 187,
+          "source_snippet": "if r.Method != http.MethodGet {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "deliverablesHandler",
+          "line_number": 200,
+          "source_snippet": "if err := json.NewEncoder(w).Encode(snapshot); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "main",
+          "line_number": 216,
+          "source_snippet": "if r.Method != http.MethodGet {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "main",
+          "line_number": 223,
+          "source_snippet": "if err := json.NewEncoder(w).Encode(resp); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "main",
+          "line_number": 241,
+          "source_snippet": "if err := http.ListenAndServe(port, mux); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        }
+      ]
+    },
+    {
+      "file_path": "./go-backend/scanner.go",
+      "language": "Go",
+      "lines_scanned": 100,
+      "total_entropy": 53.0,
+      "mean_hotspot_entropy": 6.63,
+      "hotspots": [
+        {
+          "function_name": "scanRepoHandler",
+          "line_number": 70,
+          "source_snippet": "time.Sleep(1 * time.Second)",
+          "entropy_score": 18.0,
+          "vulnerability_type": "BlockingIO",
+          "description": "Blocking stdlib I/O call - goroutine contention risk"
+        },
+        {
+          "function_name": "scanRepoHandler",
+          "line_number": 27,
+          "source_snippet": "if err := c.ShouldBindJSON(&req); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "scanRepoHandler",
+          "line_number": 36,
+          "source_snippet": "if repoURL == \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "scanRepoHandler",
+          "line_number": 45,
+          "source_snippet": "if strings.HasPrefix(repoURL, \"-\") || strings.ContainsAny(repoURL, \" \\t\\r\\n;|&`$\") {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "scanRepoHandler",
+          "line_number": 54,
+          "source_snippet": "if err != nil || (parsed.Scheme != \"http\" && parsed.Scheme != \"https\") || parsed.Host == \"\" {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "scanRepoHandler",
+          "line_number": 83,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "scanRepoHandler",
+          "line_number": 98,
+          "source_snippet": "if _, err := runEngine(engineCtx, enginePath, targetDir, reportPath); err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "scanRepoHandler",
+          "line_number": 109,
+          "source_snippet": "if err != nil {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        }
+      ]
+    },
+    {
+      "file_path": "./thermodynamic-ast-engine/test_samples/utils.py",
       "language": "Python",
       "lines_scanned": 21,
       "total_entropy": 10.0,

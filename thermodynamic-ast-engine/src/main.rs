@@ -265,8 +265,9 @@ fn func_regex_for(language: &str) -> &'static Lazy<Regex> {
 /// State threaded through the line-by-line scan.
 struct ScanState {
     current_function:  String,
-    nesting_depth:     usize, // tracks loop nesting depth for score multiplier
+    nesting_depth:     usize, // tracks block nesting depth
     loop_depth:        usize, // specifically loop nesting (for / while)
+    loop_levels:       Vec<usize>, // tracks block depth or indent level of active loops
 }
 
 impl ScanState {
@@ -275,6 +276,7 @@ impl ScanState {
             current_function: "<module>".to_owned(),
             nesting_depth:    0,
             loop_depth:       0,
+            loop_levels:      Vec::new(),
         }
     }
 }
@@ -295,6 +297,7 @@ fn analyze_line(
     language:  &str,
 ) -> Vec<Hotspot> {
     let mut hotspots = Vec::new();
+    let is_func_decl = func_re.is_match(raw_line);
 
     // ── Track current function context ────────────────────────────────────────
     if let Some(cap) = func_re.captures(raw_line) {
@@ -302,30 +305,57 @@ fn analyze_line(
             state.current_function = name.as_str().to_owned();
             // Reset per-function loop depth when entering a new function
             state.loop_depth = 0;
+            state.loop_levels.clear();
         }
     }
 
     // ── Track nesting depth via indentation (Python) or brace count (Go) ────
     match language {
         "Python" => {
-            // Use indent-level heuristic: every 4 spaces of leading whitespace
-            // increases the nesting depth counter by 1.
             let indent = raw_line.len() - raw_line.trim_start().len();
             state.nesting_depth = indent / 4;
 
-            // Count specifically loop nesting depth
+            let trimmed = raw_line.trim();
+            // A loop ends when an indentation level drops to or below the loop's indent level
+            if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                while let Some(&loop_indent) = state.loop_levels.last() {
+                    if indent <= loop_indent && !PY_FOR_WHILE.is_match(raw_line) {
+                        state.loop_levels.pop();
+                        state.loop_depth = state.loop_depth.saturating_sub(1);
+                    } else {
+                        break;
+                    }
+                }
+            }
+
             if PY_FOR_WHILE.is_match(raw_line) {
                 state.loop_depth = state.loop_depth.saturating_add(1);
+                state.loop_levels.push(indent);
             }
         }
         "Go" => {
             // Count unmatched `{` and `}` to track block depth
             let opens:  usize = raw_line.chars().filter(|&c| c == '{').count();
             let closes: usize = raw_line.chars().filter(|&c| c == '}').count();
-            state.nesting_depth = state.nesting_depth.saturating_add(opens).saturating_sub(closes);
+
+            // When closing braces appear, close any loops that were nested at or above this block level
+            if closes > 0 {
+                let depth_after_closes = state.nesting_depth.saturating_sub(closes);
+                while let Some(&loop_level) = state.loop_levels.last() {
+                    if depth_after_closes < loop_level {
+                        state.loop_levels.pop();
+                        state.loop_depth = state.loop_depth.saturating_sub(1);
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            state.nesting_depth = state.nesting_depth.saturating_sub(closes).saturating_add(opens);
 
             if GO_FOR.is_match(raw_line) {
                 state.loop_depth = state.loop_depth.saturating_add(1);
+                state.loop_levels.push(state.nesting_depth);
             }
         }
         _ => {}
@@ -338,6 +368,24 @@ fn analyze_line(
 
     // ── Apply each rule ───────────────────────────────────────────────────────
     for rule in rules {
+        // Skip flagging recursive call on the function declaration itself
+        if is_func_decl && rule.vulnerability == VulnerabilityType::RecursiveCall {
+            continue;
+        }
+
+        // For recursive calls, check that the call target actually matches the current function
+        if rule.vulnerability == VulnerabilityType::RecursiveCall {
+            if state.current_function == "<module>" {
+                continue;
+            }
+            let self_call_pat = format!("{}(", state.current_function);
+            let py_self_call = format!("self.{}(", state.current_function);
+            let has_recursion = raw_line.contains(&self_call_pat) || raw_line.contains(&py_self_call);
+            if !has_recursion {
+                continue;
+            }
+        }
+
         if rule.regex.is_match(raw_line) {
             let raw_score  = rule.base_score * nesting_multiplier;
             // Clamp to [0, 100]
@@ -742,4 +790,77 @@ mod tests {
             assert!(h.entropy_score <= 100.0, "Entropy must be clamped to 100.0");
         }
     }
+
+    #[test]
+    fn test_sequential_loops_do_not_inflate_nesting_in_go() {
+        let mut state = ScanState::new();
+        let rules = go_rules();
+
+        // Start func
+        analyze_line("func ProcessData() {", 1, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 0);
+
+        // First loop
+        analyze_line("    for i := 0; i < 10; i++ {", 2, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 1);
+
+        // Close first loop
+        analyze_line("    }", 3, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 0, "Loop depth must decrement back to 0 when loop block closes");
+
+        // Second sequential loop
+        analyze_line("    for j := 0; j < 10; j++ {", 4, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 1, "Second sequential loop should have loop_depth 1, NOT 2");
+
+        // Close second loop
+        analyze_line("    }", 5, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 0);
+    }
+
+    #[test]
+    fn test_nested_loops_scale_properly_in_go() {
+        let mut state = ScanState::new();
+        let rules = go_rules();
+
+        analyze_line("func ProcessData() {", 1, &mut state, &rules, &GO_FUNC, "Go");
+        analyze_line("    for i := 0; i < 10; i++ {", 2, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 1);
+
+        analyze_line("        for j := 0; j < 10; j++ {", 3, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 2, "Nested loop should have loop_depth 2");
+
+        analyze_line("        }", 4, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 1, "Exiting inner loop should drop depth to 1");
+
+        analyze_line("    }", 5, &mut state, &rules, &GO_FUNC, "Go");
+        assert_eq!(state.loop_depth, 0, "Exiting outer loop should drop depth to 0");
+    }
+
+    #[test]
+    fn test_func_decl_not_flagged_as_recursive() {
+        let mut state = ScanState::new();
+        let rules = go_rules();
+
+        // Function declaration should NOT trigger RecursiveCall
+        let hotspots = analyze_line("func NewCrawler(timeout time.Duration) *Crawler {", 1, &mut state, &rules, &GO_FUNC, "Go");
+        assert!(
+            !hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::RecursiveCall),
+            "Function declaration must not be flagged as a recursive call"
+        );
+
+        // Self-recursion should trigger RecursiveCall
+        let recursive_hotspots = analyze_line("    return NewCrawler(timeout)", 2, &mut state, &rules, &GO_FUNC, "Go");
+        assert!(
+            recursive_hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::RecursiveCall),
+            "Direct self-recursive call must be flagged as RecursiveCall"
+        );
+
+        // Calling another function should NOT trigger RecursiveCall
+        let external_hotspots = analyze_line("    return OtherFunction()", 3, &mut state, &rules, &GO_FUNC, "Go");
+        assert!(
+            !external_hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::RecursiveCall),
+            "Calling a different function must not be flagged as RecursiveCall"
+        );
+    }
 }
+

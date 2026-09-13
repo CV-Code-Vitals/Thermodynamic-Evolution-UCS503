@@ -54,6 +54,33 @@ function sendFile(res, filePath) {
 }
 
 const server = http.createServer((req, res) => {
+  // Reverse proxy /api/* traffic to the Go backend on port 8080
+  if (req.url.startsWith('/api/') || req.url === '/api') {
+    const backendPort = process.env.BACKEND_PORT || 8080;
+    const proxyReq = http.request({
+      hostname: '127.0.0.1',
+      port: backendPort,
+      path: req.url,
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: `127.0.0.1:${backendPort}`,
+      },
+    }, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+
+    proxyReq.on('error', (err) => {
+      console.error(`[PROXY ERROR] Could not reach backend on port ${backendPort}:`, err.message);
+      res.writeHead(502, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'bad_gateway', message: `Cannot connect to Go backend on port ${backendPort}` }));
+    });
+
+    req.pipe(proxyReq, { end: true });
+    return;
+  }
+
   const requestUrl = decodeURIComponent(req.url.split('?')[0]);
   const { redirect, file } = getFilePath(requestUrl);
 
@@ -63,7 +90,7 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (!file || !file.startsWith(ROOT_DIR) && !file.startsWith(ADMIN_DIST)) {
+  if (!file || (!file.startsWith(ROOT_DIR) && !file.startsWith(ADMIN_DIST))) {
     res.writeHead(400, { 'Content-Type': 'text/plain' });
     res.end('400 Bad Request');
     return;

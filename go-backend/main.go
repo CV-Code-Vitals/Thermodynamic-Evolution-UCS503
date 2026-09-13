@@ -36,6 +36,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -64,6 +65,37 @@ func envOrInt(key string, fallback int) int {
 		}
 	}
 	return fallback
+}
+
+// resolveEnginePath finds the compiled Rust engine binary across OS platforms and common build paths.
+func resolveEnginePath() string {
+	if custom := os.Getenv("ENGINE_PATH"); custom != "" {
+		return custom
+	}
+
+	binaryName := "thermodynamic-ast-engine"
+	if runtime.GOOS == "windows" {
+		binaryName = "thermodynamic-ast-engine.exe"
+	}
+
+	candidates := []string{
+		filepath.Join(".", binaryName),
+		filepath.Join("..", "thermodynamic-ast-engine", "target", "release", binaryName),
+		filepath.Join("..", "thermodynamic-ast-engine", "target", "debug", binaryName),
+		filepath.Join(".", "thermodynamic-ast-engine", "target", "release", binaryName),
+		filepath.Join(".", "thermodynamic-ast-engine", "target", "debug", binaryName),
+	}
+
+	for _, c := range candidates {
+		if fi, err := os.Stat(c); err == nil && !fi.IsDir() {
+			if abs, err := filepath.Abs(c); err == nil {
+				return abs
+			}
+			return c
+		}
+	}
+
+	return "./" + binaryName
 }
 
 // =============================================================================
@@ -440,7 +472,7 @@ func analyzeHandler(enginePath string, engineTimeout time.Duration, maxUploadByt
 
 func main() {
 	// ── Read configuration ────────────────────────────────────────────────────
-	enginePath    := envOr("ENGINE_PATH", "./thermodynamic-ast-engine.exe")
+	enginePath    := resolveEnginePath()
 	port          := envOr("PORT", "8080")
 	timeoutSec    := envOrInt("ENGINE_TIMEOUT_SEC", 300)
 	maxUploadMB   := envOrInt("MAX_UPLOAD_MB", 50)
@@ -481,9 +513,9 @@ func main() {
 	// CORS -- allow the React dev server (Vite default: 5173) and common ports.
 	// Tighten AllowOrigins in production.
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://localhost:3001"},
+		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://localhost:3001", "http://localhost:8000"},
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
@@ -491,17 +523,44 @@ func main() {
 
 	// ── Routes ────────────────────────────────────────────────────────────────
 
-	// Health check -- useful for Docker/K8s probes and frontend connectivity tests
-	r.GET("/health", func(c *gin.Context) {
+	// Health & status checks (registered under multiple endpoints for proxy resilience)
+	healthHandler := func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"status":      "ok",
 			"engine_path": enginePath,
 			"version":     "1.0.0",
 		})
-	})
+	}
+	r.GET("/health", healthHandler)
+	r.GET("/api/health", healthHandler)
+	r.GET("/status", healthHandler)
+	r.GET("/api/status", healthHandler)
 
-	// Core analysis endpoint
-	r.POST("/api/analyze", analyzeHandler(enginePath, engineTimeout, maxUploadBytes))
+	// Core analysis endpoint (both with and without /api prefix for proxy resilience)
+	analyzeH := analyzeHandler(enginePath, engineTimeout, maxUploadBytes)
+	r.POST("/api/analyze", analyzeH)
+	r.POST("/analyze", analyzeH)
+
+	// Live Git repository scanner (for Graph Visualizer)
+	scanH := scanRepoHandler(enginePath, engineTimeout)
+	r.POST("/api/scan", scanH)
+	r.POST("/scan", scanH)
+
+	// Deliverables & Admin Portal endpoints (backed by PostgreSQL / JSON storage)
+	deliverableStore := initDeliverableStore()
+	uploadDelivH := uploadDeliverableHandler(deliverableStore, maxUploadBytes)
+	r.POST("/api/upload", uploadDelivH)
+	r.POST("/upload", uploadDelivH)
+
+	getDelivH := getDeliverablesHandler(deliverableStore)
+	r.GET("/api/deliverables", getDelivH)
+	r.GET("/deliverables", getDelivH)
+
+	// Secure static file server for uploaded archives
+	uploadsDir := "./uploads"
+	_ = os.MkdirAll(uploadsDir, 0o750)
+	r.GET("/uploads/:filename", serveUploadFileHandler(uploadsDir))
+	r.GET("/api/uploads/:filename", serveUploadFileHandler(uploadsDir))
 
 	// ── Start ─────────────────────────────────────────────────────────────────
 	addr := ":" + port

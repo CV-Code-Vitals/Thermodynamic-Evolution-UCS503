@@ -189,3 +189,84 @@ func TestEnvOrInt(t *testing.T) {
 		t.Errorf("got %d, want 99", got)
 	}
 }
+
+func TestResolveEnginePath(t *testing.T) {
+	// Custom env override
+	t.Setenv("ENGINE_PATH", "/custom/path/engine")
+	if got := resolveEnginePath(); got != "/custom/path/engine" {
+		t.Errorf("got %q, want %q", got, "/custom/path/engine")
+	}
+
+	// Without env override, should return a sensible path without crashing
+	t.Setenv("ENGINE_PATH", "")
+	got := resolveEnginePath()
+	if got == "" {
+		t.Error("expected non-empty engine path")
+	}
+}
+
+func TestJSONStore_SaveAndGetAll(t *testing.T) {
+	tmp := t.TempDir()
+	jsonPath := filepath.Join(tmp, "deliverables.json")
+
+	store, err := NewJSONStore(jsonPath)
+	if err != nil {
+		t.Fatalf("NewJSONStore: %v", err)
+	}
+
+	items, err := store.GetAll()
+	if err != nil {
+		t.Fatalf("GetAll empty: %v", err)
+	}
+	if len(items) != 0 {
+		t.Errorf("expected 0 items, got %d", len(items))
+	}
+
+	d := Deliverable{
+		Title:    "Test Deck",
+		Version:  "1.0",
+		Filename: "deck.pptx",
+		FileURL:  "/uploads/deck.pptx",
+	}
+
+	saved, err := store.Save(d)
+	if err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	if saved.ID != 1 {
+		t.Errorf("expected ID 1, got %d", saved.ID)
+	}
+
+	// Reload from disk to verify persistence
+	reloadedStore, err := NewJSONStore(jsonPath)
+	if err != nil {
+		t.Fatalf("reloadedStore: %v", err)
+	}
+
+	items, err = reloadedStore.GetAll()
+	if err != nil {
+		t.Fatalf("reloadedStore.GetAll: %v", err)
+	}
+	if len(items) != 1 {
+		t.Fatalf("expected 1 item, got %d", len(items))
+	}
+	if items[0].Title != "Test Deck" {
+		t.Errorf("expected title 'Test Deck', got %q", items[0].Title)
+	}
+}
+
+func TestAllowedFileExtensions(t *testing.T) {
+	valid := []string{".ppt", ".pptx", ".pdf", ".zip", ".txt", ".md"}
+	for _, ext := range valid {
+		if !allowedExtensions[ext] {
+			t.Errorf("extension %q should be allowed", ext)
+		}
+	}
+
+	invalid := []string{".exe", ".sh", ".bat", ".py", ".js", ".html"}
+	for _, ext := range invalid {
+		if allowedExtensions[ext] {
+			t.Errorf("extension %q must NOT be allowed", ext)
+		}
+	}
+}
