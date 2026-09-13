@@ -27,6 +27,7 @@ package main
 import (
 	"archive/zip"
 	"context"
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -60,7 +61,7 @@ func envOr(key, fallback string) string {
 
 func envOrInt(key string, fallback int) int {
 	if v := os.Getenv(key); v != "" {
-		if i, err := strconv.Atoi(v); err == nil {
+		if i, err := strconv.Atoi(v); err == nil && i > 0 {
 			return i
 		}
 	}
@@ -183,6 +184,13 @@ func extractZip(zipPath, destDir string) error {
 		return fmt.Errorf("resolve dest dir: %w", err)
 	}
 
+	const maxEntries = 10_000
+	const maxArchiveBytes int64 = 256 << 20
+	const maxEntryBytes int64 = 16 << 20
+	if len(r.File) > maxEntries {
+		return fmt.Errorf("zip contains too many entries")
+	}
+	var extractedBytes int64
 	for _, f := range r.File {
 		// ── Build the target path ─────────────────────────────────────────────
 		// filepath.Join cleans ".." traversals, but we still need an explicit
@@ -204,6 +212,9 @@ func extractZip(zipPath, destDir string) error {
 			}
 			continue
 		}
+		if f.UncompressedSize64 > uint64(maxEntryBytes) {
+			return fmt.Errorf("zip entry %q exceeds size limit", f.Name)
+		}
 
 		// ── Extract file ──────────────────────────────────────────────────────
 		// Ensure parent directory exists (zip may not list directories explicitly)
@@ -211,8 +222,13 @@ func extractZip(zipPath, destDir string) error {
 			return fmt.Errorf("create parent dir for %q: %w", f.Name, err)
 		}
 
-		if err := extractSingleFile(f, targetPath); err != nil {
+		written, err := extractSingleFile(f, targetPath, maxEntryBytes)
+		if err != nil {
 			return fmt.Errorf("extract %q: %w", f.Name, err)
+		}
+		extractedBytes += written
+		if extractedBytes > maxArchiveBytes {
+			return fmt.Errorf("zip exceeds total extraction limit")
 		}
 	}
 
@@ -221,28 +237,45 @@ func extractZip(zipPath, destDir string) error {
 
 // extractSingleFile writes one zip entry to disk.
 // Files are written with 0640 permissions; no executable bit for safety.
-func extractSingleFile(f *zip.File, destPath string) error {
+func extractSingleFile(f *zip.File, destPath string, maxBytes int64) (int64, error) {
 	// Open the compressed stream
 	rc, err := f.Open()
 	if err != nil {
-		return fmt.Errorf("open entry: %w", err)
+		return 0, fmt.Errorf("open entry: %w", err)
 	}
 	defer rc.Close()
 
 	// Create destination file (O_EXCL prevents overwrite attacks)
 	out, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o640)
 	if err != nil {
-		return fmt.Errorf("create file: %w", err)
+		return 0, fmt.Errorf("create file: %w", err)
 	}
 	defer out.Close()
 
 	// Copy with a 256 MiB cap to guard against decompression bombs
-	const maxBytes = 256 << 20 // 256 MiB per file
-	if _, err := io.Copy(out, io.LimitReader(rc, maxBytes+1)); err != nil {
-		return fmt.Errorf("write file: %w", err)
+	written, err := io.Copy(out, io.LimitReader(rc, maxBytes+1))
+	if err != nil {
+		return written, fmt.Errorf("write file: %w", err)
 	}
+	if written > maxBytes {
+		return written, fmt.Errorf("entry exceeds extraction limit")
+	}
+	return written, nil
+}
 
-	return nil
+func tokenMiddleware(expected string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if expected == "" {
+			c.Next()
+			return
+		}
+		provided := c.GetHeader("X-API-Token")
+		if len(provided) != len(expected) || subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) != 1 {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
+			return
+		}
+		c.Next()
+	}
 }
 
 // =============================================================================
@@ -485,7 +518,7 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://localhost:3001", "http://localhost:8000"},
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-API-Token"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: false,
 		MaxAge:           12 * time.Hour,
@@ -506,10 +539,12 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	r.GET("/status", healthHandler)
 	r.GET("/api/status", healthHandler)
 
+	analysisToken := os.Getenv("ANALYSIS_API_TOKEN")
+
 	// Core analysis endpoint (both with and without /api prefix for proxy resilience)
 	analyzeH := analyzeHandler(enginePath, engineTimeout, maxUploadBytes)
-	r.POST("/api/analyze", analyzeH)
-	r.POST("/analyze", analyzeH)
+	r.POST("/api/analyze", tokenMiddleware(analysisToken), analyzeH)
+	r.POST("/analyze", tokenMiddleware(analysisToken), analyzeH)
 
 	// Live Git repository scanner (for Graph Visualizer)
 	scanH := scanRepoHandler(enginePath, engineTimeout)
@@ -538,12 +573,16 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 
 func main() {
 	// ── Read configuration ────────────────────────────────────────────────────
-	enginePath    := resolveEnginePath()
-	port          := envOr("PORT", "8080")
-	timeoutSec    := envOrInt("ENGINE_TIMEOUT_SEC", 300)
-	maxUploadMB   := envOrInt("MAX_UPLOAD_MB", 50)
+	enginePath := resolveEnginePath()
+	port := envOr("PORT", "8080")
+	timeoutSec := envOrInt("ENGINE_TIMEOUT_SEC", 300)
+	maxUploadMB := envOrInt("MAX_UPLOAD_MB", 50)
+	analysisToken := os.Getenv("ANALYSIS_API_TOKEN")
+	if analysisToken == "" {
+		log.Printf("[INFO] ANALYSIS_API_TOKEN is not set; running in open/development mode.")
+	}
 
-	engineTimeout  := time.Duration(timeoutSec) * time.Second
+	engineTimeout := time.Duration(timeoutSec) * time.Second
 	maxUploadBytes := int64(maxUploadMB) << 20 // MiB -> bytes
 
 	// Validate that the engine binary exists at startup so we fail fast

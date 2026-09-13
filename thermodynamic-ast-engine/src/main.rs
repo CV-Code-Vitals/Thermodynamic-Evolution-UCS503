@@ -90,12 +90,12 @@ pub enum VulnerabilityType {
 impl std::fmt::Display for VulnerabilityType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::DeepNesting      => write!(f, "DeepNesting"),
-            Self::RecursiveCall    => write!(f, "RecursiveCall"),
-            Self::HotAllocation    => write!(f, "HotAllocation"),
-            Self::BlockingIO       => write!(f, "BlockingIO"),
-            Self::CognitiveBranch  => write!(f, "CognitiveBranch"),
-            Self::SyncContention   => write!(f, "SyncContention"),
+            Self::DeepNesting => write!(f, "DeepNesting"),
+            Self::RecursiveCall => write!(f, "RecursiveCall"),
+            Self::HotAllocation => write!(f, "HotAllocation"),
+            Self::BlockingIO => write!(f, "BlockingIO"),
+            Self::CognitiveBranch => write!(f, "CognitiveBranch"),
+            Self::SyncContention => write!(f, "SyncContention"),
         }
     }
 }
@@ -175,39 +175,57 @@ pub struct ThermodynamicReport {
 
 /// Internal representation of one pattern rule.
 struct PatternRule {
-    regex:            &'static Lazy<Regex>,
-    vulnerability:    VulnerabilityType,
-    base_score:       f64, // base entropy contribution per match
+    regex: &'static Lazy<Regex>,
+    vulnerability: VulnerabilityType,
+    base_score: f64, // base entropy contribution per match
     description_tmpl: &'static str,
 }
 
 // ── Python patterns ───────────────────────────────────────────────────────────
 
-static PY_FOR_WHILE: Lazy<Regex>   = Lazy::new(|| Regex::new(r"^\s*(for|while)\s+").unwrap());
+static PY_FOR_WHILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*(for|while)\s+").unwrap());
 // Note: the `regex` crate does not support backreferences; we detect recursion
 // via two independent signals:
 //   1. `self.method()` — object calling its own method (Python)
 //   2. A standalone identifier call on its own line that is NOT a dotted method
 //      call (e.g. `flatten(items)` rather than `obj.flatten(items)`)
-static PY_RECURSIVE: Lazy<Regex>   = Lazy::new(|| Regex::new(r"\bself\s*\.\s*\w+\s*\(|(?:^|\s)(\w+)\s*\([^)]*\)\s*$").unwrap());
-static PY_ALLOC: Lazy<Regex>       = Lazy::new(|| Regex::new(r"\b(list|dict|set|bytearray|numpy\.zeros|numpy\.ones|np\.zeros|np\.ones|torch\.zeros|torch\.ones)\s*[\(\[]").unwrap());
-static PY_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b(open\s*\(|requests\.(get|post|put|delete|patch)|urllib|subprocess\.(call|run|Popen)|time\.sleep|socket\.recv|socket\.accept)\b").unwrap());
-static PY_BRANCH: Lazy<Regex>      = Lazy::new(|| Regex::new(r"\b(if|elif|and|or|not|assert)\b").unwrap());
-static PY_MUTEX: Lazy<Regex>       = Lazy::new(|| Regex::new(r"\b(threading\.(Lock|RLock|Semaphore)|asyncio\.Lock|multiprocessing\.Lock)\b").unwrap());
-static PY_FUNC: Lazy<Regex>        = Lazy::new(|| Regex::new(r"^\s*(?:async\s+)?def\s+(\w+)\s*\(").unwrap());
+static PY_RECURSIVE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\bself\s*\.\s*\w+\s*\(|(?:^|\s)(\w+)\s*\([^)]*\)\s*$").unwrap());
+static PY_ALLOC: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(list|dict|set|bytearray|numpy\.zeros|numpy\.ones|np\.zeros|np\.ones|torch\.zeros|torch\.ones)\s*[\(\[]").unwrap()
+});
+static PY_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(open\s*\(|requests\.(get|post|put|delete|patch)|urllib|subprocess\.(call|run|Popen)|time\.sleep|socket\.recv|socket\.accept)\b").unwrap()
+});
+static PY_BRANCH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(if|elif|and|or|not|assert)\b").unwrap());
+static PY_MUTEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(threading\.(Lock|RLock|Semaphore)|asyncio\.Lock|multiprocessing\.Lock)\b")
+        .unwrap()
+});
+static PY_FUNC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(?:async\s+)?def\s+(\w+)\s*\(").unwrap());
 
 // ── Go patterns ───────────────────────────────────────────────────────────────
 
-static GO_FOR: Lazy<Regex>         = Lazy::new(|| Regex::new(r"^\s*for\s+").unwrap());
+static GO_FOR: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*for\s+").unwrap());
 // Match a bare function call (not a dotted method call like obj.Method()).
 // The negative lookbehind equivalent in `regex` isn't supported, so we anchor
 // on the pattern starting after whitespace or at line start, without a dot.
-static GO_RECURSIVE: Lazy<Regex>   = Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([A-Z]\w*)\s*\(").unwrap()); // Capital = exported fn, likely recursive
-static GO_ALLOC: Lazy<Regex>       = Lazy::new(|| Regex::new(r"\bmake\s*\(|\bnew\s*\(|\[\][\w\*]+\{").unwrap());
-static GO_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b(os\.Open|os\.Create|ioutil\.(ReadFile|WriteFile)|http\.(Get|Post)|net\.Dial|time\.Sleep|bufio\.NewReader|sql\.Open)\b").unwrap());
-static GO_BRANCH: Lazy<Regex>      = Lazy::new(|| Regex::new(r"\b(if|else|switch|case|&&|\|\||select)\b").unwrap());
-static GO_MUTEX: Lazy<Regex>       = Lazy::new(|| Regex::new(r"\b(sync\.(Mutex|RWMutex|WaitGroup|Once)|atomic\.(Add|Load|Store|Swap))").unwrap());
-static GO_FUNC: Lazy<Regex>        = Lazy::new(|| Regex::new(r"^\s*func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(").unwrap());
+static GO_RECURSIVE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([A-Z]\w*)\s*\(").unwrap()); // Capital = exported fn, likely recursive
+static GO_ALLOC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\bmake\s*\(|\bnew\s*\(|\[\][\w\*]+\{").unwrap());
+static GO_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(os\.Open|os\.Create|ioutil\.(ReadFile|WriteFile)|http\.(Get|Post)|net\.Dial|time\.Sleep|bufio\.NewReader|sql\.Open)\b").unwrap()
+});
+static GO_BRANCH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|&&|\|\||select)\b").unwrap());
+static GO_MUTEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(sync\.(Mutex|RWMutex|WaitGroup|Once)|atomic\.(Add|Load|Store|Swap))").unwrap()
+});
+static GO_FUNC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(").unwrap());
 
 // =============================================================================
 // § 4  Language-specific rule tables
@@ -215,23 +233,83 @@ static GO_FUNC: Lazy<Regex>        = Lazy::new(|| Regex::new(r"^\s*func\s+(?:\([
 
 fn python_rules() -> Vec<PatternRule> {
     vec![
-        PatternRule { regex: &PY_FOR_WHILE,    vulnerability: VulnerabilityType::DeepNesting,     base_score: 15.0, description_tmpl: "Loop construct detected - nesting depth multiplier applied"     },
-        PatternRule { regex: &PY_RECURSIVE,    vulnerability: VulnerabilityType::RecursiveCall,   base_score: 20.0, description_tmpl: "Possible recursive invocation - stack-depth risk"               },
-        PatternRule { regex: &PY_ALLOC,        vulnerability: VulnerabilityType::HotAllocation,   base_score: 12.0, description_tmpl: "Heap allocation inside potentially hot path"                    },
-        PatternRule { regex: &PY_BLOCKING_IO,  vulnerability: VulnerabilityType::BlockingIO,      base_score: 18.0, description_tmpl: "Blocking I/O call on critical path - latency spike risk"       },
-        PatternRule { regex: &PY_BRANCH,       vulnerability: VulnerabilityType::CognitiveBranch, base_score:  5.0, description_tmpl: "Branch/boolean operator increases cyclomatic complexity"       },
-        PatternRule { regex: &PY_MUTEX,        vulnerability: VulnerabilityType::SyncContention,  base_score: 22.0, description_tmpl: "Synchronisation primitive - potential lock contention hotspot"  },
+        PatternRule {
+            regex: &PY_FOR_WHILE,
+            vulnerability: VulnerabilityType::DeepNesting,
+            base_score: 15.0,
+            description_tmpl: "Loop construct detected - nesting depth multiplier applied",
+        },
+        PatternRule {
+            regex: &PY_RECURSIVE,
+            vulnerability: VulnerabilityType::RecursiveCall,
+            base_score: 20.0,
+            description_tmpl: "Possible recursive invocation - stack-depth risk",
+        },
+        PatternRule {
+            regex: &PY_ALLOC,
+            vulnerability: VulnerabilityType::HotAllocation,
+            base_score: 12.0,
+            description_tmpl: "Heap allocation inside potentially hot path",
+        },
+        PatternRule {
+            regex: &PY_BLOCKING_IO,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 18.0,
+            description_tmpl: "Blocking I/O call on critical path - latency spike risk",
+        },
+        PatternRule {
+            regex: &PY_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Branch/boolean operator increases cyclomatic complexity",
+        },
+        PatternRule {
+            regex: &PY_MUTEX,
+            vulnerability: VulnerabilityType::SyncContention,
+            base_score: 22.0,
+            description_tmpl: "Synchronisation primitive - potential lock contention hotspot",
+        },
     ]
 }
 
 fn go_rules() -> Vec<PatternRule> {
     vec![
-        PatternRule { regex: &GO_FOR,          vulnerability: VulnerabilityType::DeepNesting,     base_score: 15.0, description_tmpl: "Go for-loop - nesting depth multiplier applied"                 },
-        PatternRule { regex: &GO_RECURSIVE,    vulnerability: VulnerabilityType::RecursiveCall,   base_score: 20.0, description_tmpl: "Exported function call - checked for self-recursion"            },
-        PatternRule { regex: &GO_ALLOC,        vulnerability: VulnerabilityType::HotAllocation,   base_score: 12.0, description_tmpl: "make/new/slice-literal allocation in hot path"                 },
-        PatternRule { regex: &GO_BLOCKING_IO,  vulnerability: VulnerabilityType::BlockingIO,      base_score: 18.0, description_tmpl: "Blocking stdlib I/O call - goroutine contention risk"           },
-        PatternRule { regex: &GO_BRANCH,       vulnerability: VulnerabilityType::CognitiveBranch, base_score:  5.0, description_tmpl: "Branch/boolean expression increases cyclomatic complexity"     },
-        PatternRule { regex: &GO_MUTEX,        vulnerability: VulnerabilityType::SyncContention,  base_score: 22.0, description_tmpl: "sync.Mutex/atomic - potential throughput bottleneck"            },
+        PatternRule {
+            regex: &GO_FOR,
+            vulnerability: VulnerabilityType::DeepNesting,
+            base_score: 15.0,
+            description_tmpl: "Go for-loop - nesting depth multiplier applied",
+        },
+        PatternRule {
+            regex: &GO_RECURSIVE,
+            vulnerability: VulnerabilityType::RecursiveCall,
+            base_score: 20.0,
+            description_tmpl: "Exported function call - checked for self-recursion",
+        },
+        PatternRule {
+            regex: &GO_ALLOC,
+            vulnerability: VulnerabilityType::HotAllocation,
+            base_score: 12.0,
+            description_tmpl: "make/new/slice-literal allocation in hot path",
+        },
+        PatternRule {
+            regex: &GO_BLOCKING_IO,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 18.0,
+            description_tmpl: "Blocking stdlib I/O call - goroutine contention risk",
+        },
+        PatternRule {
+            regex: &GO_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Branch/boolean expression increases cyclomatic complexity",
+        },
+        PatternRule {
+            regex: &GO_MUTEX,
+            vulnerability: VulnerabilityType::SyncContention,
+            base_score: 22.0,
+            description_tmpl: "sync.Mutex/atomic - potential throughput bottleneck",
+        },
     ]
 }
 
@@ -243,9 +321,9 @@ fn go_rules() -> Vec<PatternRule> {
 /// Returns `None` for unsupported extensions.
 fn detect_language(path: &Path) -> Option<(&'static str, Vec<PatternRule>)> {
     match path.extension()?.to_str()? {
-        "py"  => Some(("Python", python_rules())),
-        "go"  => Some(("Go",     go_rules())),
-        _     => None,
+        "py" => Some(("Python", python_rules())),
+        "go" => Some(("Go", go_rules())),
+        _ => None,
     }
 }
 
@@ -253,8 +331,8 @@ fn detect_language(path: &Path) -> Option<(&'static str, Vec<PatternRule>)> {
 fn func_regex_for(language: &str) -> &'static Lazy<Regex> {
     match language {
         "Python" => &PY_FUNC,
-        "Go"     => &GO_FUNC,
-        _        => &PY_FUNC, // fallback
+        "Go" => &GO_FUNC,
+        _ => &PY_FUNC, // fallback
     }
 }
 
@@ -264,19 +342,19 @@ fn func_regex_for(language: &str) -> &'static Lazy<Regex> {
 
 /// State threaded through the line-by-line scan.
 struct ScanState {
-    current_function:  String,
-    nesting_depth:     usize, // tracks block nesting depth
-    loop_depth:        usize, // specifically loop nesting (for / while)
-    loop_levels:       Vec<usize>, // tracks block depth or indent level of active loops
+    current_function: String,
+    nesting_depth: usize, // tracks block nesting depth
+    loop_depth: usize,    // specifically loop nesting (for / while)
+    loop_levels: Vec<usize>, // tracks block depth or indent level of active loops
 }
 
 impl ScanState {
     fn new() -> Self {
         Self {
             current_function: "<module>".to_owned(),
-            nesting_depth:    0,
-            loop_depth:       0,
-            loop_levels:      Vec::new(),
+            nesting_depth: 0,
+            loop_depth: 0,
+            loop_levels: Vec::new(),
         }
     }
 }
@@ -289,12 +367,12 @@ impl ScanState {
 /// of any pattern found inside deeply-nested loops — this models the
 /// actual O(n^k) impact on runtime complexity.
 fn analyze_line(
-    raw_line:  &str,
-    line_no:   usize,
-    state:     &mut ScanState,
-    rules:     &[PatternRule],
-    func_re:   &Regex,
-    language:  &str,
+    raw_line: &str,
+    line_no: usize,
+    state: &mut ScanState,
+    rules: &[PatternRule],
+    func_re: &Regex,
+    language: &str,
 ) -> Vec<Hotspot> {
     let mut hotspots = Vec::new();
     let is_func_decl = func_re.is_match(raw_line);
@@ -335,7 +413,7 @@ fn analyze_line(
         }
         "Go" => {
             // Count unmatched `{` and `}` to track block depth
-            let opens:  usize = raw_line.chars().filter(|&c| c == '{').count();
+            let opens: usize = raw_line.chars().filter(|&c| c == '{').count();
             let closes: usize = raw_line.chars().filter(|&c| c == '}').count();
 
             // When closing braces appear, close any loops that were nested at or above this block level
@@ -385,19 +463,18 @@ fn analyze_line(
                 continue;
             }
         }
-
         if rule.regex.is_match(raw_line) {
-            let raw_score  = rule.base_score * nesting_multiplier;
+            let raw_score = rule.base_score * nesting_multiplier;
             // Clamp to [0, 100]
-            let entropy    = raw_score.min(100.0).max(0.0);
+            let entropy = raw_score.min(100.0).max(0.0);
 
             hotspots.push(Hotspot {
-                function_name:    state.current_function.clone(),
-                line_number:      line_no,
-                source_snippet:   raw_line.trim().chars().take(120).collect(),
-                entropy_score:    (entropy * 100.0).round() / 100.0, // 2 d.p.
+                function_name: state.current_function.clone(),
+                line_number: line_no,
+                source_snippet: raw_line.trim().chars().take(120).collect(),
+                entropy_score: (entropy * 100.0).round() / 100.0, // 2 d.p.
                 vulnerability_type: rule.vulnerability.clone(),
-                description:      rule.description_tmpl.to_owned(),
+                description: rule.description_tmpl.to_owned(),
             });
         }
     }
@@ -417,16 +494,16 @@ pub fn scan_file(path: &Path, min_score: f64) -> io::Result<Option<FileReport>> 
     // ── Language detection ────────────────────────────────────────────────────
     let (language, rules) = match detect_language(path) {
         Some(lr) => lr,
-        None     => return Ok(None), // unsupported file type
+        None => return Ok(None), // unsupported file type
     };
 
-    let func_re   = func_regex_for(language);
-    let file      = fs::File::open(path)?;
-    let reader    = io::BufReader::new(file);
+    let func_re = func_regex_for(language);
+    let file = fs::File::open(path)?;
+    let reader = io::BufReader::new(file);
 
-    let mut state         = ScanState::new();
-    let mut all_hotspots  : Vec<Hotspot> = Vec::new();
-    let mut lines_scanned : usize        = 0;
+    let mut state = ScanState::new();
+    let mut all_hotspots: Vec<Hotspot> = Vec::new();
+    let mut lines_scanned: usize = 0;
 
     for (idx, line_result) in reader.lines().enumerate() {
         let line = line_result?;
@@ -436,7 +513,8 @@ pub fn scan_file(path: &Path, min_score: f64) -> io::Result<Option<FileReport>> 
         if trimmed.is_empty()
             || trimmed.starts_with('#')   // Python / shell comment
             || trimmed.starts_with("//")  // Go / C-style comment
-            || trimmed.starts_with("/*")  // block comment
+            || trimmed.starts_with("/*")
+        // block comment
         {
             continue;
         }
@@ -469,12 +547,12 @@ pub fn scan_file(path: &Path, min_score: f64) -> io::Result<Option<FileReport>> 
     };
 
     Ok(Some(FileReport {
-        file_path:            path.to_string_lossy().into_owned(),
-        language:             language.to_owned(),
+        file_path: path.to_string_lossy().into_owned(),
+        language: language.to_owned(),
         lines_scanned,
-        total_entropy:        (total_entropy * 100.0).round() / 100.0,
+        total_entropy: (total_entropy * 100.0).round() / 100.0,
         mean_hotspot_entropy: mean_entropy,
-        hotspots:             all_hotspots,
+        hotspots: all_hotspots,
     }))
 }
 
@@ -516,7 +594,7 @@ pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileRep
                 }
                 match scan_file(&path, min_score) {
                     Ok(Some(report)) => Some(report),
-                    Ok(None)         => None,
+                    Ok(None) => None,
                     Err(e) => {
                         eprintln!("{} {}: {}", "ERR".red().bold(), path.display(), e);
                         None
@@ -536,7 +614,7 @@ pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileRep
             }
             match scan_file(&path, min_score) {
                 Ok(Some(report)) => Some(report),
-                Ok(None)         => None,
+                Ok(None) => None,
                 Err(e) => {
                     eprintln!("ERR {}: {}", path.display(), e);
                     None
@@ -555,8 +633,8 @@ pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileRep
 /// Assemble the root `ThermodynamicReport`, sort by entropy, and write JSON.
 pub fn build_and_write_report(
     mut file_reports: Vec<FileReport>,
-    scanned_dir:     &Path,
-    output_path:     &Path,
+    scanned_dir: &Path,
+    output_path: &Path,
 ) -> io::Result<ThermodynamicReport> {
     // Sort files by total_entropy descending — highest-entropy files first
     file_reports.sort_by(|a, b| b.total_entropy.partial_cmp(&a.total_entropy).unwrap());
@@ -565,12 +643,12 @@ pub fn build_and_write_report(
     let global_entropy = file_reports.iter().map(|r| r.total_entropy).sum::<f64>();
 
     let report = ThermodynamicReport {
-        engine_version:    env!("CARGO_PKG_VERSION").to_owned(),
-        generated_at:      chrono::Utc::now().to_rfc3339(),
+        engine_version: env!("CARGO_PKG_VERSION").to_owned(),
+        generated_at: chrono::Utc::now().to_rfc3339(),
         scanned_directory: scanned_dir.to_string_lossy().into_owned(),
-        files_analyzed:    file_reports.len(),
+        files_analyzed: file_reports.len(),
         total_hotspots,
-        global_entropy:    (global_entropy * 100.0).round() / 100.0,
+        global_entropy: (global_entropy * 100.0).round() / 100.0,
         file_reports,
     };
 
@@ -592,13 +670,25 @@ fn print_summary(report: &ThermodynamicReport) {
     println!("{}", "╔══════════════════════════════════════════╗".cyan());
     println!("{}", "║   Thermodynamic AST Engine — Summary     ║".cyan());
     println!("{}", "╚══════════════════════════════════════════╝".cyan());
-    println!("  Files analyzed   : {}", report.files_analyzed.to_string().yellow());
-    println!("  Total hotspots   : {}", report.total_hotspots.to_string().yellow());
-    println!("  Global entropy   : {}", format!("{:.2}", report.global_entropy).red().bold());
+    println!(
+        "  Files analyzed   : {}",
+        report.files_analyzed.to_string().yellow()
+    );
+    println!(
+        "  Total hotspots   : {}",
+        report.total_hotspots.to_string().yellow()
+    );
+    println!(
+        "  Global entropy   : {}",
+        format!("{:.2}", report.global_entropy).red().bold()
+    );
 
     println!();
     println!("{}", "  Top 5 Entropy Hotspots:".bold());
-    println!("  {:<6}  {:<30}  {:<8}  {}", "Score", "File", "Line", "Vulnerability");
+    println!(
+        "  {:<6}  {:<30}  {:<8}  {}",
+        "Score", "File", "Line", "Vulnerability"
+    );
     println!("  {}", "─".repeat(72));
 
     // Flatten and collect top 5 across all files
@@ -607,7 +697,12 @@ fn print_summary(report: &ThermodynamicReport) {
         .iter()
         .flat_map(|r| {
             r.hotspots.iter().map(move |h| {
-                (h.entropy_score, r.file_path.as_str(), h.line_number, &h.vulnerability_type)
+                (
+                    h.entropy_score,
+                    r.file_path.as_str(),
+                    h.line_number,
+                    &h.vulnerability_type,
+                )
             })
         })
         .collect();
@@ -676,7 +771,7 @@ fn main() {
 
     // ── Build & persist report ────────────────────────────────────────────────
     let report = match build_and_write_report(file_reports, &cli.directory, &cli.output) {
-        Ok(r)  => r,
+        Ok(r) => r,
         Err(e) => {
             eprintln!("{} Failed to write report: {}", "ERROR:".red().bold(), e);
             std::process::exit(1);
@@ -711,7 +806,9 @@ mod tests {
         let hotspots = analyze_line(line, 42, &mut state, &rules, &PY_FUNC, "Python");
 
         assert!(
-            hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::BlockingIO),
+            hotspots
+                .iter()
+                .any(|h| h.vulnerability_type == VulnerabilityType::BlockingIO),
             "Expected BlockingIO hotspot for requests.get"
         );
     }
@@ -724,7 +821,9 @@ mod tests {
         let hotspots = analyze_line(line, 7, &mut state, &rules, &GO_FUNC, "Go");
 
         assert!(
-            hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::HotAllocation),
+            hotspots
+                .iter()
+                .any(|h| h.vulnerability_type == VulnerabilityType::HotAllocation),
             "Expected HotAllocation hotspot for make()"
         );
     }
@@ -765,7 +864,9 @@ mod tests {
         let hotspots2 = analyze_line(line2, 100, &mut state, &rules, &GO_FUNC, "Go");
 
         assert!(
-            hotspots2.iter().any(|h| h.vulnerability_type == VulnerabilityType::SyncContention),
+            hotspots2
+                .iter()
+                .any(|h| h.vulnerability_type == VulnerabilityType::SyncContention),
             "Expected SyncContention for sync.Mutex declaration"
         );
     }

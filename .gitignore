@@ -2,10 +2,11 @@
 node_modules/
 dist/
 .vite/
+admin-portal/assets/
 
 # Rust
 target/
-Cargo.lock
+parser/target/
 
 # Go / Backend
 uploads/

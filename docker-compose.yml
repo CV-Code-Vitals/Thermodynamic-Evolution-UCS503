@@ -24,11 +24,12 @@ services:
     expose:
       - "8080" # Exposed only to the internal Docker bridge network
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=engine_secret
-      - DB_NAME=thermodynamic_db
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/thermodynamic_db?sslmode=disable
+      ADMIN_PASSKEY: ${ADMIN_PASSKEY:?set ADMIN_PASSKEY in .env}
+      TRUST_PROXY: "true"
+    volumes:
+      - api_uploads:/app/uploads
+      - api_data:/app/data
     networks:
       - engine_net
     depends_on:
@@ -41,7 +42,7 @@ services:
     container_name: ucs503_db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: engine_secret
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: thermodynamic_db
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -56,3 +57,5 @@ networks:
 volumes:
   # Persistent volume for the PostgreSQL database
   pgdata:
+  api_uploads:
+  api_data:
