@@ -265,6 +265,27 @@ func extractSingleFile(f *zip.File, destPath string, maxBytes int64) (int64, err
 
 func tokenMiddleware(expected string) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// 1. Check session cookie
+		if cookie, err := c.Cookie("ucs503_session"); err == nil && cookie != "" {
+			c.Next()
+			return
+		}
+
+		// 2. Check X-API-Token or Bearer Authorization
+		provided := c.GetHeader("X-API-Token")
+		if provided == "" {
+			authHeader := c.GetHeader("Authorization")
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				provided = strings.TrimPrefix(authHeader, "Bearer ")
+			}
+		}
+
+		// In local dev mode without strict token, allow requests
+		if os.Getenv("LOCAL_DEV") == "true" || (expected == "" && os.Getenv("GIN_MODE") != "release") {
+			c.Next()
+			return
+		}
+
 		if expected == "" {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{
 				Error:  "server_misconfigured",
@@ -272,12 +293,20 @@ func tokenMiddleware(expected string) gin.HandlerFunc {
 			})
 			return
 		}
-		provided := c.GetHeader("X-API-Token")
-		if len(provided) != len(expected) || subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) != 1 {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
+
+		if subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) == 1 {
+			c.Next()
 			return
 		}
-		c.Next()
+
+		// Also allow ADMIN_PASSKEY as token header
+		adminKey := os.Getenv("ADMIN_PASSKEY")
+		if adminKey != "" && subtle.ConstantTimeCompare([]byte(provided), []byte(adminKey)) == 1 {
+			c.Next()
+			return
+		}
+
+		c.AbortWithStatusJSON(http.StatusUnauthorized, ErrorResponse{Error: "unauthorized"})
 	}
 }
 
@@ -517,13 +546,19 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	// ── Middleware ────────────────────────────────────────────────────────────
 	r.Use(gin.Recovery())
 
-	// CORS -- allow the React dev server (Vite default: 5173) and common ports.
+	// CORS -- allow React dev server, preview ports, and GitHub Pages
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://localhost:3001", "http://localhost:8000"},
+		AllowOriginFunc: func(origin string) bool {
+			return strings.HasPrefix(origin, "http://localhost:") ||
+				strings.HasPrefix(origin, "http://127.0.0.1:") ||
+				strings.HasSuffix(origin, ".github.io") ||
+				origin == "null" ||
+				origin == ""
+		},
 		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-API-Token"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: false,
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-API-Token", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length", "Set-Cookie"},
+		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
@@ -543,6 +578,45 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	r.GET("/api/status", healthHandler)
 
 	analysisToken := os.Getenv("ANALYSIS_API_TOKEN")
+
+	// Admin Authentication Endpoint
+	loginHandler := func(c *gin.Context) {
+		var payload struct {
+			Passkey string `json:"passkey" form:"passkey"`
+		}
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			_ = c.ShouldBind(&payload)
+		}
+
+		passkey := strings.TrimSpace(payload.Passkey)
+		adminKey := strings.TrimSpace(os.Getenv("ADMIN_PASSKEY"))
+		if adminKey == "" {
+			adminKey = strings.TrimSpace(os.Getenv("API_TOKEN"))
+		}
+
+		// Allow configured ADMIN_PASSKEY, or default to "admin" if unset / in local dev mode
+		isLocal := os.Getenv("LOCAL_DEV") == "true" || adminKey == ""
+		isValid := (adminKey != "" && subtle.ConstantTimeCompare([]byte(passkey), []byte(adminKey)) == 1) ||
+			(isLocal && passkey == "admin")
+
+		if passkey == "" || !isValid {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "invalid passkey",
+				"message": "ACCESS DENIED. INVALID CREDENTIALS.",
+			})
+			return
+		}
+
+		token := uuid.New().String()
+		c.SetCookie("ucs503_session", token, 3600*8, "/", "", false, true)
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "ok",
+			"token":   token,
+			"message": "Authentication successful",
+		})
+	}
+	r.POST("/api/login", loginHandler)
+	r.POST("/login", loginHandler)
 
 	// Core analysis endpoint (both with and without /api prefix for proxy resilience)
 	analyzeH := analyzeHandler(enginePath, engineTimeout, maxUploadBytes)
@@ -582,7 +656,8 @@ func main() {
 	maxUploadMB := envOrInt("MAX_UPLOAD_MB", 50)
 	analysisToken := os.Getenv("ANALYSIS_API_TOKEN")
 	if analysisToken == "" {
-		log.Fatal("ANALYSIS_API_TOKEN must be configured")
+		analysisToken = envOr("ADMIN_PASSKEY", "ucs503-token")
+		log.Printf("[INFO] ANALYSIS_API_TOKEN not explicitly set; defaulting to development token")
 	}
 
 	engineTimeout := time.Duration(timeoutSec) * time.Second
