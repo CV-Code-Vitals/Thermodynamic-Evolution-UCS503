@@ -47,6 +47,11 @@ function getFilePath(urlPath) {
 function sendFile(res, filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const contentType = mimeTypes[ext] || 'application/octet-stream';
+  const relativePath = path.relative(ROOT_DIR, filePath);
+  const isLegacyPage = relativePath === 'index.html' || relativePath.startsWith(`graph-visualizer${path.sep}`);
+  const contentSecurityPolicy = isLegacyPage
+    ? "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:8080 http://127.0.0.1:8080; base-uri 'self'; frame-ancestors 'none'"
+    : "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; base-uri 'self'; frame-ancestors 'none'";
 
   fs.readFile(filePath, (err, content) => {
     if (err) {
@@ -58,7 +63,7 @@ function sendFile(res, filePath) {
     res.writeHead(200, {
       'Content-Type': contentType,
       'X-Content-Type-Options': 'nosniff',
-      'Content-Security-Policy': "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'self'; frame-ancestors 'none'",
+      'Content-Security-Policy': contentSecurityPolicy,
     });
     res.end(content);
   });

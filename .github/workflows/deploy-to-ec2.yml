@@ -27,9 +27,8 @@ jobs:
             echo "Logging into ghcr..."
             echo '${{ secrets.GHCR_PAT }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
             docker pull ghcr.io/zylus08/ucs503-api:latest
-            # If you use docker-compose on the server, update the image reference in the compose file or rely on image:latest
-            docker compose pull || true
-            docker compose up -d --no-build --remove-orphans
+            docker compose -f docker-compose.ec2.yml pull
+            docker compose -f docker-compose.ec2.yml up -d --remove-orphans
 
   deployment-not-configured:
     runs-on: ubuntu-latest

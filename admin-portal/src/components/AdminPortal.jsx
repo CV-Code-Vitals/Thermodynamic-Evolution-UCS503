@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
   Shield, Lock, UploadCloud, File, CheckCircle,
-  Terminal, Loader2, Database, Download, ArrowLeft
+  Terminal, Loader2, Database, Download
 } from 'lucide-react';
 import './AdminPortal.css';
 
-const apiBase = import.meta.env.VITE_API_BASE || '/api';
-const publicApiBase = apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase;
+const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
+const publicApiBase = apiBase.startsWith('http')
+  ? (apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase)
+  : window.location.origin;
 const archiveFileUrl = (url) => new URL(url, `${publicApiBase.replace(/\/$/, '')}/`).href;
 
 const readResponse = async (response) => {

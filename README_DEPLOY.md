@@ -7,6 +7,14 @@ Local dev - API (Go)
 2) From repository root, preferred quick start (Windows PowerShell):
    .\scripts\run-local.ps1
 
+If `ADMIN_PASSKEY` is not set, the Windows local script uses `admin` as a
+development-only passkey. Production deployments must set `ADMIN_PASSKEY`
+through a server environment variable or GitHub/hosting secret.
+
+The `api/` service is the Admin Portal backend. The separate `go-backend/`
+service runs repository analysis and scanning; it requires `ANALYSIS_API_TOKEN`
+and should not be used as a drop-in replacement for the Admin Portal API.
+
 Or (cross-platform manual):
    # API
    cd api
@@ -21,6 +29,9 @@ Or (cross-platform manual):
    When the frontend is hosted on a different origin, set `CORS_ALLOWED_ORIGINS`
    on the API to the frontend origin (for example, `https://zylus08.github.io`).
    Multiple origins may be comma-separated.
+
+   If running `go-backend/`, also set `ANALYSIS_API_TOKEN`; analysis, scanning,
+   deliverables, and uploaded-file routes reject requests without that token.
 
    # Frontend (run in separate terminal)
    cd admin-portal

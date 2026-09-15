@@ -32,7 +32,9 @@ jobs:
         working-directory: ./admin-portal
         env:
           VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
-        run: npm run build
+        run: |
+          test -n "$VITE_API_BASE"
+          npm run build
 
       - name: Assemble Pages site
         run: |

@@ -153,6 +153,34 @@ func (s *JSONStore) GetAll() ([]Deliverable, error) {
 
 // initDeliverableStore attempts to connect to PostgreSQL, falling back to JSONStore.
 func initDeliverableStore() DeliverableStore {
+	if databaseURL := os.Getenv("DATABASE_URL"); databaseURL != "" {
+		db, err := sql.Open("postgres", databaseURL)
+		if err == nil {
+			if err := db.Ping(); err == nil {
+				log.Printf("[DB] Connected to PostgreSQL using DATABASE_URL")
+				if _, err := db.Exec(`CREATE TABLE IF NOT EXISTS deliverables (
+					id SERIAL PRIMARY KEY,
+					title TEXT NOT NULL,
+					version TEXT NOT NULL,
+					date TEXT NOT NULL,
+					summary TEXT,
+					filename TEXT NOT NULL,
+					file_url TEXT NOT NULL,
+					uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+				)`); err == nil {
+					return &PostgresStore{db: db}
+				} else {
+					log.Printf("[WARN] Failed to initialize table in PostgreSQL: %v", err)
+				}
+			} else {
+				log.Printf("[WARN] PostgreSQL DATABASE_URL ping failed: %v", err)
+			}
+			_ = db.Close()
+		} else {
+			log.Printf("[WARN] PostgreSQL DATABASE_URL connection failed: %v", err)
+		}
+	}
+
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := envOr("DB_PORT", "5432")
 	dbUser := os.Getenv("DB_USER")

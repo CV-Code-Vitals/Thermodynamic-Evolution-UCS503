@@ -303,6 +303,7 @@ func TestIntegration_HealthAndStatus(t *testing.T) {
 }
 
 func TestIntegration_DeliverablesFlow(t *testing.T) {
+	t.Setenv("ANALYSIS_API_TOKEN", "test-token")
 	tmp := t.TempDir()
 	store, _ := NewJSONStore(filepath.Join(tmp, "deliv.json"))
 	engine := setupEngine("./thermodynamic-ast-engine", 5*time.Second, 10<<20, store)
@@ -318,6 +319,7 @@ func TestIntegration_DeliverablesFlow(t *testing.T) {
 
 	uploadReq, _ := http.NewRequest(http.MethodPost, "/api/upload", &body)
 	uploadReq.Header.Set("Content-Type", writer.FormDataContentType())
+	uploadReq.Header.Set("X-API-Token", "test-token")
 	uploadRec := httptest.NewRecorder()
 	engine.ServeHTTP(uploadRec, uploadReq)
 
@@ -327,6 +329,7 @@ func TestIntegration_DeliverablesFlow(t *testing.T) {
 
 	// 2. Fetch deliverables
 	getReq, _ := http.NewRequest(http.MethodGet, "/api/deliverables", nil)
+	getReq.Header.Set("X-API-Token", "test-token")
 	getRec := httptest.NewRecorder()
 	engine.ServeHTTP(getRec, getReq)
 
@@ -347,6 +350,7 @@ func TestIntegration_DeliverablesFlow(t *testing.T) {
 }
 
 func TestIntegration_AnalyzeZipFlow(t *testing.T) {
+	t.Setenv("ANALYSIS_API_TOKEN", "test-token")
 	enginePath := resolveEnginePath()
 	if _, err := os.Stat(enginePath); os.IsNotExist(err) {
 		t.Skip("skipping analyze test: thermodynamic-ast-engine binary not found")
@@ -374,6 +378,7 @@ func TestIntegration_AnalyzeZipFlow(t *testing.T) {
 
 	req, _ := http.NewRequest(http.MethodPost, "/api/analyze", &body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("X-API-Token", "test-token")
 	rec := httptest.NewRecorder()
 	engine.ServeHTTP(rec, req)
 
@@ -400,6 +405,7 @@ func TestIntegration_AnalyzeZipFlow(t *testing.T) {
 }
 
 func TestIntegration_ScanRepoValidation(t *testing.T) {
+	t.Setenv("ANALYSIS_API_TOKEN", "test-token")
 	engine := setupEngine("./thermodynamic-ast-engine", 5*time.Second, 10<<20, nil)
 
 	// Test invalid / malicious repo URLs
@@ -414,6 +420,7 @@ func TestIntegration_ScanRepoValidation(t *testing.T) {
 		jsonBody := []byte(fmt.Sprintf(`{"repo_url": %q}`, bad))
 		req, _ := http.NewRequest(http.MethodPost, "/api/scan", bytes.NewReader(jsonBody))
 		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-API-Token", "test-token")
 		rec := httptest.NewRecorder()
 		engine.ServeHTTP(rec, req)
 
@@ -422,4 +429,3 @@ func TestIntegration_ScanRepoValidation(t *testing.T) {
 		}
 	}
 }
-

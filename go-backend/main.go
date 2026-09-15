@@ -266,7 +266,10 @@ func extractSingleFile(f *zip.File, destPath string, maxBytes int64) (int64, err
 func tokenMiddleware(expected string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if expected == "" {
-			c.Next()
+			c.AbortWithStatusJSON(http.StatusInternalServerError, ErrorResponse{
+				Error:  "server_misconfigured",
+				Detail: "ANALYSIS_API_TOKEN must be configured.",
+			})
 			return
 		}
 		provided := c.GetHeader("X-API-Token")
@@ -548,25 +551,25 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 
 	// Live Git repository scanner (for Graph Visualizer)
 	scanH := scanRepoHandler(enginePath, engineTimeout)
-	r.POST("/api/scan", scanH)
-	r.POST("/scan", scanH)
+	r.POST("/api/scan", tokenMiddleware(analysisToken), scanH)
+	r.POST("/scan", tokenMiddleware(analysisToken), scanH)
 
 	// Deliverables & Admin Portal endpoints (backed by PostgreSQL / JSON storage)
 	if deliverableStore != nil {
 		uploadDelivH := uploadDeliverableHandler(deliverableStore, maxUploadBytes)
-		r.POST("/api/upload", uploadDelivH)
-		r.POST("/upload", uploadDelivH)
+		r.POST("/api/upload", tokenMiddleware(analysisToken), uploadDelivH)
+		r.POST("/upload", tokenMiddleware(analysisToken), uploadDelivH)
 
 		getDelivH := getDeliverablesHandler(deliverableStore)
-		r.GET("/api/deliverables", getDelivH)
-		r.GET("/deliverables", getDelivH)
+		r.GET("/api/deliverables", tokenMiddleware(analysisToken), getDelivH)
+		r.GET("/deliverables", tokenMiddleware(analysisToken), getDelivH)
 	}
 
 	// Secure static file server for uploaded archives
 	uploadsDir := "./uploads"
 	_ = os.MkdirAll(uploadsDir, 0o750)
-	r.GET("/uploads/:filename", serveUploadFileHandler(uploadsDir))
-	r.GET("/api/uploads/:filename", serveUploadFileHandler(uploadsDir))
+	r.GET("/uploads/:filename", tokenMiddleware(analysisToken), serveUploadFileHandler(uploadsDir))
+	r.GET("/api/uploads/:filename", tokenMiddleware(analysisToken), serveUploadFileHandler(uploadsDir))
 
 	return r
 }
@@ -579,7 +582,7 @@ func main() {
 	maxUploadMB := envOrInt("MAX_UPLOAD_MB", 50)
 	analysisToken := os.Getenv("ANALYSIS_API_TOKEN")
 	if analysisToken == "" {
-		log.Printf("[INFO] ANALYSIS_API_TOKEN is not set; running in open/development mode.")
+		log.Fatal("ANALYSIS_API_TOKEN must be configured")
 	}
 
 	engineTimeout := time.Duration(timeoutSec) * time.Second

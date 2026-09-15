@@ -10,7 +10,7 @@ RUN cargo build --release
 # -----------------------------------------------------------------------------
 # Stage 2: Build Go Backend
 # -----------------------------------------------------------------------------
-FROM golang:1.23-alpine AS go-builder
+FROM golang:1.25-alpine AS go-builder
 WORKDIR /go-app
 COPY go-backend/go.mod go-backend/go.sum ./
 RUN go mod download
