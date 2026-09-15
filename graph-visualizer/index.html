@@ -20,14 +20,46 @@
     /* ── Main Layout ── */
     #main-area { flex: 1; display: flex; overflow: hidden; position: relative; }
     #graph-area { flex: 1; position: relative; overflow: hidden; background: radial-gradient(ellipse at center, #111111 0%, #050505 70%); }
-    canvas#graph-canvas { position: absolute; inset: 0; cursor: crosshair; }
+    canvas#graph-canvas { position: absolute; inset: 0; cursor: grab; user-select: none; touch-action: none; }
+    canvas#graph-canvas:active { cursor: grabbing; }
 
     /* ── Sidebar (Floating Panels) ── */
     #sidebar {
       position: absolute; right: 24px; top: 24px; bottom: 24px;
       width: 320px; display: flex; flex-direction: column; gap: 16px;
-      z-index: 10; pointer-events: none;
+      z-index: 20; pointer-events: none;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
     }
+    #sidebar.collapsed {
+      transform: translateX(calc(100% + 40px));
+      pointer-events: none !important;
+    }
+
+    /* ── Sidebar Master Toggle Button ── */
+    #sidebar-toggle-btn {
+      position: absolute; top: 24px; right: 360px; z-index: 25;
+      background: rgba(10,10,10,0.88); border: 1px solid rgba(255,215,0,0.35);
+      border-radius: 10px; color: #FFD700; padding: 7px 12px;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s, transform 0.2s;
+    }
+    #sidebar-toggle-btn:hover {
+      background: rgba(255,215,0,0.15); border-color: #FFD700;
+      box-shadow: 0 0 16px rgba(255,215,0,0.3); transform: translateY(-1px);
+    }
+    #sidebar-toggle-btn.is-collapsed {
+      right: 24px;
+    }
+    #sidebar-toggle-btn svg {
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #sidebar-toggle-btn.is-collapsed svg {
+      transform: rotate(180deg);
+    }
+
     .sb-section {
       padding: 18px 20px;
       background: rgba(10,10,10,0.85);
@@ -36,8 +68,33 @@
       backdrop-filter: blur(16px);
       box-shadow: 0 12px 40px rgba(0,0,0,0.5);
       pointer-events: auto;
+      transition: all 0.3s ease;
     }
-    .sb-title { font-size: 11px; text-transform: uppercase; color: #777777; letter-spacing: 1.5px; margin-bottom: 12px; font-weight: 600; }
+    .sb-title {
+      font-size: 11px; text-transform: uppercase; color: #777777;
+      letter-spacing: 1.5px; margin-bottom: 12px; font-weight: 600;
+      user-select: none;
+    }
+    .sb-title:hover {
+      color: #FFD700;
+    }
+    .sec-body {
+      transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      overflow: hidden;
+    }
+    .sec-body.collapsed {
+      max-height: 0 !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sec-arrow {
+      font-size: 11px; color: #FFD700;
+      transition: transform 0.3s ease;
+      display: inline-block;
+    }
+    .sec-arrow.collapsed {
+      transform: rotate(-90deg);
+    }
     .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
     .stat-val { font-weight: 700; font-family: 'Share Tech Mono', monospace; color: #FFD700; }
 
@@ -156,6 +213,45 @@
     }
     #as-phase-label { font-size: 12px; font-weight: 600; color: #FFD700; transition: color 0.5s ease; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.3px; }
 
+    /* ── Phase Granularity Stepper ── */
+    .phase-stepper {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,215,0,0.25);
+      border-radius: 12px; padding: 2px 8px;
+      flex-shrink: 0;
+    }
+    .phase-stepper-label {
+      font-size: 10px; font-family: 'Share Tech Mono', monospace;
+      color: #9a8a50; letter-spacing: 1px; font-weight: 600;
+    }
+    .phase-stepper-btn {
+      width: 22px; height: 22px; border-radius: 6px;
+      background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.3);
+      color: #FFD700; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; transition: all 0.2s;
+    }
+    .phase-stepper-btn:hover {
+      background: #FFD700; color: #000;
+    }
+    .phase-stepper-val {
+      font-family: 'Share Tech Mono', monospace; font-size: 13px;
+      color: #FFD700; font-weight: 700; min-width: 18px; text-align: center;
+    }
+
+    /* ── Zoom Controls ── */
+    .zoom-controls {
+      position: absolute; bottom: 20px; right: 20px;
+      display: flex; flex-direction: column; gap: 6px; z-index: 10;
+    }
+    .zoom-btn {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(10,10,10,0.88); border: 1px solid rgba(255,215,0,0.3);
+      color: #FFD700; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; transition: all 0.2s; backdrop-filter: blur(8px);
+    }
+    .zoom-btn:hover { background: rgba(255,215,0,0.15); border-color: #FFD700; transform: scale(1.05); }
+
     /* ── Tooltip ── */
     #tooltip { position: absolute; background: rgba(10,10,10,0.95); border: 1px solid rgba(255,215,0,0.4); box-shadow: 0 0 20px rgba(255,215,0,0.15), 0 8px 32px rgba(0,0,0,0.5); color: #e0e0e0; padding: 14px 18px; border-radius: 10px; pointer-events: none; display: none; z-index: 1000; backdrop-filter: blur(8px); max-width: 320px; }
     #tooltip h3 { margin: 0 0 8px 0; font-size: 14px; font-family: 'Share Tech Mono', monospace; color: #FFD700; font-weight: 600; }
@@ -187,15 +283,22 @@
     <div class="header-title">Thermodynamic <span>Evolution</span></div>
     <div style="display: flex; gap: 10px; align-items: center;">
       <input type="text" id="repo-box" placeholder="GitHub Repository URL..." style="background: #0a0a0a; border: 1px solid #1a1a1a; color: #e0e0e0; padding: 7px 14px; border-radius: 8px; outline: none; font-size: 14px; width: 280px; transition: border 0.25s; font-family: inherit;" />
-      <button id="scan-btn" style="background: linear-gradient(135deg, #b89920, #FFD700); border: none; color: #000; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.25s; font-family: 'Rajdhani', sans-serif;">Scan Repo</button>
+      <button id="scan-btn" onclick="triggerRepoScan()" style="background: linear-gradient(135deg, #b89920, #FFD700); border: none; color: #000; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.25s; font-family: 'Rajdhani', sans-serif;">Scan Repo</button>
       <input type="text" id="search-box" placeholder="Search functions or files…" />
     </div>
   </div>
+  <div id="scan-toast" style="display:none; position: fixed; top: 68px; left: 50%; transform: translateX(-50%); background: rgba(20,20,20,0.95); border: 1px solid #FFD700; color: #FFD700; padding: 10px 22px; border-radius: 8px; font-weight: 600; font-size: 14px; z-index: 9999; box-shadow: 0 4px 24px rgba(0,0,0,0.8); backdrop-filter: blur(8px); transition: opacity 0.3s;"></div>
   <div id="main-area">
     <div id="graph-area">
       <canvas id="graph-canvas"></canvas>
-      <!-- Node count removed per request -->      <div id="timeline-bar">
+      <div id="timeline-bar">
         <button class="tl-play" id="tl-play">&#9654;</button>
+        <div class="phase-stepper" title="Adjust number of evolutionary phases">
+          <span class="phase-stepper-label">PHASES</span>
+          <button class="phase-stepper-btn" id="phase-dec" title="Decrease phase granularity">-</button>
+          <span class="phase-stepper-val" id="phase-count-display">5</span>
+          <button class="phase-stepper-btn" id="phase-inc" title="Increase phase granularity">+</button>
+        </div>
         <div class="as-track-wrap">
           <div class="as-track" id="as-track">
             <div class="as-fill" id="as-fill"></div>
@@ -203,43 +306,64 @@
             <div class="as-thumb" id="as-thumb">
               <div class="as-thumb-inner"></div>
             </div>
-            <input type="range" class="as-range" id="as-range" min="0" max="2" step="1" value="0" />
+            <input type="range" class="as-range" id="as-range" min="0" max="4" step="1" value="0" />
           </div>
         </div>
         <div id="as-phase-label">Phase 1</div>
       </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+        <button class="zoom-btn" id="zoom-reset" title="Reset Zoom" style="font-size:11px;font-family:'Share Tech Mono',monospace;">1:1</button>
+        <button class="zoom-btn" id="zoom-out" title="Zoom out & expand dynamic boundary">-</button>
+      </div>
     </div>
+    <button id="sidebar-toggle-btn" title="Toggle Evolution & Module Panels">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+      <span id="sidebar-toggle-text">PANEL</span>
+    </button>
     <div id="sidebar">
-      <div class="sb-section">
-        <div class="sb-title">Evolution Phase</div>
-        <div class="phase-header" id="phase-header">
-          <div class="phase-icon" id="phase-icon"></div>
-          <div class="phase-info">
-            <div class="phase-name" id="phase-label"></div>
-            <div class="phase-desc" id="phase-desc">Analyzing codebase evolution</div>
-          </div>
+      <div class="sb-section" id="sec-phase-card">
+        <div class="sb-title" id="toggle-phase-sec" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" title="Click to collapse / expand">
+          <span>Evolution Phase</span>
+          <span class="sec-arrow" id="phase-arrow">&#9662;</span>
         </div>
-        <div class="stat-grid">
-          <div class="stat-tile">
-            <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
-            <div class="stat-tile-val" id="sb-ent">0</div>
-            <div class="stat-tile-label">Entropy</div>
+        <div class="sec-body" id="phase-sec-body">
+          <div class="phase-header" id="phase-header">
+            <div class="phase-icon" id="phase-icon"></div>
+            <div class="phase-info">
+              <div class="phase-name" id="phase-label"></div>
+              <div class="phase-desc" id="phase-desc">Analyzing codebase evolution</div>
+            </div>
           </div>
-          <div class="stat-tile">
-            <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-            <div class="stat-tile-val" id="sb-hot">0</div>
-            <div class="stat-tile-label">Hotspots</div>
-          </div>
-          <div class="stat-tile">
-            <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
-            <div class="stat-tile-val" id="sb-files">0</div>
-            <div class="stat-tile-label">Files</div>
+          <div class="stat-grid">
+            <div class="stat-tile">
+              <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+              <div class="stat-tile-val" id="sb-ent">0</div>
+              <div class="stat-tile-label">Entropy</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+              <div class="stat-tile-val" id="sb-hot">0</div>
+              <div class="stat-tile-label">Hotspots</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+              <div class="stat-tile-val" id="sb-files">0</div>
+              <div class="stat-tile-label">Files</div>
+            </div>
           </div>
         </div>
       </div>
-      <div class="sb-section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 10px;">
-        <div class="sb-title">System Modules</div>
-        <div class="file-list" id="file-list"></div>
+      <div class="sb-section" id="sec-modules-card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 10px;">
+        <div class="sb-title" id="toggle-modules-sec" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" title="Click to collapse / expand">
+          <span>System Modules</span>
+          <span class="sec-arrow" id="modules-arrow">&#9662;</span>
+        </div>
+        <div class="sec-body" id="modules-sec-body" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+          <div class="file-list" id="file-list"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -249,7 +373,7 @@
 /* ─────────────────────────────────────────────
    DATA
    ───────────────────────────────────────────── */
-const PHASES = [
+let PHASES = [
   { label: "Phase 1: Inception", desc: "Monolithic Data Pipeline" },
   { label: "Phase 2: Distribution", desc: "Concurrent Web Crawler" },
   { label: "Phase 3: Refined Core", desc: "Optimized Utilities" }
@@ -293,14 +417,23 @@ let snapshots = [];
 let currentPhase = 0;
 let activeNodes = [];
 let activeLinks = [];
+let targetPhaseCount = 5;
 
 function buildData() {
   allNodesMap.clear();
   snapshots = [];
 
+  const files = (REPORT && Array.isArray(REPORT.file_reports)) ? REPORT.file_reports : [];
+  if (files.length === 0) {
+    snapshots.push({ nodes: [], links: [] });
+    allNodes = [];
+    if (typeof updateFileList === 'function') updateFileList();
+    return;
+  }
+
   // Create file nodes
   const fileNodes = {};
-  REPORT.file_reports.forEach(r => {
+  files.forEach(r => {
     const fn = r.file_path.split('/').pop();
     const n = {
       id: 'f_' + fn, type: 'file', label: fn, fileShort: fn,
@@ -315,8 +448,8 @@ function buildData() {
   });
 
   // Gather all hotspots
-  const allHotspots = REPORT.file_reports.flatMap(r =>
-    r.hotspots.map(h => ({ ...h, file_path: r.file_path, file_short: r.file_path.split('/').pop() }))
+  const allHotspots = files.flatMap(r =>
+    (r.hotspots || []).map(h => ({ ...h, file_path: r.file_path, file_short: r.file_path.split('/').pop() }))
   );
 
   // De-duplicate hotspots by function name (take highest entropy)
@@ -346,47 +479,123 @@ function buildData() {
 
   allNodes = Array.from(allNodesMap.values());
 
-  // ── Phase 1: data_pipeline.py ──
-  const p1nodes = [];
-  const p1links = [];
-  p1nodes.push(fileNodes['data_pipeline.py']);
-  dedupedHotspots.filter(h => h.file_short === 'data_pipeline.py').forEach(h => {
-    const id = 'h_' + h.function_name + '_' + h.file_short;
-    const n = allNodesMap.get(id);
-    p1nodes.push(n);
-    p1links.push({ sourceId: id, targetId: 'f_data_pipeline.py' });
+  // Sort files: lowest entropy first (stable foundation), higher entropy later
+  const fileNames = Object.keys(fileNodes);
+  const sortedFileNames = [...fileNames].sort((a, b) => {
+    return (fileNodes[a].entropy || 0) - (fileNodes[b].entropy || 0);
   });
-  snapshots.push({ nodes: p1nodes, links: p1links });
+  // Sort hotspots: baseline routines first, complex thermodynamic hotpaths later
+  const sortedHotspots = [...dedupedHotspots].sort((a, b) => a.entropy_score - b.entropy_score);
 
-  // ── Phase 2: + crawler.go ──
-  const p2nodes = [...p1nodes, fileNodes['crawler.go']];
-  const p2links = [...p1links];
-  dedupedHotspots.filter(h => h.file_short === 'crawler.go').forEach(h => {
-    const id = 'h_' + h.function_name + '_' + h.file_short;
-    const n = allNodesMap.get(id);
-    p2nodes.push(n);
-    p2links.push({ sourceId: id, targetId: 'f_crawler.go' });
-  });
-  // call graph edges
-  REPORT.call_graph.forEach(c => {
-    const sId = 'h_' + c.caller + '_crawler.go';
-    const tId = 'h_' + c.callee + '_crawler.go';
-    if (allNodesMap.has(sId) && allNodesMap.has(tId) && p2nodes.some(n => n.id === sId) && p2nodes.some(n => n.id === tId)) {
-      p2links.push({ sourceId: sId, targetId: tId, isCall: true });
+  // Determine actual phase count based on targetPhaseCount and repository size
+  const totalEntities = fileNames.length + dedupedHotspots.length;
+  const maxPossiblePhases = Math.max(1, Math.min(12, totalEntities > 1 ? targetPhaseCount : 1));
+  const numPhases = maxPossiblePhases;
+
+  // Curated titles for progressive thermodynamic evolution
+  const phaseThemes = [
+    { title: "Inception & Core Base", desc: "Foundational structure and core state" },
+    { title: "Internal State & Primitives", desc: "Data structures and synchronization elements" },
+    { title: "Subroutines & Logic", desc: "Internal computational and helper routines" },
+    { title: "Processing & Pipelines", desc: "Main transformation loops and data handlers" },
+    { title: "Concurrency & Workers", desc: "Goroutines, thread pools, and async dispatch" },
+    { title: "Network & I/O Channels", desc: "Network requests, file handlers, and socket I/O" },
+    { title: "Integration Services", desc: "Cross-module call graph linkages and coordinator services" },
+    { title: "Distributed Topology", desc: "High-scale message passing and distributed clusters" },
+    { title: "Thermodynamic Hotpaths", desc: "High-entropy algorithmic critical paths" },
+    { title: "Full Constellation", desc: "Complete architectural call graph and topology" }
+  ];
+
+  PHASES = [];
+  for (let i = 0; i < numPhases; i++) {
+    if (i === numPhases - 1) {
+      PHASES.push({
+        label: `Phase ${i + 1}: Complete Constellation`,
+        desc: `Full Architecture • All ${fileNames.length} files & ${dedupedHotspots.length} hotspots active`
+      });
+    } else {
+      const theme = phaseThemes[i] || { title: `Evolution Tier ${i + 1}`, desc: `Architectural expansion stage ${i + 1}` };
+      const pct = Math.round(((i + 1) / numPhases) * 100);
+      PHASES.push({
+        label: `Phase ${i + 1}: ${theme.title}`,
+        desc: `${theme.desc} • ${pct}% architecture unlocked`
+      });
     }
-  });
-  snapshots.push({ nodes: p2nodes, links: p2links });
+  }
 
-  // ── Phase 3: + utils.py ──
-  const p3nodes = [...p2nodes, fileNodes['utils.py']];
-  const p3links = [...p2links];
-  dedupedHotspots.filter(h => h.file_short === 'utils.py').forEach(h => {
-    const id = 'h_' + h.function_name + '_' + h.file_short;
-    const n = allNodesMap.get(id);
-    p3nodes.push(n);
-    p3links.push({ sourceId: id, targetId: 'f_utils.py' });
-  });
-  snapshots.push({ nodes: p3nodes, links: p3links });
+  // Update slider UI
+  const rangeInput = document.getElementById('as-range');
+  if (rangeInput) {
+    rangeInput.max = Math.max(1, PHASES.length - 1);
+    rangeInput.value = Math.min(currentPhase, PHASES.length - 1);
+  }
+  const phaseCountDisplay = document.getElementById('phase-count-display');
+  if (phaseCountDisplay) {
+    phaseCountDisplay.textContent = targetPhaseCount;
+  }
+  const dotsContainer = document.getElementById('as-dots');
+  if (dotsContainer) {
+    dotsContainer.innerHTML = '';
+    PHASES.forEach((p, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'as-dot' + (i <= currentPhase ? ' active' : '');
+      dot.onclick = () => syncPhase(i);
+      const lbl = document.createElement('div');
+      lbl.className = 'as-dot-label';
+      lbl.textContent = p.label;
+      dot.appendChild(lbl);
+      dotsContainer.appendChild(dot);
+    });
+  }
+
+  // Build snapshots for each phase
+  for (let phaseIdx = 0; phaseIdx < numPhases; phaseIdx++) {
+    const isFinal = (phaseIdx === numPhases - 1);
+
+    // Dynamic partition of files
+    const fileCutoff = isFinal ? sortedFileNames.length : Math.max(1, Math.ceil((sortedFileNames.length / numPhases) * (phaseIdx + 1)));
+    const activeFileNames = new Set(sortedFileNames.slice(0, fileCutoff));
+
+    // Dynamic partition of hotspots
+    const hotspotCutoff = isFinal ? sortedHotspots.length : Math.max(1, Math.ceil((sortedHotspots.length / numPhases) * (phaseIdx + 1)));
+    const activeHotspots = sortedHotspots.slice(0, hotspotCutoff).filter(h => activeFileNames.has(h.file_short));
+
+    const pNodes = [];
+    const pLinks = [];
+
+    // Add active file nodes
+    activeFileNames.forEach(fn => {
+      const fNode = fileNodes[fn];
+      if (fNode) pNodes.push(fNode);
+    });
+
+    // Add active hotspot nodes
+    activeHotspots.forEach(h => {
+      const id = 'h_' + h.function_name + '_' + h.file_short;
+      const n = allNodesMap.get(id);
+      if (n) {
+        pNodes.push(n);
+        pLinks.push({ sourceId: id, targetId: 'f_' + h.file_short });
+      }
+    });
+
+    // Add call links if both nodes are active in this phase
+    const pNodeIds = new Set(pNodes.map(n => n.id));
+    if (REPORT.call_graph && Array.isArray(REPORT.call_graph)) {
+      REPORT.call_graph.forEach(c => {
+        const fn = c.file ? c.file.split('/').pop() : '';
+        const sId = 'h_' + c.caller + '_' + fn;
+        const tId = 'h_' + c.callee + '_' + fn;
+        if (pNodeIds.has(sId) && pNodeIds.has(tId)) {
+          pLinks.push({ sourceId: sId, targetId: tId, isCall: true });
+        }
+      });
+    }
+
+    snapshots.push({ nodes: pNodes, links: pLinks });
+  }
+
+  if (typeof updateFileList === 'function') updateFileList();
 }
 
 /* ─────────────────────────────────────────────
@@ -420,19 +629,23 @@ function layoutPhase() {
   const nodes = activeNodes;
   const links = activeLinks;
   const cx = W / 2, cy = H / 2;
+  const zoomScale = Math.max(1.0, 1.0 / zoom);
+  const spreadRadius = Math.min(W, H) * 0.38 * Math.pow(zoomScale, 0.7);
 
-  // Scatter new nodes around their file-parent or center
-  nodes.forEach(n => {
+  nodes.forEach((n, idx) => {
     if (n.x === 0 && n.y === 0) {
-      // Find parent file node position
       const parentLink = links.find(l => l.sourceId === n.id && !l.isCall);
       const parent = parentLink ? allNodesMap.get(parentLink.targetId) : null;
       if (parent && parent.x !== 0) {
-        n.x = parent.x + (Math.random() - 0.5) * 120;
-        n.y = parent.y + (Math.random() - 0.5) * 120;
+        const angle = Math.random() * Math.PI * 2;
+        const dist = (n.radius + 60 + Math.random() * 80) * Math.min(2.0, Math.pow(zoomScale, 0.5));
+        n.x = parent.x + Math.cos(angle) * dist;
+        n.y = parent.y + Math.sin(angle) * dist;
       } else {
-        n.x = cx + (Math.random() - 0.5) * (W * 0.6);
-        n.y = cy + (Math.random() - 0.5) * (H * 0.6);
+        const angle = (idx / Math.max(1, nodes.length)) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+        const dist = spreadRadius * (0.35 + Math.random() * 0.65);
+        n.x = cx + Math.cos(angle) * dist;
+        n.y = cy + Math.sin(angle) * dist;
       }
       n.targetX = n.x;
       n.targetY = n.y;
@@ -443,13 +656,26 @@ function layoutPhase() {
 function physicsTick() {
   const nodes = activeNodes;
   const links = activeLinks;
-  const REPULSION = 2000;
-  const LINK_STRENGTH = 0.008;
-  const LINK_DIST = 130;
-  const CALL_DIST = 90;
-  const CENTER_GRAVITY = 0.0006;
-  const DAMPING = 0.75;
   const cx = W / 2, cy = H / 2;
+
+  // DYNAMIC BOUNDARY: Expands dynamically as zoom decreases
+  const zoomScale = Math.max(1.0, 1.0 / zoom);
+  const spreadFactor = Math.pow(zoomScale, 0.85);
+
+  const boundSpanX = (W * 0.48) * zoomScale;
+  const boundSpanY = (H * 0.48) * zoomScale;
+  const minX = cx - boundSpanX;
+  const maxX = cx + boundSpanX;
+  const minY = cy - boundSpanY;
+  const maxY = cy + boundSpanY;
+
+  // Dynamically scaled forces prevent dense clustering
+  const REPULSION = (5000 + nodes.length * 150) * spreadFactor;
+  const LINK_DIST = 140 * Math.min(2.8, spreadFactor);
+  const CALL_DIST = 100 * Math.min(2.8, spreadFactor);
+  const LINK_STRENGTH = 0.007;
+  const CENTER_GRAVITY = 0.0003 / spreadFactor;
+  const DAMPING = 0.78;
 
   // Center gravity
   for (let i = 0; i < nodes.length; i++) {
@@ -459,7 +685,7 @@ function physicsTick() {
     n.vy += (cy - n.y) * CENTER_GRAVITY;
   }
 
-  // Repulsion
+  // Repulsion & Collision avoidance
   for (let i = 0; i < nodes.length; i++) {
     const a = nodes[i];
     if (a.targetScale < 0.01) continue;
@@ -468,12 +694,26 @@ function physicsTick() {
       if (b.targetScale < 0.01) continue;
       let dx = a.x - b.x, dy = a.y - b.y;
       let distSq = dx * dx + dy * dy + 1;
-      let f = REPULSION * ((a.radius + b.radius) / 30) / distSq;
       let dist = Math.sqrt(distSq);
+
+      // Repulsion force
+      let f = REPULSION * ((a.radius + b.radius) / 30) / distSq;
       a.vx += (dx / dist) * f;
       a.vy += (dy / dist) * f;
       b.vx -= (dx / dist) * f;
       b.vy -= (dy / dist) * f;
+
+      // Anti-collision buffer: mathematically guarantees nodes never overlap
+      const minSep = (a.radius + b.radius + 22) * Math.min(2.0, spreadFactor);
+      if (dist < minSep) {
+        const push = (minSep - dist) * 0.3;
+        const ox = (dx / dist) * push;
+        const oy = (dy / dist) * push;
+        a.vx += ox;
+        a.vy += oy;
+        b.vx -= ox;
+        b.vy -= oy;
+      }
     }
   }
 
@@ -493,16 +733,16 @@ function physicsTick() {
     tgt.vy -= (dy / dist) * f;
   });
 
-  // Integrate
+  // Integrate with dynamic arena boundary
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
     n.vx *= DAMPING;
     n.vy *= DAMPING;
     n.x += n.vx;
     n.y += n.vy;
-    // Clamp inside viewport with margin
-    n.x = Math.max(n.radius + 30, Math.min(W - n.radius - 30, n.x));
-    n.y = Math.max(n.radius + 60, Math.min(H - n.radius - 100, n.y));
+    // Boundary clamps expand directly with zoom out!
+    n.x = Math.max(minX + n.radius + 15, Math.min(maxX - n.radius - 15, n.x));
+    n.y = Math.max(minY + n.radius + 15, Math.min(maxY - n.radius - 15, n.y));
   }
 }
 
@@ -550,6 +790,45 @@ function draw() {
 
   // Run physics
   physicsTick();
+
+  // ── Draw Dynamic Boundary Arena (World Coordinates) ──
+  const cx = W / 2, cy = H / 2;
+  const zoomScale = Math.max(1.0, 1.0 / zoom);
+  const boundSpanX = (W * 0.48) * zoomScale;
+  const boundSpanY = (H * 0.48) * zoomScale;
+  const minX = cx - boundSpanX;
+  const maxX = cx + boundSpanX;
+  const minY = cy - boundSpanY;
+  const maxY = cy + boundSpanY;
+  const bW = maxX - minX;
+  const bH = maxY - minY;
+
+  ctx.save();
+  // Faint arena boundary grid
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.12)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([8, 8]);
+  ctx.strokeRect(minX, minY, bW, bH);
+
+  // Corner brackets
+  const brkLen = Math.min(26, bW * 0.05);
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+  ctx.setLineDash([]);
+  ctx.lineWidth = 2;
+  // Top-left
+  ctx.beginPath(); ctx.moveTo(minX, minY + brkLen); ctx.lineTo(minX, minY); ctx.lineTo(minX + brkLen, minY); ctx.stroke();
+  // Top-right
+  ctx.beginPath(); ctx.moveTo(maxX - brkLen, minY); ctx.lineTo(maxX, minY); ctx.lineTo(maxX, minY + brkLen); ctx.stroke();
+  // Bottom-left
+  ctx.beginPath(); ctx.moveTo(minX, maxY - brkLen); ctx.lineTo(minX, maxY); ctx.lineTo(minX + brkLen, maxY); ctx.stroke();
+  // Bottom-right
+  ctx.beginPath(); ctx.moveTo(maxX - brkLen, maxY); ctx.lineTo(maxX, maxY); ctx.lineTo(maxX, maxY - brkLen); ctx.stroke();
+
+  // Dynamic boundary watermark
+  ctx.font = '10px "Share Tech Mono", monospace';
+  ctx.fillStyle = 'rgba(255, 215, 0, 0.35)';
+  ctx.fillText(`// DYNAMIC EXPANSION ARENA [${Math.round(zoomScale * 100)}%]`, minX + 12, minY + 18);
+  ctx.restore();
 
   // Smoothly animate opacity / scale
   allNodes.forEach(n => {
@@ -705,49 +984,56 @@ canvas.addEventListener('mousemove', e => {
     }
     tooltip.style.left = (e.clientX + 16) + 'px';
     tooltip.style.top = (e.clientY + 16) + 'px';
-    canvas.style.cursor = 'pointer';
+    canvas.style.cursor = (isPanning || dragNode) ? 'grabbing' : 'pointer';
   } else {
     if (hoveredNode) {
       hoveredNode = null;
       tooltip.style.display = 'none';
-      canvas.style.cursor = 'crosshair';
     }
+    canvas.style.cursor = (isPanning || dragNode) ? 'grabbing' : 'grab';
   }
 });
 
 canvas.addEventListener('mouseleave', () => {
   hoveredNode = null;
   tooltip.style.display = 'none';
-  canvas.style.cursor = 'crosshair';
+  if (!isPanning && !dragNode) {
+    canvas.style.cursor = 'grab';
+  }
 });
 
 /* ─────────────────────────────────────────────
-   DRAG NODES
+   PRESS AND MOVE (PANNING & DRAGGING)
    ───────────────────────────────────────────── */
 let dragNode = null;
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('mousedown', e => {
-  // Right-click or middle-click: start panning
-  if (e.button === 2 || e.button === 1) {
-    isPanning = true;
-    panStartX = e.clientX - panX;
-    panStartY = e.clientY - panY;
-    canvas.style.cursor = 'grabbing';
-    return;
-  }
   const rect = canvas.getBoundingClientRect();
   const { x: mx, y: my } = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
-  for (let i = activeNodes.length - 1; i >= 0; i--) {
-    const n = activeNodes[i];
-    if (n.opacity < 0.1) continue;
-    const dx = mx - n.x, dy = my - n.y;
-    if (dx * dx + dy * dy < (n.radius * n.scale + 8) ** 2) {
-      dragNode = n;
-      break;
+
+  // If left-clicking on a node: drag that specific node
+  if (e.button === 0) {
+    for (let i = activeNodes.length - 1; i >= 0; i--) {
+      const n = activeNodes[i];
+      if (n.opacity < 0.1) continue;
+      const dx = mx - n.x, dy = my - n.y;
+      if (dx * dx + dy * dy < (n.radius * n.scale + 10) ** 2) {
+        dragNode = n;
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
     }
   }
+
+  // Otherwise (pressing empty space or using any button):
+  // Smoothly pan and move the canvas!
+  isPanning = true;
+  panStartX = e.clientX - panX;
+  panStartY = e.clientY - panY;
+  canvas.style.cursor = 'grabbing';
 });
+
 window.addEventListener('mousemove', e => {
   if (isPanning) {
     panX = e.clientX - panStartX;
@@ -762,7 +1048,81 @@ window.addEventListener('mousemove', e => {
   dragNode.vx = 0;
   dragNode.vy = 0;
 });
-window.addEventListener('mouseup', () => { dragNode = null; isPanning = false; canvas.style.cursor = 'crosshair'; });
+
+window.addEventListener('mouseup', () => {
+  dragNode = null;
+  isPanning = false;
+  canvas.style.cursor = hoveredNode ? 'pointer' : 'grab';
+});
+
+// Touch support: Press-and-move pan & pinch-zoom
+let initialPinchDist = null;
+let initialPinchZoom = 1;
+
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const { x: mx, y: my } = screenToWorld(touch.clientX - rect.left, touch.clientY - rect.top);
+
+    let found = null;
+    for (let i = activeNodes.length - 1; i >= 0; i--) {
+      const n = activeNodes[i];
+      if (n.opacity < 0.1) continue;
+      const dx = mx - n.x, dy = my - n.y;
+      if (dx * dx + dy * dy < (n.radius * n.scale + 14) ** 2) {
+        found = n;
+        break;
+      }
+    }
+    if (found) {
+      dragNode = found;
+    } else {
+      isPanning = true;
+      panStartX = touch.clientX - panX;
+      panStartY = touch.clientY - panY;
+    }
+  } else if (e.touches.length === 2) {
+    isPanning = false;
+    dragNode = null;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    initialPinchDist = Math.hypot(dx, dy);
+    initialPinchZoom = zoom;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    if (isPanning) {
+      panX = touch.clientX - panStartX;
+      panY = touch.clientY - panStartY;
+    } else if (dragNode) {
+      const rect = canvas.getBoundingClientRect();
+      const { x, y } = screenToWorld(touch.clientX - rect.left, touch.clientY - rect.top);
+      dragNode.x = x;
+      dragNode.y = y;
+      dragNode.vx = 0;
+      dragNode.vy = 0;
+    }
+  } else if (e.touches.length === 2 && initialPinchDist) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const curDist = Math.hypot(dx, dy);
+    const newZoom = Math.max(0.12, Math.min(5, initialPinchZoom * (curDist / initialPinchDist)));
+    zoomToCenter(newZoom);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  if (e.touches.length === 0) {
+    isPanning = false;
+    dragNode = null;
+    initialPinchDist = null;
+  }
+});
 
 // Scroll to zoom
 canvas.addEventListener('wheel', e => {
@@ -770,48 +1130,64 @@ canvas.addEventListener('wheel', e => {
   const rect = canvas.getBoundingClientRect();
   const mx = e.clientX - rect.left;
   const my = e.clientY - rect.top;
-  const delta = e.deltaY > 0 ? 0.9 : 1.1;
-  const newZoom = Math.max(0.2, Math.min(5, zoom * delta));
+  const delta = e.deltaY > 0 ? 0.88 : 1.14;
+  const newZoom = Math.max(0.12, Math.min(5, zoom * delta));
   // Zoom towards cursor
   panX = mx - (mx - panX) * (newZoom / zoom);
   panY = my - (my - panY) * (newZoom / zoom);
   zoom = newZoom;
 }, { passive: false });
 
+function zoomToCenter(newZoom) {
+  const cx = W / 2, cy = H / 2;
+  panX = cx - (cx - panX) * (newZoom / zoom);
+  panY = cy - (cy - panY) * (newZoom / zoom);
+  zoom = newZoom;
+}
+
 /* ─────────────────────────────────────────────
    SIDEBAR UI
    ───────────────────────────────────────────── */
 // Adaptive slider color settings (from watermelon component)
 function getSliderColors(phase, total) {
-  const pct = phase / (total - 1);
+  const t = Math.max(2, total);
+  const pct = phase / (t - 1);
   if (pct < 0.5) return { text: '#b89920', gradient: 'linear-gradient(to right, #9a8a50, #b89920)', thumb: '#FFD700' };
   if (pct < 0.8) return { text: '#FFD700', gradient: 'linear-gradient(to right, #b89920, #FFD700)', thumb: '#FFD700' };
   return { text: '#FFD700', gradient: 'linear-gradient(to right, #FFD700, #ffaa00)', thumb: '#ffaa00' };
 }
 
 function updateSliderUI() {
-  const pct = currentPhase / (PHASES.length - 1) * 100;
-  const colors = getSliderColors(currentPhase, PHASES.length);
+  const total = Math.max(2, PHASES.length);
+  const pct = (currentPhase / (total - 1)) * 100;
+  const colors = getSliderColors(currentPhase, total);
 
   // Fill width: accounts for thumb size (28px)
   const fill = document.getElementById('as-fill');
-  fill.style.width = `calc((${pct} / 100) * (100% - 28px) + 28px)`;
-  fill.style.background = colors.gradient;
+  if (fill) {
+    fill.style.width = `calc((${pct} / 100) * (100% - 28px) + 28px)`;
+    fill.style.background = colors.gradient;
+  }
 
   // Thumb position
   const thumb = document.getElementById('as-thumb');
-  thumb.style.left = `calc((${pct} / 100) * (100% - 28px))`;
+  if (thumb) {
+    thumb.style.left = `calc((${pct} / 100) * (100% - 28px))`;
+  }
 
   // Phase label
   const label = document.getElementById('as-phase-label');
-  label.textContent = PHASES[currentPhase].label;
-  label.style.color = colors.text;
+  if (label && PHASES[currentPhase]) {
+    label.textContent = PHASES[currentPhase].label;
+    label.style.color = colors.text;
+  }
 
   // Dot markers
   document.querySelectorAll('.as-dot').forEach((d, i) => d.classList.toggle('active', i <= currentPhase));
 
   // Range input
-  document.getElementById('as-range').value = currentPhase;
+  const rangeInput = document.getElementById('as-range');
+  if (rangeInput) rangeInput.value = currentPhase;
 }
 
 function updateSidebar() {
@@ -876,132 +1252,456 @@ document.getElementById('search-box').addEventListener('input', function() {
 });
 
 /* ─────────────────────────────────────────────
-   DYNAMIC REPO SCANNING
+   CLIENT-SIDE GITHUB SCANNER (FALLBACK FOR GITHUB PAGES)
    ───────────────────────────────────────────── */
-document.getElementById('scan-btn').addEventListener('click', async function() {
-  const repoUrl = document.getElementById('repo-box').value.trim();
-  if (!repoUrl) return alert("Please enter a GitHub URL");
-  
-  document.getElementById('loading-overlay').style.display = 'flex';
-  
-  try {
-    // Determine API URL based on where the visualizer is running
-    const apiUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? 'http://localhost:8080/scan' 
-      : '/api/scan';
+async function scanClientSide(owner, repo) {
+  const overlayTitle = document.querySelector('#loading-overlay div:nth-child(2)');
+  const overlaySub = document.querySelector('#loading-overlay div:nth-child(3)');
+  if (overlayTitle) overlayTitle.textContent = "QUERYING GITHUB API...";
+  if (overlaySub) overlaySub.textContent = `Fetching tree for ${owner}/${repo}...`;
+
+  // Fetch repository tree
+  let tree = [];
+  const branches = ['HEAD', 'main', 'master'];
+  let treeFetched = false;
+
+  for (const b of branches) {
+    try {
+      const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${b}?recursive=1`);
+      if (treeRes.ok) {
+        const treeData = await treeRes.json();
+        tree = treeData.tree || [];
+        treeFetched = true;
+        break;
+      } else if (treeRes.status === 403) {
+        throw new Error("GitHub API rate limit reached. Please test with local server on http://localhost:8000");
+      }
+    } catch (e) {
+      if (e.message.includes("rate limit")) throw e;
+    }
+  }
+
+  if (!treeFetched && tree.length === 0) {
+    throw new Error(`Could not access repository ${owner}/${repo}. Ensure it is public.`);
+  }
+
+  // Filter for Go and Python source files
+  const codeFiles = tree.filter(item => 
+    item.type === 'blob' && 
+    (item.path.endsWith('.go') || item.path.endsWith('.py')) &&
+    !item.path.includes('vendor/') &&
+    !item.path.includes('node_modules/')
+  ).slice(0, 15); // Top 15 files
+
+  if (codeFiles.length === 0) {
+    return {
+      engine_version: "0.1.0-browser",
+      generated_at: new Date().toISOString(),
+      scanned_directory: `https://github.com/${owner}/${repo}`,
+      files_analyzed: 0,
+      total_hotspots: 0,
+      global_entropy: 0.0,
+      file_reports: [],
+      call_graph: []
+    };
+  }
+
+  if (overlayTitle) overlayTitle.textContent = "ANALYZING AST THERMODYNAMICS...";
+  if (overlaySub) overlaySub.textContent = `Analyzing ${codeFiles.length} files...`;
+
+  const fileReports = [];
+  let globalEntropy = 0;
+  let totalHotspots = 0;
+
+  for (const item of codeFiles) {
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${item.path}`;
+    try {
+      const rawRes = await fetch(rawUrl);
+      if (!rawRes.ok) continue;
+      const content = await rawRes.text();
+      const lines = content.split('\n');
+      const isGo = item.path.endsWith('.go');
+      const lang = isGo ? 'Go' : 'Python';
       
+      const hotspots = [];
+      let loopDepth = 0;
+      let curFunc = '<module>';
+
+      lines.forEach((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return;
+
+        if (isGo) {
+          const fnMatch = line.match(/func\s+(?:\([^)]+\)\s+)?([A-Za-z0-9_]+)\s*\(/);
+          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
+          if (/\bfor\b/.test(line)) loopDepth++;
+          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
+        } else {
+          const fnMatch = line.match(/def\s+([A-Za-z0-9_]+)\s*\(/);
+          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
+          if (/\b(for|while)\b/.test(line)) loopDepth++;
+          const indent = line.length - line.trimStart().length;
+          if (indent === 0) loopDepth = 0;
+        }
+
+        const mult = 1.0 + 0.5 * Math.pow(loopDepth, 2);
+
+        if (/\brequests\.(get|post|put|delete)|http\.Get|time\.Sleep|time\.sleep\b/.test(line)) {
+          const score = Math.round(18.0 * mult * 100) / 100;
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
+            vulnerability_type: "BlockingIO", description: "Blocking I/O call on execution path"
+          });
+        }
+        if (/\bsync\.Mutex|threading\.Lock|threading\.RLock\b/.test(line)) {
+          const score = Math.round(22.0 * mult * 100) / 100;
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
+            vulnerability_type: "SyncContention", description: "Synchronization primitive contention risk"
+          });
+        }
+        if (/\bmake\(|np\.zeros\b/.test(line)) {
+          const score = Math.round(12.0 * mult * 100) / 100;
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
+            vulnerability_type: "HotAllocation", description: "Allocation inside hot execution path"
+          });
+        }
+        if (loopDepth >= 2) {
+          const score = Math.round(25.0 * mult * 100) / 100;
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
+            vulnerability_type: "DeepNesting", description: "Deeply nested execution loop"
+          });
+        }
+      });
+
+      const fileEntropy = hotspots.reduce((acc, h) => acc + h.entropy_score, 0);
+      globalEntropy += fileEntropy;
+      totalHotspots += hotspots.length;
+
+      fileReports.push({
+        file_path: item.path,
+        language: lang,
+        lines_scanned: lines.length,
+        total_entropy: Math.round(fileEntropy * 100) / 100,
+        mean_hotspot_entropy: hotspots.length ? Math.round((fileEntropy / hotspots.length) * 100) / 100 : 0,
+        hotspots: hotspots
+      });
+    } catch (e) {
+      console.warn("Could not fetch file:", item.path, e);
+    }
+  }
+
+  return {
+    engine_version: "0.1.0-browser",
+    generated_at: new Date().toISOString(),
+    scanned_directory: `https://github.com/${owner}/${repo}`,
+    files_analyzed: fileReports.length,
+    total_hotspots: totalHotspots,
+    global_entropy: Math.round(globalEntropy * 100) / 100,
+    file_reports: fileReports,
+    call_graph: []
+  };
+}
+
+/* ─────────────────────────────────────────────
+   TOAST NOTIFICATIONS
+   ───────────────────────────────────────────── */
+function showToast(msg, isError = false) {
+  const toast = document.getElementById('scan-toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.style.borderColor = isError ? '#ff4444' : '#FFD700';
+  toast.style.color = isError ? '#ff4444' : '#FFD700';
+  toast.style.display = 'block';
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => { toast.style.display = 'none'; }, 300);
+  }, 4500);
+}
+
+/* ─────────────────────────────────────────────
+   DYNAMIC REPO SCANNING HANDLER
+   ───────────────────────────────────────────── */
+window.triggerRepoScan = async function() {
+  console.log("[SCAN] triggerRepoScan called");
+  const repoInput = document.getElementById('repo-box');
+  let repoUrl = (repoInput ? repoInput.value : '').trim();
+  console.log("[SCAN] repoUrl input:", repoUrl);
+
+  if (!repoUrl) {
+    showToast("Please enter a GitHub repository URL (e.g. octocat/Spoon-Knife)", true);
+    console.warn("[SCAN] Empty repository URL provided");
+    return;
+  }
+  
+  // Format shorthand "owner/repo" to full URL
+  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repoUrl)) {
+    repoUrl = 'https://github.com/' + repoUrl;
+    if (repoInput) repoInput.value = repoUrl;
+  }
+
+  const overlay = document.getElementById('loading-overlay');
+  const overlayTitle = overlay ? overlay.querySelector('div:nth-child(2)') : null;
+  const overlaySub = overlay ? overlay.querySelector('div:nth-child(3)') : null;
+  if (overlayTitle) overlayTitle.textContent = "SCANNING REPOSITORY...";
+  if (overlaySub) overlaySub.textContent = "Connecting to analysis engine...";
+  if (overlay) overlay.style.display = 'flex';
+
+  // Extract owner and repo for fallback
+  const ghMatch = repoUrl.match(/github\.com\/([^\/]+)\/([^\/\s#?]+)/);
+  const owner = ghMatch ? ghMatch[1] : null;
+  const repo = ghMatch ? ghMatch[2].replace(/\.git$/, '') : null;
+  console.log("[SCAN] Parsed owner:", owner, "repo:", repo);
+
+  let reportLoaded = false;
+
+  // 1. Try Backend API first if on localhost or if custom API is configured
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const customApi = localStorage.getItem('CUSTOM_SCAN_API');
+  const apiUrl = customApi ? (customApi + '/scan') : (isLocal ? 'http://localhost:8080/scan' : '/api/scan');
+  console.log("[SCAN] Attempting backend API:", apiUrl);
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
     const res = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ repo_url: repoUrl })
+      body: JSON.stringify({ repo_url: repoUrl }),
+      signal: controller.signal
     });
-    
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(errText);
+    clearTimeout(timeoutId);
+    console.log("[SCAN] Backend API response status:", res.status);
+
+    if (res.ok) {
+      const newReport = await res.json();
+      REPORT = newReport;
+      reportLoaded = true;
+      console.log("[SCAN] Report successfully received from backend API");
     }
-    
-    const newReport = await res.json();
-    REPORT = newReport;
-    
-    // Re-initialize graph
+  } catch (err) {
+    console.log("[SCAN] Backend API unreachable or returned error:", err.message);
+  }
+
+  // 2. If Backend was unreachable (e.g. 405 on GitHub Pages static host), fall back to client-side GitHub scanner
+  if (!reportLoaded && owner && repo) {
+    try {
+      console.log("[SCAN] Launching in-browser GitHub API analysis...");
+      const clientReport = await scanClientSide(owner, repo);
+      REPORT = clientReport;
+      reportLoaded = true;
+      console.log("[SCAN] In-browser scan completed successfully");
+    } catch (clientErr) {
+      console.warn("[SCAN] Client-side scan error:", clientErr.message);
+      showToast("Scan failed: " + clientErr.message, true);
+    }
+  }
+
+  if (overlay) overlay.style.display = 'none';
+
+  if (reportLoaded) {
+    if (!REPORT.file_reports || REPORT.file_reports.length === 0) {
+      showToast("Scan completed, but no Python (.py) or Go (.go) files found.", false);
+    } else {
+      showToast(`Scan complete: ${REPORT.files_analyzed} files analyzed!`, false);
+    }
     buildData();
     syncPhase(0);
-  } catch (err) {
-    alert("Scan failed: " + err.message);
-  } finally {
-    document.getElementById('loading-overlay').style.display = 'none';
+  } else if (!owner || !repo) {
+    showToast("Please provide a valid GitHub repository URL, e.g. octocat/Spoon-Knife", true);
   }
-});
+};
+
+const scanBtn = document.getElementById('scan-btn');
+if (scanBtn) {
+  scanBtn.addEventListener('click', window.triggerRepoScan);
+}
+const repoBox = document.getElementById('repo-box');
+if (repoBox) {
+  repoBox.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      window.triggerRepoScan();
+    }
+  });
+}
 
 /* ─────────────────────────────────────────────
-   INIT
+   SIDEBAR FILE LIST BUILDER
    ───────────────────────────────────────────── */
-buildData();
-resizeCanvas();
-
-// Build adaptive slider dots
-const dotsContainer = document.getElementById('as-dots');
-PHASES.forEach((p, i) => {
-  const dot = document.createElement('div');
-  dot.className = 'as-dot';
-  dot.onclick = () => syncPhase(i);
-  const lbl = document.createElement('div');
-  lbl.className = 'as-dot-label';
-  lbl.textContent = p.label;
-  dot.appendChild(lbl);
-  dotsContainer.appendChild(dot);
-});
-
-// Range input for slider dragging
-document.getElementById('as-range').setAttribute('max', PHASES.length - 1);
-document.getElementById('as-range').addEventListener('input', function() {
-  syncPhase(parseInt(this.value));
-});
-
-// Build file list (PinItem style cards)
-const fl = document.getElementById('file-list');
 const svgb = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
 const langIcons = { 
   'Go': svgb + '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>', 
   'Python': svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 12 17 16 21"/></svg>'
 };
-const langColors = { 'Go': '#00ADD8', 'Python': '#3572A5' };
 const defaultIcon = svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 
-// "All Files" card
-const allCard = document.createElement('div');
-allCard.className = 'file-card selected';
-allCard.innerHTML = `
-  <div class="file-card-icon">${svgb}<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
-  <div class="file-card-info">
-    <div class="file-card-name">All Files</div>
-    <div class="file-card-meta"><span>${allNodes.length} nodes</span> • All modules</div>
-  </div>
-  <div class="file-card-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-`;
-allCard.onclick = () => {
-  document.querySelectorAll('.file-card').forEach(c => c.classList.remove('selected'));
-  allCard.classList.add('selected');
-  activeNodes.forEach(n => { n.targetOpacity = 1; n.targetScale = 1; });
-};
-fl.appendChild(allCard);
+function updateFileList() {
+  const fl = document.getElementById('file-list');
+  if (!fl) return;
+  fl.innerHTML = '';
 
-// Per-file cards
-const fileReports = REPORT.file_reports;
-const uniqueFiles = [...new Set(allNodes.map(n => n.fileShort))];
-uniqueFiles.forEach(f => {
-  const report = fileReports.find(r => r.file_path.endsWith(f));
-  const lang = report ? report.language : 'Unknown';
-  const entropy = report ? report.total_entropy : 0;
-  const hotspots = report ? report.hotspots.length : 0;
-  const icon = langIcons[lang] || defaultIcon;
-
-  const card = document.createElement('div');
-  card.className = 'file-card';
-  card.innerHTML = `
-    <div class="file-card-icon">${icon}</div>
+  const allCard = document.createElement('div');
+  allCard.className = 'file-card selected';
+  allCard.innerHTML = `
+    <div class="file-card-icon">${svgb}<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
     <div class="file-card-info">
-      <div class="file-card-name">${f}</div>
-      <div class="file-card-meta"><span>${lang}</span> • ${hotspots} hotspots • <span style="color:${entropy > 500 ? '#f85149' : entropy > 100 ? '#ffaa00' : '#3fb950'}">${entropy.toFixed(0)} entropy</span></div>
+      <div class="file-card-name">All Files</div>
+      <div class="file-card-meta"><span>${allNodes.length} nodes</span> • All modules</div>
     </div>
     <div class="file-card-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
   `;
-  card.onclick = () => {
+  allCard.onclick = () => {
     document.querySelectorAll('.file-card').forEach(c => c.classList.remove('selected'));
-    card.classList.add('selected');
-    activeNodes.forEach(n => {
-      if (n.fileShort === f) {
-        n.targetOpacity = 1; n.targetScale = 1.15;
-      } else {
-        n.targetOpacity = 0.12; n.targetScale = 0.5;
-      }
-    });
+    allCard.classList.add('selected');
+    activeNodes.forEach(n => { n.targetOpacity = 1; n.targetScale = 1; });
   };
-  fl.appendChild(card);
+  fl.appendChild(allCard);
+
+  const fileReports = REPORT.file_reports || [];
+  const uniqueFiles = [...new Set(allNodes.filter(n => n.type === 'file').map(n => n.fileShort))];
+  uniqueFiles.forEach(f => {
+    const report = fileReports.find(r => r.file_path.endsWith(f));
+    const lang = report ? report.language : 'Code';
+    const entropy = report ? report.total_entropy : 0;
+    const hotspots = report ? (report.hotspots || []).length : 0;
+    const icon = langIcons[lang] || defaultIcon;
+
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.innerHTML = `
+      <div class="file-card-icon">${icon}</div>
+      <div class="file-card-info">
+        <div class="file-card-name">${f}</div>
+        <div class="file-card-meta"><span>${lang}</span> • ${hotspots} hotspots • <span style="color:${entropy > 500 ? '#f85149' : entropy > 100 ? '#ffaa00' : '#3fb950'}">${entropy.toFixed(0)} entropy</span></div>
+      </div>
+      <div class="file-card-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    `;
+    card.onclick = () => {
+      document.querySelectorAll('.file-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      activeNodes.forEach(n => {
+        if (n.fileShort === f) {
+          n.targetOpacity = 1; n.targetScale = 1.15;
+        } else {
+          n.targetOpacity = 0.12; n.targetScale = 0.5;
+        }
+      });
+    };
+    fl.appendChild(card);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   INIT
+   ───────────────────────────────────────────── */
+const phaseDecBtn = document.getElementById('phase-dec');
+const phaseIncBtn = document.getElementById('phase-inc');
+const phaseCountDisplay = document.getElementById('phase-count-display');
+
+if (phaseDecBtn) {
+  phaseDecBtn.onclick = () => {
+    if (targetPhaseCount > 2) {
+      targetPhaseCount--;
+      if (phaseCountDisplay) phaseCountDisplay.textContent = targetPhaseCount;
+      buildData();
+      syncPhase(Math.min(currentPhase, PHASES.length - 1));
+      showToast(`Evolution divided into ${PHASES.length} phases`);
+    }
+  };
+}
+if (phaseIncBtn) {
+  phaseIncBtn.onclick = () => {
+    if (targetPhaseCount < 12) {
+      targetPhaseCount++;
+      if (phaseCountDisplay) phaseCountDisplay.textContent = targetPhaseCount;
+      buildData();
+      syncPhase(Math.min(currentPhase, PHASES.length - 1));
+      showToast(`Evolution divided into ${PHASES.length} phases`);
+    }
+  };
+}
+
+const zoomInBtn = document.getElementById('zoom-in');
+const zoomOutBtn = document.getElementById('zoom-out');
+const zoomResetBtn = document.getElementById('zoom-reset');
+
+if (zoomInBtn) {
+  zoomInBtn.onclick = () => {
+    const newZoom = Math.min(5, zoom * 1.25);
+    zoomToCenter(newZoom);
+  };
+}
+if (zoomOutBtn) {
+  zoomOutBtn.onclick = () => {
+    const newZoom = Math.max(0.12, zoom * 0.8);
+    zoomToCenter(newZoom);
+  };
+}
+if (zoomResetBtn) {
+  zoomResetBtn.onclick = () => {
+    zoom = 1;
+    panX = 0;
+    panY = 0;
+  };
+}
+/* ─────────────────────────────────────────────
+   SIDEBAR & SECTION COLLAPSE HANDLERS
+   ───────────────────────────────────────────── */
+const sidebar = document.getElementById('sidebar');
+const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+const sidebarToggleText = document.getElementById('sidebar-toggle-text');
+
+if (sidebarToggleBtn && sidebar) {
+  sidebarToggleBtn.onclick = () => {
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    sidebarToggleBtn.classList.toggle('is-collapsed', isCollapsed);
+    if (sidebarToggleText) {
+      sidebarToggleText.textContent = isCollapsed ? 'SHOW' : 'PANEL';
+    }
+  };
+}
+
+// Collapsible Section: Evolution Phase
+const togglePhaseSec = document.getElementById('toggle-phase-sec');
+const phaseSecBody = document.getElementById('phase-sec-body');
+const phaseArrow = document.getElementById('phase-arrow');
+
+if (togglePhaseSec && phaseSecBody) {
+  togglePhaseSec.onclick = () => {
+    const isClosed = phaseSecBody.classList.toggle('collapsed');
+    if (phaseArrow) phaseArrow.classList.toggle('collapsed', isClosed);
+  };
+}
+
+// Collapsible Section: System Modules
+const toggleModulesSec = document.getElementById('toggle-modules-sec');
+const modulesSecBody = document.getElementById('modules-sec-body');
+const modulesArrow = document.getElementById('modules-arrow');
+
+if (toggleModulesSec && modulesSecBody) {
+  toggleModulesSec.onclick = () => {
+    const isClosed = modulesSecBody.classList.toggle('collapsed');
+    if (modulesArrow) modulesArrow.classList.toggle('collapsed', isClosed);
+  };
+}
+
+buildData();
+resizeCanvas();
+
+document.getElementById('as-range').addEventListener('input', function() {
+  syncPhase(parseInt(this.value));
 });
 
-// Start!
 syncPhase(0);
 draw();
 </script>

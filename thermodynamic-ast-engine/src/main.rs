@@ -766,6 +766,7 @@ fn main() {
             "WARN:".yellow().bold(),
             cli.directory.display()
         );
+        let _ = build_and_write_report(Vec::new(), &cli.directory, &cli.output);
         std::process::exit(0);
     }
 
