@@ -625,12 +625,18 @@ window.addEventListener('resize', resizeCanvas);
 /* ─────────────────────────────────────────────
    ORGANIC FORCE-DIRECTED PHYSICS (2D)
    ───────────────────────────────────────────── */
+let smoothArenaRadius = 280;
+let targetArenaRadius = 280;
+
 function layoutPhase() {
   const nodes = activeNodes;
   const links = activeLinks;
   const cx = W / 2, cy = H / 2;
   const zoomScale = Math.max(1.0, 1.0 / zoom);
-  const spreadRadius = Math.min(W, H) * 0.38 * Math.pow(zoomScale, 0.7);
+  const phaseProgress = (currentPhase + 1) / Math.max(1, PHASES.length);
+  const nodeCountFactor = Math.sqrt(Math.max(4, nodes.length));
+  const baseSpreadRadius = Math.max(Math.min(W, H) * 0.32, nodeCountFactor * 45 + phaseProgress * 80);
+  const spreadRadius = baseSpreadRadius * Math.pow(zoomScale, 0.75);
 
   nodes.forEach((n, idx) => {
     if (n.x === 0 && n.y === 0) {
@@ -638,17 +644,22 @@ function layoutPhase() {
       const parent = parentLink ? allNodesMap.get(parentLink.targetId) : null;
       if (parent && parent.x !== 0) {
         const angle = Math.random() * Math.PI * 2;
-        const dist = (n.radius + 60 + Math.random() * 80) * Math.min(2.0, Math.pow(zoomScale, 0.5));
+        const dist = (n.radius + 50 + Math.random() * 70) * Math.min(2.0, Math.pow(zoomScale, 0.5));
         n.x = parent.x + Math.cos(angle) * dist;
         n.y = parent.y + Math.sin(angle) * dist;
+        n.vx = Math.cos(angle) * 3.5;
+        n.vy = Math.sin(angle) * 3.5;
       } else {
         const angle = (idx / Math.max(1, nodes.length)) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-        const dist = spreadRadius * (0.35 + Math.random() * 0.65);
+        const dist = spreadRadius * (0.35 + Math.random() * 0.6);
         n.x = cx + Math.cos(angle) * dist;
         n.y = cy + Math.sin(angle) * dist;
+        n.vx = Math.cos(angle) * 4.0;
+        n.vy = Math.sin(angle) * 4.0;
       }
       n.targetX = n.x;
       n.targetY = n.y;
+      n.birthTime = Date.now();
     }
   });
 }
@@ -658,26 +669,33 @@ function physicsTick() {
   const links = activeLinks;
   const cx = W / 2, cy = H / 2;
 
-  // DYNAMIC BOUNDARY: Expands dynamically as zoom decreases
+  // DYNAMIC EVOLUTIONARY EXPANSION:
+  // Arena expands fluidly in real-time as evolutionary phases progress & more nodes unlock!
+  const phaseProgress = (currentPhase + 1) / Math.max(1, PHASES.length);
   const zoomScale = Math.max(1.0, 1.0 / zoom);
   const spreadFactor = Math.pow(zoomScale, 0.85);
+  const nodeCountFactor = Math.sqrt(Math.max(4, nodes.length));
 
-  const boundSpanX = (W * 0.48) * zoomScale;
-  const boundSpanY = (H * 0.48) * zoomScale;
-  const minX = cx - boundSpanX;
-  const maxX = cx + boundSpanX;
-  const minY = cy - boundSpanY;
-  const maxY = cy + boundSpanY;
+  const baseArenaRadius = (
+    Math.min(W, H) * 0.26 +
+    nodeCountFactor * 48 +
+    phaseProgress * Math.min(W, H) * 0.24
+  );
+  targetArenaRadius = baseArenaRadius * spreadFactor;
+  // Smooth fluid expansion animation (never jumpy, breathes naturally)
+  smoothArenaRadius += (targetArenaRadius - smoothArenaRadius) * 0.05;
+  const arenaRadius = smoothArenaRadius;
 
-  // Dynamically scaled forces prevent dense clustering
-  const REPULSION = (5000 + nodes.length * 150) * spreadFactor;
-  const LINK_DIST = 140 * Math.min(2.8, spreadFactor);
-  const CALL_DIST = 100 * Math.min(2.8, spreadFactor);
-  const LINK_STRENGTH = 0.007;
-  const CENTER_GRAVITY = 0.0003 / spreadFactor;
-  const DAMPING = 0.78;
+  // Dynamically scaled soft forces that expand organically with the phase
+  const expansionScale = 0.85 + 0.45 * phaseProgress;
+  const REPULSION = (3800 + nodes.length * 110) * spreadFactor * expansionScale;
+  const LINK_DIST = 115 * Math.min(2.5, spreadFactor) * expansionScale;
+  const CALL_DIST = 90 * Math.min(2.5, spreadFactor) * expansionScale;
+  const LINK_STRENGTH = 0.008;
+  const CENTER_GRAVITY = (0.00032 / spreadFactor) / expansionScale;
+  const DAMPING = 0.80;
 
-  // Center gravity
+  // Center orbital gravity
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
     if (n.targetScale < 0.01) continue;
@@ -685,7 +703,7 @@ function physicsTick() {
     n.vy += (cy - n.y) * CENTER_GRAVITY;
   }
 
-  // Repulsion & Collision avoidance
+  // Organic Repulsion & Soft-Body Collision Avoidance
   for (let i = 0; i < nodes.length; i++) {
     const a = nodes[i];
     if (a.targetScale < 0.01) continue;
@@ -693,20 +711,20 @@ function physicsTick() {
       const b = nodes[j];
       if (b.targetScale < 0.01) continue;
       let dx = a.x - b.x, dy = a.y - b.y;
-      let distSq = dx * dx + dy * dy + 1;
+      let distSq = dx * dx + dy * dy + 400; // Softening parameter prevents violent impulse
       let dist = Math.sqrt(distSq);
 
       // Repulsion force
-      let f = REPULSION * ((a.radius + b.radius) / 30) / distSq;
+      let f = REPULSION * ((a.radius + b.radius) / 28) / distSq;
       a.vx += (dx / dist) * f;
       a.vy += (dy / dist) * f;
       b.vx -= (dx / dist) * f;
       b.vy -= (dy / dist) * f;
 
       // Anti-collision buffer: mathematically guarantees nodes never overlap
-      const minSep = (a.radius + b.radius + 22) * Math.min(2.0, spreadFactor);
+      const minSep = (a.radius + b.radius + 20) * Math.min(1.8, spreadFactor);
       if (dist < minSep) {
-        const push = (minSep - dist) * 0.3;
+        const push = (minSep - dist) * 0.32;
         const ox = (dx / dist) * push;
         const oy = (dy / dist) * push;
         a.vx += ox;
@@ -717,7 +735,7 @@ function physicsTick() {
     }
   }
 
-  // Links
+  // Structural and Call Links
   links.forEach(l => {
     const src = allNodesMap.get(l.sourceId);
     const tgt = allNodesMap.get(l.targetId);
@@ -733,21 +751,35 @@ function physicsTick() {
     tgt.vy -= (dy / dist) * f;
   });
 
-  // Integrate with dynamic arena boundary
+  // Integrate velocities with SOFT RADIAL BOUNDARY (No rectangular corner traps!)
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
     n.vx *= DAMPING;
     n.vy *= DAMPING;
     n.x += n.vx;
     n.y += n.vy;
-    // Boundary clamps expand directly with zoom out!
-    n.x = Math.max(minX + n.radius + 15, Math.min(maxX - n.radius - 15, n.x));
-    n.y = Math.max(minY + n.radius + 15, Math.min(maxY - n.radius - 15, n.y));
+
+    // Radial Manifold Constraint: glides along circular perimeter without corner pinching
+    const dx = n.x - cx;
+    const dy = n.y - cy;
+    const distFromCenter = Math.sqrt(dx * dx + dy * dy) || 1;
+    const maxR = arenaRadius - n.radius - 14;
+
+    if (distFromCenter > maxR) {
+      const excess = distFromCenter - maxR;
+      const spring = 0.09 + Math.min(0.25, excess * 0.003);
+      n.vx -= (dx / distFromCenter) * excess * spring;
+      n.vy -= (dy / distFromCenter) * excess * spring;
+      n.x = cx + (dx / distFromCenter) * maxR;
+      n.y = cy + (dy / distFromCenter) * maxR;
+      n.vx *= 0.82;
+      n.vy *= 0.82;
+    }
   }
 }
 
 /* ─────────────────────────────────────────────
-   PHASE SYNC
+   PHASE SYNC & EVOLUTION FLOW-OUT
    ───────────────────────────────────────────── */
 function syncPhase(idx) {
   currentPhase = idx;
@@ -756,9 +788,41 @@ function syncPhase(idx) {
   activeLinks = snap.links;
 
   const activeSet = new Set(activeNodes.map(n => n.id));
+  const cx = W / 2, cy = H / 2;
+  const now = Date.now();
+  const phaseProgress = (idx + 1) / Math.max(1, PHASES.length);
 
   allNodes.forEach(n => {
-    if (activeSet.has(n.id)) {
+    const willBeActive = activeSet.has(n.id);
+    if (willBeActive && n.targetScale < 0.5) {
+      // Newly emerging node in this evolution phase: initiate outward flow from progenitor
+      n.birthTime = now;
+      const parentLink = activeLinks.find(l => l.sourceId === n.id && !l.isCall);
+      const parent = parentLink ? allNodesMap.get(parentLink.targetId) : null;
+      if (parent && parent.x !== 0) {
+        n.x = parent.x;
+        n.y = parent.y;
+        const angle = Math.random() * Math.PI * 2;
+        const outwardSpeed = 3.5 + Math.random() * 2.5;
+        n.vx = Math.cos(angle) * outwardSpeed;
+        n.vy = Math.sin(angle) * outwardSpeed;
+      } else if (n.x === 0 && n.y === 0) {
+        n.x = cx;
+        n.y = cy;
+        const angle = Math.random() * Math.PI * 2;
+        const outwardSpeed = 4.0 + Math.random() * 3.0;
+        n.vx = Math.cos(angle) * outwardSpeed;
+        n.vy = Math.sin(angle) * outwardSpeed;
+      }
+    } else if (willBeActive) {
+      // Existing active nodes also receive an expansive harmonic wave outward as the system grows!
+      const dx = n.x - cx, dy = n.y - cy;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      n.vx += (dx / d) * (1.2 * phaseProgress);
+      n.vy += (dy / d) * (1.2 * phaseProgress);
+    }
+
+    if (willBeActive) {
       n.targetOpacity = 1;
       n.targetScale = 1;
     } else {
@@ -772,7 +836,7 @@ function syncPhase(idx) {
 }
 
 /* ─────────────────────────────────────────────
-   RENDER  (Canvas 2D — guaranteed visible!)
+   RENDER  (Canvas 2D — Guaranteed Visible!)
    ───────────────────────────────────────────── */
 const time0 = Date.now();
 
@@ -791,78 +855,104 @@ function draw() {
   // Run physics
   physicsTick();
 
-  // ── Draw Dynamic Boundary Arena (World Coordinates) ──
+  // ── Draw Dynamic Radial Arena Manifold (World Coordinates) ──
   const cx = W / 2, cy = H / 2;
-  const zoomScale = Math.max(1.0, 1.0 / zoom);
-  const boundSpanX = (W * 0.48) * zoomScale;
-  const boundSpanY = (H * 0.48) * zoomScale;
-  const minX = cx - boundSpanX;
-  const maxX = cx + boundSpanX;
-  const minY = cy - boundSpanY;
-  const maxY = cy + boundSpanY;
-  const bW = maxX - minX;
-  const bH = maxY - minY;
+  const arenaRadius = smoothArenaRadius;
+  const phaseProgress = (currentPhase + 1) / Math.max(1, PHASES.length);
+  const phasePercent = Math.round(phaseProgress * 100);
 
   ctx.save();
-  // Faint arena boundary grid
-  ctx.strokeStyle = 'rgba(255, 215, 0, 0.12)';
-  ctx.lineWidth = 1.5;
+  // Outer perimeter boundary with breathing harmonic glow
+  const borderPulse = 0.20 + 0.10 * Math.sin(t * 1.5);
+  ctx.strokeStyle = `rgba(255, 215, 0, ${borderPulse})`;
+  ctx.lineWidth = 1.8;
   ctx.setLineDash([8, 8]);
-  ctx.strokeRect(minX, minY, bW, bH);
+  ctx.beginPath();
+  ctx.arc(cx, cy, arenaRadius, 0, Math.PI * 2);
+  ctx.stroke();
 
-  // Corner brackets
-  const brkLen = Math.min(26, bW * 0.05);
-  ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+  // Concentric orbital guide rings showing progressive expansion tiers
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.08)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 12]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, arenaRadius * 0.35, 0, Math.PI * 2);
+  ctx.arc(cx, cy, arenaRadius * 0.68, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Dynamic Expansion Rings (Radiating outward wave)
+  const expansionWave = (t * 0.35) % 1.0;
+  ctx.strokeStyle = `rgba(255, 215, 0, ${(1 - expansionWave) * 0.12})`;
+  ctx.lineWidth = 1.2;
   ctx.setLineDash([]);
-  ctx.lineWidth = 2;
-  // Top-left
-  ctx.beginPath(); ctx.moveTo(minX, minY + brkLen); ctx.lineTo(minX, minY); ctx.lineTo(minX + brkLen, minY); ctx.stroke();
-  // Top-right
-  ctx.beginPath(); ctx.moveTo(maxX - brkLen, minY); ctx.lineTo(maxX, minY); ctx.lineTo(maxX, minY + brkLen); ctx.stroke();
-  // Bottom-left
-  ctx.beginPath(); ctx.moveTo(minX, maxY - brkLen); ctx.lineTo(minX, maxY); ctx.lineTo(minX + brkLen, maxY); ctx.stroke();
-  // Bottom-right
-  ctx.beginPath(); ctx.moveTo(maxX - brkLen, maxY); ctx.lineTo(maxX, maxY); ctx.lineTo(maxX, maxY - brkLen); ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, arenaRadius * expansionWave, 0, Math.PI * 2);
+  ctx.stroke();
 
-  // Dynamic boundary watermark
+  // Compass radial ticks (every 30 degrees)
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
+  ctx.lineWidth = 2;
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+    const isMajor = (Math.round(a / (Math.PI / 6)) % 3 === 0);
+    const tickLen = isMajor ? 12 : 6;
+    const tickIn = arenaRadius - tickLen;
+    const tickOut = arenaRadius + 4;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * tickIn, cy + Math.sin(a) * tickIn);
+    ctx.lineTo(cx + Math.cos(a) * tickOut, cy + Math.sin(a) * tickOut);
+    ctx.stroke();
+  }
+
+  // Futuristic radar sweep arc
+  const radarAngle = t * 0.35;
+  if (ctx.createConicGradient) {
+    const radarGrad = ctx.createConicGradient(radarAngle, cx, cy);
+    radarGrad.addColorStop(0, 'rgba(255, 215, 0, 0.05)');
+    radarGrad.addColorStop(0.12, 'rgba(255, 215, 0, 0)');
+    radarGrad.addColorStop(1, 'rgba(255, 215, 0, 0)');
+    ctx.fillStyle = radarGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, arenaRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Dynamic boundary watermark with evolution metrics
   ctx.font = '10px "Share Tech Mono", monospace';
-  ctx.fillStyle = 'rgba(255, 215, 0, 0.35)';
-  ctx.fillText(`// DYNAMIC EXPANSION ARENA [${Math.round(zoomScale * 100)}%]`, minX + 12, minY + 18);
+  ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+  ctx.fillText(`// DYNAMIC EXPANSION MANIFOLD [R = ${Math.round(arenaRadius)}px • EVOLUTION: ${phasePercent}% • NODES: ${activeNodes.length}]`, cx - arenaRadius + 14, cy - arenaRadius + 24);
   ctx.restore();
 
   // Smoothly animate opacity / scale
   allNodes.forEach(n => {
-    n.opacity += (n.targetOpacity - n.opacity) * 0.03;
-    n.scale += (n.targetScale - n.scale) * 0.03;
+    n.opacity += (n.targetOpacity - n.opacity) * 0.04;
+    n.scale += (n.targetScale - n.scale) * 0.04;
   });
 
-  // ── Draw edges ──
+  // ── Draw Edges & Active Power Transfer Streams ──
   activeLinks.forEach(link => {
     const src = allNodesMap.get(link.sourceId);
     const tgt = allNodesMap.get(link.targetId);
     if (!src || !tgt) return;
     if (src.opacity < 0.02 || tgt.opacity < 0.02) return;
 
-    const alpha = Math.min(src.opacity, tgt.opacity) * 0.6;
-
-    // Synaptic pulse
+    const alpha = Math.min(src.opacity, tgt.opacity) * 0.65;
     const dx = tgt.x - src.x, dy = tgt.y - src.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const pulse = (Math.sin(t * 3 - dist * 0.02) + 1) / 2;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const pulse = (Math.sin(t * 3.2 - dist * 0.025) + 1) / 2;
 
     ctx.save();
     ctx.globalAlpha = alpha;
 
     if (link.isCall) {
-      // Call-graph edge: animated dashes
-      ctx.strokeStyle = `rgba(255, 215, 0, ${0.4 + pulse * 0.4})`;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([6, 4]);
-      ctx.lineDashOffset = -t * 30;
+      // Call-graph execution edge: golden animated energy beam
+      ctx.strokeStyle = `rgba(255, 215, 0, ${0.35 + pulse * 0.45})`;
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([7, 5]);
+      ctx.lineDashOffset = -t * 35;
     } else {
-      // File-to-hotspot edge: solid glow
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + pulse * 0.2})`;
-      ctx.lineWidth = 1;
+      // File-to-hotspot structural conduit: cyan/crystal power flow
+      ctx.strokeStyle = `rgba(0, 229, 255, ${0.15 + pulse * 0.25})`;
+      ctx.lineWidth = 1.2;
       ctx.setLineDash([]);
     }
 
@@ -871,30 +961,66 @@ function draw() {
     ctx.lineTo(tgt.x, tgt.y);
     ctx.stroke();
 
-    // Direction arrow for call edges
-    if (link.isCall && dist > 40) {
+    // Direction arrow for call-graph execution
+    if (link.isCall && dist > 35) {
       const angle = Math.atan2(dy, dx);
-      const mx = src.x + dx * 0.65, my = src.y + dy * 0.65;
+      const mx = src.x + dx * 0.62, my = src.y + dy * 0.62;
       const arrowLen = 8;
       ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
       ctx.beginPath();
       ctx.moveTo(mx + Math.cos(angle) * arrowLen, my + Math.sin(angle) * arrowLen);
-      ctx.lineTo(mx + Math.cos(angle + 2.5) * arrowLen * 0.6, my + Math.sin(angle + 2.5) * arrowLen * 0.6);
-      ctx.lineTo(mx + Math.cos(angle - 2.5) * arrowLen * 0.6, my + Math.sin(angle - 2.5) * arrowLen * 0.6);
+      ctx.lineTo(mx + Math.cos(angle + 2.4) * arrowLen * 0.6, my + Math.sin(angle + 2.4) * arrowLen * 0.6);
+      ctx.lineTo(mx + Math.cos(angle - 2.4) * arrowLen * 0.6, my + Math.sin(angle - 2.4) * arrowLen * 0.6);
       ctx.closePath();
       ctx.fill();
     }
-
     ctx.restore();
+
+    // Active Kinetic Energy Packets (Powering each other & project growth)
+    const pulseCount = link.isCall ? 3 : 2;
+    for (let p = 0; p < pulseCount; p++) {
+      const speed = link.isCall ? 0.42 : 0.26;
+      const offset = p / pulseCount;
+      const u = (t * speed + offset) % 1.0;
+      const px = src.x + dx * u;
+      const py = src.y + dy * u;
+      const photonAlpha = alpha * Math.sin(u * Math.PI);
+
+      if (photonAlpha > 0.05) {
+        ctx.save();
+        ctx.globalAlpha = photonAlpha;
+        ctx.fillStyle = link.isCall ? '#FFD700' : '#00e5ff';
+        ctx.shadowColor = link.isCall ? '#FFD700' : '#00e5ff';
+        ctx.shadowBlur = 9;
+        ctx.beginPath();
+        ctx.arc(px, py, link.isCall ? 3.4 : 2.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Trailing motion luminescence
+        const tailLen = link.isCall ? 14 : 9;
+        const tx = px - (dx / dist) * tailLen;
+        const ty = py - (dy / dist) * tailLen;
+        const tailGrad = ctx.createLinearGradient(tx, ty, px, py);
+        tailGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        tailGrad.addColorStop(1, link.isCall ? 'rgba(255, 215, 0, 0.75)' : 'rgba(0, 229, 255, 0.75)');
+        ctx.strokeStyle = tailGrad;
+        ctx.lineWidth = link.isCall ? 2.0 : 1.4;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
   });
 
-  // ── Draw nodes ──
+  // ── Draw Nodes & Evolutionary Genesis Ripples ──
   activeNodes.forEach(n => {
     if (n.opacity < 0.02) return;
 
     const s = n.scale;
     const r = n.radius * s;
-    const breath = 1 + Math.sin(t * 1.2 + n.entropy * 0.1) * 0.03;
+    const breath = 1 + Math.sin(t * 1.4 + n.entropy * 0.12) * 0.04;
     const drawR = r * breath;
     const color = heatColor(n.entropy);
     const glow = heatGlow(n.entropy);
@@ -902,34 +1028,54 @@ function draw() {
     ctx.save();
     ctx.globalAlpha = n.opacity;
 
-    // Outer glow
-    const gradient = ctx.createRadialGradient(n.x, n.y, drawR * 0.3, n.x, n.y, drawR * 2.5);
+    // Genesis Shockwave Bloom on newly emerging nodes
+    if (n.birthTime) {
+      const age = (Date.now() - n.birthTime) / 1000;
+      if (age < 2.0) {
+        const waveProgress = age / 2.0; // 0 to 1
+        const waveR = drawR * (1.0 + waveProgress * 2.8);
+        const waveAlpha = (1.0 - waveProgress) * n.opacity * 0.8;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12;
+        ctx.lineWidth = 2.5 * (1.0 - waveProgress);
+        ctx.globalAlpha = waveAlpha;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, waveR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Outer Thermodynamic Corona Glow
+    const gradient = ctx.createRadialGradient(n.x, n.y, drawR * 0.3, n.x, n.y, drawR * 2.6);
     gradient.addColorStop(0, glow);
     gradient.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(n.x, n.y, drawR * 2.5, 0, Math.PI * 2);
+    ctx.arc(n.x, n.y, drawR * 2.6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Node circle
+    // Core Node Circle with Dynamic Luminescence
     ctx.fillStyle = color;
     ctx.shadowColor = color;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 16;
     ctx.beginPath();
     ctx.arc(n.x, n.y, drawR, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    // Inner highlight
+    // Inner Radiant Specular Highlight
     const inner = ctx.createRadialGradient(n.x - drawR * 0.3, n.y - drawR * 0.3, 0, n.x, n.y, drawR);
-    inner.addColorStop(0, 'rgba(255,255,255,0.3)');
+    inner.addColorStop(0, 'rgba(255,255,255,0.4)');
     inner.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = inner;
     ctx.beginPath();
     ctx.arc(n.x, n.y, drawR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Label
+    // Node Label
     ctx.fillStyle = '#c9d1d9';
     ctx.font = n.type === 'file' ? 'bold 12px Inter' : '11px Inter';
     ctx.textAlign = 'center';
@@ -1285,17 +1431,47 @@ async function scanClientSide(owner, repo) {
     throw new Error(`Could not access repository ${owner}/${repo}. Ensure it is public.`);
   }
 
-  // Filter for Go and Python source files
-  const codeFiles = tree.filter(item => 
-    item.type === 'blob' && 
-    (item.path.endsWith('.go') || item.path.endsWith('.py')) &&
-    !item.path.includes('vendor/') &&
-    !item.path.includes('node_modules/')
-  ).slice(0, 15); // Top 15 files
+  // Excluded binary and archive extensions for security integrity
+  const excludedExts = new Set([
+    'exe', 'dll', 'so', 'dylib', 'bin', 'o', 'a', 'lib', 'class', 'jar', 'wasm',
+    'pyc', 'pyo', 'pyd', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'webp', 'svg',
+    'mp3', 'mp4', 'wav', 'ogg', 'pdf', 'zip', 'tar', 'gz', 'bz2', '7z', 'iso',
+    'woff', 'woff2', 'ttf', 'db', 'sqlite', 'lock', 'sum', 'map'
+  ]);
+
+  const ignoredDirs = ['node_modules/', 'vendor/', 'target/', 'dist/', 'build/', '.git/', 'venv/', '.venv/', '__pycache__/'];
+
+  function detectClientLanguage(path) {
+    const fileName = path.split('/').pop().toLowerCase();
+    if (fileName.endsWith('.min.js') || fileName.endsWith('.min.css') || fileName === 'package-lock.json' || fileName === 'cargo.lock') return null;
+    const ext = fileName.includes('.') ? fileName.split('.').pop() : '';
+    if (ext && excludedExts.has(ext)) return null;
+
+    if (ext === 'go') return 'Go';
+    if (ext === 'py' || ext === 'pyw') return 'Python';
+    if (['js', 'jsx', 'mjs', 'cjs'].includes(ext)) return 'JavaScript';
+    if (['ts', 'tsx'].includes(ext)) return 'TypeScript';
+    if (ext === 'rs') return 'Rust';
+    if (['c', 'h'].includes(ext)) return 'C';
+    if (['cpp', 'cc', 'cxx', 'hpp', 'hxx'].includes(ext)) return 'C++';
+    if (['java', 'cs', 'kt', 'scala'].includes(ext)) return 'Java/C#';
+    if (['sh', 'bash', 'zsh'].includes(ext)) return 'Shell';
+    if (['yaml', 'yml', 'json', 'toml', 'xml', 'sql'].includes(ext) || fileName === 'dockerfile' || fileName.startsWith('dockerfile.')) return 'Config';
+    if (ext || !fileName.startsWith('.')) return 'Generic';
+    return null;
+  }
+
+  // Filter for all valid source/text files within size & security constraints
+  const codeFiles = tree.filter(item => {
+    if (item.type !== 'blob') return false;
+    if (ignoredDirs.some(dir => item.path.includes(dir))) return false;
+    if (item.size && item.size > 512 * 1024) return false; // 512 KB limit
+    return detectClientLanguage(item.path) !== null;
+  }).slice(0, 25); // Top 25 files
 
   if (codeFiles.length === 0) {
     return {
-      engine_version: "0.1.0-browser",
+      engine_version: "0.2.0-browser",
       generated_at: new Date().toISOString(),
       scanned_directory: `https://github.com/${owner}/${repo}`,
       files_analyzed: 0,
@@ -1319,9 +1495,10 @@ async function scanClientSide(owner, repo) {
       const rawRes = await fetch(rawUrl);
       if (!rawRes.ok) continue;
       const content = await rawRes.text();
+      // Binary check: skip files with null character
+      if (content.includes('\0')) continue;
       const lines = content.split('\n');
-      const isGo = item.path.endsWith('.go');
-      const lang = isGo ? 'Go' : 'Python';
+      const lang = detectClientLanguage(item.path) || 'Generic';
       
       const hotspots = [];
       let loopDepth = 0;
@@ -1329,24 +1506,41 @@ async function scanClientSide(owner, repo) {
 
       lines.forEach((line, idx) => {
         const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#')) return;
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('/*')) return;
 
-        if (isGo) {
-          const fnMatch = line.match(/func\s+(?:\([^)]+\)\s+)?([A-Za-z0-9_]+)\s*\(/);
+        // Function detection
+        if (lang === 'Python') {
+          const fnMatch = line.match(/^\s*(?:async\s+)?def\s+([A-Za-z0-9_]+)\s*\(/);
+          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
+          if (/^\s*(for|while)\b/.test(line)) loopDepth++;
+          const indent = line.length - line.trimStart().length;
+          if (indent === 0) loopDepth = 0;
+        } else if (lang === 'Go') {
+          const fnMatch = line.match(/^\s*func\s+(?:\([^)]+\)\s+)?([A-Za-z0-9_]+)\s*\(/);
           if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
           if (/\bfor\b/.test(line)) loopDepth++;
           if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
-        } else {
-          const fnMatch = line.match(/def\s+([A-Za-z0-9_]+)\s*\(/);
+        } else if (lang === 'JavaScript' || lang === 'TypeScript') {
+          const fnMatch = line.match(/(?:function\s+([A-Za-z0-9_]+)|(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s*)?\()/);
+          if (fnMatch) { curFunc = fnMatch[1] || fnMatch[2]; loopDepth = 0; }
+          if (/\b(for\s*\(|while\s*\(|\.forEach\(|\.map\()/.test(line)) loopDepth++;
+          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
+        } else if (lang === 'Rust') {
+          const fnMatch = line.match(/^\s*(?:pub(?:\([^)]+\))?\s+)?(?:async\s+)?fn\s+([A-Za-z0-9_]+)/);
           if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
-          if (/\b(for|while)\b/.test(line)) loopDepth++;
-          const indent = line.length - line.trimStart().length;
-          if (indent === 0) loopDepth = 0;
+          if (/\b(for\s+\w+\s+in|while\s+|loop\s*\{)/.test(line)) loopDepth++;
+          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
+        } else {
+          const fnMatch = line.match(/(?:def|func|fn|function|class)\s+([A-Za-z0-9_]+)/);
+          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
+          if (/\b(for|while|loop)\b/.test(line)) loopDepth++;
+          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
         }
 
         const mult = 1.0 + 0.5 * Math.pow(loopDepth, 2);
 
-        if (/\brequests\.(get|post|put|delete)|http\.Get|time\.Sleep|time\.sleep\b/.test(line)) {
+        // Blocking I/O
+        if (/\b(requests\.(get|post|put|delete)|http\.Get|time\.Sleep|time\.sleep|fs\.(readFileSync|writeFileSync)|execSync|Thread\.sleep|fopen|fread)\b/.test(line)) {
           const score = Math.round(18.0 * mult * 100) / 100;
           hotspots.push({
             function_name: curFunc, line_number: idx + 1,
@@ -1354,7 +1548,8 @@ async function scanClientSide(owner, repo) {
             vulnerability_type: "BlockingIO", description: "Blocking I/O call on execution path"
           });
         }
-        if (/\bsync\.Mutex|threading\.Lock|threading\.RLock\b/.test(line)) {
+        // Sync / Mutex
+        if (/\b(sync\.Mutex|threading\.Lock|threading\.RLock|Mutex|RwLock|synchronized|pthread_mutex)\b/.test(line)) {
           const score = Math.round(22.0 * mult * 100) / 100;
           hotspots.push({
             function_name: curFunc, line_number: idx + 1,
@@ -1362,7 +1557,8 @@ async function scanClientSide(owner, repo) {
             vulnerability_type: "SyncContention", description: "Synchronization primitive contention risk"
           });
         }
-        if (/\bmake\(|np\.zeros\b/.test(line)) {
+        // Hot Allocation
+        if (/\b(make\(|np\.zeros|new Array|new Buffer|Vec::with_capacity|malloc|calloc|new byte\[)\b/.test(line)) {
           const score = Math.round(12.0 * mult * 100) / 100;
           hotspots.push({
             function_name: curFunc, line_number: idx + 1,
@@ -1370,12 +1566,21 @@ async function scanClientSide(owner, repo) {
             vulnerability_type: "HotAllocation", description: "Allocation inside hot execution path"
           });
         }
+        // Deep Nesting
         if (loopDepth >= 2) {
           const score = Math.round(25.0 * mult * 100) / 100;
           hotspots.push({
             function_name: curFunc, line_number: idx + 1,
             source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
             vulnerability_type: "DeepNesting", description: "Deeply nested execution loop"
+          });
+        }
+        // Config Secrets
+        if (lang === 'Config' && /(password|secret|api_key|token|private_key)\s*[:=]\s*['"][^'"]{4,}/i.test(line)) {
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: 25.0,
+            vulnerability_type: "SyncContention", description: "Unrotated secret / sensitive credential in config"
           });
         }
       });
@@ -1398,7 +1603,7 @@ async function scanClientSide(owner, repo) {
   }
 
   return {
-    engine_version: "0.1.0-browser",
+    engine_version: "0.2.0-browser",
     generated_at: new Date().toISOString(),
     scanned_directory: `https://github.com/${owner}/${repo}`,
     files_analyzed: fileReports.length,
@@ -1510,7 +1715,7 @@ window.triggerRepoScan = async function() {
 
   if (reportLoaded) {
     if (!REPORT.file_reports || REPORT.file_reports.length === 0) {
-      showToast("Scan completed, but no Python (.py) or Go (.go) files found.", false);
+      showToast("Scan completed, but no compatible source or config files found.", false);
     } else {
       showToast(`Scan complete: ${REPORT.files_analyzed} files analyzed!`, false);
     }
@@ -1541,7 +1746,18 @@ if (repoBox) {
 const svgb = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
 const langIcons = { 
   'Go': svgb + '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>', 
-  'Python': svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 12 17 16 21"/></svg>'
+  'Python': svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 12 17 16 21"/></svg>',
+  'Rust': svgb + '<circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
+  'JavaScript': svgb + '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 15v1a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V8"/><path d="M16 8h2a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 0-1.5 1.5v1.5a1.5 1.5 0 0 0 1.5 1.5h2"/></svg>',
+  'TypeScript': svgb + '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 9h6M10 9v9"/><path d="M14 16.5c1 1 2.5 1.5 3.5.5s.5-2.5-.5-3-2.5-.5-2.5-2 1-2 2.5-2 2.5.5 3 1.5"/></svg>',
+  'C': svgb + '<path d="M17 7a7 7 0 1 0 0 10"/></svg>',
+  'C++': svgb + '<path d="M15 7a6 6 0 1 0 0 10M17 12h4M19 10v4M21 12h3M22.5 10.5v3"/></svg>',
+  'Java': svgb + '<path d="M6 19c3 1.5 9 1.5 12 0M7 16c2.5 1 7.5 1 10 0M10 2v4M14 2v4M8 11c1-2 4-2 4-4M12 11c1-2 4-2 4-4"/></svg>',
+  'Java/C#': svgb + '<path d="M6 19c3 1.5 9 1.5 12 0M7 16c2.5 1 7.5 1 10 0M10 2v4M14 2v4"/></svg>',
+  'C#': svgb + '<path d="M15 7a6 6 0 1 0 0 10M18 9v6M21 9v6M17 11h5M17 13h5"/></svg>',
+  'Shell': svgb + '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+  'Config': svgb + '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  'Generic': svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
 };
 const defaultIcon = svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
 

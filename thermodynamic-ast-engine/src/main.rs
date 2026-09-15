@@ -174,11 +174,11 @@ pub struct ThermodynamicReport {
 // =============================================================================
 
 /// Internal representation of one pattern rule.
-struct PatternRule {
-    regex: &'static Lazy<Regex>,
-    vulnerability: VulnerabilityType,
-    base_score: f64, // base entropy contribution per match
-    description_tmpl: &'static str,
+pub struct PatternRule {
+    pub regex: &'static Lazy<Regex>,
+    pub vulnerability: VulnerabilityType,
+    pub base_score: f64, // base entropy contribution per match
+    pub description_tmpl: &'static str,
 }
 
 // ── Python patterns ───────────────────────────────────────────────────────────
@@ -226,6 +226,124 @@ static GO_MUTEX: Lazy<Regex> = Lazy::new(|| {
 });
 static GO_FUNC: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"^\s*func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(").unwrap());
+
+// ── JavaScript / TypeScript patterns ──────────────────────────────────────────
+
+static JS_FOR_WHILE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(for\s*\(|while\s*\(|for\s+await|\.forEach\(|\.map\()").unwrap());
+static JS_RECURSIVE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_$][\w$]*)\s*\(").unwrap());
+static JS_ALLOC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(new\s+(Array|Buffer|Uint8Array|Map|Set|Object)|Array\.from)\b").unwrap());
+static JS_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(fs\.(readFileSync|writeFileSync|appendFileSync|existsSync)|execSync|spawnSync|Atomics\.wait)\b").unwrap()
+});
+static JS_BRANCH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|catch|&&|\|\|)\b").unwrap());
+static JS_MUTEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(Mutex|Semaphore|Lock|AsyncLock|atomics)\b").unwrap());
+static JS_FUNC: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(").unwrap()
+});
+
+// ── Rust patterns ─────────────────────────────────────────────────────────────
+
+static RUST_FOR_WHILE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(for\s+\w+\s+in|while\s+|loop\s*\{)").unwrap());
+static RUST_RECURSIVE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_]\w*)\s*\(").unwrap());
+static RUST_ALLOC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(Vec::with_capacity|Vec::new|Box::new|String::from|vec!\[)").unwrap());
+static RUST_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(std::fs::|File::open|File::create|thread::sleep|TcpStream::connect|Command::new)\b").unwrap()
+});
+static RUST_BRANCH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(if|else|match|&&|\|\|)\b").unwrap());
+static RUST_MUTEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(Mutex::|RwLock::|AtomicBool|AtomicUsize|Arc::new|mpsc::channel|barrier)\b").unwrap()
+});
+static RUST_FUNC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(?:pub(?:\([^)]+\))?\s+)?(?:async\s+)?fn\s+(\w+)").unwrap());
+
+// ── C / C++ patterns ──────────────────────────────────────────────────────────
+
+static C_FOR_WHILE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(for\s*\(|while\s*\(|do\s*\{)").unwrap());
+static C_RECURSIVE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_]\w*)\s*\(").unwrap());
+static C_ALLOC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(malloc\s*\(|calloc\s*\(|realloc\s*\(|new\s+\w+)").unwrap());
+static C_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(fopen|fread|fwrite|sleep|usleep|recv|send|connect|system)\b").unwrap()
+});
+static C_BRANCH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|&&|\|\|)\b").unwrap());
+static C_MUTEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(pthread_mutex_|std::mutex|std::lock_guard|std::unique_lock|atomic)\b").unwrap()
+});
+static C_FUNC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(?:[\w:*&<>]+\s+)+(\w+)\s*\([^;]*\)\s*\{?$").unwrap());
+
+// ── Java / C# / Kotlin / Scala patterns ───────────────────────────────────────
+
+static JAVA_FOR_WHILE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(for\s*\(|while\s*\(|foreach\s*\()").unwrap());
+static JAVA_RECURSIVE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_]\w*)\s*\(").unwrap());
+static JAVA_ALLOC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(new\s+\w+\[|new\s+ArrayList|new\s+HashMap|new\s+byte\[)").unwrap());
+static JAVA_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(Thread\.sleep|FileInputStream|FileOutputStream|Socket|HttpClient|File\.read)\b").unwrap()
+});
+static JAVA_BRANCH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|catch|&&|\|\|)\b").unwrap());
+static JAVA_MUTEX: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(synchronized|ReentrantLock|Semaphore|CountDownLatch|Monitor\.Enter)\b").unwrap()
+});
+static JAVA_FUNC: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^\s*(?:public|private|protected|static|final|native|synchronized|abstract|\s)+[\w<>\[\]]+\s+(\w+)\s*\(").unwrap()
+});
+
+// ── Shell patterns ────────────────────────────────────────────────────────────
+
+static SH_LOOP: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(for\s+\w+\s+in|while\s+|until\s+)").unwrap());
+static SH_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"\b(sleep|curl|wget|scp|rsync|ssh|nc|netcat)\b").unwrap()
+});
+static SH_BRANCH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(if\s+|elif\s+|then|else|case\s+|&&|\|\|)").unwrap());
+static SH_FUNC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(?:function\s+)?(\w+)\s*\(\)").unwrap());
+
+// ── Config & Data patterns ────────────────────────────────────────────────────
+
+static CONFIG_SECRET: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"(?i)\b(password|secret|api_key|token|private_key)\s*[:=]\s*['"][^'"]{4,}"#).unwrap()
+});
+static CONFIG_BLOCKING: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?i)\b(timeout\s*:\s*0|unlimited|keep_alive|max_connections\s*:\s*\d{5,})").unwrap()
+});
+static CONFIG_BRANCH: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"^\s*-\s+name:|\b(when|condition|assert):").unwrap()
+});
+
+// ── Generic / Fallback patterns ───────────────────────────────────────────────
+
+static GENERIC_LOOP: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(for\s+|while\s+|loop\s*\{|repeat\s+)").unwrap());
+static GENERIC_RECURSIVE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_]\w*)\s*\(").unwrap());
+static GENERIC_ALLOC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(malloc|alloc|new\s+\w+|clone\(\))\b").unwrap());
+static GENERIC_BLOCKING: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(sleep|delay|wait|read|write|connect|recv|send)\s*\(").unwrap());
+static GENERIC_BRANCH: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|when|unless|catch)\b").unwrap());
+static GENERIC_MUTEX: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b(mutex|lock|semaphore|atomic|critical_section)\b").unwrap());
+static GENERIC_FUNC: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"^\s*(?:def|func|fn|function|sub|void|int|bool|string)\s+(\w+)").unwrap());
 
 // =============================================================================
 // § 4  Language-specific rule tables
@@ -313,17 +431,378 @@ fn go_rules() -> Vec<PatternRule> {
     ]
 }
 
+fn js_ts_rules() -> Vec<PatternRule> {
+    vec![
+        PatternRule {
+            regex: &JS_FOR_WHILE,
+            vulnerability: VulnerabilityType::DeepNesting,
+            base_score: 15.0,
+            description_tmpl: "JavaScript/TypeScript loop or iterator in hot path",
+        },
+        PatternRule {
+            regex: &JS_RECURSIVE,
+            vulnerability: VulnerabilityType::RecursiveCall,
+            base_score: 20.0,
+            description_tmpl: "Recursive call detected - call stack exhaustion risk",
+        },
+        PatternRule {
+            regex: &JS_ALLOC,
+            vulnerability: VulnerabilityType::HotAllocation,
+            base_score: 12.0,
+            description_tmpl: "Heap allocation inside loop or frequent execution path",
+        },
+        PatternRule {
+            regex: &JS_BLOCKING_IO,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 22.0,
+            description_tmpl: "Synchronous blocking I/O freezes the Node event loop",
+        },
+        PatternRule {
+            regex: &JS_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Branching statement increases cyclomatic complexity",
+        },
+        PatternRule {
+            regex: &JS_MUTEX,
+            vulnerability: VulnerabilityType::SyncContention,
+            base_score: 18.0,
+            description_tmpl: "Synchronization primitive / shared array contention",
+        },
+    ]
+}
+
+fn rust_rules() -> Vec<PatternRule> {
+    vec![
+        PatternRule {
+            regex: &RUST_FOR_WHILE,
+            vulnerability: VulnerabilityType::DeepNesting,
+            base_score: 15.0,
+            description_tmpl: "Rust loop construct - nesting depth multiplier applied",
+        },
+        PatternRule {
+            regex: &RUST_RECURSIVE,
+            vulnerability: VulnerabilityType::RecursiveCall,
+            base_score: 20.0,
+            description_tmpl: "Self-recursion detected - stack depth overhead risk",
+        },
+        PatternRule {
+            regex: &RUST_ALLOC,
+            vulnerability: VulnerabilityType::HotAllocation,
+            base_score: 12.0,
+            description_tmpl: "Heap vector or Box allocation on critical path",
+        },
+        PatternRule {
+            regex: &RUST_BLOCKING_IO,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 18.0,
+            description_tmpl: "Blocking I/O or sleep in async/worker context",
+        },
+        PatternRule {
+            regex: &RUST_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Pattern match / branching adds cyclomatic branches",
+        },
+        PatternRule {
+            regex: &RUST_MUTEX,
+            vulnerability: VulnerabilityType::SyncContention,
+            base_score: 22.0,
+            description_tmpl: "Mutex / RwLock lock acquisition contention hotspot",
+        },
+    ]
+}
+
+fn c_cpp_rules() -> Vec<PatternRule> {
+    vec![
+        PatternRule {
+            regex: &C_FOR_WHILE,
+            vulnerability: VulnerabilityType::DeepNesting,
+            base_score: 15.0,
+            description_tmpl: "C/C++ loop construct - nesting multiplier applied",
+        },
+        PatternRule {
+            regex: &C_RECURSIVE,
+            vulnerability: VulnerabilityType::RecursiveCall,
+            base_score: 20.0,
+            description_tmpl: "Function call checked for recursion",
+        },
+        PatternRule {
+            regex: &C_ALLOC,
+            vulnerability: VulnerabilityType::HotAllocation,
+            base_score: 14.0,
+            description_tmpl: "Dynamic memory allocation (malloc/new) inside hot path",
+        },
+        PatternRule {
+            regex: &C_BLOCKING_IO,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 18.0,
+            description_tmpl: "Blocking POSIX/C-runtime I/O operation",
+        },
+        PatternRule {
+            regex: &C_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Conditional branch / switch increases cyclomatic entropy",
+        },
+        PatternRule {
+            regex: &C_MUTEX,
+            vulnerability: VulnerabilityType::SyncContention,
+            base_score: 22.0,
+            description_tmpl: "POSIX/std::mutex synchronization primitive contention",
+        },
+    ]
+}
+
+fn java_csharp_rules() -> Vec<PatternRule> {
+    vec![
+        PatternRule {
+            regex: &JAVA_FOR_WHILE,
+            vulnerability: VulnerabilityType::DeepNesting,
+            base_score: 15.0,
+            description_tmpl: "Loop construct - nesting depth multiplier applied",
+        },
+        PatternRule {
+            regex: &JAVA_RECURSIVE,
+            vulnerability: VulnerabilityType::RecursiveCall,
+            base_score: 20.0,
+            description_tmpl: "Method call checked for recursive depth",
+        },
+        PatternRule {
+            regex: &JAVA_ALLOC,
+            vulnerability: VulnerabilityType::HotAllocation,
+            base_score: 12.0,
+            description_tmpl: "Object / collection instantiation in loop path",
+        },
+        PatternRule {
+            regex: &JAVA_BLOCKING_IO,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 18.0,
+            description_tmpl: "Blocking stream or thread sleep operation",
+        },
+        PatternRule {
+            regex: &JAVA_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Branch / exception block increases cognitive complexity",
+        },
+        PatternRule {
+            regex: &JAVA_MUTEX,
+            vulnerability: VulnerabilityType::SyncContention,
+            base_score: 22.0,
+            description_tmpl: "Synchronized block or lock primitive contention",
+        },
+    ]
+}
+
+fn shell_rules() -> Vec<PatternRule> {
+    vec![
+        PatternRule {
+            regex: &SH_LOOP,
+            vulnerability: VulnerabilityType::DeepNesting,
+            base_score: 15.0,
+            description_tmpl: "Shell loop detected",
+        },
+        PatternRule {
+            regex: &SH_BLOCKING_IO,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 20.0,
+            description_tmpl: "Subprocess network or sleep call in shell script",
+        },
+        PatternRule {
+            regex: &SH_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Shell condition / branch logic",
+        },
+    ]
+}
+
+fn config_rules() -> Vec<PatternRule> {
+    vec![
+        PatternRule {
+            regex: &CONFIG_SECRET,
+            vulnerability: VulnerabilityType::SyncContention,
+            base_score: 25.0,
+            description_tmpl: "Sensitive credential or unrotated secret in config file",
+        },
+        PatternRule {
+            regex: &CONFIG_BLOCKING,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 15.0,
+            description_tmpl: "Unbounded timeout or excessive connection limit in config",
+        },
+        PatternRule {
+            regex: &CONFIG_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Complex conditional rule or assertion in config file",
+        },
+    ]
+}
+
+fn generic_rules() -> Vec<PatternRule> {
+    vec![
+        PatternRule {
+            regex: &GENERIC_LOOP,
+            vulnerability: VulnerabilityType::DeepNesting,
+            base_score: 15.0,
+            description_tmpl: "Loop construct detected in text file",
+        },
+        PatternRule {
+            regex: &GENERIC_RECURSIVE,
+            vulnerability: VulnerabilityType::RecursiveCall,
+            base_score: 15.0,
+            description_tmpl: "Identifier invocation checked for recursive call",
+        },
+        PatternRule {
+            regex: &GENERIC_ALLOC,
+            vulnerability: VulnerabilityType::HotAllocation,
+            base_score: 10.0,
+            description_tmpl: "Memory allocation operation",
+        },
+        PatternRule {
+            regex: &GENERIC_BLOCKING,
+            vulnerability: VulnerabilityType::BlockingIO,
+            base_score: 15.0,
+            description_tmpl: "Blocking sleep / wait / network primitive",
+        },
+        PatternRule {
+            regex: &GENERIC_BRANCH,
+            vulnerability: VulnerabilityType::CognitiveBranch,
+            base_score: 5.0,
+            description_tmpl: "Branch / condition construct",
+        },
+        PatternRule {
+            regex: &GENERIC_MUTEX,
+            vulnerability: VulnerabilityType::SyncContention,
+            base_score: 18.0,
+            description_tmpl: "Synchronization / concurrency primitive",
+        },
+    ]
+}
+
 // =============================================================================
-// § 5  File language detection
+// § 5  File language detection & Security Filters
 // =============================================================================
 
-/// Returns the language string and rule table for a given file extension.
-/// Returns `None` for unsupported extensions.
-fn detect_language(path: &Path) -> Option<(&'static str, Vec<PatternRule>)> {
-    match path.extension()?.to_str()? {
-        "py" => Some(("Python", python_rules())),
+/// Maximum file size scanned by the engine (512 KB) to prevent DoS / memory exhaustion.
+pub const MAX_FILE_SIZE_BYTES: u64 = 512 * 1024;
+
+/// Check if a file extension represents a compiled binary, asset, or archive.
+pub fn is_excluded_extension(ext: &str) -> bool {
+    matches!(
+        ext.to_ascii_lowercase().as_str(),
+        // Compiled & byte-code
+        "exe" | "dll" | "so" | "dylib" | "bin" | "o" | "a" | "lib" | "class" | "jar" | "war"
+        | "pyc" | "pyo" | "pyd" | "wasm"
+        // Images & graphics
+        | "png" | "jpg" | "jpeg" | "gif" | "bmp" | "ico" | "webp" | "tiff" | "psd" | "raw" | "svg"
+        // Audio & video
+        | "mp3" | "mp4" | "wav" | "ogg" | "flac" | "mkv" | "avi" | "mov" | "webm"
+        // Archives & compression
+        | "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "iso" | "dmg" | "pkg"
+        // Documents & presentations
+        | "pdf" | "doc" | "docx" | "ppt" | "pptx" | "xls" | "xlsx"
+        // Fonts
+        | "woff" | "woff2" | "ttf" | "eot" | "otf"
+        // Databases & data dumps
+        | "db" | "sqlite" | "sqlite3" | "parquet" | "arrow" | "avro"
+        // Generated lockfiles & minified assets
+        | "lock" | "sum" | "map"
+    )
+}
+
+/// Security integrity check: inspect the first 512 bytes for null byte (0x00)
+/// or read errors to guarantee non-binary text processing.
+pub fn is_binary_file(path: &Path) -> bool {
+    use std::io::Read;
+    let mut file = match fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return true,
+    };
+    let mut buf = [0u8; 512];
+    let n = match file.read(&mut buf) {
+        Ok(n) => n,
+        Err(_) => return true,
+    };
+    if n == 0 {
+        return false;
+    }
+    buf[..n].contains(&0)
+}
+
+/// Directory filter: ignore dependency caches, build outputs, and venvs.
+pub fn is_ignored_dir(entry: &walkdir::DirEntry) -> bool {
+    if !entry.file_type().is_dir() {
+        return false;
+    }
+    let name = entry.file_name().to_string_lossy();
+    (name.starts_with('.') && name != "." && name != "..")
+        || matches!(
+            name.as_ref(),
+            "node_modules"
+                | "vendor"
+                | "target"
+                | "dist"
+                | "build"
+                | "venv"
+                | ".venv"
+                | "env"
+                | "__pycache__"
+                | ".git"
+                | ".idea"
+                | ".vscode"
+        )
+}
+
+/// Returns the language string and rule table for a given file.
+/// Safely skips excluded extensions, minified assets, lockfiles, and binary files.
+pub fn detect_language(path: &Path) -> Option<(&'static str, Vec<PatternRule>)> {
+    let file_name = path.file_name()?.to_str()?;
+    if file_name.ends_with(".min.js") || file_name.ends_with(".min.css") {
+        return None;
+    }
+    if file_name == "package-lock.json"
+        || file_name == "Cargo.lock"
+        || file_name == "yarn.lock"
+        || file_name == "pnpm-lock.yaml"
+    {
+        return None;
+    }
+
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+    if !ext.is_empty() && is_excluded_extension(ext) {
+        return None;
+    }
+
+    match ext.to_ascii_lowercase().as_str() {
+        "py" | "pyw" => Some(("Python", python_rules())),
         "go" => Some(("Go", go_rules())),
-        _ => None,
+        "js" | "jsx" | "mjs" | "cjs" => Some(("JavaScript", js_ts_rules())),
+        "ts" | "tsx" => Some(("TypeScript", js_ts_rules())),
+        "rs" => Some(("Rust", rust_rules())),
+        "c" | "h" => Some(("C", c_cpp_rules())),
+        "cpp" | "cc" | "cxx" | "hpp" | "hxx" => Some(("C++", c_cpp_rules())),
+        "java" => Some(("Java", java_csharp_rules())),
+        "cs" => Some(("C#", java_csharp_rules())),
+        "kt" | "kts" => Some(("Kotlin", java_csharp_rules())),
+        "scala" => Some(("Scala", java_csharp_rules())),
+        "rb" => Some(("Ruby", generic_rules())),
+        "php" => Some(("PHP", generic_rules())),
+        "sh" | "bash" | "zsh" => Some(("Shell", shell_rules())),
+        "json" | "yaml" | "yml" | "toml" | "xml" | "sql" => Some(("Config", config_rules())),
+        _ => {
+            if file_name.eq_ignore_ascii_case("dockerfile")
+                || file_name.starts_with("Dockerfile.")
+            {
+                Some(("Config", config_rules()))
+            } else if !file_name.starts_with('.') || !ext.is_empty() {
+                Some(("Generic", generic_rules()))
+            } else {
+                None
+            }
+        }
     }
 }
 
@@ -332,7 +811,12 @@ fn func_regex_for(language: &str) -> &'static Lazy<Regex> {
     match language {
         "Python" => &PY_FUNC,
         "Go" => &GO_FUNC,
-        _ => &PY_FUNC, // fallback
+        "JavaScript" | "TypeScript" => &JS_FUNC,
+        "Rust" => &RUST_FUNC,
+        "C" | "C++" => &C_FUNC,
+        "Java" | "C#" | "Kotlin" | "Scala" => &JAVA_FUNC,
+        "Shell" => &SH_FUNC,
+        _ => &GENERIC_FUNC,
     }
 }
 
@@ -379,15 +863,16 @@ fn analyze_line(
 
     // ── Track current function context ────────────────────────────────────────
     if let Some(cap) = func_re.captures(raw_line) {
-        if let Some(name) = cap.get(1) {
-            state.current_function = name.as_str().to_owned();
+        let func_name = cap.get(1).or_else(|| cap.get(2)).map(|m| m.as_str().to_owned());
+        if let Some(name) = func_name {
+            state.current_function = name;
             // Reset per-function loop depth when entering a new function
             state.loop_depth = 0;
             state.loop_levels.clear();
         }
     }
 
-    // ── Track nesting depth via indentation (Python) or brace count (Go) ────
+    // ── Track nesting depth ───────────────────────────────────────────────────
     match language {
         "Python" => {
             let indent = raw_line.len() - raw_line.trim_start().len();
@@ -411,8 +896,19 @@ fn analyze_line(
                 state.loop_levels.push(indent);
             }
         }
-        "Go" => {
-            // Count unmatched `{` and `}` to track block depth
+        "Shell" => {
+            let trimmed = raw_line.trim();
+            if SH_LOOP.is_match(raw_line) {
+                state.loop_depth = state.loop_depth.saturating_add(1);
+                state.loop_levels.push(state.nesting_depth);
+            }
+            if trimmed == "done" || trimmed.starts_with("done ") || trimmed.ends_with("; done") {
+                state.loop_levels.pop();
+                state.loop_depth = state.loop_depth.saturating_sub(1);
+            }
+        }
+        _ => {
+            // Brace-based languages: Go, Rust, JS/TS, C/C++, Java/C#, Generic
             let opens: usize = raw_line.chars().filter(|&c| c == '{').count();
             let closes: usize = raw_line.chars().filter(|&c| c == '}').count();
 
@@ -431,12 +927,20 @@ fn analyze_line(
 
             state.nesting_depth = state.nesting_depth.saturating_sub(closes).saturating_add(opens);
 
-            if GO_FOR.is_match(raw_line) {
+            let is_loop = match language {
+                "Go" => GO_FOR.is_match(raw_line),
+                "JavaScript" | "TypeScript" => JS_FOR_WHILE.is_match(raw_line),
+                "Rust" => RUST_FOR_WHILE.is_match(raw_line),
+                "C" | "C++" => C_FOR_WHILE.is_match(raw_line),
+                "Java" | "C#" | "Kotlin" | "Scala" => JAVA_FOR_WHILE.is_match(raw_line),
+                _ => GENERIC_LOOP.is_match(raw_line),
+            };
+
+            if is_loop {
                 state.loop_depth = state.loop_depth.saturating_add(1);
                 state.loop_levels.push(state.nesting_depth);
             }
         }
-        _ => {}
     }
 
     // ── Loop-nesting entropy multiplier ──────────────────────────────────────
@@ -458,7 +962,10 @@ fn analyze_line(
             }
             let self_call_pat = format!("{}(", state.current_function);
             let py_self_call = format!("self.{}(", state.current_function);
-            let has_recursion = raw_line.contains(&self_call_pat) || raw_line.contains(&py_self_call);
+            let js_self_call = format!("this.{}(", state.current_function);
+            let has_recursion = raw_line.contains(&self_call_pat)
+                || raw_line.contains(&py_self_call)
+                || raw_line.contains(&js_self_call);
             if !has_recursion {
                 continue;
             }
@@ -488,9 +995,21 @@ fn analyze_line(
 
 /// Read and analyze a single source file.
 ///
-/// Opens the file using a buffered reader to avoid loading the entire file
-/// into memory at once — important for large source trees.
+/// Guards against non-text / binary files and enforces a 512 KB size limit
+/// to maintain memory and security integrity.
 pub fn scan_file(path: &Path, min_score: f64) -> io::Result<Option<FileReport>> {
+    // ── Security Check: File Size Limit (512 KB) ──────────────────────────────
+    if let Ok(meta) = fs::metadata(path) {
+        if meta.len() > MAX_FILE_SIZE_BYTES {
+            return Ok(None);
+        }
+    }
+
+    // ── Security Check: Binary File Safety ────────────────────────────────────
+    if is_binary_file(path) {
+        return Ok(None);
+    }
+
     // ── Language detection ────────────────────────────────────────────────────
     let (language, rules) = match detect_language(path) {
         Some(lr) => lr,
@@ -506,7 +1025,10 @@ pub fn scan_file(path: &Path, min_score: f64) -> io::Result<Option<FileReport>> 
     let mut lines_scanned: usize = 0;
 
     for (idx, line_result) in reader.lines().enumerate() {
-        let line = line_result?;
+        let line = match line_result {
+            Ok(l) => l,
+            Err(_) => return Ok(None), // Non-UTF-8 character stream fallback
+        };
         let trimmed = line.trim();
 
         // Skip blank lines and pure comment lines to keep the scancount meaningful
@@ -561,17 +1083,28 @@ pub fn scan_file(path: &Path, min_score: f64) -> io::Result<Option<FileReport>> 
 // =============================================================================
 
 /// Walk `root` recursively, scan every supported source file, and collect
-/// `FileReport` values.  Uses Rayon for parallel execution when the feature
+/// `FileReport` values. Uses Rayon for parallel execution when the feature
 /// is enabled (default).
 pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileReport> {
     // Collect candidate paths first so we can parallelize the heavy I/O phase.
     let candidates: Vec<PathBuf> = WalkDir::new(root)
         .follow_links(false)
         .into_iter()
+        .filter_entry(|e| !is_ignored_dir(e))
         .filter_map(|e| e.ok())
         .filter(|e| e.file_type().is_file())
         .map(|e| e.into_path())
-        .filter(|p| detect_language(p).is_some())
+        .filter(|p| {
+            if let Ok(meta) = fs::metadata(p) {
+                if meta.len() > MAX_FILE_SIZE_BYTES {
+                    return false;
+                }
+            }
+            if is_binary_file(p) {
+                return false;
+            }
+            detect_language(p).is_some()
+        })
         .collect();
 
     if verbose {
@@ -876,8 +1409,74 @@ mod tests {
     fn test_language_detection() {
         assert!(detect_language(Path::new("foo.py")).is_some());
         assert!(detect_language(Path::new("bar.go")).is_some());
-        assert!(detect_language(Path::new("baz.rs")).is_none());
-        assert!(detect_language(Path::new("qux.js")).is_none());
+        assert!(detect_language(Path::new("baz.rs")).is_some());
+        assert!(detect_language(Path::new("qux.js")).is_some());
+        assert!(detect_language(Path::new("App.tsx")).is_some());
+        assert!(detect_language(Path::new("main.cpp")).is_some());
+        assert!(detect_language(Path::new("Server.java")).is_some());
+        assert!(detect_language(Path::new("deploy.sh")).is_some());
+        assert!(detect_language(Path::new("config.yaml")).is_some());
+        assert!(detect_language(Path::new("Dockerfile")).is_some());
+        assert!(detect_language(Path::new("notes.txt")).is_some());
+
+        // Binary and excluded files must return None
+        assert!(detect_language(Path::new("image.png")).is_none());
+        assert!(detect_language(Path::new("program.exe")).is_none());
+        assert!(detect_language(Path::new("bundle.min.js")).is_none());
+        assert!(detect_language(Path::new("package-lock.json")).is_none());
+        assert!(detect_language(Path::new("Cargo.lock")).is_none());
+        assert!(detect_language(Path::new("module.wasm")).is_none());
+    }
+
+    #[test]
+    fn test_polyglot_hotspots() {
+        // Test JS blocking I/O
+        let mut js_state = ScanState::new();
+        let js_rules = js_ts_rules();
+        let js_hotspots = analyze_line(
+            "const data = fs.readFileSync('foo.txt');",
+            1,
+            &mut js_state,
+            &js_rules,
+            &JS_FUNC,
+            "JavaScript",
+        );
+        assert!(
+            js_hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::BlockingIO),
+            "Expected BlockingIO for fs.readFileSync"
+        );
+
+        // Test Rust allocation and mutex
+        let mut rs_state = ScanState::new();
+        let rs_rules = rust_rules();
+        let rs_hotspots = analyze_line(
+            "let items = Vec::with_capacity(1000);",
+            1,
+            &mut rs_state,
+            &rs_rules,
+            &RUST_FUNC,
+            "Rust",
+        );
+        assert!(
+            rs_hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::HotAllocation),
+            "Expected HotAllocation for Vec::with_capacity"
+        );
+    }
+
+    #[test]
+    fn test_is_binary_file_detection() {
+        let temp_dir = std::env::temp_dir();
+        let text_file = temp_dir.join("test_plain_text.txt");
+        let bin_file = temp_dir.join("test_binary_blob.bin");
+
+        let _ = fs::write(&text_file, "Hello, this is a plain text file!\nNo null bytes here.");
+        let _ = fs::write(&bin_file, b"Hello\x00Binary\x00Data");
+
+        assert!(!is_binary_file(&text_file), "Text file should not be marked binary");
+        assert!(is_binary_file(&bin_file), "File with null bytes must be marked binary");
+
+        let _ = fs::remove_file(&text_file);
+        let _ = fs::remove_file(&bin_file);
     }
 
     #[test]
