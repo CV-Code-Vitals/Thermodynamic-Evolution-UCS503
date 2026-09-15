@@ -9,8 +9,16 @@ import './AdminPortal.css';
 const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 const publicApiBase = apiBase.startsWith('http')
   ? (apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase)
-  : window.location.origin;
-const archiveFileUrl = (url) => new URL(url, `${publicApiBase.replace(/\/$/, '')}/`).href;
+  : (typeof window !== 'undefined' ? window.location.origin : '');
+const archiveFileUrl = (url) => {
+  if (!url || url === '#') return '#';
+  if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+  try {
+    return new URL(url, `${publicApiBase.replace(/\/$/, '')}/`).href;
+  } catch {
+    return url;
+  }
+};
 
 const readResponse = async (response) => {
   const text = await response.text();
@@ -257,14 +265,17 @@ const AdminPortal = () => {
       const response = await fetch(`${apiBase}/deliverables`, { credentials: 'include' });
       if (response.ok) {
         const data = await readResponse(response);
-        setDeliverables(Array.isArray(data) && data.length > 0 ? data : getLocalDeliverables());
-        return;
+        if (Array.isArray(data) && data.length > 0) {
+          setDeliverables(data);
+          return;
+        }
       }
     } catch {
       // Backend not running (no EC2 instance)
+    } finally {
+      setArchiveLoading(false);
     }
     setDeliverables(getLocalDeliverables());
-    setArchiveLoading(false);
   }, []);
 
   // Reload archive data whenever the user switches to the archive view
@@ -590,27 +601,31 @@ const AdminPortal = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {deliverables.map((d, index) => (
-                      <tr key={d.filename}>
-                        <td className="archive-id">{String(index + 1).padStart(3, '0')}</td>
-                        <td className="archive-title-cell">{d.title}</td>
-                        <td className="archive-version">{d.version}</td>
-                        <td className="archive-date">{new Date(d.uploadedAt).toLocaleDateString()}</td>
-                        <td className="archive-summary">{d.summary || '—'}</td>
-                        <td>
-                          <a
-                            href={archiveFileUrl(d.url)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="archive-download-link"
-                            title={d.filename}
-                          >
-                            <Download size={14} />
-                            DOWNLOAD
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
+                    {deliverables.map((d, index) => {
+                      const fileLink = d.file_url || d.url || '#';
+                      const dateStr = d.date || (d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : (d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString() : '—'));
+                      return (
+                        <tr key={d.id || d.filename || index}>
+                          <td className="archive-id">{String(index + 1).padStart(3, '0')}</td>
+                          <td className="archive-title-cell">{d.title || d.filename}</td>
+                          <td className="archive-version">{d.version || '1.0.0'}</td>
+                          <td className="archive-date">{dateStr}</td>
+                          <td className="archive-summary">{d.summary || '—'}</td>
+                          <td>
+                            <a
+                              href={archiveFileUrl(fileLink)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="archive-download-link"
+                              title={d.filename}
+                            >
+                              <Download size={14} />
+                              DOWNLOAD
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
