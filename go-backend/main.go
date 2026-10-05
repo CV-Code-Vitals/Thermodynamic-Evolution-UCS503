@@ -45,6 +45,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/saksham/self-healing-pipeline/agent"
 )
 
 // =============================================================================
@@ -113,45 +114,34 @@ const (
 	VulnBlockingIO      VulnerabilityType = "BlockingIO"
 	VulnCognitiveBranch VulnerabilityType = "CognitiveBranch"
 	VulnSyncContention  VulnerabilityType = "SyncContention"
+	VulnHighEnergy      VulnerabilityType = "HighEnergy"
 )
 
+// FunctionMetrics holds the per-function AST metrics from the v2 engine.
+type FunctionMetrics = agent.FunctionMetrics
+
 // Hotspot represents a single entropy signal within a source file.
-// JSON tags match the snake_case keys emitted by the Rust engine.
-type Hotspot struct {
-	FunctionName      string            `json:"function_name"`
-	LineNumber        int               `json:"line_number"`
-	SourceSnippet     string            `json:"source_snippet"`
-	EntropyScore      float64           `json:"entropy_score"`
-	VulnerabilityType VulnerabilityType `json:"vulnerability_type"`
-	Description       string            `json:"description"`
-}
+type Hotspot = agent.Hotspot
 
 // FileReport holds the per-file analysis summary.
-type FileReport struct {
-	FilePath           string    `json:"file_path"`
-	Language           string    `json:"language"`
-	LinesScanned       int       `json:"lines_scanned"`
-	TotalEntropy       float64   `json:"total_entropy"`
-	MeanHotspotEntropy float64   `json:"mean_hotspot_entropy"`
-	Hotspots           []Hotspot `json:"hotspots"`
-}
+type FileReport = agent.FileReport
 
 // ThermodynamicReport is the root document produced by the Rust engine.
-type ThermodynamicReport struct {
-	EngineVersion    string       `json:"engine_version"`
-	GeneratedAt      string       `json:"generated_at"`
-	ScannedDirectory string       `json:"scanned_directory"`
-	FilesAnalyzed    int          `json:"files_analyzed"`
-	TotalHotspots    int          `json:"total_hotspots"`
-	GlobalEntropy    float64      `json:"global_entropy"`
-	FileReports      []FileReport `json:"file_reports"`
-}
+type ThermodynamicReport = agent.ThermodynamicReport
 
 // AnalyzeResponse wraps the engine report with backend metadata.
 type AnalyzeResponse struct {
 	Success bool                 `json:"success"`
 	Message string               `json:"message,omitempty"`
 	Report  *ThermodynamicReport `json:"report,omitempty"`
+}
+
+// AuditResponse wraps the full audit result including the base engine report.
+type AuditResponse struct {
+	Success bool                 `json:"success"`
+	Message string               `json:"message,omitempty"`
+	Report  *ThermodynamicReport `json:"report,omitempty"`
+	Audit   *agent.AuditReport   `json:"audit,omitempty"`
 }
 
 // ErrorResponse is returned on all 4xx / 5xx paths.
@@ -502,6 +492,119 @@ func analyzeHandler(enginePath string, engineTimeout time.Duration, maxUploadByt
 	}
 }
 
+// auditHandler handles file uploads and runs the full three-phase agentic audit.
+func auditHandler(enginePath string, engineTimeout time.Duration, maxUploadBytes int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fileHeader, err := c.FormFile("repo_zip")
+		if err != nil {
+			log.Printf("[ERROR] Missing form field 'repo_zip': %v", err)
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "missing_file", Detail: "The 'repo_zip' field must contain a valid ZIP file."})
+			return
+		}
+
+		if fileHeader.Size > maxUploadBytes {
+			log.Printf("[WARN] Upload rejected: size %d exceeds limit %d", fileHeader.Size, maxUploadBytes)
+			c.JSON(http.StatusRequestEntityTooLarge, ErrorResponse{
+				Error:  "file_too_large",
+				Detail: fmt.Sprintf("The uploaded file exceeds the %.0f MB size limit.", float64(maxUploadBytes)/(1024*1024)),
+			})
+			return
+		}
+
+		uploadsDir := "./uploads"
+		if err := os.MkdirAll(uploadsDir, 0o750); err != nil {
+			log.Printf("[ERROR] Create uploads dir: %v", err)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "server_error", Detail: "Could not create uploads directory."})
+			return
+		}
+
+		zipDest := filepath.Join(uploadsDir, fmt.Sprintf("audit_%s.zip", uuid.New().String()))
+		if err := c.SaveUploadedFile(fileHeader, zipDest); err != nil {
+			log.Printf("[ERROR] Save zip to %q: %v", zipDest, err)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "server_error", Detail: "Failed to save uploaded file."})
+			return
+		}
+
+		extractDir := filepath.Join(uploadsDir, fmt.Sprintf("extracted_audit_%d_%s", time.Now().UnixMilli(), uuid.New().String()[:8]))
+		if err := os.MkdirAll(extractDir, 0o750); err != nil {
+			log.Printf("[ERROR] Create extract dir %q: %v", extractDir, err)
+			_ = os.Remove(zipDest)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "server_error", Detail: "Could not create extraction directory."})
+			return
+		}
+
+		defer func() {
+			go func() {
+				time.Sleep(500 * time.Millisecond)
+				_ = os.RemoveAll(extractDir)
+				_ = os.Remove(zipDest)
+			}()
+		}()
+
+		if err := extractZip(zipDest, extractDir); err != nil {
+			log.Printf("[ERROR] Zip extraction: %v", err)
+			if strings.Contains(err.Error(), "zip slip") {
+				c.JSON(http.StatusBadRequest, ErrorResponse{
+					Error:  "security_violation",
+					Detail: "Zip archive contains path traversal entries and was rejected.",
+				})
+				return
+			}
+			c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error:  "invalid_zip",
+				Detail: fmt.Sprintf("Could not extract archive: %v", err),
+			})
+			return
+		}
+
+		reportPath := filepath.Join(extractDir, "thermodynamic_report.json")
+		ctx, cancel := context.WithTimeout(c.Request.Context(), engineTimeout)
+		defer cancel()
+
+		engineOutput, err := runEngine(ctx, enginePath, extractDir, reportPath)
+		if engineOutput != "" {
+			log.Printf("[ENGINE] %s", engineOutput)
+		}
+		if err != nil {
+			log.Printf("[ERROR] Engine execution: %v", err)
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				c.JSON(http.StatusGatewayTimeout, ErrorResponse{
+					Error:  "engine_timeout",
+					Detail: fmt.Sprintf("Analysis engine did not complete within %.0f seconds.", engineTimeout.Seconds()),
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Error:  "engine_failed",
+				Detail: fmt.Sprintf("Analysis engine returned an error. Check server logs for details."),
+			})
+			return
+		}
+
+		report, err := readReport(reportPath)
+		if err != nil {
+			log.Printf("[ERROR] Parse report: %v", err)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{
+				Error:  "report_parse_failed",
+				Detail: fmt.Sprintf("Engine ran successfully but the report could not be parsed: %v", err),
+			})
+			return
+		}
+
+		// Run the 3-phase Agentic Audit
+		// Using 15.0 as default energy threshold
+		log.Printf("[INFO] Running 3-phase agentic audit on report from %s", extractDir)
+		auditReport := agent.RunAudit(report, 15.0)
+
+		c.JSON(http.StatusOK, AuditResponse{
+			Success: true,
+			Message: fmt.Sprintf("Audit complete: %d functions profiled, %d stress failures predicted.", len(auditReport.VolatilityRanking), len(auditReport.StressFailures)),
+			Report:  report,
+			Audit:   auditReport,
+		})
+	}
+}
+
 // =============================================================================
 // § 7  Server bootstrap
 // =============================================================================
@@ -553,6 +656,11 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	scanH := scanRepoHandler(enginePath, engineTimeout)
 	r.POST("/api/scan", tokenMiddleware(analysisToken), scanH)
 	r.POST("/scan", tokenMiddleware(analysisToken), scanH)
+
+	// Agentic Thermodynamic Audit endpoint (full 3-phase analysis)
+	auditH := auditHandler(enginePath, engineTimeout, maxUploadBytes)
+	r.POST("/api/audit", tokenMiddleware(analysisToken), auditH)
+	r.POST("/audit", tokenMiddleware(analysisToken), auditH)
 
 	// Deliverables & Admin Portal endpoints (backed by PostgreSQL / JSON storage)
 	if deliverableStore != nil {

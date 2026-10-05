@@ -1,26 +1,23 @@
 // =============================================================================
-// thermodynamic-ast-engine · src/main.rs
+// thermodynamic-ast-engine · src/main.rs  (v2.0 — Tree-sitter AST-driven)
 //
-// A heuristic "thermodynamic entropy" analyzer for Go and Python source files.
+// A structural thermodynamic entropy analyzer for Go and Python source files.
 //
 // Design pillars
 // ──────────────
-//   1. Zero unsafe code.
-//   2. Compiled regexes are built exactly once (once_cell::sync::Lazy).
-//   3. File scanning runs in parallel via Rayon (feature-gated).
-//   4. All public data types implement Serialize so the JSON report is trivial.
-//   5. Every logical stage is a separate module for testability.
+//   1. Zero unsafe code — all parsing through tree-sitter safe bindings.
+//   2. Concrete AST visitors replace all regex heuristics.
+//   3. Structural Energy formula: E = w1·M + w2·Dmax + w3·log2(S) + w4·C
+//   4. File scanning runs in parallel via Rayon (feature-gated).
+//   5. All public data types implement Serialize for JSON report emission.
 // =============================================================================
 
-// ── External crate imports ────────────────────────────────────────────────────
 use clap::Parser;
 use colored::Colorize;
-use once_cell::sync::Lazy;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
-    io::{self, BufRead},
+    io,
     path::{Path, PathBuf},
 };
 use walkdir::WalkDir;
@@ -32,14 +29,14 @@ use rayon::prelude::*;
 // § 1  CLI argument definition (clap derive)
 // =============================================================================
 
-/// Thermodynamic AST Engine — identifies entropy hotspots in your codebase
+/// Thermodynamic AST Engine v2 — calculates structural energy from AST analysis
 #[derive(Parser, Debug)]
 #[command(
     name        = "thermodynamic-ast-engine",
     version     = env!("CARGO_PKG_VERSION"),
     author      = env!("CARGO_PKG_AUTHORS"),
-    about       = "Calculates thermodynamic entropy scores for Go/Python source files \
-                   and emits a JSON report of scaling bottlenecks.",
+    about       = "Tree-sitter AST-driven thermodynamic energy analyzer for Go/Python source \
+                   files. Emits a JSON report of structural entropy hotspots.",
     long_about  = None,
 )]
 struct Cli {
@@ -56,9 +53,13 @@ struct Cli {
     )]
     output: PathBuf,
 
-    /// Minimum entropy score to include in the report (0.0 – 100.0)
+    /// Minimum energy score to include in the report
     #[arg(short, long, value_name = "SCORE", default_value_t = 0.0)]
     min_score: f64,
+
+    /// Energy threshold for flagging hotspots
+    #[arg(short = 't', long, value_name = "THRESHOLD", default_value_t = 15.0)]
+    energy_threshold: f64,
 
     /// Show verbose per-file progress in stdout
     #[arg(short, long)]
@@ -69,22 +70,23 @@ struct Cli {
 // § 2  Core data model
 // =============================================================================
 
-/// The vulnerability category detected by the heuristic engine.
-/// Each variant maps to a distinct set of regex patterns.
+/// The vulnerability / entropy driver category detected by AST analysis.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum VulnerabilityType {
-    /// Deeply nested loops (O(n^k) risk)
+    /// Deeply nested control-flow blocks (O(n^k) risk)
     DeepNesting,
-    /// Direct or mutual recursion without obvious base case
+    /// Direct or mutual recursion without obvious guardrails
     RecursiveCall,
-    /// Heap allocation inside a hot loop
+    /// Heap allocation inside a hot loop path
     HotAllocation,
     /// Blocking I/O or syscall on the critical path
     BlockingIO,
-    /// High cognitive complexity (many boolean operators / branches)
+    /// High cyclomatic complexity (many decision points)
     CognitiveBranch,
     /// Unsafe synchronisation primitive (mutex inside loop, etc.)
     SyncContention,
+    /// High structural energy from combined metrics
+    HighEnergy,
 }
 
 impl std::fmt::Display for VulnerabilityType {
@@ -96,51 +98,61 @@ impl std::fmt::Display for VulnerabilityType {
             Self::BlockingIO => write!(f, "BlockingIO"),
             Self::CognitiveBranch => write!(f, "CognitiveBranch"),
             Self::SyncContention => write!(f, "SyncContention"),
+            Self::HighEnergy => write!(f, "HighEnergy"),
         }
     }
+}
+
+/// Detailed per-function metrics extracted from the AST.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionMetrics {
+    /// Cyclomatic complexity: decision points + 1
+    pub cyclomatic_complexity: usize,
+    /// Maximum AST depth of nested control-flow blocks
+    pub max_nesting_depth: usize,
+    /// Total named AST nodes within the function scope
+    pub ast_node_count: usize,
+    /// Count of concurrency / resource primitives
+    pub concurrency_primitives: usize,
+    /// Structural Thermodynamic Energy
+    pub energy: f64,
 }
 
 /// A single entropy "hotspot" — one detected signal within a file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hotspot {
-    /// Name of the containing function / method (best-effort heuristic)
+    /// Name of the containing function / method
     pub function_name: String,
-
-    /// 1-indexed line number where the pattern was detected
+    /// 1-indexed line number where the function starts
     pub line_number: usize,
-
-    /// The raw source line that triggered the signal
+    /// Byte range [start, end] within the source file
+    pub byte_range: [usize; 2],
+    /// The raw source snippet (first line of the function signature)
     pub source_snippet: String,
-
-    /// Weighted entropy score for this single signal (0.0 – 100.0)
+    /// Structural energy score for this function
     pub entropy_score: f64,
-
-    /// Classification of the detected risk
+    /// Classification of the primary entropy driver
     pub vulnerability_type: VulnerabilityType,
-
     /// Human-readable explanation of why this is flagged
     pub description: String,
+    /// Full metric breakdown
+    pub metrics: FunctionMetrics,
 }
 
 /// Aggregated report for one source file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileReport {
-    /// Absolute path to the source file
+    /// Path to the source file (relative to scanned directory)
     pub file_path: String,
-
     /// Programming language detected from the file extension
     pub language: String,
-
     /// Total number of non-blank, non-comment lines scanned
     pub lines_scanned: usize,
-
-    /// Sum of all individual hotspot entropy scores
+    /// Sum of all individual hotspot energy scores
     pub total_entropy: f64,
-
-    /// Mean entropy per detected hotspot (0 if no hotspots)
+    /// Mean energy per detected hotspot (0 if no hotspots)
     pub mean_hotspot_entropy: f64,
-
-    /// All identified hotspots, sorted highest-score first
+    /// All identified hotspots, sorted highest-energy first
     pub hotspots: Vec<Hotspot>,
 }
 
@@ -149,572 +161,434 @@ pub struct FileReport {
 pub struct ThermodynamicReport {
     /// Engine version for schema compatibility
     pub engine_version: String,
-
     /// ISO-8601 timestamp when the scan completed
     pub generated_at: String,
-
     /// Directory that was scanned
     pub scanned_directory: String,
-
     /// Total source files analyzed
     pub files_analyzed: usize,
-
     /// Total hotspots found across all files
     pub total_hotspots: usize,
-
     /// Aggregate entropy across the entire codebase
     pub global_entropy: f64,
-
     /// Per-file reports, sorted by `total_entropy` descending
     pub file_reports: Vec<FileReport>,
 }
 
 // =============================================================================
-// § 3  Regex pattern registry (compiled once, shared across threads)
+// § 3  Thermodynamic energy formula
 // =============================================================================
 
-/// Internal representation of one pattern rule.
-pub struct PatternRule {
-    pub regex: &'static Lazy<Regex>,
-    pub vulnerability: VulnerabilityType,
-    pub base_score: f64, // base entropy contribution per match
-    pub description_tmpl: &'static str,
+/// Default weights for the structural energy formula.
+/// E = w1·M + w2·Dmax + w3·log2(S) + w4·C
+const W1_CYCLOMATIC: f64 = 0.45;
+const W2_NESTING: f64 = 0.25;
+const W3_VOLUME: f64 = 0.15;
+const W4_CONCURRENCY: f64 = 0.15;
+
+/// Compute structural thermodynamic energy for a function.
+pub fn compute_energy(metrics: &FunctionMetrics) -> f64 {
+    let m = metrics.cyclomatic_complexity as f64;
+    let d = metrics.max_nesting_depth as f64;
+    let s = if metrics.ast_node_count > 0 {
+        (metrics.ast_node_count as f64).log2()
+    } else {
+        0.0
+    };
+    let c = metrics.concurrency_primitives as f64;
+
+    let e = W1_CYCLOMATIC * m + W2_NESTING * d + W3_VOLUME * s + W4_CONCURRENCY * c;
+    (e * 100.0).round() / 100.0
 }
-
-// ── Python patterns ───────────────────────────────────────────────────────────
-
-static PY_FOR_WHILE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*(for|while)\s+").unwrap());
-// Note: the `regex` crate does not support backreferences; we detect recursion
-// via two independent signals:
-//   1. `self.method()` — object calling its own method (Python)
-//   2. A standalone identifier call on its own line that is NOT a dotted method
-//      call (e.g. `flatten(items)` rather than `obj.flatten(items)`)
-static PY_RECURSIVE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\bself\s*\.\s*\w+\s*\(|(?:^|\s)(\w+)\s*\([^)]*\)\s*$").unwrap());
-static PY_ALLOC: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(list|dict|set|bytearray|numpy\.zeros|numpy\.ones|np\.zeros|np\.ones|torch\.zeros|torch\.ones)\s*[\(\[]").unwrap()
-});
-static PY_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(open\s*\(|requests\.(get|post|put|delete|patch)|urllib|subprocess\.(call|run|Popen)|time\.sleep|socket\.recv|socket\.accept)\b").unwrap()
-});
-static PY_BRANCH: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(if|elif|and|or|not|assert)\b").unwrap());
-static PY_MUTEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(threading\.(Lock|RLock|Semaphore)|asyncio\.Lock|multiprocessing\.Lock)\b")
-        .unwrap()
-});
-static PY_FUNC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(?:async\s+)?def\s+(\w+)\s*\(").unwrap());
-
-// ── Go patterns ───────────────────────────────────────────────────────────────
-
-static GO_FOR: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*for\s+").unwrap());
-// Match a bare function call (not a dotted method call like obj.Method()).
-// The negative lookbehind equivalent in `regex` isn't supported, so we anchor
-// on the pattern starting after whitespace or at line start, without a dot.
-static GO_RECURSIVE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([A-Z]\w*)\s*\(").unwrap()); // Capital = exported fn, likely recursive
-static GO_ALLOC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\bmake\s*\(|\bnew\s*\(|\[\][\w\*]+\{").unwrap());
-static GO_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(os\.Open|os\.Create|ioutil\.(ReadFile|WriteFile)|http\.(Get|Post)|net\.Dial|time\.Sleep|bufio\.NewReader|sql\.Open)\b").unwrap()
-});
-static GO_BRANCH: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|&&|\|\||select)\b").unwrap());
-static GO_MUTEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(sync\.(Mutex|RWMutex|WaitGroup|Once)|atomic\.(Add|Load|Store|Swap))").unwrap()
-});
-static GO_FUNC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(").unwrap());
-
-// ── JavaScript / TypeScript patterns ──────────────────────────────────────────
-
-static JS_FOR_WHILE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(for\s*\(|while\s*\(|for\s+await|\.forEach\(|\.map\()").unwrap());
-static JS_RECURSIVE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_$][\w$]*)\s*\(").unwrap());
-static JS_ALLOC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(new\s+(Array|Buffer|Uint8Array|Map|Set|Object)|Array\.from)\b").unwrap());
-static JS_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(fs\.(readFileSync|writeFileSync|appendFileSync|existsSync)|execSync|spawnSync|Atomics\.wait)\b").unwrap()
-});
-static JS_BRANCH: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|catch|&&|\|\|)\b").unwrap());
-static JS_MUTEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(Mutex|Semaphore|Lock|AsyncLock|atomics)\b").unwrap());
-static JS_FUNC: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)|(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(").unwrap()
-});
-
-// ── Rust patterns ─────────────────────────────────────────────────────────────
-
-static RUST_FOR_WHILE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(for\s+\w+\s+in|while\s+|loop\s*\{)").unwrap());
-static RUST_RECURSIVE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_]\w*)\s*\(").unwrap());
-static RUST_ALLOC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(Vec::with_capacity|Vec::new|Box::new|String::from|vec!\[)").unwrap());
-static RUST_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(std::fs::|File::open|File::create|thread::sleep|TcpStream::connect|Command::new)\b").unwrap()
-});
-static RUST_BRANCH: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(if|else|match|&&|\|\|)\b").unwrap());
-static RUST_MUTEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(Mutex::|RwLock::|AtomicBool|AtomicUsize|Arc::new|mpsc::channel|barrier)\b").unwrap()
-});
-static RUST_FUNC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(?:pub(?:\([^)]+\))?\s+)?(?:async\s+)?fn\s+(\w+)").unwrap());
-
-// ── C / C++ patterns ──────────────────────────────────────────────────────────
-
-static C_FOR_WHILE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(for\s*\(|while\s*\(|do\s*\{)").unwrap());
-static C_RECURSIVE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_]\w*)\s*\(").unwrap());
-static C_ALLOC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(malloc\s*\(|calloc\s*\(|realloc\s*\(|new\s+\w+)").unwrap());
-static C_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(fopen|fread|fwrite|sleep|usleep|recv|send|connect|system)\b").unwrap()
-});
-static C_BRANCH: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|&&|\|\|)\b").unwrap());
-static C_MUTEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(pthread_mutex_|std::mutex|std::lock_guard|std::unique_lock|atomic)\b").unwrap()
-});
-static C_FUNC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(?:[\w:*&<>]+\s+)+(\w+)\s*\([^;]*\)\s*\{?$").unwrap());
-
-// ── Java / C# / Kotlin / Scala patterns ───────────────────────────────────────
-
-static JAVA_FOR_WHILE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(for\s*\(|while\s*\(|foreach\s*\()").unwrap());
-static JAVA_RECURSIVE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_]\w*)\s*\(").unwrap());
-static JAVA_ALLOC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(new\s+\w+\[|new\s+ArrayList|new\s+HashMap|new\s+byte\[)").unwrap());
-static JAVA_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(Thread\.sleep|FileInputStream|FileOutputStream|Socket|HttpClient|File\.read)\b").unwrap()
-});
-static JAVA_BRANCH: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|catch|&&|\|\|)\b").unwrap());
-static JAVA_MUTEX: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(synchronized|ReentrantLock|Semaphore|CountDownLatch|Monitor\.Enter)\b").unwrap()
-});
-static JAVA_FUNC: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^\s*(?:public|private|protected|static|final|native|synchronized|abstract|\s)+[\w<>\[\]]+\s+(\w+)\s*\(").unwrap()
-});
-
-// ── Shell patterns ────────────────────────────────────────────────────────────
-
-static SH_LOOP: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(for\s+\w+\s+in|while\s+|until\s+)").unwrap());
-static SH_BLOCKING_IO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(sleep|curl|wget|scp|rsync|ssh|nc|netcat)\b").unwrap()
-});
-static SH_BRANCH: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(if\s+|elif\s+|then|else|case\s+|&&|\|\|)").unwrap());
-static SH_FUNC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(?:function\s+)?(\w+)\s*\(\)").unwrap());
-
-// ── Config & Data patterns ────────────────────────────────────────────────────
-
-static CONFIG_SECRET: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"(?i)\b(password|secret|api_key|token|private_key)\s*[:=]\s*['"][^'"]{4,}"#).unwrap()
-});
-static CONFIG_BLOCKING: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)\b(timeout\s*:\s*0|unlimited|keep_alive|max_connections\s*:\s*\d{5,})").unwrap()
-});
-static CONFIG_BRANCH: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"^\s*-\s+name:|\b(when|condition|assert):").unwrap()
-});
-
-// ── Generic / Fallback patterns ───────────────────────────────────────────────
-
-static GENERIC_LOOP: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(for\s+|while\s+|loop\s*\{|repeat\s+)").unwrap());
-static GENERIC_RECURSIVE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:^|[\s,=(])([a-zA-Z_]\w*)\s*\(").unwrap());
-static GENERIC_ALLOC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(malloc|alloc|new\s+\w+|clone\(\))\b").unwrap());
-static GENERIC_BLOCKING: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(sleep|delay|wait|read|write|connect|recv|send)\s*\(").unwrap());
-static GENERIC_BRANCH: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(if|else|switch|case|when|unless|catch)\b").unwrap());
-static GENERIC_MUTEX: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(mutex|lock|semaphore|atomic|critical_section)\b").unwrap());
-static GENERIC_FUNC: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\s*(?:def|func|fn|function|sub|void|int|bool|string)\s+(\w+)").unwrap());
 
 // =============================================================================
-// § 4  Language-specific rule tables
+// § 4  Tree-sitter AST visitor engine
 // =============================================================================
 
-fn python_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &PY_FOR_WHILE,
-            vulnerability: VulnerabilityType::DeepNesting,
-            base_score: 15.0,
-            description_tmpl: "Loop construct detected - nesting depth multiplier applied",
-        },
-        PatternRule {
-            regex: &PY_RECURSIVE,
-            vulnerability: VulnerabilityType::RecursiveCall,
-            base_score: 20.0,
-            description_tmpl: "Possible recursive invocation - stack-depth risk",
-        },
-        PatternRule {
-            regex: &PY_ALLOC,
-            vulnerability: VulnerabilityType::HotAllocation,
-            base_score: 12.0,
-            description_tmpl: "Heap allocation inside potentially hot path",
-        },
-        PatternRule {
-            regex: &PY_BLOCKING_IO,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 18.0,
-            description_tmpl: "Blocking I/O call on critical path - latency spike risk",
-        },
-        PatternRule {
-            regex: &PY_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Branch/boolean operator increases cyclomatic complexity",
-        },
-        PatternRule {
-            regex: &PY_MUTEX,
-            vulnerability: VulnerabilityType::SyncContention,
-            base_score: 22.0,
-            description_tmpl: "Synchronisation primitive - potential lock contention hotspot",
-        },
-    ]
+/// Supported language enum for the visitor dispatch.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Language {
+    Go,
+    Python,
 }
 
-fn go_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &GO_FOR,
-            vulnerability: VulnerabilityType::DeepNesting,
-            base_score: 15.0,
-            description_tmpl: "Go for-loop - nesting depth multiplier applied",
-        },
-        PatternRule {
-            regex: &GO_RECURSIVE,
-            vulnerability: VulnerabilityType::RecursiveCall,
-            base_score: 20.0,
-            description_tmpl: "Exported function call - checked for self-recursion",
-        },
-        PatternRule {
-            regex: &GO_ALLOC,
-            vulnerability: VulnerabilityType::HotAllocation,
-            base_score: 12.0,
-            description_tmpl: "make/new/slice-literal allocation in hot path",
-        },
-        PatternRule {
-            regex: &GO_BLOCKING_IO,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 18.0,
-            description_tmpl: "Blocking stdlib I/O call - goroutine contention risk",
-        },
-        PatternRule {
-            regex: &GO_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Branch/boolean expression increases cyclomatic complexity",
-        },
-        PatternRule {
-            regex: &GO_MUTEX,
-            vulnerability: VulnerabilityType::SyncContention,
-            base_score: 22.0,
-            description_tmpl: "sync.Mutex/atomic - potential throughput bottleneck",
-        },
-    ]
+/// Create a tree-sitter parser for the given language.
+fn create_parser(lang: Language) -> Option<tree_sitter::Parser> {
+    let mut parser = tree_sitter::Parser::new();
+    let ts_lang = match lang {
+        Language::Go => tree_sitter_go::LANGUAGE.into(),
+        Language::Python => tree_sitter_python::LANGUAGE.into(),
+    };
+    parser.set_language(&ts_lang).ok()?;
+    Some(parser)
 }
 
-fn js_ts_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &JS_FOR_WHILE,
-            vulnerability: VulnerabilityType::DeepNesting,
-            base_score: 15.0,
-            description_tmpl: "JavaScript/TypeScript loop or iterator in hot path",
-        },
-        PatternRule {
-            regex: &JS_RECURSIVE,
-            vulnerability: VulnerabilityType::RecursiveCall,
-            base_score: 20.0,
-            description_tmpl: "Recursive call detected - call stack exhaustion risk",
-        },
-        PatternRule {
-            regex: &JS_ALLOC,
-            vulnerability: VulnerabilityType::HotAllocation,
-            base_score: 12.0,
-            description_tmpl: "Heap allocation inside loop or frequent execution path",
-        },
-        PatternRule {
-            regex: &JS_BLOCKING_IO,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 22.0,
-            description_tmpl: "Synchronous blocking I/O freezes the Node event loop",
-        },
-        PatternRule {
-            regex: &JS_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Branching statement increases cyclomatic complexity",
-        },
-        PatternRule {
-            regex: &JS_MUTEX,
-            vulnerability: VulnerabilityType::SyncContention,
-            base_score: 18.0,
-            description_tmpl: "Synchronization primitive / shared array contention",
-        },
-    ]
+/// Decision-point node kinds for cyclomatic complexity (per language).
+fn is_decision_point(kind: &str, lang: Language) -> bool {
+    match lang {
+        Language::Go => matches!(
+            kind,
+            "if_statement"
+                | "for_statement"
+                | "switch_statement"
+                | "select_statement"
+                | "expression_case"
+                | "default_case"
+                | "type_case"
+                | "communication_case"
+                | "go_statement"
+        ),
+        Language::Python => matches!(
+            kind,
+            "if_statement"
+                | "elif_clause"
+                | "for_statement"
+                | "while_statement"
+                | "except_clause"
+                | "with_statement"
+                | "assert_statement"
+                | "conditional_expression"
+        ),
+    }
 }
 
-fn rust_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &RUST_FOR_WHILE,
-            vulnerability: VulnerabilityType::DeepNesting,
-            base_score: 15.0,
-            description_tmpl: "Rust loop construct - nesting depth multiplier applied",
-        },
-        PatternRule {
-            regex: &RUST_RECURSIVE,
-            vulnerability: VulnerabilityType::RecursiveCall,
-            base_score: 20.0,
-            description_tmpl: "Self-recursion detected - stack depth overhead risk",
-        },
-        PatternRule {
-            regex: &RUST_ALLOC,
-            vulnerability: VulnerabilityType::HotAllocation,
-            base_score: 12.0,
-            description_tmpl: "Heap vector or Box allocation on critical path",
-        },
-        PatternRule {
-            regex: &RUST_BLOCKING_IO,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 18.0,
-            description_tmpl: "Blocking I/O or sleep in async/worker context",
-        },
-        PatternRule {
-            regex: &RUST_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Pattern match / branching adds cyclomatic branches",
-        },
-        PatternRule {
-            regex: &RUST_MUTEX,
-            vulnerability: VulnerabilityType::SyncContention,
-            base_score: 22.0,
-            description_tmpl: "Mutex / RwLock lock acquisition contention hotspot",
-        },
-    ]
+/// Binary boolean operators that add to cyclomatic complexity.
+fn is_boolean_operator(kind: &str, text: &str, lang: Language) -> bool {
+    match lang {
+        Language::Go => {
+            kind == "binary_expression"
+                && (text.contains("&&") || text.contains("||"))
+        }
+        Language::Python => {
+            kind == "boolean_operator"
+        }
+    }
 }
 
-fn c_cpp_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &C_FOR_WHILE,
-            vulnerability: VulnerabilityType::DeepNesting,
-            base_score: 15.0,
-            description_tmpl: "C/C++ loop construct - nesting multiplier applied",
-        },
-        PatternRule {
-            regex: &C_RECURSIVE,
-            vulnerability: VulnerabilityType::RecursiveCall,
-            base_score: 20.0,
-            description_tmpl: "Function call checked for recursion",
-        },
-        PatternRule {
-            regex: &C_ALLOC,
-            vulnerability: VulnerabilityType::HotAllocation,
-            base_score: 14.0,
-            description_tmpl: "Dynamic memory allocation (malloc/new) inside hot path",
-        },
-        PatternRule {
-            regex: &C_BLOCKING_IO,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 18.0,
-            description_tmpl: "Blocking POSIX/C-runtime I/O operation",
-        },
-        PatternRule {
-            regex: &C_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Conditional branch / switch increases cyclomatic entropy",
-        },
-        PatternRule {
-            regex: &C_MUTEX,
-            vulnerability: VulnerabilityType::SyncContention,
-            base_score: 22.0,
-            description_tmpl: "POSIX/std::mutex synchronization primitive contention",
-        },
-    ]
+/// Check if a node represents a control-flow nesting block.
+fn is_nesting_block(kind: &str, lang: Language) -> bool {
+    match lang {
+        Language::Go => matches!(
+            kind,
+            "if_statement"
+                | "for_statement"
+                | "switch_statement"
+                | "select_statement"
+                | "func_literal"
+        ),
+        Language::Python => matches!(
+            kind,
+            "if_statement"
+                | "elif_clause"
+                | "else_clause"
+                | "for_statement"
+                | "while_statement"
+                | "with_statement"
+                | "try_statement"
+        ),
+    }
 }
 
-fn java_csharp_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &JAVA_FOR_WHILE,
-            vulnerability: VulnerabilityType::DeepNesting,
-            base_score: 15.0,
-            description_tmpl: "Loop construct - nesting depth multiplier applied",
-        },
-        PatternRule {
-            regex: &JAVA_RECURSIVE,
-            vulnerability: VulnerabilityType::RecursiveCall,
-            base_score: 20.0,
-            description_tmpl: "Method call checked for recursive depth",
-        },
-        PatternRule {
-            regex: &JAVA_ALLOC,
-            vulnerability: VulnerabilityType::HotAllocation,
-            base_score: 12.0,
-            description_tmpl: "Object / collection instantiation in loop path",
-        },
-        PatternRule {
-            regex: &JAVA_BLOCKING_IO,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 18.0,
-            description_tmpl: "Blocking stream or thread sleep operation",
-        },
-        PatternRule {
-            regex: &JAVA_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Branch / exception block increases cognitive complexity",
-        },
-        PatternRule {
-            regex: &JAVA_MUTEX,
-            vulnerability: VulnerabilityType::SyncContention,
-            base_score: 22.0,
-            description_tmpl: "Synchronized block or lock primitive contention",
-        },
-    ]
+/// Check if a node is a function/method declaration.
+fn is_function_node(kind: &str, lang: Language) -> bool {
+    match lang {
+        Language::Go => matches!(kind, "function_declaration" | "method_declaration"),
+        Language::Python => matches!(kind, "function_definition"),
+    }
 }
 
-fn shell_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &SH_LOOP,
-            vulnerability: VulnerabilityType::DeepNesting,
-            base_score: 15.0,
-            description_tmpl: "Shell loop detected",
-        },
-        PatternRule {
-            regex: &SH_BLOCKING_IO,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 20.0,
-            description_tmpl: "Subprocess network or sleep call in shell script",
-        },
-        PatternRule {
-            regex: &SH_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Shell condition / branch logic",
-        },
-    ]
+/// Extract function name from a function AST node.
+fn extract_function_name(node: &tree_sitter::Node, source: &[u8], lang: Language) -> String {
+    match lang {
+        Language::Go => {
+            // For method_declaration, the name is inside the receiver + name
+            // For function_declaration, it's the `name` child
+            node.child_by_field_name("name")
+                .and_then(|n| n.utf8_text(source).ok())
+                .unwrap_or("<anonymous>")
+                .to_string()
+        }
+        Language::Python => {
+            node.child_by_field_name("name")
+                .and_then(|n| n.utf8_text(source).ok())
+                .unwrap_or("<anonymous>")
+                .to_string()
+        }
+    }
 }
 
-fn config_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &CONFIG_SECRET,
-            vulnerability: VulnerabilityType::SyncContention,
-            base_score: 25.0,
-            description_tmpl: "Sensitive credential or unrotated secret in config file",
-        },
-        PatternRule {
-            regex: &CONFIG_BLOCKING,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 15.0,
-            description_tmpl: "Unbounded timeout or excessive connection limit in config",
-        },
-        PatternRule {
-            regex: &CONFIG_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Complex conditional rule or assertion in config file",
-        },
-    ]
+/// Check if a node represents a concurrency / resource primitive.
+fn is_concurrency_primitive(kind: &str, text: &str, lang: Language) -> bool {
+    match lang {
+        Language::Go => {
+            // goroutine spawn
+            if kind == "go_statement" {
+                return true;
+            }
+            // channel operations
+            if kind == "send_statement" || kind == "receive_expression" {
+                return true;
+            }
+            // defer statement (resource management)
+            if kind == "defer_statement" {
+                return true;
+            }
+            // sync.Mutex, sync.WaitGroup, atomic operations
+            if kind == "selector_expression" || kind == "call_expression" {
+                let t = text.to_lowercase();
+                if t.contains("sync.mutex")
+                    || t.contains("sync.rwmutex")
+                    || t.contains("sync.waitgroup")
+                    || t.contains("atomic.")
+                    || t.contains(".lock()")
+                    || t.contains(".unlock()")
+                    || t.contains(".rlock()")
+                    || t.contains(".runlock()")
+                {
+                    return true;
+                }
+            }
+            false
+        }
+        Language::Python => {
+            if kind == "call" || kind == "attribute" {
+                let t = text.to_lowercase();
+                if t.contains("threading.lock")
+                    || t.contains("threading.rlock")
+                    || t.contains("threading.semaphore")
+                    || t.contains("asyncio.lock")
+                    || t.contains("multiprocessing.lock")
+                    || t.contains(".acquire()")
+                    || t.contains(".release()")
+                {
+                    return true;
+                }
+            }
+            if kind == "with_statement" {
+                let t = text.to_lowercase();
+                if t.contains("lock") || t.contains("semaphore") {
+                    return true;
+                }
+            }
+            false
+        }
+    }
 }
 
-fn generic_rules() -> Vec<PatternRule> {
-    vec![
-        PatternRule {
-            regex: &GENERIC_LOOP,
-            vulnerability: VulnerabilityType::DeepNesting,
-            base_score: 15.0,
-            description_tmpl: "Loop construct detected in text file",
-        },
-        PatternRule {
-            regex: &GENERIC_RECURSIVE,
-            vulnerability: VulnerabilityType::RecursiveCall,
-            base_score: 15.0,
-            description_tmpl: "Identifier invocation checked for recursive call",
-        },
-        PatternRule {
-            regex: &GENERIC_ALLOC,
-            vulnerability: VulnerabilityType::HotAllocation,
-            base_score: 10.0,
-            description_tmpl: "Memory allocation operation",
-        },
-        PatternRule {
-            regex: &GENERIC_BLOCKING,
-            vulnerability: VulnerabilityType::BlockingIO,
-            base_score: 15.0,
-            description_tmpl: "Blocking sleep / wait / network primitive",
-        },
-        PatternRule {
-            regex: &GENERIC_BRANCH,
-            vulnerability: VulnerabilityType::CognitiveBranch,
-            base_score: 5.0,
-            description_tmpl: "Branch / condition construct",
-        },
-        PatternRule {
-            regex: &GENERIC_MUTEX,
-            vulnerability: VulnerabilityType::SyncContention,
-            base_score: 18.0,
-            description_tmpl: "Synchronization / concurrency primitive",
-        },
-    ]
+/// Check if a call node represents a blocking I/O operation.
+fn is_blocking_io(text: &str, lang: Language) -> bool {
+    let t = text.to_lowercase();
+    match lang {
+        Language::Go => {
+            t.contains("os.open")
+                || t.contains("os.create")
+                || t.contains("ioutil.readfile")
+                || t.contains("ioutil.writefile")
+                || t.contains("http.get")
+                || t.contains("http.post")
+                || t.contains("net.dial")
+                || t.contains("time.sleep")
+                || t.contains("bufio.newreader")
+                || t.contains("sql.open")
+                || t.contains(".readstring(")
+                || t.contains(".readline(")
+        }
+        Language::Python => {
+            t.contains("requests.get")
+                || t.contains("requests.post")
+                || t.contains("requests.put")
+                || t.contains("requests.delete")
+                || t.contains("time.sleep")
+                || t.contains("open(")
+                || t.contains("subprocess.call")
+                || t.contains("subprocess.run")
+                || t.contains("socket.recv")
+                || t.contains("urllib")
+        }
+    }
+}
+
+/// Check if a call node represents a heap allocation in a hot path.
+fn is_allocation(text: &str, lang: Language) -> bool {
+    let t = text.to_lowercase();
+    match lang {
+        Language::Go => {
+            t.starts_with("make(") || t.starts_with("new(") || t.contains("append(")
+        }
+        Language::Python => {
+            t.contains("list(")
+                || t.contains("dict(")
+                || t.contains("set(")
+                || t.contains("np.zeros")
+                || t.contains("np.ones")
+                || t.contains("numpy.zeros")
+                || t.contains("numpy.ones")
+                || t.contains("torch.zeros")
+                || t.contains("torch.ones")
+                || t.contains("bytearray(")
+        }
+    }
+}
+
+/// Recursively collect metrics from AST nodes within a function scope.
+struct FunctionVisitor<'a> {
+    source: &'a [u8],
+    lang: Language,
+    func_name: String,
+    cyclomatic: usize,
+    max_depth: usize,
+    node_count: usize,
+    concurrency: usize,
+    has_recursive_call: bool,
+    blocking_io_count: usize,
+    allocation_in_loop: bool,
+    loop_depth: usize,
+    current_depth: usize,
+}
+
+impl<'a> FunctionVisitor<'a> {
+    fn new(source: &'a [u8], lang: Language, func_name: String) -> Self {
+        Self {
+            source,
+            lang,
+            func_name,
+            cyclomatic: 1, // base complexity
+            max_depth: 0,
+            node_count: 0,
+            concurrency: 0,
+            has_recursive_call: false,
+            blocking_io_count: 0,
+            allocation_in_loop: false,
+            loop_depth: 0,
+            current_depth: 0,
+        }
+    }
+
+    fn visit(&mut self, node: tree_sitter::Node) {
+        let kind = node.kind();
+
+        // Count named AST nodes (volume metric)
+        if node.is_named() {
+            self.node_count += 1;
+        }
+
+        // Decision points → cyclomatic complexity
+        if is_decision_point(kind, self.lang) {
+            self.cyclomatic += 1;
+        }
+
+        // Boolean operators → additional cyclomatic branches
+        if let Ok(text) = node.utf8_text(self.source) {
+            if is_boolean_operator(kind, text, self.lang) {
+                // Count each && or || as one additional path
+                let count = text.matches("&&").count()
+                    + text.matches("||").count()
+                    + if kind == "boolean_operator" { 1 } else { 0 };
+                // Avoid double counting: only add extras beyond the first
+                if count > 0 {
+                    self.cyclomatic += count.saturating_sub(1).max(1);
+                }
+            }
+        }
+
+        // Track nesting depth
+        let is_nesting = is_nesting_block(kind, self.lang);
+        let is_loop = matches!(kind, "for_statement" | "while_statement");
+
+        if is_nesting {
+            self.current_depth += 1;
+            if self.current_depth > self.max_depth {
+                self.max_depth = self.current_depth;
+            }
+        }
+        if is_loop {
+            self.loop_depth += 1;
+        }
+
+        // Concurrency primitives
+        if let Ok(text) = node.utf8_text(self.source) {
+            if is_concurrency_primitive(kind, text, self.lang) {
+                self.concurrency += 1;
+            }
+
+            // Blocking I/O detection
+            if kind == "call_expression" || kind == "call" {
+                if is_blocking_io(text, self.lang) {
+                    self.blocking_io_count += 1;
+                }
+                // Allocation detection (flag especially if inside loops)
+                if is_allocation(text, self.lang) && self.loop_depth > 0 {
+                    self.allocation_in_loop = true;
+                }
+            }
+
+            // Recursive call detection
+            if kind == "call_expression" || kind == "call" {
+                if text.contains(&format!("{}(", self.func_name))
+                    || text.contains(&format!("self.{}(", self.func_name))
+                {
+                    self.has_recursive_call = true;
+                }
+            }
+        }
+
+        // Recurse into children
+        let child_count = node.child_count();
+        for i in 0..child_count {
+            if let Some(child) = node.child(i) {
+                // Don't recurse into nested function definitions
+                if !is_function_node(child.kind(), self.lang) {
+                    self.visit(child);
+                }
+            }
+        }
+
+        // Pop nesting tracking
+        if is_nesting {
+            self.current_depth -= 1;
+        }
+        if is_loop {
+            self.loop_depth -= 1;
+        }
+    }
+
+    fn into_metrics(self) -> FunctionMetrics {
+        let mut m = FunctionMetrics {
+            cyclomatic_complexity: self.cyclomatic,
+            max_nesting_depth: self.max_depth,
+            ast_node_count: self.node_count,
+            concurrency_primitives: self.concurrency,
+            energy: 0.0,
+        };
+        m.energy = compute_energy(&m);
+        m
+    }
 }
 
 // =============================================================================
 // § 5  File language detection & Security Filters
 // =============================================================================
 
-/// Maximum file size scanned by the engine (512 KB) to prevent DoS / memory exhaustion.
+/// Maximum file size scanned by the engine (512 KB).
 pub const MAX_FILE_SIZE_BYTES: u64 = 512 * 1024;
 
-/// Check if a file extension represents a compiled binary, asset, or archive.
+/// Check if a file extension is a compiled binary, asset, or archive.
 pub fn is_excluded_extension(ext: &str) -> bool {
     matches!(
         ext.to_ascii_lowercase().as_str(),
-        // Compiled & byte-code
         "exe" | "dll" | "so" | "dylib" | "bin" | "o" | "a" | "lib" | "class" | "jar" | "war"
         | "pyc" | "pyo" | "pyd" | "wasm"
-        // Images & graphics
         | "png" | "jpg" | "jpeg" | "gif" | "bmp" | "ico" | "webp" | "tiff" | "psd" | "raw" | "svg"
-        // Audio & video
         | "mp3" | "mp4" | "wav" | "ogg" | "flac" | "mkv" | "avi" | "mov" | "webm"
-        // Archives & compression
         | "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "iso" | "dmg" | "pkg"
-        // Documents & presentations
         | "pdf" | "doc" | "docx" | "ppt" | "pptx" | "xls" | "xlsx"
-        // Fonts
         | "woff" | "woff2" | "ttf" | "eot" | "otf"
-        // Databases & data dumps
         | "db" | "sqlite" | "sqlite3" | "parquet" | "arrow" | "avro"
-        // Generated lockfiles & minified assets
         | "lock" | "sum" | "map"
     )
 }
 
-/// Security integrity check: inspect the first 512 bytes for null byte (0x00)
-/// or read errors to guarantee non-binary text processing.
+/// Security: inspect first 512 bytes for null bytes to detect binary files.
 pub fn is_binary_file(path: &Path) -> bool {
     use std::io::Read;
     let mut file = match fs::File::open(path) {
@@ -756,9 +630,8 @@ pub fn is_ignored_dir(entry: &walkdir::DirEntry) -> bool {
         )
 }
 
-/// Returns the language string and rule table for a given file.
-/// Safely skips excluded extensions, minified assets, lockfiles, and binary files.
-pub fn detect_language(path: &Path) -> Option<(&'static str, Vec<PatternRule>)> {
+/// Returns the language enum for supported file extensions.
+pub fn detect_language(path: &Path) -> Option<Language> {
     let file_name = path.file_name()?.to_str()?;
     if file_name.ends_with(".min.js") || file_name.ends_with(".min.css") {
         return None;
@@ -777,316 +650,401 @@ pub fn detect_language(path: &Path) -> Option<(&'static str, Vec<PatternRule>)> 
     }
 
     match ext.to_ascii_lowercase().as_str() {
-        "py" | "pyw" => Some(("Python", python_rules())),
-        "go" => Some(("Go", go_rules())),
-        "js" | "jsx" | "mjs" | "cjs" => Some(("JavaScript", js_ts_rules())),
-        "ts" | "tsx" => Some(("TypeScript", js_ts_rules())),
-        "rs" => Some(("Rust", rust_rules())),
-        "c" | "h" => Some(("C", c_cpp_rules())),
-        "cpp" | "cc" | "cxx" | "hpp" | "hxx" => Some(("C++", c_cpp_rules())),
-        "java" => Some(("Java", java_csharp_rules())),
-        "cs" => Some(("C#", java_csharp_rules())),
-        "kt" | "kts" => Some(("Kotlin", java_csharp_rules())),
-        "scala" => Some(("Scala", java_csharp_rules())),
-        "rb" => Some(("Ruby", generic_rules())),
-        "php" => Some(("PHP", generic_rules())),
-        "sh" | "bash" | "zsh" => Some(("Shell", shell_rules())),
-        "json" | "yaml" | "yml" | "toml" | "xml" | "sql" => Some(("Config", config_rules())),
-        _ => {
-            if file_name.eq_ignore_ascii_case("dockerfile")
-                || file_name.starts_with("Dockerfile.")
-            {
-                Some(("Config", config_rules()))
-            } else if !file_name.starts_with('.') || !ext.is_empty() {
-                Some(("Generic", generic_rules()))
-            } else {
-                None
-            }
-        }
+        "go" => Some(Language::Go),
+        "py" | "pyw" => Some(Language::Python),
+        _ => None,
     }
 }
 
-// Returns the function-name regex for a language.
-fn func_regex_for(language: &str) -> &'static Lazy<Regex> {
-    match language {
-        "Python" => &PY_FUNC,
-        "Go" => &GO_FUNC,
-        "JavaScript" | "TypeScript" => &JS_FUNC,
-        "Rust" => &RUST_FUNC,
-        "C" | "C++" => &C_FUNC,
-        "Java" | "C#" | "Kotlin" | "Scala" => &JAVA_FUNC,
-        "Shell" => &SH_FUNC,
-        _ => &GENERIC_FUNC,
+fn language_name(lang: Language) -> &'static str {
+    match lang {
+        Language::Go => "Go",
+        Language::Python => "Python",
     }
 }
 
 // =============================================================================
-// § 6  Line-level analyzer
+// § 6  File-level AST scanner
 // =============================================================================
 
-/// State threaded through the line-by-line scan.
-struct ScanState {
-    current_function: String,
-    nesting_depth: usize, // tracks block nesting depth
-    loop_depth: usize,    // specifically loop nesting (for / while)
-    loop_levels: Vec<usize>, // tracks block depth or indent level of active loops
-}
-
-impl ScanState {
-    fn new() -> Self {
-        Self {
-            current_function: "<module>".to_owned(),
-            nesting_depth: 0,
-            loop_depth: 0,
-            loop_levels: Vec::new(),
-        }
-    }
-}
-
-/// Analyze a single trimmed source line.
+/// Analyze a single source file using tree-sitter AST parsing.
 ///
-/// Returns zero or more `Hotspot` values discovered on that line.
-///
-/// The nesting multiplier exponentially increases the entropy contribution
-/// of any pattern found inside deeply-nested loops — this models the
-/// actual O(n^k) impact on runtime complexity.
-fn analyze_line(
-    raw_line: &str,
-    line_no: usize,
-    state: &mut ScanState,
-    rules: &[PatternRule],
-    func_re: &Regex,
-    language: &str,
-) -> Vec<Hotspot> {
-    let mut hotspots = Vec::new();
-    let is_func_decl = func_re.is_match(raw_line);
-
-    // ── Track current function context ────────────────────────────────────────
-    if let Some(cap) = func_re.captures(raw_line) {
-        let func_name = cap.get(1).or_else(|| cap.get(2)).map(|m| m.as_str().to_owned());
-        if let Some(name) = func_name {
-            state.current_function = name;
-            // Reset per-function loop depth when entering a new function
-            state.loop_depth = 0;
-            state.loop_levels.clear();
-        }
-    }
-
-    // ── Track nesting depth ───────────────────────────────────────────────────
-    match language {
-        "Python" => {
-            let indent = raw_line.len() - raw_line.trim_start().len();
-            state.nesting_depth = indent / 4;
-
-            let trimmed = raw_line.trim();
-            // A loop ends when an indentation level drops to or below the loop's indent level
-            if !trimmed.is_empty() && !trimmed.starts_with('#') {
-                while let Some(&loop_indent) = state.loop_levels.last() {
-                    if indent <= loop_indent && !PY_FOR_WHILE.is_match(raw_line) {
-                        state.loop_levels.pop();
-                        state.loop_depth = state.loop_depth.saturating_sub(1);
-                    } else {
-                        break;
-                    }
-                }
-            }
-
-            if PY_FOR_WHILE.is_match(raw_line) {
-                state.loop_depth = state.loop_depth.saturating_add(1);
-                state.loop_levels.push(indent);
-            }
-        }
-        "Shell" => {
-            let trimmed = raw_line.trim();
-            if SH_LOOP.is_match(raw_line) {
-                state.loop_depth = state.loop_depth.saturating_add(1);
-                state.loop_levels.push(state.nesting_depth);
-            }
-            if trimmed == "done" || trimmed.starts_with("done ") || trimmed.ends_with("; done") {
-                state.loop_levels.pop();
-                state.loop_depth = state.loop_depth.saturating_sub(1);
-            }
-        }
-        _ => {
-            // Brace-based languages: Go, Rust, JS/TS, C/C++, Java/C#, Generic
-            let opens: usize = raw_line.chars().filter(|&c| c == '{').count();
-            let closes: usize = raw_line.chars().filter(|&c| c == '}').count();
-
-            // When closing braces appear, close any loops that were nested at or above this block level
-            if closes > 0 {
-                let depth_after_closes = state.nesting_depth.saturating_sub(closes);
-                while let Some(&loop_level) = state.loop_levels.last() {
-                    if depth_after_closes < loop_level {
-                        state.loop_levels.pop();
-                        state.loop_depth = state.loop_depth.saturating_sub(1);
-                    } else {
-                        break;
-                    }
-                }
-            }
-
-            state.nesting_depth = state.nesting_depth.saturating_sub(closes).saturating_add(opens);
-
-            let is_loop = match language {
-                "Go" => GO_FOR.is_match(raw_line),
-                "JavaScript" | "TypeScript" => JS_FOR_WHILE.is_match(raw_line),
-                "Rust" => RUST_FOR_WHILE.is_match(raw_line),
-                "C" | "C++" => C_FOR_WHILE.is_match(raw_line),
-                "Java" | "C#" | "Kotlin" | "Scala" => JAVA_FOR_WHILE.is_match(raw_line),
-                _ => GENERIC_LOOP.is_match(raw_line),
-            };
-
-            if is_loop {
-                state.loop_depth = state.loop_depth.saturating_add(1);
-                state.loop_levels.push(state.nesting_depth);
-            }
-        }
-    }
-
-    // ── Loop-nesting entropy multiplier ──────────────────────────────────────
-    // Score × (1 + 0.5 × loop_depth²) — exponential cost model:
-    //   depth 0 → ×1.0, depth 1 → ×1.5, depth 2 → ×3.0, depth 3 → ×5.5
-    let nesting_multiplier = 1.0 + 0.5 * (state.loop_depth as f64).powi(2);
-
-    // ── Apply each rule ───────────────────────────────────────────────────────
-    for rule in rules {
-        // Skip flagging recursive call on the function declaration itself
-        if is_func_decl && rule.vulnerability == VulnerabilityType::RecursiveCall {
-            continue;
-        }
-
-        // For recursive calls, check that the call target actually matches the current function
-        if rule.vulnerability == VulnerabilityType::RecursiveCall {
-            if state.current_function == "<module>" {
-                continue;
-            }
-            let self_call_pat = format!("{}(", state.current_function);
-            let py_self_call = format!("self.{}(", state.current_function);
-            let js_self_call = format!("this.{}(", state.current_function);
-            let has_recursion = raw_line.contains(&self_call_pat)
-                || raw_line.contains(&py_self_call)
-                || raw_line.contains(&js_self_call);
-            if !has_recursion {
-                continue;
-            }
-        }
-        if rule.regex.is_match(raw_line) {
-            let raw_score = rule.base_score * nesting_multiplier;
-            // Clamp to [0, 100]
-            let entropy = raw_score.min(100.0).max(0.0);
-
-            hotspots.push(Hotspot {
-                function_name: state.current_function.clone(),
-                line_number: line_no,
-                source_snippet: raw_line.trim().chars().take(120).collect(),
-                entropy_score: (entropy * 100.0).round() / 100.0, // 2 d.p.
-                vulnerability_type: rule.vulnerability.clone(),
-                description: rule.description_tmpl.to_owned(),
-            });
-        }
-    }
-
-    hotspots
-}
-
-// =============================================================================
-// § 7  File-level scanner
-// =============================================================================
-
-/// Read and analyze a single source file.
-///
-/// Guards against non-text / binary files and enforces a 512 KB size limit
-/// to maintain memory and security integrity.
-pub fn scan_file(path: &Path, min_score: f64) -> io::Result<Option<FileReport>> {
-    // ── Security Check: File Size Limit (512 KB) ──────────────────────────────
+/// Extracts all function/method definitions, computes structural metrics for
+/// each, calculates thermodynamic energy, and returns detected hotspots.
+pub fn scan_file(
+    path: &Path,
+    min_score: f64,
+    energy_threshold: f64,
+) -> io::Result<Option<FileReport>> {
+    // ── Security: File Size Limit (512 KB) ─────────────────────────────────
     if let Ok(meta) = fs::metadata(path) {
         if meta.len() > MAX_FILE_SIZE_BYTES {
             return Ok(None);
         }
     }
 
-    // ── Security Check: Binary File Safety ────────────────────────────────────
+    // ── Security: Binary File Safety ───────────────────────────────────────
     if is_binary_file(path) {
         return Ok(None);
     }
 
-    // ── Language detection ────────────────────────────────────────────────────
-    let (language, rules) = match detect_language(path) {
-        Some(lr) => lr,
-        None => return Ok(None), // unsupported file type
+    // ── Language detection ──────────────────────────────────────────────────
+    let lang = match detect_language(path) {
+        Some(l) => l,
+        None => return Ok(None),
     };
 
-    let func_re = func_regex_for(language);
-    let file = fs::File::open(path)?;
-    let reader = io::BufReader::new(file);
+    // ── Read source ────────────────────────────────────────────────────────
+    let source = fs::read(path)?;
+    let source_text = String::from_utf8_lossy(&source);
 
-    let mut state = ScanState::new();
-    let mut all_hotspots: Vec<Hotspot> = Vec::new();
-    let mut lines_scanned: usize = 0;
+    // Count non-blank, non-comment lines
+    let lines_scanned = source_text
+        .lines()
+        .filter(|line| {
+            let trimmed = line.trim();
+            !trimmed.is_empty()
+                && !trimmed.starts_with('#')
+                && !trimmed.starts_with("//")
+                && !trimmed.starts_with("/*")
+        })
+        .count();
 
-    for (idx, line_result) in reader.lines().enumerate() {
-        let line = match line_result {
-            Ok(l) => l,
-            Err(_) => return Ok(None), // Non-UTF-8 character stream fallback
-        };
-        let trimmed = line.trim();
+    // ── Parse with tree-sitter ─────────────────────────────────────────────
+    let mut parser = match create_parser(lang) {
+        Some(p) => p,
+        None => return Ok(None),
+    };
 
-        // Skip blank lines and pure comment lines to keep the scancount meaningful
-        if trimmed.is_empty()
-            || trimmed.starts_with('#')   // Python / shell comment
-            || trimmed.starts_with("//")  // Go / C-style comment
-            || trimmed.starts_with("/*")
-        // block comment
-        {
-            continue;
+    let tree = match parser.parse(&source, None) {
+        Some(t) => t,
+        None => return Ok(None),
+    };
+
+    let root = tree.root_node();
+
+    // ── Walk root to find function definitions ─────────────────────────────
+    let mut hotspots: Vec<Hotspot> = Vec::new();
+
+    fn collect_functions(
+        node: tree_sitter::Node,
+        source: &[u8],
+        lang: Language,
+        min_score: f64,
+        energy_threshold: f64,
+        hotspots: &mut Vec<Hotspot>,
+    ) {
+        if is_function_node(node.kind(), lang) {
+            let func_name = extract_function_name(&node, source, lang);
+            let start_line = node.start_position().row + 1; // 1-indexed
+            let byte_range = [node.start_byte(), node.end_byte()];
+
+            // Extract first line of function for snippet
+            let snippet = node
+                .utf8_text(source)
+                .ok()
+                .and_then(|t| t.lines().next())
+                .unwrap_or("")
+                .chars()
+                .take(120)
+                .collect::<String>();
+
+            // Visit the function AST subtree
+            let mut visitor = FunctionVisitor::new(source, lang, func_name.clone());
+
+            // Visit children (not the function node itself to avoid re-counting)
+            let child_count = node.child_count();
+            for i in 0..child_count {
+                if let Some(child) = node.child(i) {
+                    visitor.visit(child);
+                }
+            }
+
+            let metrics = visitor.into_metrics();
+
+            if metrics.energy < min_score {
+                return;
+            }
+
+            // Determine primary entropy driver
+            let (vuln_type, description) = determine_primary_driver(
+                &metrics,
+                visitor_has_recursive_call(&node, source, lang, &func_name),
+                visitor_blocking_io_count(&node, source, lang),
+                visitor_allocation_in_loop(&node, source, lang),
+                energy_threshold,
+            );
+
+            hotspots.push(Hotspot {
+                function_name: func_name,
+                line_number: start_line,
+                byte_range,
+                source_snippet: snippet,
+                entropy_score: metrics.energy,
+                vulnerability_type: vuln_type,
+                description,
+                metrics,
+            });
         }
 
-        lines_scanned += 1;
-
-        let mut hotspots = analyze_line(
-            &line,
-            idx + 1, // 1-indexed line number
-            &mut state,
-            &rules,
-            func_re,
-            language,
-        );
-
-        // Apply min-score filter
-        hotspots.retain(|h| h.entropy_score >= min_score);
-        all_hotspots.extend(hotspots);
+        // Recurse into children to find nested function definitions
+        let child_count = node.child_count();
+        for i in 0..child_count {
+            if let Some(child) = node.child(i) {
+                collect_functions(child, source, lang, min_score, energy_threshold, hotspots);
+            }
+        }
     }
 
-    // ── Sort hotspots by entropy descending ───────────────────────────────────
-    all_hotspots.sort_by(|a, b| b.entropy_score.partial_cmp(&a.entropy_score).unwrap());
+    collect_functions(root, &source, lang, min_score, energy_threshold, &mut hotspots);
 
-    // ── Aggregate metrics ─────────────────────────────────────────────────────
-    let total_entropy = all_hotspots.iter().map(|h| h.entropy_score).sum::<f64>();
-    let mean_entropy = if all_hotspots.is_empty() {
+    // ── Sort hotspots by energy descending ─────────────────────────────────
+    hotspots.sort_by(|a, b| {
+        b.entropy_score
+            .partial_cmp(&a.entropy_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+
+    // ── Aggregate metrics ──────────────────────────────────────────────────
+    let total_entropy: f64 = hotspots.iter().map(|h| h.entropy_score).sum();
+    let mean_entropy = if hotspots.is_empty() {
         0.0
     } else {
-        (total_entropy / all_hotspots.len() as f64 * 100.0).round() / 100.0
+        (total_entropy / hotspots.len() as f64 * 100.0).round() / 100.0
     };
 
     Ok(Some(FileReport {
         file_path: path.to_string_lossy().into_owned(),
-        language: language.to_owned(),
+        language: language_name(lang).to_owned(),
         lines_scanned,
         total_entropy: (total_entropy * 100.0).round() / 100.0,
         mean_hotspot_entropy: mean_entropy,
-        hotspots: all_hotspots,
+        hotspots,
     }))
 }
 
+/// Helper: re-walk function body to check for recursive calls.
+fn visitor_has_recursive_call(
+    func_node: &tree_sitter::Node,
+    source: &[u8],
+    lang: Language,
+    func_name: &str,
+) -> bool {
+    fn check(node: tree_sitter::Node, source: &[u8], lang: Language, name: &str) -> bool {
+        let kind = node.kind();
+        if kind == "call_expression" || kind == "call" {
+            if let Ok(text) = node.utf8_text(source) {
+                if text.contains(&format!("{}(", name))
+                    || text.contains(&format!("self.{}(", name))
+                {
+                    return true;
+                }
+            }
+        }
+        // Don't descend into nested function defs
+        if is_function_node(kind, lang) {
+            return false;
+        }
+        let cc = node.child_count();
+        for i in 0..cc {
+            if let Some(child) = node.child(i) {
+                if check(child, source, lang, name) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+    let cc = func_node.child_count();
+    for i in 0..cc {
+        if let Some(child) = func_node.child(i) {
+            if check(child, source, lang, func_name) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Helper: count blocking I/O calls inside a function body.
+fn visitor_blocking_io_count(
+    func_node: &tree_sitter::Node,
+    source: &[u8],
+    lang: Language,
+) -> usize {
+    fn count(node: tree_sitter::Node, source: &[u8], lang: Language) -> usize {
+        let kind = node.kind();
+        let mut total = 0;
+        if kind == "call_expression" || kind == "call" {
+            if let Ok(text) = node.utf8_text(source) {
+                if is_blocking_io(text, lang) {
+                    total += 1;
+                }
+            }
+        }
+        if is_function_node(kind, lang) {
+            return 0; // don't count nested funcs
+        }
+        let cc = node.child_count();
+        for i in 0..cc {
+            if let Some(child) = node.child(i) {
+                total += count(child, source, lang);
+            }
+        }
+        total
+    }
+    let cc = func_node.child_count();
+    let mut total = 0;
+    for i in 0..cc {
+        if let Some(child) = func_node.child(i) {
+            total += count(child, source, lang);
+        }
+    }
+    total
+}
+
+/// Helper: check for allocations inside loops.
+fn visitor_allocation_in_loop(
+    func_node: &tree_sitter::Node,
+    source: &[u8],
+    lang: Language,
+) -> bool {
+    fn check(node: tree_sitter::Node, source: &[u8], lang: Language, in_loop: bool) -> bool {
+        let kind = node.kind();
+        let is_loop = matches!(kind, "for_statement" | "while_statement");
+        let inside = in_loop || is_loop;
+
+        if (kind == "call_expression" || kind == "call") && inside {
+            if let Ok(text) = node.utf8_text(source) {
+                if is_allocation(text, lang) {
+                    return true;
+                }
+            }
+        }
+        if is_function_node(kind, lang) {
+            return false;
+        }
+        let cc = node.child_count();
+        for i in 0..cc {
+            if let Some(child) = node.child(i) {
+                if check(child, source, lang, inside) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+    let cc = func_node.child_count();
+    for i in 0..cc {
+        if let Some(child) = func_node.child(i) {
+            if check(child, source, lang, false) {
+                return true;
+            }
+        }
+    }
+    false
+}
+
+/// Determine the primary entropy driver based on computed metrics.
+fn determine_primary_driver(
+    metrics: &FunctionMetrics,
+    has_recursive: bool,
+    blocking_io: usize,
+    alloc_in_loop: bool,
+    threshold: f64,
+) -> (VulnerabilityType, String) {
+    // Priority ordering: highest-impact issues first
+    if has_recursive {
+        return (
+            VulnerabilityType::RecursiveCall,
+            format!(
+                "Recursive call detected — stack-depth risk (M={}, D={})",
+                metrics.cyclomatic_complexity, metrics.max_nesting_depth
+            ),
+        );
+    }
+    if metrics.concurrency_primitives > 0 && metrics.max_nesting_depth >= 2 {
+        return (
+            VulnerabilityType::SyncContention,
+            format!(
+                "Synchronization primitive at nesting depth {} — lock contention risk (C={})",
+                metrics.max_nesting_depth, metrics.concurrency_primitives
+            ),
+        );
+    }
+    if blocking_io > 0 && metrics.max_nesting_depth >= 1 {
+        return (
+            VulnerabilityType::BlockingIO,
+            format!(
+                "Blocking I/O call(s) ({}) inside control flow depth {} — latency spike risk",
+                blocking_io, metrics.max_nesting_depth
+            ),
+        );
+    }
+    if alloc_in_loop {
+        return (
+            VulnerabilityType::HotAllocation,
+            format!(
+                "Heap allocation inside loop body — O(n) memory pressure (S={})",
+                metrics.ast_node_count
+            ),
+        );
+    }
+    if metrics.max_nesting_depth >= 4 {
+        return (
+            VulnerabilityType::DeepNesting,
+            format!(
+                "Nesting depth {} exceeds safe threshold — O(n^k) complexity risk (M={})",
+                metrics.max_nesting_depth, metrics.cyclomatic_complexity
+            ),
+        );
+    }
+    if metrics.cyclomatic_complexity >= 10 {
+        return (
+            VulnerabilityType::CognitiveBranch,
+            format!(
+                "Cyclomatic complexity {} — high cognitive load and branch exhaustion risk",
+                metrics.cyclomatic_complexity
+            ),
+        );
+    }
+    if metrics.energy >= threshold {
+        return (
+            VulnerabilityType::HighEnergy,
+            format!(
+                "Structural energy {:.2} exceeds threshold {:.2} (M={}, D={}, S={}, C={})",
+                metrics.energy,
+                threshold,
+                metrics.cyclomatic_complexity,
+                metrics.max_nesting_depth,
+                metrics.ast_node_count,
+                metrics.concurrency_primitives
+            ),
+        );
+    }
+
+    // Default — low energy, informational
+    (
+        VulnerabilityType::CognitiveBranch,
+        format!(
+            "Structural energy {:.2} — nominal (M={}, D={})",
+            metrics.energy, metrics.cyclomatic_complexity, metrics.max_nesting_depth
+        ),
+    )
+}
+
 // =============================================================================
-// § 8  Directory walker
+// § 7  Directory walker
 // =============================================================================
 
 /// Walk `root` recursively, scan every supported source file, and collect
-/// `FileReport` values. Uses Rayon for parallel execution when the feature
-/// is enabled (default).
-pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileReport> {
-    // Collect candidate paths first so we can parallelize the heavy I/O phase.
+/// `FileReport` values. Uses Rayon for parallel execution when enabled.
+pub fn scan_directory(
+    root: &Path,
+    min_score: f64,
+    energy_threshold: f64,
+    verbose: bool,
+) -> Vec<FileReport> {
     let candidates: Vec<PathBuf> = WalkDir::new(root)
         .follow_links(false)
         .into_iter()
@@ -1115,7 +1073,7 @@ pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileRep
         );
     }
 
-    // ── Parallel scan (Rayon) ─────────────────────────────────────────────────
+    // ── Parallel scan (Rayon) ──────────────────────────────────────────────
     #[cfg(feature = "parallel")]
     let reports: Vec<FileReport> = {
         use rayon::iter::IntoParallelIterator;
@@ -1125,7 +1083,7 @@ pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileRep
                 if verbose {
                     println!("  {} {}", "⚡".yellow(), path.display());
                 }
-                match scan_file(&path, min_score) {
+                match scan_file(&path, min_score, energy_threshold) {
                     Ok(Some(report)) => Some(report),
                     Ok(None) => None,
                     Err(e) => {
@@ -1137,7 +1095,7 @@ pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileRep
             .collect()
     };
 
-    // ── Sequential fallback (no Rayon feature) ────────────────────────────────
+    // ── Sequential fallback ────────────────────────────────────────────────
     #[cfg(not(feature = "parallel"))]
     let reports: Vec<FileReport> = candidates
         .into_iter()
@@ -1145,7 +1103,7 @@ pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileRep
             if verbose {
                 println!("  {} {}", "→", path.display());
             }
-            match scan_file(&path, min_score) {
+            match scan_file(&path, min_score, energy_threshold) {
                 Ok(Some(report)) => Some(report),
                 Ok(None) => None,
                 Err(e) => {
@@ -1160,7 +1118,7 @@ pub fn scan_directory(root: &Path, min_score: f64, verbose: bool) -> Vec<FileRep
 }
 
 // =============================================================================
-// § 9  Report builder & JSON serializer
+// § 8  Report builder & JSON serializer
 // =============================================================================
 
 /// Assemble the root `ThermodynamicReport`, sort by entropy, and write JSON.
@@ -1169,8 +1127,11 @@ pub fn build_and_write_report(
     scanned_dir: &Path,
     output_path: &Path,
 ) -> io::Result<ThermodynamicReport> {
-    // Sort files by total_entropy descending — highest-entropy files first
-    file_reports.sort_by(|a, b| b.total_entropy.partial_cmp(&a.total_entropy).unwrap());
+    file_reports.sort_by(|a, b| {
+        b.total_entropy
+            .partial_cmp(&a.total_entropy)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     let total_hotspots = file_reports.iter().map(|r| r.hotspots.len()).sum();
     let global_entropy = file_reports.iter().map(|r| r.total_entropy).sum::<f64>();
@@ -1185,7 +1146,6 @@ pub fn build_and_write_report(
         file_reports,
     };
 
-    // Pretty-print JSON with 2-space indentation for human readability
     let json = serde_json::to_string_pretty(&report)
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
 
@@ -1195,14 +1155,27 @@ pub fn build_and_write_report(
 }
 
 // =============================================================================
-// § 10  Terminal summary banner
+// § 9  Terminal summary banner
 // =============================================================================
 
 fn print_summary(report: &ThermodynamicReport) {
     println!();
-    println!("{}", "╔══════════════════════════════════════════╗".cyan());
-    println!("{}", "║   Thermodynamic AST Engine — Summary     ║".cyan());
-    println!("{}", "╚══════════════════════════════════════════╝".cyan());
+    println!(
+        "{}",
+        "╔══════════════════════════════════════════════════════╗".cyan()
+    );
+    println!(
+        "{}",
+        "║   Thermodynamic AST Engine v2 — Summary             ║".cyan()
+    );
+    println!(
+        "{}",
+        "║   (Tree-sitter AST-driven structural analysis)      ║".cyan()
+    );
+    println!(
+        "{}",
+        "╚══════════════════════════════════════════════════════╝".cyan()
+    );
     println!(
         "  Files analyzed   : {}",
         report.files_analyzed.to_string().yellow()
@@ -1217,42 +1190,35 @@ fn print_summary(report: &ThermodynamicReport) {
     );
 
     println!();
-    println!("{}", "  Top 5 Entropy Hotspots:".bold());
+    println!("{}", "  Top 5 Energy Hotspots:".bold());
     println!(
-        "  {:<6}  {:<30}  {:<8}  {}",
-        "Score", "File", "Line", "Vulnerability"
+        "  {:<8}  {:<25}  {:<6}  {:<6}  {:<6}  {}",
+        "Energy", "Function", "M", "D", "S", "Driver"
     );
-    println!("  {}", "─".repeat(72));
+    println!("  {}", "─".repeat(78));
 
     // Flatten and collect top 5 across all files
-    let mut all_hotspots: Vec<(f64, &str, usize, &VulnerabilityType)> = report
+    let mut all_hotspots: Vec<&Hotspot> = report
         .file_reports
         .iter()
-        .flat_map(|r| {
-            r.hotspots.iter().map(move |h| {
-                (
-                    h.entropy_score,
-                    r.file_path.as_str(),
-                    h.line_number,
-                    &h.vulnerability_type,
-                )
-            })
-        })
+        .flat_map(|r| r.hotspots.iter())
         .collect();
 
-    all_hotspots.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+    all_hotspots.sort_by(|a, b| {
+        b.entropy_score
+            .partial_cmp(&a.entropy_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
-    for (score, file, line, vuln) in all_hotspots.iter().take(5) {
-        let short_file = Path::new(file)
-            .file_name()
-            .map(|n| n.to_string_lossy())
-            .unwrap_or_default();
+    for h in all_hotspots.iter().take(5) {
         println!(
-            "  {:<6.2}  {:<30}  {:<8}  {}",
-            score,
-            short_file,
-            line,
-            vuln.to_string().red()
+            "  {:<8.2}  {:<25}  {:<6}  {:<6}  {:<6}  {}",
+            h.entropy_score,
+            &h.function_name,
+            h.metrics.cyclomatic_complexity,
+            h.metrics.max_nesting_depth,
+            h.metrics.ast_node_count,
+            h.vulnerability_type.to_string().red()
         );
     }
 
@@ -1260,13 +1226,13 @@ fn print_summary(report: &ThermodynamicReport) {
 }
 
 // =============================================================================
-// § 11  Entry point
+// § 10  Entry point
 // =============================================================================
 
 fn main() {
     let cli = Cli::parse();
 
-    // ── Validate input directory ──────────────────────────────────────────────
+    // ── Validate input directory ───────────────────────────────────────────
     if !cli.directory.exists() {
         eprintln!(
             "{} Directory '{}' does not exist.",
@@ -1290,12 +1256,17 @@ fn main() {
         cli.directory.display().to_string().cyan()
     );
 
-    // ── Scan ──────────────────────────────────────────────────────────────────
-    let file_reports = scan_directory(&cli.directory, cli.min_score, cli.verbose);
+    // ── Scan ───────────────────────────────────────────────────────────────
+    let file_reports = scan_directory(
+        &cli.directory,
+        cli.min_score,
+        cli.energy_threshold,
+        cli.verbose,
+    );
 
     if file_reports.is_empty() {
         println!(
-            "{} No supported source files found in '{}'.",
+            "{} No supported source files (Go/Python) found in '{}'.",
             "WARN:".yellow().bold(),
             cli.directory.display()
         );
@@ -1303,7 +1274,7 @@ fn main() {
         std::process::exit(0);
     }
 
-    // ── Build & persist report ────────────────────────────────────────────────
+    // ── Build & persist report ─────────────────────────────────────────────
     let report = match build_and_write_report(file_reports, &cli.directory, &cli.output) {
         Ok(r) => r,
         Err(e) => {
@@ -1312,7 +1283,7 @@ fn main() {
         }
     };
 
-    // ── Print summary banner ──────────────────────────────────────────────────
+    // ── Print summary banner ───────────────────────────────────────────────
     print_summary(&report);
 
     println!(
@@ -1323,245 +1294,231 @@ fn main() {
 }
 
 // =============================================================================
-// § 12  Unit tests
+// § 11  Unit tests
 // =============================================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    // ── Hotspot detection tests ───────────────────────────────────────────────
-
     #[test]
-    fn test_python_blocking_io_detected() {
-        let line = "    result = requests.get(url, timeout=30)";
-        let mut state = ScanState::new();
-        let rules = python_rules();
-        let hotspots = analyze_line(line, 42, &mut state, &rules, &PY_FUNC, "Python");
-
-        assert!(
-            hotspots
-                .iter()
-                .any(|h| h.vulnerability_type == VulnerabilityType::BlockingIO),
-            "Expected BlockingIO hotspot for requests.get"
-        );
+    fn test_energy_formula_basic() {
+        let m = FunctionMetrics {
+            cyclomatic_complexity: 10,
+            max_nesting_depth: 4,
+            ast_node_count: 128,
+            concurrency_primitives: 2,
+            energy: 0.0,
+        };
+        let e = compute_energy(&m);
+        // E = 0.45*10 + 0.25*4 + 0.15*log2(128) + 0.15*2
+        // E = 4.5 + 1.0 + 0.15*7 + 0.3 = 4.5 + 1.0 + 1.05 + 0.3 = 6.85
+        assert!((e - 6.85).abs() < 0.1, "Expected ~6.85, got {}", e);
     }
 
     #[test]
-    fn test_go_allocation_detected() {
-        let line = "    data := make([]byte, 1024)";
-        let mut state = ScanState::new();
-        let rules = go_rules();
-        let hotspots = analyze_line(line, 7, &mut state, &rules, &GO_FUNC, "Go");
-
-        assert!(
-            hotspots
-                .iter()
-                .any(|h| h.vulnerability_type == VulnerabilityType::HotAllocation),
-            "Expected HotAllocation hotspot for make()"
-        );
-    }
-
-    #[test]
-    fn test_nesting_multiplier_increases_score() {
-        let mut state = ScanState::new();
-        let rules = python_rules();
-
-        // Simulate two levels of loop nesting
-        state.loop_depth = 2;
-
-        let line = "    result = requests.get(url)";
-        let hotspots = analyze_line(line, 10, &mut state, &rules, &PY_FUNC, "Python");
-
-        let blocking_io = hotspots
-            .iter()
-            .find(|h| h.vulnerability_type == VulnerabilityType::BlockingIO)
-            .expect("Expected BlockingIO hotspot");
-
-        // base_score=18, nesting multiplier at depth 2 = 1 + 0.5*4 = 3.0 → 54.0
-        assert!(
-            blocking_io.entropy_score > 18.0,
-            "Nesting multiplier should increase entropy beyond base score"
-        );
-    }
-
-    #[test]
-    fn test_go_mutex_detected() {
-        let line = "    mu.Lock()  // sync.Mutex";
-        let mut state = ScanState::new();
-        let rules = go_rules();
-        let _hotspots = analyze_line(line, 99, &mut state, &rules, &GO_FUNC, "Go");
-
-        // The mutex pattern matches on `sync.` prefix — verify SyncContention fires
-        // on a line that explicitly contains the package
-        let line2 = "    var mu sync.Mutex";
-        let hotspots2 = analyze_line(line2, 100, &mut state, &rules, &GO_FUNC, "Go");
-
-        assert!(
-            hotspots2
-                .iter()
-                .any(|h| h.vulnerability_type == VulnerabilityType::SyncContention),
-            "Expected SyncContention for sync.Mutex declaration"
-        );
+    fn test_energy_zero_nodes() {
+        let m = FunctionMetrics {
+            cyclomatic_complexity: 1,
+            max_nesting_depth: 0,
+            ast_node_count: 0,
+            concurrency_primitives: 0,
+            energy: 0.0,
+        };
+        let e = compute_energy(&m);
+        // E = 0.45*1 + 0 + 0 + 0 = 0.45
+        assert!((e - 0.45).abs() < 0.01, "Expected ~0.45, got {}", e);
     }
 
     #[test]
     fn test_language_detection() {
-        assert!(detect_language(Path::new("foo.py")).is_some());
-        assert!(detect_language(Path::new("bar.go")).is_some());
-        assert!(detect_language(Path::new("baz.rs")).is_some());
-        assert!(detect_language(Path::new("qux.js")).is_some());
-        assert!(detect_language(Path::new("App.tsx")).is_some());
-        assert!(detect_language(Path::new("main.cpp")).is_some());
-        assert!(detect_language(Path::new("Server.java")).is_some());
-        assert!(detect_language(Path::new("deploy.sh")).is_some());
-        assert!(detect_language(Path::new("config.yaml")).is_some());
-        assert!(detect_language(Path::new("Dockerfile")).is_some());
-        assert!(detect_language(Path::new("notes.txt")).is_some());
-
-        // Binary and excluded files must return None
-        assert!(detect_language(Path::new("image.png")).is_none());
-        assert!(detect_language(Path::new("program.exe")).is_none());
-        assert!(detect_language(Path::new("bundle.min.js")).is_none());
-        assert!(detect_language(Path::new("package-lock.json")).is_none());
-        assert!(detect_language(Path::new("Cargo.lock")).is_none());
-        assert!(detect_language(Path::new("module.wasm")).is_none());
-    }
-
-    #[test]
-    fn test_polyglot_hotspots() {
-        // Test JS blocking I/O
-        let mut js_state = ScanState::new();
-        let js_rules = js_ts_rules();
-        let js_hotspots = analyze_line(
-            "const data = fs.readFileSync('foo.txt');",
-            1,
-            &mut js_state,
-            &js_rules,
-            &JS_FUNC,
-            "JavaScript",
-        );
-        assert!(
-            js_hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::BlockingIO),
-            "Expected BlockingIO for fs.readFileSync"
-        );
-
-        // Test Rust allocation and mutex
-        let mut rs_state = ScanState::new();
-        let rs_rules = rust_rules();
-        let rs_hotspots = analyze_line(
-            "let items = Vec::with_capacity(1000);",
-            1,
-            &mut rs_state,
-            &rs_rules,
-            &RUST_FUNC,
-            "Rust",
-        );
-        assert!(
-            rs_hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::HotAllocation),
-            "Expected HotAllocation for Vec::with_capacity"
-        );
+        assert_eq!(detect_language(Path::new("foo.py")), Some(Language::Python));
+        assert_eq!(detect_language(Path::new("bar.go")), Some(Language::Go));
+        assert_eq!(detect_language(Path::new("baz.rs")), None); // Only Go/Python now
+        assert_eq!(detect_language(Path::new("image.png")), None);
+        assert_eq!(detect_language(Path::new("package-lock.json")), None);
     }
 
     #[test]
     fn test_is_binary_file_detection() {
         let temp_dir = std::env::temp_dir();
-        let text_file = temp_dir.join("test_plain_text.txt");
-        let bin_file = temp_dir.join("test_binary_blob.bin");
+        let text_file = temp_dir.join("test_ast_plain_text.txt");
+        let bin_file = temp_dir.join("test_ast_binary_blob.bin");
 
         let _ = fs::write(&text_file, "Hello, this is a plain text file!\nNo null bytes here.");
         let _ = fs::write(&bin_file, b"Hello\x00Binary\x00Data");
 
-        assert!(!is_binary_file(&text_file), "Text file should not be marked binary");
-        assert!(is_binary_file(&bin_file), "File with null bytes must be marked binary");
+        assert!(!is_binary_file(&text_file), "Text file should not be binary");
+        assert!(is_binary_file(&bin_file), "File with nulls must be binary");
 
         let _ = fs::remove_file(&text_file);
         let _ = fs::remove_file(&bin_file);
     }
 
     #[test]
-    fn test_entropy_score_clamped() {
-        let mut state = ScanState::new();
-        // Set absurdly high nesting depth to trigger clamping
-        state.loop_depth = 100;
-        let rules = python_rules();
-        let line = "    mu.acquire()  # threading.Lock()";
-        let hotspots = analyze_line(line, 1, &mut state, &rules, &PY_FUNC, "Python");
-        for h in &hotspots {
-            assert!(h.entropy_score <= 100.0, "Entropy must be clamped to 100.0");
+    fn test_go_function_parsing() {
+        let source = br#"
+package main
+
+import "fmt"
+
+func ProcessData(items []int) int {
+    total := 0
+    for _, item := range items {
+        if item > 0 {
+            total += item
         }
     }
-
-    #[test]
-    fn test_sequential_loops_do_not_inflate_nesting_in_go() {
-        let mut state = ScanState::new();
-        let rules = go_rules();
-
-        // Start func
-        analyze_line("func ProcessData() {", 1, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 0);
-
-        // First loop
-        analyze_line("    for i := 0; i < 10; i++ {", 2, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 1);
-
-        // Close first loop
-        analyze_line("    }", 3, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 0, "Loop depth must decrement back to 0 when loop block closes");
-
-        // Second sequential loop
-        analyze_line("    for j := 0; j < 10; j++ {", 4, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 1, "Second sequential loop should have loop_depth 1, NOT 2");
-
-        // Close second loop
-        analyze_line("    }", 5, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 0);
-    }
-
-    #[test]
-    fn test_nested_loops_scale_properly_in_go() {
-        let mut state = ScanState::new();
-        let rules = go_rules();
-
-        analyze_line("func ProcessData() {", 1, &mut state, &rules, &GO_FUNC, "Go");
-        analyze_line("    for i := 0; i < 10; i++ {", 2, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 1);
-
-        analyze_line("        for j := 0; j < 10; j++ {", 3, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 2, "Nested loop should have loop_depth 2");
-
-        analyze_line("        }", 4, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 1, "Exiting inner loop should drop depth to 1");
-
-        analyze_line("    }", 5, &mut state, &rules, &GO_FUNC, "Go");
-        assert_eq!(state.loop_depth, 0, "Exiting outer loop should drop depth to 0");
-    }
-
-    #[test]
-    fn test_func_decl_not_flagged_as_recursive() {
-        let mut state = ScanState::new();
-        let rules = go_rules();
-
-        // Function declaration should NOT trigger RecursiveCall
-        let hotspots = analyze_line("func NewCrawler(timeout time.Duration) *Crawler {", 1, &mut state, &rules, &GO_FUNC, "Go");
-        assert!(
-            !hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::RecursiveCall),
-            "Function declaration must not be flagged as a recursive call"
-        );
-
-        // Self-recursion should trigger RecursiveCall
-        let recursive_hotspots = analyze_line("    return NewCrawler(timeout)", 2, &mut state, &rules, &GO_FUNC, "Go");
-        assert!(
-            recursive_hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::RecursiveCall),
-            "Direct self-recursive call must be flagged as RecursiveCall"
-        );
-
-        // Calling another function should NOT trigger RecursiveCall
-        let external_hotspots = analyze_line("    return OtherFunction()", 3, &mut state, &rules, &GO_FUNC, "Go");
-        assert!(
-            !external_hotspots.iter().any(|h| h.vulnerability_type == VulnerabilityType::RecursiveCall),
-            "Calling a different function must not be flagged as RecursiveCall"
-        );
-    }
+    return total
 }
 
+func SimpleFunc() {
+    fmt.Println("hello")
+}
+"#;
+        let mut parser = create_parser(Language::Go).unwrap();
+        let tree = parser.parse(source.as_slice(), None).unwrap();
+        let root = tree.root_node();
+
+        // Count function declarations
+        let mut func_count = 0;
+        fn count_funcs(node: tree_sitter::Node, count: &mut usize) {
+            if is_function_node(node.kind(), Language::Go) {
+                *count += 1;
+            }
+            let cc = node.child_count();
+            for i in 0..cc {
+                if let Some(child) = node.child(i) {
+                    count_funcs(child, count);
+                }
+            }
+        }
+        count_funcs(root, &mut func_count);
+        assert_eq!(func_count, 2, "Expected 2 Go functions");
+    }
+
+    #[test]
+    fn test_python_function_parsing() {
+        let source = br#"
+import time
+
+def fetch_data(urls):
+    results = []
+    for url in urls:
+        if url.startswith("http"):
+            results.append(url)
+    return results
+
+def simple():
+    pass
+"#;
+        let mut parser = create_parser(Language::Python).unwrap();
+        let tree = parser.parse(source.as_slice(), None).unwrap();
+        let root = tree.root_node();
+
+        let mut func_count = 0;
+        fn count_funcs(node: tree_sitter::Node, count: &mut usize) {
+            if is_function_node(node.kind(), Language::Python) {
+                *count += 1;
+            }
+            let cc = node.child_count();
+            for i in 0..cc {
+                if let Some(child) = node.child(i) {
+                    count_funcs(child, count);
+                }
+            }
+        }
+        count_funcs(root, &mut func_count);
+        assert_eq!(func_count, 2, "Expected 2 Python functions");
+    }
+
+    #[test]
+    fn test_go_cyclomatic_complexity() {
+        let source = br#"
+package main
+
+func Complex(x int) int {
+    if x > 0 {
+        if x > 10 {
+            for i := 0; i < x; i++ {
+                if i % 2 == 0 {
+                    return i
+                }
+            }
+        }
+    }
+    return 0
+}
+"#;
+        let mut parser = create_parser(Language::Go).unwrap();
+        let tree = parser.parse(source.as_slice(), None).unwrap();
+        let root = tree.root_node();
+
+        // Find the function and visit it
+        fn find_func(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
+            if is_function_node(node.kind(), Language::Go) {
+                return Some(node);
+            }
+            let cc = node.child_count();
+            for i in 0..cc {
+                if let Some(child) = node.child(i) {
+                    if let Some(found) = find_func(child) {
+                        return Some(found);
+                    }
+                }
+            }
+            None
+        }
+
+        let func_node = find_func(root).expect("Should find Complex function");
+        let func_name = extract_function_name(&func_node, source, Language::Go);
+        assert_eq!(func_name, "Complex");
+
+        let mut visitor = FunctionVisitor::new(source, Language::Go, func_name);
+        let cc = func_node.child_count();
+        for i in 0..cc {
+            if let Some(child) = func_node.child(i) {
+                visitor.visit(child);
+            }
+        }
+        let metrics = visitor.into_metrics();
+
+        // 3 if + 1 for = 4 decision points + 1 base = 5
+        assert!(
+            metrics.cyclomatic_complexity >= 4,
+            "Expected cyclomatic >= 4, got {}",
+            metrics.cyclomatic_complexity
+        );
+        assert!(
+            metrics.max_nesting_depth >= 3,
+            "Expected max_depth >= 3, got {}",
+            metrics.max_nesting_depth
+        );
+        assert!(metrics.energy > 0.0, "Energy should be positive");
+    }
+
+    #[test]
+    fn test_scan_test_sample_go() {
+        let path = Path::new("test_samples/crawler.go");
+        if !path.exists() {
+            return; // skip if not in the right directory
+        }
+        let report = scan_file(path, 0.0, 15.0).unwrap();
+        assert!(report.is_some(), "crawler.go should produce a report");
+        let r = report.unwrap();
+        assert!(!r.hotspots.is_empty(), "crawler.go should have hotspots");
+        assert!(r.total_entropy > 0.0, "Total entropy should be positive");
+    }
+
+    #[test]
+    fn test_scan_test_sample_python() {
+        let path = Path::new("test_samples/data_pipeline.py");
+        if !path.exists() {
+            return;
+        }
+        let report = scan_file(path, 0.0, 15.0).unwrap();
+        assert!(report.is_some(), "data_pipeline.py should produce a report");
+        let r = report.unwrap();
+        assert!(!r.hotspots.is_empty(), "Should have hotspots");
+    }
+}
