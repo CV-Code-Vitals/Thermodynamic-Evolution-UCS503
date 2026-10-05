@@ -1,0 +1,25 @@
+[Unit]
+Description=Thermodynamic Software Evolution Orchestrator
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/Thermodynamic-Evolution-UCS503/go-backend
+ExecStart=/home/ubuntu/Thermodynamic-Evolution-UCS503/go-backend/thermo-api
+Restart=always
+RestartSec=5s
+
+# Process and file limits
+LimitNOFILE=65535
+
+# Environment Configuration
+Environment=PORT=8080
+Environment=GIN_MODE=release
+Environment=RUST_ENGINE_PATH=/home/ubuntu/Thermodynamic-Evolution-UCS503/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine
+Environment=MUTATION_API_KEY=YOUR_API_KEY_HERE
+Environment=MUTATION_API_BASE=https://api.openai.com/v1
+Environment=MUTATION_MODEL=gpt-4o
+
+[Install]
+WantedBy=multi-user.target

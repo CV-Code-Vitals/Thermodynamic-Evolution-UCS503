@@ -1,0 +1,508 @@
+{
+  "engine_version": "0.1.0",
+  "generated_at": "2026-10-05T17:32:48.578995+00:00",
+  "scanned_directory": "e:\\SWE\\samples\\benchmark",
+  "files_analyzed": 2,
+  "total_hotspots": 60,
+  "global_entropy": 1147.5,
+  "file_reports": [
+    {
+      "file_path": "e:\\SWE\\samples\\benchmark\\benchmark_target.go",
+      "language": "Go",
+      "lines_scanned": 78,
+      "total_entropy": 688.0,
+      "mean_hotspot_entropy": 28.67,
+      "hotspots": [
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 49,
+          "source_snippet": "for j := 0; j < len(record.Tags); j++ {",
+          "entropy_score": 82.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 54,
+          "source_snippet": "tempSlice := make([]string, len(report.FlaggedIDs))",
+          "entropy_score": 66.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 57,
+          "source_snippet": "report.FlaggedIDs = make([]string, len(tempSlice))",
+          "entropy_score": 66.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 39,
+          "source_snippet": "for i := 0; i < len(records); i++ {",
+          "entropy_score": 45.0,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 50,
+          "source_snippet": "if record.Tags[j] == \"high_risk\" || record.Tags[j] == \"fraud\" {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 63,
+          "source_snippet": "} else {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 65,
+          "source_snippet": "if record.Amount > threshold*2 {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 71,
+          "source_snippet": "} else {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 72,
+          "source_snippet": "if record.Status == \"pending\" {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 75,
+          "source_snippet": "} else {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 76,
+          "source_snippet": "if record.Amount < 0 {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 82,
+          "source_snippet": "} else {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 83,
+          "source_snippet": "if record.Amount < 0 {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 85,
+          "source_snippet": "if record.Status == \"refunded\" {",
+          "entropy_score": 27.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 35,
+          "source_snippet": "for range ch {",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 30,
+          "source_snippet": "var mu sync.Mutex",
+          "entropy_score": 22.0,
+          "vulnerability_type": "SyncContention",
+          "description": "sync.Mutex/atomic - potential throughput bottleneck"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 21,
+          "source_snippet": "func EvaluateRiskEngine(records []Transaction, threshold float64) EngineReport {",
+          "entropy_score": 20.0,
+          "vulnerability_type": "RecursiveCall",
+          "description": "Exported function call - checked for self-recursion"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 44,
+          "source_snippet": "if record.Status != \"failed\" {",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 45,
+          "source_snippet": "if record.Amount > 0 {",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 46,
+          "source_snippet": "if record.Amount >= threshold {",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 48,
+          "source_snippet": "if len(record.Tags) > 0 {",
+          "entropy_score": 15.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 23,
+          "source_snippet": "FlaggedIDs: make([]string, 0),",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 31,
+          "source_snippet": "ch := make(chan Transaction, 100) // unbuffered or buffered, prompt says unbuffered or poorly scoped mutex. We'll use a ",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "EvaluateRiskEngine",
+          "line_number": 26,
+          "source_snippet": "if len(records) == 0 {",
+          "entropy_score": 5.0,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        }
+      ]
+    },
+    {
+      "file_path": "e:\\SWE\\samples\\benchmark\\benchmark_target_test.go",
+      "language": "Go",
+      "lines_scanned": 156,
+      "total_entropy": 459.5,
+      "mean_hotspot_entropy": 12.76,
+      "hotspots": [
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 149,
+          "source_snippet": "got := EvaluateRiskEngine(tt.records, tt.threshold)",
+          "entropy_score": 30.0,
+          "vulnerability_type": "RecursiveCall",
+          "description": "Exported function call - checked for self-recursion"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 147,
+          "source_snippet": "for _, tt := range tests {",
+          "entropy_score": 22.5,
+          "vulnerability_type": "DeepNesting",
+          "description": "Go for-loop - nesting depth multiplier applied"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 8,
+          "source_snippet": "func TestEvaluateRiskEngine(t *testing.T) {",
+          "entropy_score": 20.0,
+          "vulnerability_type": "RecursiveCall",
+          "description": "Exported function call - checked for self-recursion"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 17,
+          "source_snippet": "records:   []Transaction{},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 23,
+          "source_snippet": "FlaggedIDs:     []string{},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 28,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 29,
+          "source_snippet": "{ID: \"tx1\", Amount: 500, Status: \"failed\", Tags: []string{\"high_risk\"}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 36,
+          "source_snippet": "FlaggedIDs:     []string{},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 41,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 42,
+          "source_snippet": "{ID: \"tx2\", Amount: 150, Status: \"success\", Tags: []string{\"high_risk\"}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 49,
+          "source_snippet": "FlaggedIDs:     []string{\"tx2\"},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 54,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 55,
+          "source_snippet": "{ID: \"tx3\", Amount: 200, Status: \"success\", Tags: []string{\"fraud\", \"other\"}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 62,
+          "source_snippet": "FlaggedIDs:     []string{\"tx3\"},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 67,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 68,
+          "source_snippet": "{ID: \"tx4\", Amount: 50, Status: \"success\", Tags: []string{\"high_risk\"}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 75,
+          "source_snippet": "FlaggedIDs:     []string{},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 80,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 81,
+          "source_snippet": "{ID: \"tx5\", Amount: 250, Status: \"success\", Tags: []string{}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 88,
+          "source_snippet": "FlaggedIDs:     []string{\"tx5\"},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 93,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 94,
+          "source_snippet": "{ID: \"tx6\", Amount: 150, Status: \"success\", Tags: []string{}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 101,
+          "source_snippet": "FlaggedIDs:     []string{},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 106,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 107,
+          "source_snippet": "{ID: \"tx7\", Amount: 50, Status: \"pending\", Tags: []string{}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 114,
+          "source_snippet": "FlaggedIDs:     []string{},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 119,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 120,
+          "source_snippet": "{ID: \"tx8\", Amount: -50, Status: \"refunded\", Tags: []string{}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 127,
+          "source_snippet": "FlaggedIDs:     []string{},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 132,
+          "source_snippet": "records: []Transaction{",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 133,
+          "source_snippet": "{ID: \"tx1\", Amount: 200, Status: \"success\", Tags: []string{\"high_risk\"}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 134,
+          "source_snippet": "{ID: \"tx2\", Amount: -100, Status: \"refunded\", Tags: []string{}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 135,
+          "source_snippet": "{ID: \"tx3\", Amount: 500, Status: \"success\", Tags: []string{}},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 142,
+          "source_snippet": "FlaggedIDs:     []string{\"tx1\", \"tx3\"},",
+          "entropy_score": 12.0,
+          "vulnerability_type": "HotAllocation",
+          "description": "make/new/slice-literal allocation in hot path"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 151,
+          "source_snippet": "if len(got.FlaggedIDs) == 0 && len(tt.want.FlaggedIDs) == 0 {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        },
+        {
+          "function_name": "TestEvaluateRiskEngine",
+          "line_number": 155,
+          "source_snippet": "if !reflect.DeepEqual(got, tt.want) {",
+          "entropy_score": 7.5,
+          "vulnerability_type": "CognitiveBranch",
+          "description": "Branch/boolean expression increases cyclomatic complexity"
+        }
+      ]
+    }
+  ]
+}
