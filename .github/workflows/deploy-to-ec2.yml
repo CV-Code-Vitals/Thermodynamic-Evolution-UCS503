@@ -1,0 +1,38 @@
+name: Deploy API to EC2 (via SSH)
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'api/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ vars.EC2_DEPLOY_ENABLED == 'true' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.EC2_SSH_PORT || '22' }}
+          script: |
+            set -e
+            echo "Logging into ghcr..."
+            echo '${{ secrets.GHCR_PAT }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
+            docker pull ghcr.io/zylus08/ucs503-api:latest
+            docker compose -f docker-compose.ec2.yml pull
+            docker compose -f docker-compose.ec2.yml up -d --remove-orphans
+
+  deployment-not-configured:
+    runs-on: ubuntu-latest
+    if: ${{ vars.EC2_DEPLOY_ENABLED != 'true' }}
+    steps:
+      - name: Explain skipped deployment
+        run: 'echo "EC2 deployment skipped: configure EC2_HOST, EC2_USER, and EC2_SSH_PRIVATE_KEY repository secrets."'

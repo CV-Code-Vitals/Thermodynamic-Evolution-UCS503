@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Nginx Reverse Proxy
+  proxy:
+    image: nginx:alpine
+    container_name: ucs503_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - engine_net
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Admin Portal API (authentication, uploads, and deliverables)
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: ucs503_api
+    expose:
+      - "8080" # Exposed only to the internal Docker bridge network
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/thermodynamic_db?sslmode=disable
+      ADMIN_PASSKEY: ${ADMIN_PASSKEY:?set ADMIN_PASSKEY in .env}
+      TRUST_PROXY: "true"
+    volumes:
+      - api_uploads:/app/uploads
+      - api_data:/app/data
+    networks:
+      - engine_net
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: ucs503_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: thermodynamic_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - engine_net
+    restart: unless-stopped
+
+networks:
+  engine_net:
+    driver: bridge
+
+volumes:
+  # Persistent volume for the PostgreSQL database
+  pgdata:
+  api_uploads:
+  api_data:

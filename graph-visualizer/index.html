@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Thermodynamic Evolution – Organic 3D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #050505; font-family: 'Rajdhani', sans-serif; color: #e0e0e0; }
+
+    #app { display: flex; flex-direction: column; height: 100vh; }
+
+    /* ── Header ── */
+    #header { padding: 12px 20px; background: rgba(10,10,10,0.85); border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; z-index: 10; backdrop-filter: blur(12px); }
+    .header-title { font-size: 20px; font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: 0.5px; }
+    .header-title span { color: #FFD700; font-weight: 400; text-shadow: 0 0 12px rgba(255,215,0,0.6); }
+    #search-box { background: #0a0a0a; border: 1px solid #1a1a1a; color: #e0e0e0; padding: 7px 14px; border-radius: 8px; outline: none; font-size: 14px; width: 220px; transition: border 0.25s; font-family: inherit; }
+    #search-box:focus { border-color: #FFD700; box-shadow: 0 0 8px rgba(255,215,0,0.2); }
+
+    /* ── Main Layout ── */
+    #main-area { flex: 1; display: flex; overflow: hidden; position: relative; }
+    #graph-area { flex: 1; position: relative; overflow: hidden; background: radial-gradient(ellipse at center, #111111 0%, #050505 70%); }
+    canvas#graph-canvas { position: absolute; inset: 0; cursor: grab; user-select: none; touch-action: none; }
+    canvas#graph-canvas:active { cursor: grabbing; }
+
+    /* ── Sidebar (Floating Panels) ── */
+    #sidebar {
+      position: absolute; right: 24px; top: 24px; bottom: 24px;
+      width: 320px; display: flex; flex-direction: column; gap: 16px;
+      z-index: 20; pointer-events: none;
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    #sidebar.collapsed {
+      transform: translateX(calc(100% + 40px));
+      pointer-events: none !important;
+    }
+
+    /* ── Sidebar Master Toggle Button ── */
+    #sidebar-toggle-btn {
+      position: absolute; top: 24px; right: 360px; z-index: 25;
+      background: rgba(10,10,10,0.88); border: 1px solid rgba(255,215,0,0.35);
+      border-radius: 10px; color: #FFD700; padding: 7px 12px;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      font-family: 'Rajdhani', sans-serif; font-size: 13px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      backdrop-filter: blur(12px); box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1), background 0.25s, transform 0.2s;
+    }
+    #sidebar-toggle-btn:hover {
+      background: rgba(255,215,0,0.15); border-color: #FFD700;
+      box-shadow: 0 0 16px rgba(255,215,0,0.3); transform: translateY(-1px);
+    }
+    #sidebar-toggle-btn.is-collapsed {
+      right: 24px;
+    }
+    #sidebar-toggle-btn svg {
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #sidebar-toggle-btn.is-collapsed svg {
+      transform: rotate(180deg);
+    }
+
+    .sb-section {
+      padding: 18px 20px;
+      background: rgba(10,10,10,0.85);
+      border: 1px solid rgba(255,215,0,0.15);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+      pointer-events: auto;
+      transition: all 0.3s ease;
+    }
+    .sb-title {
+      font-size: 11px; text-transform: uppercase; color: #777777;
+      letter-spacing: 1.5px; margin-bottom: 12px; font-weight: 600;
+      user-select: none;
+    }
+    .sb-title:hover {
+      color: #FFD700;
+    }
+    .sec-body {
+      transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      overflow: hidden;
+    }
+    .sec-body.collapsed {
+      max-height: 0 !important;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .sec-arrow {
+      font-size: 11px; color: #FFD700;
+      transition: transform 0.3s ease;
+      display: inline-block;
+    }
+    .sec-arrow.collapsed {
+      transform: rotate(-90deg);
+    }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+    .stat-val { font-weight: 700; font-family: 'Share Tech Mono', monospace; color: #FFD700; }
+
+    /* ── Phase Header Card ── */
+    .phase-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px; margin-bottom: 14px;
+      background: rgba(255,215,0,0.06); border: 1px solid rgba(255,215,0,0.15);
+      border-radius: 14px; transition: all 0.4s ease;
+    }
+    .phase-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: rgba(255,215,0,0.12); display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0; color: #FFD700;
+    }
+    .phase-info { flex: 1; }
+    .phase-name { font-size: 15px; font-weight: 700; color: #e0e0e0; }
+    .phase-desc { font-size: 12px; color: #777777; margin-top: 2px; font-weight: 500; }
+
+    /* ── Stat Tiles ── */
+    .stat-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+    .stat-tile {
+      flex: 1; min-width: 80px; padding: 12px 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px; text-align: center;
+      transition: all 0.3s ease;
+    }
+    .stat-tile:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,215,0,0.3); }
+    .stat-tile-icon { font-size: 16px; margin-bottom: 4px; color: #FFD700; }
+    .stat-tile-val { font-size: 18px; font-weight: 700; font-family: 'Share Tech Mono', monospace; color: #e0e0e0; }
+    .stat-tile-label { font-size: 11px; color: #777777; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 2px; font-weight: 600; }
+    .file-list { overflow-y: auto; flex: 1; padding: 10px 14px; }
+    .file-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; margin-bottom: 8px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px; cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      position: relative;
+    }
+    .file-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,215,0,0.15); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+    .file-card.selected { background: rgba(255,215,0,0.08); border-color: rgba(255,215,0,0.3); }
+    .file-card-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0; transition: background 0.3s;
+    }
+    .file-card.selected .file-card-icon { background: rgba(255,215,0,0.12); color: #FFD700; }
+    .file-card-info { flex: 1; min-width: 0; }
+    .file-card-name { font-size: 13px; font-weight: 600; color: #e0e0e0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-card-meta { font-size: 12px; color: #777777; margin-top: 2px; font-weight: 500; }
+    .file-card-meta span { color: #9a8a50; }
+    .file-card-check {
+      width: 26px; height: 26px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      opacity: 0; background: rgba(255,255,255,0.08); color: #777777;
+    }
+    .file-card:hover .file-card-check { opacity: 0.6; }
+    .file-card.selected .file-card-check { opacity: 1; background: #FFD700; color: #000; transform: scale(1); }
+
+    /* ── Adaptive Slider Timeline ── */
+    #timeline-bar {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      width: min(620px, 75%); background: rgba(10,10,10,0.92);
+      border: 1px solid #1a1a1a; border-radius: 22px;
+      padding: 10px 16px; z-index: 10; backdrop-filter: blur(12px);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      display: flex; align-items: center; gap: 14px;
+      user-select: none;
+    }
+    .tl-play { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #b89920, #FFD700); border: none; color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; transition: all 0.25s; box-shadow: 0 0 14px rgba(255,215,0,0.4); flex-shrink: 0; }
+    .tl-play:hover { transform: scale(1.08); box-shadow: 0 0 20px rgba(255,215,0,0.6); }
+    .tl-play.playing { background: #1a1a1a; border: 1px solid #333; color: #FFD700; box-shadow: none; }
+    .as-track-wrap { position: relative; flex: 1; height: 28px; display: flex; align-items: center; }
+    .as-track {
+      position: relative; width: 100%; height: 28px;
+      background: rgba(255,255,255,0.06); border-radius: 14px;
+      overflow: hidden; cursor: pointer;
+    }
+    .as-fill {
+      position: absolute; top: 0; left: 0; height: 100%; border-radius: 14px;
+      background: linear-gradient(to right, #9a8a50, #FFD700);
+      transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.5s ease;
+      pointer-events: none;
+    }
+    .as-dots {
+      position: absolute; inset: 0; display: flex; align-items: center;
+      justify-content: space-between; padding: 0 18px; pointer-events: none; z-index: 2;
+    }
+    .as-dot {
+      width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.3);
+      transition: background 0.3s; cursor: pointer; pointer-events: auto; position: relative;
+    }
+    .as-dot.active { background: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.5); }
+    .as-dot-label {
+      position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      white-space: nowrap; font-size: 10px; color: #777777;
+      opacity: 0; transition: opacity 0.25s; pointer-events: none; font-weight: 500;
+    }
+    .as-dot:hover .as-dot-label { opacity: 1; color: #fff; }
+    .as-thumb {
+      position: absolute; top: 0; z-index: 3; width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+      transition: left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .as-thumb-inner {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2), inset 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .as-range {
+      position: absolute; inset: 0; width: 100%; height: 28px;
+      opacity: 0; cursor: pointer; z-index: 5; -webkit-appearance: none;
+    }
+    #as-phase-label { font-size: 12px; font-weight: 600; color: #FFD700; transition: color 0.5s ease; white-space: nowrap; flex-shrink: 0; letter-spacing: 0.3px; }
+
+    /* ── Phase Granularity Stepper ── */
+    .phase-stepper {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,215,0,0.25);
+      border-radius: 12px; padding: 2px 8px;
+      flex-shrink: 0;
+    }
+    .phase-stepper-label {
+      font-size: 10px; font-family: 'Share Tech Mono', monospace;
+      color: #9a8a50; letter-spacing: 1px; font-weight: 600;
+    }
+    .phase-stepper-btn {
+      width: 22px; height: 22px; border-radius: 6px;
+      background: rgba(255,215,0,0.1); border: 1px solid rgba(255,215,0,0.3);
+      color: #FFD700; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; transition: all 0.2s;
+    }
+    .phase-stepper-btn:hover {
+      background: #FFD700; color: #000;
+    }
+    .phase-stepper-val {
+      font-family: 'Share Tech Mono', monospace; font-size: 13px;
+      color: #FFD700; font-weight: 700; min-width: 18px; text-align: center;
+    }
+
+    /* ── Zoom Controls ── */
+    .zoom-controls {
+      position: absolute; bottom: 20px; right: 20px;
+      display: flex; flex-direction: column; gap: 6px; z-index: 10;
+    }
+    .zoom-btn {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: rgba(10,10,10,0.88); border: 1px solid rgba(255,215,0,0.3);
+      color: #FFD700; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 600; transition: all 0.2s; backdrop-filter: blur(8px);
+    }
+    .zoom-btn:hover { background: rgba(255,215,0,0.15); border-color: #FFD700; transform: scale(1.05); }
+
+    /* ── Tooltip ── */
+    #tooltip { position: absolute; background: rgba(10,10,10,0.95); border: 1px solid rgba(255,215,0,0.4); box-shadow: 0 0 20px rgba(255,215,0,0.15), 0 8px 32px rgba(0,0,0,0.5); color: #e0e0e0; padding: 14px 18px; border-radius: 10px; pointer-events: none; display: none; z-index: 1000; backdrop-filter: blur(8px); max-width: 320px; }
+    #tooltip h3 { margin: 0 0 8px 0; font-size: 14px; font-family: 'Share Tech Mono', monospace; color: #FFD700; font-weight: 600; }
+    #tooltip p { margin: 3px 0; font-size: 12px; color: #777777; line-height: 1.4; }
+    #tooltip .metric { color: #e0e0e0; font-weight: 600; }
+    #tooltip .vuln-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-top: 6px; }
+    #tooltip .vuln-tag.high { background: rgba(218,54,51,0.2); color: #f85149; border: 1px solid rgba(218,54,51,0.3); }
+    #tooltip .vuln-tag.med { background: rgba(255,170,0,0.2); color: #ffaa00; border: 1px solid rgba(255,170,0,0.3); }
+    #tooltip .vuln-tag.low { background: rgba(255,215,0,0.15); color: #FFD700; border: 1px solid rgba(255,215,0,0.2); }
+
+    /* ── Node count badge ── */
+    #node-count { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.85); border: 1px solid #1a1a1a; border-radius: 8px; padding: 6px 16px; font-size: 12px; color: #777777; z-index: 10; letter-spacing: 1px; text-transform: uppercase; backdrop-filter: blur(8px); }
+    #node-count strong { color: #FFD700; font-weight: 700; }
+    
+    #loading-overlay { position: absolute; inset: 0; background: rgba(5,5,5,0.8); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(8px); }
+    .loader { width: 48px; height: 48px; border: 3px solid rgba(255,215,0,0.3); border-radius: 50%; border-top-color: #FFD700; animation: spin 1s ease-in-out infinite; margin-bottom: 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div id="loading-overlay">
+  <div class="loader"></div>
+  <div style="font-size: 18px; font-weight: 600; color: #FFD700; font-family: 'Orbitron', sans-serif;">SCANNING REPOSITORY...</div>
+  <div style="font-size: 14px; color: #777777; margin-top: 8px;">Cloning and analyzing AST structure</div>
+</div>
+<div id="tooltip"></div>
+<div id="app">
+  <div id="header">
+    <div class="header-title">Thermodynamic <span>Evolution</span></div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <input type="text" id="repo-box" placeholder="GitHub Repository URL..." style="background: #0a0a0a; border: 1px solid #1a1a1a; color: #e0e0e0; padding: 7px 14px; border-radius: 8px; outline: none; font-size: 14px; width: 280px; transition: border 0.25s; font-family: inherit;" />
+      <button id="scan-btn" onclick="triggerRepoScan()" style="background: linear-gradient(135deg, #b89920, #FFD700); border: none; color: #000; padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.25s; font-family: 'Rajdhani', sans-serif;">Scan Repo</button>
+      <input type="text" id="search-box" placeholder="Search functions or files…" />
+    </div>
+  </div>
+  <div id="scan-toast" style="display:none; position: fixed; top: 68px; left: 50%; transform: translateX(-50%); background: rgba(20,20,20,0.95); border: 1px solid #FFD700; color: #FFD700; padding: 10px 22px; border-radius: 8px; font-weight: 600; font-size: 14px; z-index: 9999; box-shadow: 0 4px 24px rgba(0,0,0,0.8); backdrop-filter: blur(8px); transition: opacity 0.3s;"></div>
+  <div id="main-area">
+    <div id="graph-area">
+      <canvas id="graph-canvas"></canvas>
+      <div id="timeline-bar">
+        <button class="tl-play" id="tl-play">&#9654;</button>
+        <div class="phase-stepper" title="Adjust number of evolutionary phases">
+          <span class="phase-stepper-label">PHASES</span>
+          <button class="phase-stepper-btn" id="phase-dec" title="Decrease phase granularity">-</button>
+          <span class="phase-stepper-val" id="phase-count-display">5</span>
+          <button class="phase-stepper-btn" id="phase-inc" title="Increase phase granularity">+</button>
+        </div>
+        <div class="as-track-wrap">
+          <div class="as-track" id="as-track">
+            <div class="as-fill" id="as-fill"></div>
+            <div class="as-dots" id="as-dots"></div>
+            <div class="as-thumb" id="as-thumb">
+              <div class="as-thumb-inner"></div>
+            </div>
+            <input type="range" class="as-range" id="as-range" min="0" max="4" step="1" value="0" />
+          </div>
+        </div>
+        <div id="as-phase-label">Phase 1</div>
+      </div>
+      <div class="zoom-controls">
+        <button class="zoom-btn" id="zoom-in" title="Zoom in">+</button>
+        <button class="zoom-btn" id="zoom-reset" title="Reset Zoom" style="font-size:11px;font-family:'Share Tech Mono',monospace;">1:1</button>
+        <button class="zoom-btn" id="zoom-out" title="Zoom out & expand dynamic boundary">-</button>
+      </div>
+    </div>
+    <button id="sidebar-toggle-btn" title="Toggle Evolution & Module Panels">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+      <span id="sidebar-toggle-text">PANEL</span>
+    </button>
+    <div id="sidebar">
+      <div class="sb-section" id="sec-phase-card">
+        <div class="sb-title" id="toggle-phase-sec" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" title="Click to collapse / expand">
+          <span>Evolution Phase</span>
+          <span class="sec-arrow" id="phase-arrow">&#9662;</span>
+        </div>
+        <div class="sec-body" id="phase-sec-body">
+          <div class="phase-header" id="phase-header">
+            <div class="phase-icon" id="phase-icon"></div>
+            <div class="phase-info">
+              <div class="phase-name" id="phase-label"></div>
+              <div class="phase-desc" id="phase-desc">Analyzing codebase evolution</div>
+            </div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-tile">
+              <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+              <div class="stat-tile-val" id="sb-ent">0</div>
+              <div class="stat-tile-label">Entropy</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
+              <div class="stat-tile-val" id="sb-hot">0</div>
+              <div class="stat-tile-label">Hotspots</div>
+            </div>
+            <div class="stat-tile">
+              <div class="stat-tile-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+              <div class="stat-tile-val" id="sb-files">0</div>
+              <div class="stat-tile-label">Files</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sb-section" id="sec-modules-card" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 10px;">
+        <div class="sb-title" id="toggle-modules-sec" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" title="Click to collapse / expand">
+          <span>System Modules</span>
+          <span class="sec-arrow" id="modules-arrow">&#9662;</span>
+        </div>
+        <div class="sec-body" id="modules-sec-body" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+          <div class="file-list" id="file-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────
+   DATA
+   ───────────────────────────────────────────── */
+let PHASES = [
+  { label: "Phase 1: Inception", desc: "Monolithic Data Pipeline" },
+  { label: "Phase 2: Distribution", desc: "Concurrent Web Crawler" },
+  { label: "Phase 3: Refined Core", desc: "Optimized Utilities" }
+];
+
+let REPORT = {"engine_version":"0.1.0","generated_at":"2026-08-13T22:23:31.719915+00:00","scanned_directory":"./test_samples/","files_analyzed":3,"total_hotspots":76,"global_entropy":1611.0,"file_reports":[{"file_path":"./test_samples/crawler.go","language":"Go","lines_scanned":135,"total_entropy":819.0,"mean_hotspot_entropy":19.98,"hotspots":[{"function_name":"BuildIndex","line_number":85,"source_snippet":"for _, existing := range index[word] {    // loop x3 - triple nesting","entropy_score":82.5,"vulnerability_type":"DeepNesting","description":"Go for-loop - nesting depth multiplier applied"},{"function_name":"CrawlBatch","line_number":60,"source_snippet":"for {                                         // loop x2","entropy_score":45.0,"vulnerability_type":"DeepNesting","description":"Go for-loop - nesting depth multiplier applied"},{"function_name":"BuildIndex","line_number":84,"source_snippet":"for _, word := range words {                  // loop x2","entropy_score":45.0,"vulnerability_type":"DeepNesting","description":"Go for-loop - nesting depth multiplier applied"},{"function_name":"RecursiveMerge","line_number":118,"source_snippet":"dst[k] = RecursiveMerge(dmap, smap) // recursive call","entropy_score":30.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"BuildIndex","line_number":86,"source_snippet":"if existing == result.URL {","entropy_score":27.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"CrawlBatch","line_number":51,"source_snippet":"resp, err := http.Get(url)                    // BlockingIO","entropy_score":27.0,"vulnerability_type":"BlockingIO","description":"Blocking stdlib I/O call - goroutine contention risk"},{"function_name":"CrawlBatch","line_number":58,"source_snippet":"scanner := bufio.NewReader(resp.Body)         // BlockingIO","entropy_score":27.0,"vulnerability_type":"BlockingIO","description":"Blocking stdlib I/O call - goroutine contention risk"},{"function_name":"SaveResults","line_number":144,"source_snippet":"time.Sleep(1 * time.Millisecond)          // BlockingIO","entropy_score":27.0,"vulnerability_type":"BlockingIO","description":"Blocking stdlib I/O call - goroutine contention risk"},{"function_name":"CrawlBatch","line_number":42,"source_snippet":"for _, url := range urls {                        // loop x1","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Go for-loop - nesting depth multiplier applied"},{"function_name":"BuildIndex","line_number":82,"source_snippet":"for _, result := range results {                  // loop x1","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Go for-loop - nesting depth multiplier applied"},{"function_name":"tokenise","line_number":101,"source_snippet":"for _, b := range data {                          // loop x1","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Go for-loop - nesting depth multiplier applied"},{"function_name":"RecursiveMerge","line_number":114,"source_snippet":"for k, sv := range src {","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Go for-loop - nesting depth multiplier applied"},{"function_name":"SaveResults","line_number":139,"source_snippet":"for _, r := range results {                      // loop x1","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Go for-loop - nesting depth multiplier applied"},{"function_name":"<module>","line_number":25,"source_snippet":"mu      sync.Mutex     // protects visited map","entropy_score":22.0,"vulnerability_type":"SyncContention","description":"sync.Mutex/atomic - potential throughput bottleneck"},{"function_name":"SaveResults","line_number":138,"source_snippet":"var wg sync.WaitGroup                            // SyncContention","entropy_score":22.0,"vulnerability_type":"SyncContention","description":"sync.Mutex/atomic - potential throughput bottleneck"},{"function_name":"NewCrawler","line_number":31,"source_snippet":"func NewCrawler(timeout time.Duration) *Crawler {","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"CrawlBatch","line_number":39,"source_snippet":"func (c *Crawler) CrawlBatch(urls []string) []CrawlResult {","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"BuildIndex","line_number":79,"source_snippet":"func BuildIndex(results []CrawlResult) map[string][]string {","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"RecursiveMerge","line_number":113,"source_snippet":"func RecursiveMerge(dst, src map[string]interface{}) map[string]interface{} {","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"SaveResults","line_number":129,"source_snippet":"func SaveResults(results []CrawlResult, path string) error {","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"main","line_number":154,"source_snippet":"crawler := NewCrawler(10 * time.Second)","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"main","line_number":160,"source_snippet":"index   := BuildIndex(results)","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"main","line_number":162,"source_snippet":"if err  := SaveResults(results, \"out.txt\"); err != nil {","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Exported function call - checked for self-recursion"},{"function_name":"CrawlBatch","line_number":57,"source_snippet":"buf := make([]byte, 0, 64*1024)               // allocation in loop","entropy_score":18.0,"vulnerability_type":"HotAllocation","description":"make/new/slice-literal allocation in hot path"},{"function_name":"SaveResults","line_number":130,"source_snippet":"f, err := os.Create(path)                        // BlockingIO","entropy_score":18.0,"vulnerability_type":"BlockingIO","description":"Blocking stdlib I/O call - goroutine contention risk"},{"function_name":"SaveResults","line_number":136,"source_snippet":"w := bufio.NewReader(os.Stdin)                   // BlockingIO","entropy_score":18.0,"vulnerability_type":"BlockingIO","description":"Blocking stdlib I/O call - goroutine contention risk"},{"function_name":"CrawlBatch","line_number":62,"source_snippet":"if err != nil {","entropy_score":15.0,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"NewCrawler","line_number":33,"source_snippet":"visited: make(map[string]bool),      // HotAllocation: make inside constructor","entropy_score":12.0,"vulnerability_type":"HotAllocation","description":"make/new/slice-literal allocation in hot path"},{"function_name":"CrawlBatch","line_number":40,"source_snippet":"results := make([]CrawlResult, 0, len(urls))     // make() allocation","entropy_score":12.0,"vulnerability_type":"HotAllocation","description":"make/new/slice-literal allocation in hot path"},{"function_name":"BuildIndex","line_number":80,"source_snippet":"index := make(map[string][]string)               // make() allocation","entropy_score":12.0,"vulnerability_type":"HotAllocation","description":"make/new/slice-literal allocation in hot path"},{"function_name":"tokenise","line_number":99,"source_snippet":"tokens := make([]string, 0, len(data)/5)         // allocation","entropy_score":12.0,"vulnerability_type":"HotAllocation","description":"make/new/slice-literal allocation in hot path"},{"function_name":"main","line_number":155,"source_snippet":"urls := []string{","entropy_score":12.0,"vulnerability_type":"HotAllocation","description":"make/new/slice-literal allocation in hot path"},{"function_name":"CrawlBatch","line_number":44,"source_snippet":"if c.visited[url] {","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"CrawlBatch","line_number":52,"source_snippet":"if err != nil {","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"tokenise","line_number":102,"source_snippet":"if (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z') {","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"tokenise","line_number":104,"source_snippet":"} else if len(cur) > 0 {","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"RecursiveMerge","line_number":115,"source_snippet":"if dv, ok := dst[k]; ok {","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"RecursiveMerge","line_number":116,"source_snippet":"if dmap, ok2 := dv.(map[string]interface{}); ok2 {","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"RecursiveMerge","line_number":117,"source_snippet":"if smap, ok3 := sv.(map[string]interface{}); ok3 {","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"SaveResults","line_number":131,"source_snippet":"if err != nil {","entropy_score":5.0,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"},{"function_name":"main","line_number":162,"source_snippet":"if err  := SaveResults(results, \"out.txt\"); err != nil {","entropy_score":5.0,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean expression increases cyclomatic complexity"}]},{"file_path":"./test_samples/data_pipeline.py","language":"Python","lines_scanned":84,"total_entropy":782.0,"mean_hotspot_entropy":23.7,"hotspots":[{"function_name":"process_batch","line_number":100,"source_snippet":"for key, val in rec.items():     # loop x3 - triple nesting","entropy_score":82.5,"vulnerability_type":"DeepNesting","description":"Loop construct detected - nesting depth multiplier applied"},{"function_name":"fetch_user_data","line_number":25,"source_snippet":"response = requests.get(             # BlockingIO","entropy_score":54.0,"vulnerability_type":"BlockingIO","description":"Blocking I/O call on critical path - latency spike risk"},{"function_name":"fetch_user_data","line_number":33,"source_snippet":"time.sleep(2 ** attempt)          # BlockingIO inside nested loop","entropy_score":54.0,"vulnerability_type":"BlockingIO","description":"Blocking I/O call on critical path - latency spike risk"},{"function_name":"fetch_user_data","line_number":23,"source_snippet":"for attempt in range(3):                      # loop x2 - deep nesting","entropy_score":45.0,"vulnerability_type":"DeepNesting","description":"Loop construct detected - nesting depth multiplier applied"},{"function_name":"build_feature_matrix","line_number":48,"source_snippet":"for j, field in enumerate(record.get(\"fields\", [])):   # loop x2","entropy_score":45.0,"vulnerability_type":"DeepNesting","description":"Loop construct detected - nesting depth multiplier applied"},{"function_name":"process_batch","line_number":99,"source_snippet":"for rec in chunk:                    # loop x2","entropy_score":45.0,"vulnerability_type":"DeepNesting","description":"Loop construct detected - nesting depth multiplier applied"},{"function_name":"process_batch","line_number":101,"source_snippet":"if val and key and not key.startswith(\"_\"):","entropy_score":27.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean operator increases cyclomatic complexity"},{"function_name":"process_batch","line_number":86,"source_snippet":"raw = requests.get(                  # BlockingIO","entropy_score":27.0,"vulnerability_type":"BlockingIO","description":"Blocking I/O call on critical path - latency spike risk"},{"function_name":"fetch_user_data","line_number":22,"source_snippet":"for uid in user_ids:                              # loop x1","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Loop construct detected - nesting depth multiplier applied"},{"function_name":"build_feature_matrix","line_number":46,"source_snippet":"for i, record in enumerate(records):              # loop x1","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Loop construct detected - nesting depth multiplier applied"},{"function_name":"recursive_flatten","line_number":65,"source_snippet":"for item in data:                             # loop inside recursion","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Loop construct detected - nesting depth multiplier applied"},{"function_name":"process_batch","line_number":85,"source_snippet":"for bid in batch_ids:                    # loop x1","entropy_score":22.5,"vulnerability_type":"DeepNesting","description":"Loop construct detected - nesting depth multiplier applied"},{"function_name":"<module>","line_number":14,"source_snippet":"_cache_lock = threading.Lock()","entropy_score":22.0,"vulnerability_type":"SyncContention","description":"Synchronisation primitive - potential lock contention hotspot"},{"function_name":"__init__","line_number":76,"source_snippet":"self._lock = threading.RLock()               # SyncContention","entropy_score":22.0,"vulnerability_type":"SyncContention","description":"Synchronisation primitive - potential lock contention hotspot"},{"function_name":"build_feature_matrix","line_number":43,"source_snippet":"n = len(records)","entropy_score":20.0,"vulnerability_type":"RecursiveCall","description":"Possible recursive invocation - stack-depth risk"},{"function_name":"build_feature_matrix","line_number":47,"source_snippet":"features = np.zeros(512)                      # allocation inside loop","entropy_score":18.0,"vulnerability_type":"HotAllocation","description":"Heap allocation inside potentially hot path"},{"function_name":"process_batch","line_number":96,"source_snippet":"chunk = list(records)                # allocation","entropy_score":18.0,"vulnerability_type":"HotAllocation","description":"Heap allocation inside potentially hot path"},{"function_name":"fetch_user_data","line_number":29,"source_snippet":"if response.status_code == 200:","entropy_score":15.0,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean operator increases cyclomatic complexity"},{"function_name":"fetch_user_data","line_number":32,"source_snippet":"elif response.status_code == 429:","entropy_score":15.0,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean operator increases cyclomatic complexity"},{"function_name":"build_feature_matrix","line_number":49,"source_snippet":"if field and isinstance(field, (int, float)):","entropy_score":15.0,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean operator increases cyclomatic complexity"},{"function_name":"recursive_flatten","line_number":66,"source_snippet":"if isinstance(item, list):","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean operator increases cyclomatic complexity"},{"function_name":"process_batch","line_number":89,"source_snippet":"if not raw or raw.status_code != 200:","entropy_score":7.5,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean operator increases cyclomatic complexity"}]},{"file_path":"./test_samples/utils.py","language":"Python","lines_scanned":21,"total_entropy":10.0,"mean_hotspot_entropy":5.0,"hotspots":[{"function_name":"clamp","line_number":14,"source_snippet":"if value < lo:","entropy_score":5.0,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean operator increases cyclomatic complexity"},{"function_name":"clamp","line_number":16,"source_snippet":"if value > hi:","entropy_score":5.0,"vulnerability_type":"CognitiveBranch","description":"Branch/boolean operator increases cyclomatic complexity"}]}],"call_graph":[{"caller":"BuildIndex","callee":"tokenise","file":"./test_samples/crawler.go","line":83},{"caller":"main","callee":"NewCrawler","file":"./test_samples/crawler.go","line":154},{"caller":"main","callee":"CrawlBatch","file":"./test_samples/crawler.go","line":159},{"caller":"main","callee":"BuildIndex","file":"./test_samples/crawler.go","line":160},{"caller":"main","callee":"SaveResults","file":"./test_samples/crawler.go","line":162}]};
+
+/* ─────────────────────────────────────────────
+   COLOUR PALETTE  (entropy → colour)
+   ───────────────────────────────────────────── */
+function heatColor(s) {
+  if (s >= 70) return '#ff4444';       // Critical – bright red
+  if (s >= 50) return '#ff6633';       // High – orange-red
+  if (s >= 30) return '#ffaa00';       // Medium – orange
+  if (s >= 15) return '#FFD700';       // Moderate – Gold
+  if (s >= 10) return '#b89920';       // Low – Dim Gold
+  return '#555555';                    // Safe – Muted gray
+}
+
+function heatGlow(s) {
+  if (s >= 70) return 'rgba(255,68,68,0.6)';
+  if (s >= 50) return 'rgba(255,102,51,0.5)';
+  if (s >= 30) return 'rgba(255,170,0,0.4)';
+  if (s >= 15) return 'rgba(255,215,0,0.35)';
+  if (s >= 10) return 'rgba(184,153,32,0.3)';
+  return 'rgba(85,85,85,0.25)';
+}
+
+function nodeRadius(entropy, type) {
+  const base = type === 'file' ? 22 : 10;
+  return base + Math.log10(entropy + 1) * 6;
+}
+
+/* ─────────────────────────────────────────────
+   BUILD DATA MODEL — Deduplicated nodes,
+   evolutionary phases
+   ───────────────────────────────────────────── */
+let allNodesMap = new Map();
+let allNodes = [];
+let snapshots = [];
+let currentPhase = 0;
+let activeNodes = [];
+let activeLinks = [];
+let targetPhaseCount = 5;
+
+function buildData() {
+  allNodesMap.clear();
+  snapshots = [];
+
+  const files = (REPORT && Array.isArray(REPORT.file_reports)) ? REPORT.file_reports : [];
+  if (files.length === 0) {
+    snapshots.push({ nodes: [], links: [] });
+    allNodes = [];
+    if (typeof updateFileList === 'function') updateFileList();
+    return;
+  }
+
+  // Create file nodes
+  const fileNodes = {};
+  files.forEach(r => {
+    const fn = r.file_path.split('/').pop();
+    const n = {
+      id: 'f_' + fn, type: 'file', label: fn, fileShort: fn,
+      entropy: r.total_entropy, language: r.language,
+      radius: nodeRadius(r.total_entropy, 'file'),
+      x: 0, y: 0, vx: 0, vy: 0, targetX: 0, targetY: 0,
+      opacity: 0, targetOpacity: 0, scale: 0, targetScale: 0,
+      vulnType: null, description: null, lineNumber: null
+    };
+    fileNodes[fn] = n;
+    allNodesMap.set(n.id, n);
+  });
+
+  // Gather all hotspots
+  const allHotspots = files.flatMap(r =>
+    (r.hotspots || []).map(h => ({ ...h, file_path: r.file_path, file_short: r.file_path.split('/').pop() }))
+  );
+
+  // De-duplicate hotspots by function name (take highest entropy)
+  const uniqueFns = new Map();
+  allHotspots.forEach(h => {
+    const key = h.function_name + '|' + h.file_short;
+    if (!uniqueFns.has(key) || uniqueFns.get(key).entropy_score < h.entropy_score) {
+      uniqueFns.set(key, h);
+    }
+  });
+  const dedupedHotspots = Array.from(uniqueFns.values());
+
+  // Create hotspot nodes
+  dedupedHotspots.forEach(h => {
+    const id = 'h_' + h.function_name + '_' + h.file_short;
+    if (!allNodesMap.has(id)) {
+      allNodesMap.set(id, {
+        id, type: 'hotspot', label: h.function_name, fileShort: h.file_short,
+        entropy: h.entropy_score, vulnType: h.vulnerability_type,
+        description: h.description, lineNumber: h.line_number,
+        radius: nodeRadius(h.entropy_score, 'hotspot'),
+        x: 0, y: 0, vx: 0, vy: 0, targetX: 0, targetY: 0,
+        opacity: 0, targetOpacity: 0, scale: 0, targetScale: 0
+      });
+    }
+  });
+
+  allNodes = Array.from(allNodesMap.values());
+
+  // Sort files: lowest entropy first (stable foundation), higher entropy later
+  const fileNames = Object.keys(fileNodes);
+  const sortedFileNames = [...fileNames].sort((a, b) => {
+    return (fileNodes[a].entropy || 0) - (fileNodes[b].entropy || 0);
+  });
+  // Sort hotspots: baseline routines first, complex thermodynamic hotpaths later
+  const sortedHotspots = [...dedupedHotspots].sort((a, b) => a.entropy_score - b.entropy_score);
+
+  // Determine actual phase count based on targetPhaseCount and repository size
+  const totalEntities = fileNames.length + dedupedHotspots.length;
+  const maxPossiblePhases = Math.max(1, Math.min(12, totalEntities > 1 ? targetPhaseCount : 1));
+  const numPhases = maxPossiblePhases;
+
+  // Curated titles for progressive thermodynamic evolution
+  const phaseThemes = [
+    { title: "Inception & Core Base", desc: "Foundational structure and core state" },
+    { title: "Internal State & Primitives", desc: "Data structures and synchronization elements" },
+    { title: "Subroutines & Logic", desc: "Internal computational and helper routines" },
+    { title: "Processing & Pipelines", desc: "Main transformation loops and data handlers" },
+    { title: "Concurrency & Workers", desc: "Goroutines, thread pools, and async dispatch" },
+    { title: "Network & I/O Channels", desc: "Network requests, file handlers, and socket I/O" },
+    { title: "Integration Services", desc: "Cross-module call graph linkages and coordinator services" },
+    { title: "Distributed Topology", desc: "High-scale message passing and distributed clusters" },
+    { title: "Thermodynamic Hotpaths", desc: "High-entropy algorithmic critical paths" },
+    { title: "Full Constellation", desc: "Complete architectural call graph and topology" }
+  ];
+
+  PHASES = [];
+  for (let i = 0; i < numPhases; i++) {
+    if (i === numPhases - 1) {
+      PHASES.push({
+        label: `Phase ${i + 1}: Complete Constellation`,
+        desc: `Full Architecture • All ${fileNames.length} files & ${dedupedHotspots.length} hotspots active`
+      });
+    } else {
+      const theme = phaseThemes[i] || { title: `Evolution Tier ${i + 1}`, desc: `Architectural expansion stage ${i + 1}` };
+      const pct = Math.round(((i + 1) / numPhases) * 100);
+      PHASES.push({
+        label: `Phase ${i + 1}: ${theme.title}`,
+        desc: `${theme.desc} • ${pct}% architecture unlocked`
+      });
+    }
+  }
+
+  // Update slider UI
+  const rangeInput = document.getElementById('as-range');
+  if (rangeInput) {
+    rangeInput.max = Math.max(1, PHASES.length - 1);
+    rangeInput.value = Math.min(currentPhase, PHASES.length - 1);
+  }
+  const phaseCountDisplay = document.getElementById('phase-count-display');
+  if (phaseCountDisplay) {
+    phaseCountDisplay.textContent = targetPhaseCount;
+  }
+  const dotsContainer = document.getElementById('as-dots');
+  if (dotsContainer) {
+    dotsContainer.innerHTML = '';
+    PHASES.forEach((p, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'as-dot' + (i <= currentPhase ? ' active' : '');
+      dot.onclick = () => syncPhase(i);
+      const lbl = document.createElement('div');
+      lbl.className = 'as-dot-label';
+      lbl.textContent = p.label;
+      dot.appendChild(lbl);
+      dotsContainer.appendChild(dot);
+    });
+  }
+
+  // Build snapshots for each phase
+  for (let phaseIdx = 0; phaseIdx < numPhases; phaseIdx++) {
+    const isFinal = (phaseIdx === numPhases - 1);
+
+    // Dynamic partition of files
+    const fileCutoff = isFinal ? sortedFileNames.length : Math.max(1, Math.ceil((sortedFileNames.length / numPhases) * (phaseIdx + 1)));
+    const activeFileNames = new Set(sortedFileNames.slice(0, fileCutoff));
+
+    // Dynamic partition of hotspots
+    const hotspotCutoff = isFinal ? sortedHotspots.length : Math.max(1, Math.ceil((sortedHotspots.length / numPhases) * (phaseIdx + 1)));
+    const activeHotspots = sortedHotspots.slice(0, hotspotCutoff).filter(h => activeFileNames.has(h.file_short));
+
+    const pNodes = [];
+    const pLinks = [];
+
+    // Add active file nodes
+    activeFileNames.forEach(fn => {
+      const fNode = fileNodes[fn];
+      if (fNode) pNodes.push(fNode);
+    });
+
+    // Add active hotspot nodes
+    activeHotspots.forEach(h => {
+      const id = 'h_' + h.function_name + '_' + h.file_short;
+      const n = allNodesMap.get(id);
+      if (n) {
+        pNodes.push(n);
+        pLinks.push({ sourceId: id, targetId: 'f_' + h.file_short });
+      }
+    });
+
+    // Add call links if both nodes are active in this phase
+    const pNodeIds = new Set(pNodes.map(n => n.id));
+    if (REPORT.call_graph && Array.isArray(REPORT.call_graph)) {
+      REPORT.call_graph.forEach(c => {
+        const fn = c.file ? c.file.split('/').pop() : '';
+        const sId = 'h_' + c.caller + '_' + fn;
+        const tId = 'h_' + c.callee + '_' + fn;
+        if (pNodeIds.has(sId) && pNodeIds.has(tId)) {
+          pLinks.push({ sourceId: sId, targetId: tId, isCall: true });
+        }
+      });
+    }
+
+    snapshots.push({ nodes: pNodes, links: pLinks });
+  }
+
+  if (typeof updateFileList === 'function') updateFileList();
+}
+
+/* ─────────────────────────────────────────────
+   CANVAS SETUP
+   ───────────────────────────────────────────── */
+const canvas = document.getElementById('graph-canvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+let panX = 0, panY = 0, zoom = 1;
+let isPanning = false, panStartX = 0, panStartY = 0;
+
+function screenToWorld(sx, sy) {
+  return { x: (sx - panX) / zoom, y: (sy - panY) / zoom };
+}
+
+function resizeCanvas() {
+  const area = document.getElementById('graph-area');
+  W = area.clientWidth;
+  H = area.clientHeight;
+  canvas.width = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+}
+window.addEventListener('resize', resizeCanvas);
+
+/* ─────────────────────────────────────────────
+   ORGANIC FORCE-DIRECTED PHYSICS (2D)
+   ───────────────────────────────────────────── */
+let smoothArenaRadius = 280;
+let targetArenaRadius = 280;
+
+function layoutPhase() {
+  const nodes = activeNodes;
+  const links = activeLinks;
+  const cx = W / 2, cy = H / 2;
+  const zoomScale = Math.max(1.0, 1.0 / zoom);
+  const phaseProgress = (currentPhase + 1) / Math.max(1, PHASES.length);
+  const nodeCountFactor = Math.sqrt(Math.max(4, nodes.length));
+  const baseSpreadRadius = Math.max(Math.min(W, H) * 0.32, nodeCountFactor * 45 + phaseProgress * 80);
+  const spreadRadius = baseSpreadRadius * Math.pow(zoomScale, 0.75);
+
+  nodes.forEach((n, idx) => {
+    if (n.x === 0 && n.y === 0) {
+      const parentLink = links.find(l => l.sourceId === n.id && !l.isCall);
+      const parent = parentLink ? allNodesMap.get(parentLink.targetId) : null;
+      if (parent && parent.x !== 0) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = (n.radius + 50 + Math.random() * 70) * Math.min(2.0, Math.pow(zoomScale, 0.5));
+        n.x = parent.x + Math.cos(angle) * dist;
+        n.y = parent.y + Math.sin(angle) * dist;
+        n.vx = Math.cos(angle) * 3.5;
+        n.vy = Math.sin(angle) * 3.5;
+      } else {
+        const angle = (idx / Math.max(1, nodes.length)) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+        const dist = spreadRadius * (0.35 + Math.random() * 0.6);
+        n.x = cx + Math.cos(angle) * dist;
+        n.y = cy + Math.sin(angle) * dist;
+        n.vx = Math.cos(angle) * 4.0;
+        n.vy = Math.sin(angle) * 4.0;
+      }
+      n.targetX = n.x;
+      n.targetY = n.y;
+      n.birthTime = Date.now();
+    }
+  });
+}
+
+function physicsTick() {
+  const nodes = activeNodes;
+  const links = activeLinks;
+  const cx = W / 2, cy = H / 2;
+
+  // DYNAMIC EVOLUTIONARY EXPANSION:
+  // Arena expands fluidly in real-time as evolutionary phases progress & more nodes unlock!
+  const phaseProgress = (currentPhase + 1) / Math.max(1, PHASES.length);
+  const zoomScale = Math.max(1.0, 1.0 / zoom);
+  const spreadFactor = Math.pow(zoomScale, 0.85);
+  const nodeCountFactor = Math.sqrt(Math.max(4, nodes.length));
+
+  const baseArenaRadius = (
+    Math.min(W, H) * 0.26 +
+    nodeCountFactor * 48 +
+    phaseProgress * Math.min(W, H) * 0.24
+  );
+  targetArenaRadius = baseArenaRadius * spreadFactor;
+  // Smooth fluid expansion animation (never jumpy, breathes naturally)
+  smoothArenaRadius += (targetArenaRadius - smoothArenaRadius) * 0.05;
+  const arenaRadius = smoothArenaRadius;
+
+  // Dynamically scaled soft forces that expand organically with the phase
+  const expansionScale = 0.85 + 0.45 * phaseProgress;
+  const REPULSION = (3800 + nodes.length * 110) * spreadFactor * expansionScale;
+  const LINK_DIST = 115 * Math.min(2.5, spreadFactor) * expansionScale;
+  const CALL_DIST = 90 * Math.min(2.5, spreadFactor) * expansionScale;
+  const LINK_STRENGTH = 0.008;
+  const CENTER_GRAVITY = (0.00032 / spreadFactor) / expansionScale;
+  const DAMPING = 0.80;
+
+  // Center orbital gravity
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    if (n.targetScale < 0.01) continue;
+    n.vx += (cx - n.x) * CENTER_GRAVITY;
+    n.vy += (cy - n.y) * CENTER_GRAVITY;
+  }
+
+  // Organic Repulsion & Soft-Body Collision Avoidance
+  for (let i = 0; i < nodes.length; i++) {
+    const a = nodes[i];
+    if (a.targetScale < 0.01) continue;
+    for (let j = i + 1; j < nodes.length; j++) {
+      const b = nodes[j];
+      if (b.targetScale < 0.01) continue;
+      let dx = a.x - b.x, dy = a.y - b.y;
+      let distSq = dx * dx + dy * dy + 400; // Softening parameter prevents violent impulse
+      let dist = Math.sqrt(distSq);
+
+      // Repulsion force
+      let f = REPULSION * ((a.radius + b.radius) / 28) / distSq;
+      a.vx += (dx / dist) * f;
+      a.vy += (dy / dist) * f;
+      b.vx -= (dx / dist) * f;
+      b.vy -= (dy / dist) * f;
+
+      // Anti-collision buffer: mathematically guarantees nodes never overlap
+      const minSep = (a.radius + b.radius + 20) * Math.min(1.8, spreadFactor);
+      if (dist < minSep) {
+        const push = (minSep - dist) * 0.32;
+        const ox = (dx / dist) * push;
+        const oy = (dy / dist) * push;
+        a.vx += ox;
+        a.vy += oy;
+        b.vx -= ox;
+        b.vy -= oy;
+      }
+    }
+  }
+
+  // Structural and Call Links
+  links.forEach(l => {
+    const src = allNodesMap.get(l.sourceId);
+    const tgt = allNodesMap.get(l.targetId);
+    if (!src || !tgt) return;
+    if (src.targetScale < 0.01 || tgt.targetScale < 0.01) return;
+    let dx = tgt.x - src.x, dy = tgt.y - src.y;
+    let dist = Math.sqrt(dx * dx + dy * dy + 1);
+    let desired = l.isCall ? CALL_DIST : LINK_DIST;
+    let f = (dist - desired) * LINK_STRENGTH;
+    src.vx += (dx / dist) * f;
+    src.vy += (dy / dist) * f;
+    tgt.vx -= (dx / dist) * f;
+    tgt.vy -= (dy / dist) * f;
+  });
+
+  // Integrate velocities with SOFT RADIAL BOUNDARY (No rectangular corner traps!)
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i];
+    n.vx *= DAMPING;
+    n.vy *= DAMPING;
+    n.x += n.vx;
+    n.y += n.vy;
+
+    // Radial Manifold Constraint: glides along circular perimeter without corner pinching
+    const dx = n.x - cx;
+    const dy = n.y - cy;
+    const distFromCenter = Math.sqrt(dx * dx + dy * dy) || 1;
+    const maxR = arenaRadius - n.radius - 14;
+
+    if (distFromCenter > maxR) {
+      const excess = distFromCenter - maxR;
+      const spring = 0.09 + Math.min(0.25, excess * 0.003);
+      n.vx -= (dx / distFromCenter) * excess * spring;
+      n.vy -= (dy / distFromCenter) * excess * spring;
+      n.x = cx + (dx / distFromCenter) * maxR;
+      n.y = cy + (dy / distFromCenter) * maxR;
+      n.vx *= 0.82;
+      n.vy *= 0.82;
+    }
+  }
+}
+
+/* ─────────────────────────────────────────────
+   PHASE SYNC & EVOLUTION FLOW-OUT
+   ───────────────────────────────────────────── */
+function syncPhase(idx) {
+  currentPhase = idx;
+  const snap = snapshots[idx];
+  activeNodes = snap.nodes;
+  activeLinks = snap.links;
+
+  const activeSet = new Set(activeNodes.map(n => n.id));
+  const cx = W / 2, cy = H / 2;
+  const now = Date.now();
+  const phaseProgress = (idx + 1) / Math.max(1, PHASES.length);
+
+  allNodes.forEach(n => {
+    const willBeActive = activeSet.has(n.id);
+    if (willBeActive && n.targetScale < 0.5) {
+      // Newly emerging node in this evolution phase: initiate outward flow from progenitor
+      n.birthTime = now;
+      const parentLink = activeLinks.find(l => l.sourceId === n.id && !l.isCall);
+      const parent = parentLink ? allNodesMap.get(parentLink.targetId) : null;
+      if (parent && parent.x !== 0) {
+        n.x = parent.x;
+        n.y = parent.y;
+        const angle = Math.random() * Math.PI * 2;
+        const outwardSpeed = 3.5 + Math.random() * 2.5;
+        n.vx = Math.cos(angle) * outwardSpeed;
+        n.vy = Math.sin(angle) * outwardSpeed;
+      } else if (n.x === 0 && n.y === 0) {
+        n.x = cx;
+        n.y = cy;
+        const angle = Math.random() * Math.PI * 2;
+        const outwardSpeed = 4.0 + Math.random() * 3.0;
+        n.vx = Math.cos(angle) * outwardSpeed;
+        n.vy = Math.sin(angle) * outwardSpeed;
+      }
+    } else if (willBeActive) {
+      // Existing active nodes also receive an expansive harmonic wave outward as the system grows!
+      const dx = n.x - cx, dy = n.y - cy;
+      const d = Math.sqrt(dx * dx + dy * dy) || 1;
+      n.vx += (dx / d) * (1.2 * phaseProgress);
+      n.vy += (dy / d) * (1.2 * phaseProgress);
+    }
+
+    if (willBeActive) {
+      n.targetOpacity = 1;
+      n.targetScale = 1;
+    } else {
+      n.targetOpacity = 0;
+      n.targetScale = 0;
+    }
+  });
+
+  layoutPhase();
+  updateSidebar();
+}
+
+/* ─────────────────────────────────────────────
+   RENDER  (Canvas 2D — Guaranteed Visible!)
+   ───────────────────────────────────────────── */
+const time0 = Date.now();
+
+function draw() {
+  const t = (Date.now() - time0) * 0.001;
+
+  ctx.save();
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  // Apply zoom & pan
+  ctx.save();
+  ctx.translate(panX, panY);
+  ctx.scale(zoom, zoom);
+
+  // Run physics
+  physicsTick();
+
+  // ── Draw Dynamic Radial Arena Manifold (World Coordinates) ──
+  const cx = W / 2, cy = H / 2;
+  const arenaRadius = smoothArenaRadius;
+  const phaseProgress = (currentPhase + 1) / Math.max(1, PHASES.length);
+  const phasePercent = Math.round(phaseProgress * 100);
+
+  ctx.save();
+  // Outer perimeter boundary with breathing harmonic glow
+  const borderPulse = 0.20 + 0.10 * Math.sin(t * 1.5);
+  ctx.strokeStyle = `rgba(255, 215, 0, ${borderPulse})`;
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([8, 8]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, arenaRadius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Concentric orbital guide rings showing progressive expansion tiers
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.08)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 12]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, arenaRadius * 0.35, 0, Math.PI * 2);
+  ctx.arc(cx, cy, arenaRadius * 0.68, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Dynamic Expansion Rings (Radiating outward wave)
+  const expansionWave = (t * 0.35) % 1.0;
+  ctx.strokeStyle = `rgba(255, 215, 0, ${(1 - expansionWave) * 0.12})`;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.arc(cx, cy, arenaRadius * expansionWave, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Compass radial ticks (every 30 degrees)
+  ctx.strokeStyle = 'rgba(255, 215, 0, 0.45)';
+  ctx.lineWidth = 2;
+  for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+    const isMajor = (Math.round(a / (Math.PI / 6)) % 3 === 0);
+    const tickLen = isMajor ? 12 : 6;
+    const tickIn = arenaRadius - tickLen;
+    const tickOut = arenaRadius + 4;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * tickIn, cy + Math.sin(a) * tickIn);
+    ctx.lineTo(cx + Math.cos(a) * tickOut, cy + Math.sin(a) * tickOut);
+    ctx.stroke();
+  }
+
+  // Futuristic radar sweep arc
+  const radarAngle = t * 0.35;
+  if (ctx.createConicGradient) {
+    const radarGrad = ctx.createConicGradient(radarAngle, cx, cy);
+    radarGrad.addColorStop(0, 'rgba(255, 215, 0, 0.05)');
+    radarGrad.addColorStop(0.12, 'rgba(255, 215, 0, 0)');
+    radarGrad.addColorStop(1, 'rgba(255, 215, 0, 0)');
+    ctx.fillStyle = radarGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, arenaRadius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Dynamic boundary watermark with evolution metrics
+  ctx.font = '10px "Share Tech Mono", monospace';
+  ctx.fillStyle = 'rgba(255, 215, 0, 0.5)';
+  ctx.fillText(`// DYNAMIC EXPANSION MANIFOLD [R = ${Math.round(arenaRadius)}px • EVOLUTION: ${phasePercent}% • NODES: ${activeNodes.length}]`, cx - arenaRadius + 14, cy - arenaRadius + 24);
+  ctx.restore();
+
+  // Smoothly animate opacity / scale
+  allNodes.forEach(n => {
+    n.opacity += (n.targetOpacity - n.opacity) * 0.04;
+    n.scale += (n.targetScale - n.scale) * 0.04;
+  });
+
+  // ── Draw Edges & Active Power Transfer Streams ──
+  activeLinks.forEach(link => {
+    const src = allNodesMap.get(link.sourceId);
+    const tgt = allNodesMap.get(link.targetId);
+    if (!src || !tgt) return;
+    if (src.opacity < 0.02 || tgt.opacity < 0.02) return;
+
+    const alpha = Math.min(src.opacity, tgt.opacity) * 0.65;
+    const dx = tgt.x - src.x, dy = tgt.y - src.y;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const pulse = (Math.sin(t * 3.2 - dist * 0.025) + 1) / 2;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+
+    if (link.isCall) {
+      // Call-graph execution edge: golden animated energy beam
+      ctx.strokeStyle = `rgba(255, 215, 0, ${0.35 + pulse * 0.45})`;
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([7, 5]);
+      ctx.lineDashOffset = -t * 35;
+    } else {
+      // File-to-hotspot structural conduit: cyan/crystal power flow
+      ctx.strokeStyle = `rgba(0, 229, 255, ${0.15 + pulse * 0.25})`;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([]);
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(src.x, src.y);
+    ctx.lineTo(tgt.x, tgt.y);
+    ctx.stroke();
+
+    // Direction arrow for call-graph execution
+    if (link.isCall && dist > 35) {
+      const angle = Math.atan2(dy, dx);
+      const mx = src.x + dx * 0.62, my = src.y + dy * 0.62;
+      const arrowLen = 8;
+      ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+      ctx.beginPath();
+      ctx.moveTo(mx + Math.cos(angle) * arrowLen, my + Math.sin(angle) * arrowLen);
+      ctx.lineTo(mx + Math.cos(angle + 2.4) * arrowLen * 0.6, my + Math.sin(angle + 2.4) * arrowLen * 0.6);
+      ctx.lineTo(mx + Math.cos(angle - 2.4) * arrowLen * 0.6, my + Math.sin(angle - 2.4) * arrowLen * 0.6);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // Active Kinetic Energy Packets (Powering each other & project growth)
+    const pulseCount = link.isCall ? 3 : 2;
+    for (let p = 0; p < pulseCount; p++) {
+      const speed = link.isCall ? 0.42 : 0.26;
+      const offset = p / pulseCount;
+      const u = (t * speed + offset) % 1.0;
+      const px = src.x + dx * u;
+      const py = src.y + dy * u;
+      const photonAlpha = alpha * Math.sin(u * Math.PI);
+
+      if (photonAlpha > 0.05) {
+        ctx.save();
+        ctx.globalAlpha = photonAlpha;
+        ctx.fillStyle = link.isCall ? '#FFD700' : '#00e5ff';
+        ctx.shadowColor = link.isCall ? '#FFD700' : '#00e5ff';
+        ctx.shadowBlur = 9;
+        ctx.beginPath();
+        ctx.arc(px, py, link.isCall ? 3.4 : 2.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Trailing motion luminescence
+        const tailLen = link.isCall ? 14 : 9;
+        const tx = px - (dx / dist) * tailLen;
+        const ty = py - (dy / dist) * tailLen;
+        const tailGrad = ctx.createLinearGradient(tx, ty, px, py);
+        tailGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        tailGrad.addColorStop(1, link.isCall ? 'rgba(255, 215, 0, 0.75)' : 'rgba(0, 229, 255, 0.75)');
+        ctx.strokeStyle = tailGrad;
+        ctx.lineWidth = link.isCall ? 2.0 : 1.4;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(px, py);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  });
+
+  // ── Draw Nodes & Evolutionary Genesis Ripples ──
+  activeNodes.forEach(n => {
+    if (n.opacity < 0.02) return;
+
+    const s = n.scale;
+    const r = n.radius * s;
+    const breath = 1 + Math.sin(t * 1.4 + n.entropy * 0.12) * 0.04;
+    const drawR = r * breath;
+    const color = heatColor(n.entropy);
+    const glow = heatGlow(n.entropy);
+
+    ctx.save();
+    ctx.globalAlpha = n.opacity;
+
+    // Genesis Shockwave Bloom on newly emerging nodes
+    if (n.birthTime) {
+      const age = (Date.now() - n.birthTime) / 1000;
+      if (age < 2.0) {
+        const waveProgress = age / 2.0; // 0 to 1
+        const waveR = drawR * (1.0 + waveProgress * 2.8);
+        const waveAlpha = (1.0 - waveProgress) * n.opacity * 0.8;
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12;
+        ctx.lineWidth = 2.5 * (1.0 - waveProgress);
+        ctx.globalAlpha = waveAlpha;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, waveR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Outer Thermodynamic Corona Glow
+    const gradient = ctx.createRadialGradient(n.x, n.y, drawR * 0.3, n.x, n.y, drawR * 2.6);
+    gradient.addColorStop(0, glow);
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, drawR * 2.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Core Node Circle with Dynamic Luminescence
+    ctx.fillStyle = color;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, drawR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Inner Radiant Specular Highlight
+    const inner = ctx.createRadialGradient(n.x - drawR * 0.3, n.y - drawR * 0.3, 0, n.x, n.y, drawR);
+    inner.addColorStop(0, 'rgba(255,255,255,0.4)');
+    inner.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = inner;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, drawR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Node Label
+    ctx.fillStyle = '#c9d1d9';
+    ctx.font = n.type === 'file' ? 'bold 12px Inter' : '11px Inter';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    const label = n.label.length > 16 ? n.label.slice(0, 14) + '…' : n.label;
+    ctx.fillText(label, n.x, n.y + drawR + 6);
+
+    ctx.restore();
+  });
+
+  ctx.restore(); // zoom/pan transform
+  ctx.restore(); // setTransform
+  requestAnimationFrame(draw);
+}
+
+/* ─────────────────────────────────────────────
+   HOVER TOOLTIP
+   ───────────────────────────────────────────── */
+const tooltip = document.getElementById('tooltip');
+let hoveredNode = null;
+
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  const { x: mx, y: my } = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+
+  let found = null;
+  // Check in reverse so topmost drawn node is picked first
+  for (let i = activeNodes.length - 1; i >= 0; i--) {
+    const n = activeNodes[i];
+    if (n.opacity < 0.1) continue;
+    const dx = mx - n.x, dy = my - n.y;
+    if (dx * dx + dy * dy < (n.radius * n.scale + 8) * (n.radius * n.scale + 8)) {
+      found = n;
+      break;
+    }
+  }
+
+  if (found) {
+    if (hoveredNode !== found) {
+      hoveredNode = found;
+      const vulnClass = found.entropy >= 50 ? 'high' : found.entropy >= 20 ? 'med' : 'low';
+      tooltip.innerHTML = `
+        <h3>${found.type === 'file' ? '📄' : '⚡'} ${found.label}</h3>
+        <p>File: <span class="metric">${found.fileShort}</span></p>
+        <p>Entropy: <span class="metric">${found.entropy.toFixed(1)}</span></p>
+        ${found.vulnType ? `<p>Type: <span class="metric">${found.vulnType}</span></p>` : ''}
+        ${found.lineNumber ? `<p>Line: <span class="metric">${found.lineNumber}</span></p>` : ''}
+        ${found.description ? `<p style="margin-top:6px;font-size:11px;color:#6e7681">${found.description}</p>` : ''}
+        <div class="vuln-tag ${vulnClass}">${found.entropy >= 50 ? '🔴 Critical' : found.entropy >= 20 ? '🟡 Medium' : '🟢 Low'} Risk</div>
+      `;
+      tooltip.style.display = 'block';
+    }
+    tooltip.style.left = (e.clientX + 16) + 'px';
+    tooltip.style.top = (e.clientY + 16) + 'px';
+    canvas.style.cursor = (isPanning || dragNode) ? 'grabbing' : 'pointer';
+  } else {
+    if (hoveredNode) {
+      hoveredNode = null;
+      tooltip.style.display = 'none';
+    }
+    canvas.style.cursor = (isPanning || dragNode) ? 'grabbing' : 'grab';
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  hoveredNode = null;
+  tooltip.style.display = 'none';
+  if (!isPanning && !dragNode) {
+    canvas.style.cursor = 'grab';
+  }
+});
+
+/* ─────────────────────────────────────────────
+   PRESS AND MOVE (PANNING & DRAGGING)
+   ───────────────────────────────────────────── */
+let dragNode = null;
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+canvas.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  const { x: mx, y: my } = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+
+  // If left-clicking on a node: drag that specific node
+  if (e.button === 0) {
+    for (let i = activeNodes.length - 1; i >= 0; i--) {
+      const n = activeNodes[i];
+      if (n.opacity < 0.1) continue;
+      const dx = mx - n.x, dy = my - n.y;
+      if (dx * dx + dy * dy < (n.radius * n.scale + 10) ** 2) {
+        dragNode = n;
+        canvas.style.cursor = 'grabbing';
+        return;
+      }
+    }
+  }
+
+  // Otherwise (pressing empty space or using any button):
+  // Smoothly pan and move the canvas!
+  isPanning = true;
+  panStartX = e.clientX - panX;
+  panStartY = e.clientY - panY;
+  canvas.style.cursor = 'grabbing';
+});
+
+window.addEventListener('mousemove', e => {
+  if (isPanning) {
+    panX = e.clientX - panStartX;
+    panY = e.clientY - panStartY;
+    return;
+  }
+  if (!dragNode) return;
+  const rect = canvas.getBoundingClientRect();
+  const { x, y } = screenToWorld(e.clientX - rect.left, e.clientY - rect.top);
+  dragNode.x = x;
+  dragNode.y = y;
+  dragNode.vx = 0;
+  dragNode.vy = 0;
+});
+
+window.addEventListener('mouseup', () => {
+  dragNode = null;
+  isPanning = false;
+  canvas.style.cursor = hoveredNode ? 'pointer' : 'grab';
+});
+
+// Touch support: Press-and-move pan & pinch-zoom
+let initialPinchDist = null;
+let initialPinchZoom = 1;
+
+canvas.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const { x: mx, y: my } = screenToWorld(touch.clientX - rect.left, touch.clientY - rect.top);
+
+    let found = null;
+    for (let i = activeNodes.length - 1; i >= 0; i--) {
+      const n = activeNodes[i];
+      if (n.opacity < 0.1) continue;
+      const dx = mx - n.x, dy = my - n.y;
+      if (dx * dx + dy * dy < (n.radius * n.scale + 14) ** 2) {
+        found = n;
+        break;
+      }
+    }
+    if (found) {
+      dragNode = found;
+    } else {
+      isPanning = true;
+      panStartX = touch.clientX - panX;
+      panStartY = touch.clientY - panY;
+    }
+  } else if (e.touches.length === 2) {
+    isPanning = false;
+    dragNode = null;
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    initialPinchDist = Math.hypot(dx, dy);
+    initialPinchZoom = zoom;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    const touch = e.touches[0];
+    if (isPanning) {
+      panX = touch.clientX - panStartX;
+      panY = touch.clientY - panStartY;
+    } else if (dragNode) {
+      const rect = canvas.getBoundingClientRect();
+      const { x, y } = screenToWorld(touch.clientX - rect.left, touch.clientY - rect.top);
+      dragNode.x = x;
+      dragNode.y = y;
+      dragNode.vx = 0;
+      dragNode.vy = 0;
+    }
+  } else if (e.touches.length === 2 && initialPinchDist) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const curDist = Math.hypot(dx, dy);
+    const newZoom = Math.max(0.12, Math.min(5, initialPinchZoom * (curDist / initialPinchDist)));
+    zoomToCenter(newZoom);
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  if (e.touches.length === 0) {
+    isPanning = false;
+    dragNode = null;
+    initialPinchDist = null;
+  }
+});
+
+// Scroll to zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const delta = e.deltaY > 0 ? 0.88 : 1.14;
+  const newZoom = Math.max(0.12, Math.min(5, zoom * delta));
+  // Zoom towards cursor
+  panX = mx - (mx - panX) * (newZoom / zoom);
+  panY = my - (my - panY) * (newZoom / zoom);
+  zoom = newZoom;
+}, { passive: false });
+
+function zoomToCenter(newZoom) {
+  const cx = W / 2, cy = H / 2;
+  panX = cx - (cx - panX) * (newZoom / zoom);
+  panY = cy - (cy - panY) * (newZoom / zoom);
+  zoom = newZoom;
+}
+
+/* ─────────────────────────────────────────────
+   SIDEBAR UI
+   ───────────────────────────────────────────── */
+// Adaptive slider color settings (from watermelon component)
+function getSliderColors(phase, total) {
+  const t = Math.max(2, total);
+  const pct = phase / (t - 1);
+  if (pct < 0.5) return { text: '#b89920', gradient: 'linear-gradient(to right, #9a8a50, #b89920)', thumb: '#FFD700' };
+  if (pct < 0.8) return { text: '#FFD700', gradient: 'linear-gradient(to right, #b89920, #FFD700)', thumb: '#FFD700' };
+  return { text: '#FFD700', gradient: 'linear-gradient(to right, #FFD700, #ffaa00)', thumb: '#ffaa00' };
+}
+
+function updateSliderUI() {
+  const total = Math.max(2, PHASES.length);
+  const pct = (currentPhase / (total - 1)) * 100;
+  const colors = getSliderColors(currentPhase, total);
+
+  // Fill width: accounts for thumb size (28px)
+  const fill = document.getElementById('as-fill');
+  if (fill) {
+    fill.style.width = `calc((${pct} / 100) * (100% - 28px) + 28px)`;
+    fill.style.background = colors.gradient;
+  }
+
+  // Thumb position
+  const thumb = document.getElementById('as-thumb');
+  if (thumb) {
+    thumb.style.left = `calc((${pct} / 100) * (100% - 28px))`;
+  }
+
+  // Phase label
+  const label = document.getElementById('as-phase-label');
+  if (label && PHASES[currentPhase]) {
+    label.textContent = PHASES[currentPhase].label;
+    label.style.color = colors.text;
+  }
+
+  // Dot markers
+  document.querySelectorAll('.as-dot').forEach((d, i) => d.classList.toggle('active', i <= currentPhase));
+
+  // Range input
+  const rangeInput = document.getElementById('as-range');
+  if (rangeInput) rangeInput.value = currentPhase;
+}
+
+function updateSidebar() {
+  document.getElementById('phase-label').textContent = PHASES[currentPhase].label;
+  document.getElementById('phase-desc').textContent = PHASES[currentPhase].desc;
+  const iconBase = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+  const phaseIcons = [
+    iconBase + '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>',
+    iconBase + '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M13 6h3a2 2 0 0 1 2 2v7"/><path d="M6 9v2a2 2 0 0 0 2 2h3"/></svg>',
+    iconBase + '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
+  ];
+  document.getElementById('phase-icon').innerHTML = phaseIcons[currentPhase] || phaseIcons[0];
+  updateSliderUI();
+
+  let ent = 0;
+  activeNodes.forEach(n => ent += n.entropy);
+  document.getElementById('sb-ent').textContent = ent.toFixed(1);
+  document.getElementById('sb-hot').textContent = activeNodes.filter(n => n.type === 'hotspot').length;
+  document.getElementById('sb-files').textContent = new Set(activeNodes.map(n => n.fileShort)).size;
+
+
+}
+
+/* ─────────────────────────────────────────────
+   TIMELINE
+   ───────────────────────────────────────────── */
+let playTimer = null;
+document.getElementById('tl-play').onclick = function() {
+  if (playTimer) {
+    clearInterval(playTimer); playTimer = null;
+    this.innerHTML = '&#9654;'; this.classList.remove('playing');
+  } else {
+    this.innerHTML = '&#9632;'; this.classList.add('playing');
+    playTimer = setInterval(() => {
+      let next = (currentPhase + 1) % PHASES.length;
+      syncPhase(next);
+      if (next === PHASES.length - 1) {
+        clearInterval(playTimer); playTimer = null;
+        this.innerHTML = '&#9654;'; this.classList.remove('playing');
+      }
+    }, 4000);
+  }
+};
+
+/* ─────────────────────────────────────────────
+   SEARCH
+   ───────────────────────────────────────────── */
+document.getElementById('search-box').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  activeNodes.forEach(n => {
+    if (!q) {
+      n.targetOpacity = 1;
+      n.targetScale = 1;
+    } else if (n.label.toLowerCase().includes(q) || n.fileShort.toLowerCase().includes(q)) {
+      n.targetOpacity = 1;
+      n.targetScale = 1.2;
+    } else {
+      n.targetOpacity = 0.15;
+      n.targetScale = 0.6;
+    }
+  });
+});
+
+/* ─────────────────────────────────────────────
+   CLIENT-SIDE GITHUB SCANNER (FALLBACK FOR GITHUB PAGES)
+   ───────────────────────────────────────────── */
+async function scanClientSide(owner, repo) {
+  const overlayTitle = document.querySelector('#loading-overlay div:nth-child(2)');
+  const overlaySub = document.querySelector('#loading-overlay div:nth-child(3)');
+  if (overlayTitle) overlayTitle.textContent = "QUERYING GITHUB API...";
+  if (overlaySub) overlaySub.textContent = `Fetching tree for ${owner}/${repo}...`;
+
+  // Fetch repository tree
+  let tree = [];
+  const branches = ['HEAD', 'main', 'master'];
+  let treeFetched = false;
+
+  for (const b of branches) {
+    try {
+      const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${b}?recursive=1`);
+      if (treeRes.ok) {
+        const treeData = await treeRes.json();
+        tree = treeData.tree || [];
+        treeFetched = true;
+        break;
+      } else if (treeRes.status === 403) {
+        throw new Error("GitHub API rate limit reached. Please test with local server on http://localhost:8000");
+      }
+    } catch (e) {
+      if (e.message.includes("rate limit")) throw e;
+    }
+  }
+
+  if (!treeFetched && tree.length === 0) {
+    throw new Error(`Could not access repository ${owner}/${repo}. Ensure it is public.`);
+  }
+
+  // Excluded binary and archive extensions for security integrity
+  const excludedExts = new Set([
+    'exe', 'dll', 'so', 'dylib', 'bin', 'o', 'a', 'lib', 'class', 'jar', 'wasm',
+    'pyc', 'pyo', 'pyd', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'webp', 'svg',
+    'mp3', 'mp4', 'wav', 'ogg', 'pdf', 'zip', 'tar', 'gz', 'bz2', '7z', 'iso',
+    'woff', 'woff2', 'ttf', 'db', 'sqlite', 'lock', 'sum', 'map'
+  ]);
+
+  const ignoredDirs = ['node_modules/', 'vendor/', 'target/', 'dist/', 'build/', '.git/', 'venv/', '.venv/', '__pycache__/'];
+
+  function detectClientLanguage(path) {
+    const fileName = path.split('/').pop().toLowerCase();
+    if (fileName.endsWith('.min.js') || fileName.endsWith('.min.css') || fileName === 'package-lock.json' || fileName === 'cargo.lock') return null;
+    const ext = fileName.includes('.') ? fileName.split('.').pop() : '';
+    if (ext && excludedExts.has(ext)) return null;
+
+    if (ext === 'go') return 'Go';
+    if (ext === 'py' || ext === 'pyw') return 'Python';
+    if (['js', 'jsx', 'mjs', 'cjs'].includes(ext)) return 'JavaScript';
+    if (['ts', 'tsx'].includes(ext)) return 'TypeScript';
+    if (ext === 'rs') return 'Rust';
+    if (['c', 'h'].includes(ext)) return 'C';
+    if (['cpp', 'cc', 'cxx', 'hpp', 'hxx'].includes(ext)) return 'C++';
+    if (['java', 'cs', 'kt', 'scala'].includes(ext)) return 'Java/C#';
+    if (['sh', 'bash', 'zsh'].includes(ext)) return 'Shell';
+    if (['yaml', 'yml', 'json', 'toml', 'xml', 'sql'].includes(ext) || fileName === 'dockerfile' || fileName.startsWith('dockerfile.')) return 'Config';
+    if (ext || !fileName.startsWith('.')) return 'Generic';
+    return null;
+  }
+
+  // Filter for all valid source/text files within size & security constraints
+  const codeFiles = tree.filter(item => {
+    if (item.type !== 'blob') return false;
+    if (ignoredDirs.some(dir => item.path.includes(dir))) return false;
+    if (item.size && item.size > 512 * 1024) return false; // 512 KB limit
+    return detectClientLanguage(item.path) !== null;
+  }).slice(0, 25); // Top 25 files
+
+  if (codeFiles.length === 0) {
+    return {
+      engine_version: "0.2.0-browser",
+      generated_at: new Date().toISOString(),
+      scanned_directory: `https://github.com/${owner}/${repo}`,
+      files_analyzed: 0,
+      total_hotspots: 0,
+      global_entropy: 0.0,
+      file_reports: [],
+      call_graph: []
+    };
+  }
+
+  if (overlayTitle) overlayTitle.textContent = "ANALYZING AST THERMODYNAMICS...";
+  if (overlaySub) overlaySub.textContent = `Analyzing ${codeFiles.length} files...`;
+
+  const fileReports = [];
+  let globalEntropy = 0;
+  let totalHotspots = 0;
+
+  for (const item of codeFiles) {
+    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${item.path}`;
+    try {
+      const rawRes = await fetch(rawUrl);
+      if (!rawRes.ok) continue;
+      const content = await rawRes.text();
+      // Binary check: skip files with null character
+      if (content.includes('\0')) continue;
+      const lines = content.split('\n');
+      const lang = detectClientLanguage(item.path) || 'Generic';
+      
+      const hotspots = [];
+      let loopDepth = 0;
+      let curFunc = '<module>';
+
+      lines.forEach((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('/*')) return;
+
+        // Function detection
+        if (lang === 'Python') {
+          const fnMatch = line.match(/^\s*(?:async\s+)?def\s+([A-Za-z0-9_]+)\s*\(/);
+          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
+          if (/^\s*(for|while)\b/.test(line)) loopDepth++;
+          const indent = line.length - line.trimStart().length;
+          if (indent === 0) loopDepth = 0;
+        } else if (lang === 'Go') {
+          const fnMatch = line.match(/^\s*func\s+(?:\([^)]+\)\s+)?([A-Za-z0-9_]+)\s*\(/);
+          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
+          if (/\bfor\b/.test(line)) loopDepth++;
+          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
+        } else if (lang === 'JavaScript' || lang === 'TypeScript') {
+          const fnMatch = line.match(/(?:function\s+([A-Za-z0-9_]+)|(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s*)?\()/);
+          if (fnMatch) { curFunc = fnMatch[1] || fnMatch[2]; loopDepth = 0; }
+          if (/\b(for\s*\(|while\s*\(|\.forEach\(|\.map\()/.test(line)) loopDepth++;
+          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
+        } else if (lang === 'Rust') {
+          const fnMatch = line.match(/^\s*(?:pub(?:\([^)]+\))?\s+)?(?:async\s+)?fn\s+([A-Za-z0-9_]+)/);
+          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
+          if (/\b(for\s+\w+\s+in|while\s+|loop\s*\{)/.test(line)) loopDepth++;
+          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
+        } else {
+          const fnMatch = line.match(/(?:def|func|fn|function|class)\s+([A-Za-z0-9_]+)/);
+          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
+          if (/\b(for|while|loop)\b/.test(line)) loopDepth++;
+          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
+        }
+
+        const mult = 1.0 + 0.5 * Math.pow(loopDepth, 2);
+
+        // Blocking I/O
+        if (/\b(requests\.(get|post|put|delete)|http\.Get|time\.Sleep|time\.sleep|fs\.(readFileSync|writeFileSync)|execSync|Thread\.sleep|fopen|fread)\b/.test(line)) {
+          const score = Math.round(18.0 * mult * 100) / 100;
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
+            vulnerability_type: "BlockingIO", description: "Blocking I/O call on execution path"
+          });
+        }
+        // Sync / Mutex
+        if (/\b(sync\.Mutex|threading\.Lock|threading\.RLock|Mutex|RwLock|synchronized|pthread_mutex)\b/.test(line)) {
+          const score = Math.round(22.0 * mult * 100) / 100;
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
+            vulnerability_type: "SyncContention", description: "Synchronization primitive contention risk"
+          });
+        }
+        // Hot Allocation
+        if (/\b(make\(|np\.zeros|new Array|new Buffer|Vec::with_capacity|malloc|calloc|new byte\[)\b/.test(line)) {
+          const score = Math.round(12.0 * mult * 100) / 100;
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
+            vulnerability_type: "HotAllocation", description: "Allocation inside hot execution path"
+          });
+        }
+        // Deep Nesting
+        if (loopDepth >= 2) {
+          const score = Math.round(25.0 * mult * 100) / 100;
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
+            vulnerability_type: "DeepNesting", description: "Deeply nested execution loop"
+          });
+        }
+        // Config Secrets
+        if (lang === 'Config' && /(password|secret|api_key|token|private_key)\s*[:=]\s*['"][^'"]{4,}/i.test(line)) {
+          hotspots.push({
+            function_name: curFunc, line_number: idx + 1,
+            source_snippet: trimmed.slice(0, 100), entropy_score: 25.0,
+            vulnerability_type: "SyncContention", description: "Unrotated secret / sensitive credential in config"
+          });
+        }
+      });
+
+      const fileEntropy = hotspots.reduce((acc, h) => acc + h.entropy_score, 0);
+      globalEntropy += fileEntropy;
+      totalHotspots += hotspots.length;
+
+      fileReports.push({
+        file_path: item.path,
+        language: lang,
+        lines_scanned: lines.length,
+        total_entropy: Math.round(fileEntropy * 100) / 100,
+        mean_hotspot_entropy: hotspots.length ? Math.round((fileEntropy / hotspots.length) * 100) / 100 : 0,
+        hotspots: hotspots
+      });
+    } catch (e) {
+      console.warn("Could not fetch file:", item.path, e);
+    }
+  }
+
+  return {
+    engine_version: "0.2.0-browser",
+    generated_at: new Date().toISOString(),
+    scanned_directory: `https://github.com/${owner}/${repo}`,
+    files_analyzed: fileReports.length,
+    total_hotspots: totalHotspots,
+    global_entropy: Math.round(globalEntropy * 100) / 100,
+    file_reports: fileReports,
+    call_graph: []
+  };
+}
+
+/* ─────────────────────────────────────────────
+   TOAST NOTIFICATIONS
+   ───────────────────────────────────────────── */
+function showToast(msg, isError = false) {
+  const toast = document.getElementById('scan-toast');
+  if (!toast) return;
+  toast.textContent = msg;
+  toast.style.borderColor = isError ? '#ff4444' : '#FFD700';
+  toast.style.color = isError ? '#ff4444' : '#FFD700';
+  toast.style.display = 'block';
+  toast.style.opacity = '1';
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => { toast.style.display = 'none'; }, 300);
+  }, 4500);
+}
+
+/* ─────────────────────────────────────────────
+   DYNAMIC REPO SCANNING HANDLER
+   ───────────────────────────────────────────── */
+window.triggerRepoScan = async function() {
+  console.log("[SCAN] triggerRepoScan called");
+  const repoInput = document.getElementById('repo-box');
+  let repoUrl = (repoInput ? repoInput.value : '').trim();
+  console.log("[SCAN] repoUrl input:", repoUrl);
+
+  if (!repoUrl) {
+    showToast("Please enter a GitHub repository URL (e.g. octocat/Spoon-Knife)", true);
+    console.warn("[SCAN] Empty repository URL provided");
+    return;
+  }
+  
+  // Format shorthand "owner/repo" to full URL
+  if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repoUrl)) {
+    repoUrl = 'https://github.com/' + repoUrl;
+    if (repoInput) repoInput.value = repoUrl;
+  }
+
+  const overlay = document.getElementById('loading-overlay');
+  const overlayTitle = overlay ? overlay.querySelector('div:nth-child(2)') : null;
+  const overlaySub = overlay ? overlay.querySelector('div:nth-child(3)') : null;
+  if (overlayTitle) overlayTitle.textContent = "SCANNING REPOSITORY...";
+  if (overlaySub) overlaySub.textContent = "Connecting to analysis engine...";
+  if (overlay) overlay.style.display = 'flex';
+
+  // Extract owner and repo for fallback
+  const ghMatch = repoUrl.match(/github\.com\/([^\/]+)\/([^\/\s#?]+)/);
+  const owner = ghMatch ? ghMatch[1] : null;
+  const repo = ghMatch ? ghMatch[2].replace(/\.git$/, '') : null;
+  console.log("[SCAN] Parsed owner:", owner, "repo:", repo);
+
+  let reportLoaded = false;
+
+  // 1. Try Backend API first if on localhost or if custom API is configured
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const customApi = localStorage.getItem('CUSTOM_SCAN_API');
+  const apiUrl = customApi ? (customApi + '/scan') : (isLocal ? 'http://localhost:8080/scan' : '/api/scan');
+  console.log("[SCAN] Attempting backend API:", apiUrl);
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo_url: repoUrl }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    console.log("[SCAN] Backend API response status:", res.status);
+
+    if (res.ok) {
+      const newReport = await res.json();
+      REPORT = newReport;
+      reportLoaded = true;
+      console.log("[SCAN] Report successfully received from backend API");
+    }
+  } catch (err) {
+    console.log("[SCAN] Backend API unreachable or returned error:", err.message);
+  }
+
+  // 2. If Backend was unreachable (e.g. 405 on GitHub Pages static host), fall back to client-side GitHub scanner
+  if (!reportLoaded && owner && repo) {
+    try {
+      console.log("[SCAN] Launching in-browser GitHub API analysis...");
+      const clientReport = await scanClientSide(owner, repo);
+      REPORT = clientReport;
+      reportLoaded = true;
+      console.log("[SCAN] In-browser scan completed successfully");
+    } catch (clientErr) {
+      console.warn("[SCAN] Client-side scan error:", clientErr.message);
+      showToast("Scan failed: " + clientErr.message, true);
+    }
+  }
+
+  if (overlay) overlay.style.display = 'none';
+
+  if (reportLoaded) {
+    if (!REPORT.file_reports || REPORT.file_reports.length === 0) {
+      showToast("Scan completed, but no compatible source or config files found.", false);
+    } else {
+      showToast(`Scan complete: ${REPORT.files_analyzed} files analyzed!`, false);
+    }
+    buildData();
+    syncPhase(0);
+  } else if (!owner || !repo) {
+    showToast("Please provide a valid GitHub repository URL, e.g. octocat/Spoon-Knife", true);
+  }
+};
+
+const scanBtn = document.getElementById('scan-btn');
+if (scanBtn) {
+  scanBtn.addEventListener('click', window.triggerRepoScan);
+}
+const repoBox = document.getElementById('repo-box');
+if (repoBox) {
+  repoBox.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      window.triggerRepoScan();
+    }
+  });
+}
+
+/* ─────────────────────────────────────────────
+   SIDEBAR FILE LIST BUILDER
+   ───────────────────────────────────────────── */
+const svgb = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">';
+const langIcons = { 
+  'Go': svgb + '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>', 
+  'Python': svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 12 17 16 21"/></svg>',
+  'Rust': svgb + '<circle cx="12" cy="12" r="8"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
+  'JavaScript': svgb + '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 15v1a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V8"/><path d="M16 8h2a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 0-1.5 1.5v1.5a1.5 1.5 0 0 0 1.5 1.5h2"/></svg>',
+  'TypeScript': svgb + '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 9h6M10 9v9"/><path d="M14 16.5c1 1 2.5 1.5 3.5.5s.5-2.5-.5-3-2.5-.5-2.5-2 1-2 2.5-2 2.5.5 3 1.5"/></svg>',
+  'C': svgb + '<path d="M17 7a7 7 0 1 0 0 10"/></svg>',
+  'C++': svgb + '<path d="M15 7a6 6 0 1 0 0 10M17 12h4M19 10v4M21 12h3M22.5 10.5v3"/></svg>',
+  'Java': svgb + '<path d="M6 19c3 1.5 9 1.5 12 0M7 16c2.5 1 7.5 1 10 0M10 2v4M14 2v4M8 11c1-2 4-2 4-4M12 11c1-2 4-2 4-4"/></svg>',
+  'Java/C#': svgb + '<path d="M6 19c3 1.5 9 1.5 12 0M7 16c2.5 1 7.5 1 10 0M10 2v4M14 2v4"/></svg>',
+  'C#': svgb + '<path d="M15 7a6 6 0 1 0 0 10M18 9v6M21 9v6M17 11h5M17 13h5"/></svg>',
+  'Shell': svgb + '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
+  'Config': svgb + '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  'Generic': svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+};
+const defaultIcon = svgb + '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+
+function updateFileList() {
+  const fl = document.getElementById('file-list');
+  if (!fl) return;
+  fl.innerHTML = '';
+
+  const allCard = document.createElement('div');
+  allCard.className = 'file-card selected';
+  allCard.innerHTML = `
+    <div class="file-card-icon">${svgb}<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+    <div class="file-card-info">
+      <div class="file-card-name">All Files</div>
+      <div class="file-card-meta"><span>${allNodes.length} nodes</span> • All modules</div>
+    </div>
+    <div class="file-card-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+  `;
+  allCard.onclick = () => {
+    document.querySelectorAll('.file-card').forEach(c => c.classList.remove('selected'));
+    allCard.classList.add('selected');
+    activeNodes.forEach(n => { n.targetOpacity = 1; n.targetScale = 1; });
+  };
+  fl.appendChild(allCard);
+
+  const fileReports = REPORT.file_reports || [];
+  const uniqueFiles = [...new Set(allNodes.filter(n => n.type === 'file').map(n => n.fileShort))];
+  uniqueFiles.forEach(f => {
+    const report = fileReports.find(r => r.file_path.endsWith(f));
+    const lang = report ? report.language : 'Code';
+    const entropy = report ? report.total_entropy : 0;
+    const hotspots = report ? (report.hotspots || []).length : 0;
+    const icon = langIcons[lang] || defaultIcon;
+
+    const card = document.createElement('div');
+    card.className = 'file-card';
+    card.innerHTML = `
+      <div class="file-card-icon">${icon}</div>
+      <div class="file-card-info">
+        <div class="file-card-name">${f}</div>
+        <div class="file-card-meta"><span>${lang}</span> • ${hotspots} hotspots • <span style="color:${entropy > 500 ? '#f85149' : entropy > 100 ? '#ffaa00' : '#3fb950'}">${entropy.toFixed(0)} entropy</span></div>
+      </div>
+      <div class="file-card-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+    `;
+    card.onclick = () => {
+      document.querySelectorAll('.file-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      activeNodes.forEach(n => {
+        if (n.fileShort === f) {
+          n.targetOpacity = 1; n.targetScale = 1.15;
+        } else {
+          n.targetOpacity = 0.12; n.targetScale = 0.5;
+        }
+      });
+    };
+    fl.appendChild(card);
+  });
+}
+
+/* ─────────────────────────────────────────────
+   INIT
+   ───────────────────────────────────────────── */
+const phaseDecBtn = document.getElementById('phase-dec');
+const phaseIncBtn = document.getElementById('phase-inc');
+const phaseCountDisplay = document.getElementById('phase-count-display');
+
+if (phaseDecBtn) {
+  phaseDecBtn.onclick = () => {
+    if (targetPhaseCount > 2) {
+      targetPhaseCount--;
+      if (phaseCountDisplay) phaseCountDisplay.textContent = targetPhaseCount;
+      buildData();
+      syncPhase(Math.min(currentPhase, PHASES.length - 1));
+      showToast(`Evolution divided into ${PHASES.length} phases`);
+    }
+  };
+}
+if (phaseIncBtn) {
+  phaseIncBtn.onclick = () => {
+    if (targetPhaseCount < 12) {
+      targetPhaseCount++;
+      if (phaseCountDisplay) phaseCountDisplay.textContent = targetPhaseCount;
+      buildData();
+      syncPhase(Math.min(currentPhase, PHASES.length - 1));
+      showToast(`Evolution divided into ${PHASES.length} phases`);
+    }
+  };
+}
+
+const zoomInBtn = document.getElementById('zoom-in');
+const zoomOutBtn = document.getElementById('zoom-out');
+const zoomResetBtn = document.getElementById('zoom-reset');
+
+if (zoomInBtn) {
+  zoomInBtn.onclick = () => {
+    const newZoom = Math.min(5, zoom * 1.25);
+    zoomToCenter(newZoom);
+  };
+}
+if (zoomOutBtn) {
+  zoomOutBtn.onclick = () => {
+    const newZoom = Math.max(0.12, zoom * 0.8);
+    zoomToCenter(newZoom);
+  };
+}
+if (zoomResetBtn) {
+  zoomResetBtn.onclick = () => {
+    zoom = 1;
+    panX = 0;
+    panY = 0;
+  };
+}
+/* ─────────────────────────────────────────────
+   SIDEBAR & SECTION COLLAPSE HANDLERS
+   ───────────────────────────────────────────── */
+const sidebar = document.getElementById('sidebar');
+const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
+const sidebarToggleText = document.getElementById('sidebar-toggle-text');
+
+if (sidebarToggleBtn && sidebar) {
+  sidebarToggleBtn.onclick = () => {
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    sidebarToggleBtn.classList.toggle('is-collapsed', isCollapsed);
+    if (sidebarToggleText) {
+      sidebarToggleText.textContent = isCollapsed ? 'SHOW' : 'PANEL';
+    }
+  };
+}
+
+// Collapsible Section: Evolution Phase
+const togglePhaseSec = document.getElementById('toggle-phase-sec');
+const phaseSecBody = document.getElementById('phase-sec-body');
+const phaseArrow = document.getElementById('phase-arrow');
+
+if (togglePhaseSec && phaseSecBody) {
+  togglePhaseSec.onclick = () => {
+    const isClosed = phaseSecBody.classList.toggle('collapsed');
+    if (phaseArrow) phaseArrow.classList.toggle('collapsed', isClosed);
+  };
+}
+
+// Collapsible Section: System Modules
+const toggleModulesSec = document.getElementById('toggle-modules-sec');
+const modulesSecBody = document.getElementById('modules-sec-body');
+const modulesArrow = document.getElementById('modules-arrow');
+
+if (toggleModulesSec && modulesSecBody) {
+  toggleModulesSec.onclick = () => {
+    const isClosed = modulesSecBody.classList.toggle('collapsed');
+    if (modulesArrow) modulesArrow.classList.toggle('collapsed', isClosed);
+  };
+}
+
+buildData();
+resizeCanvas();
+
+document.getElementById('as-range').addEventListener('input', function() {
+  syncPhase(parseInt(this.value));
+});
+
+syncPhase(0);
+draw();
+</script>
+</body>
+</html>

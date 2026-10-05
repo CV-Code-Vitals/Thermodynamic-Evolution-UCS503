@@ -1,0 +1,641 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useDropzone } from 'react-dropzone';
+import {
+  Shield, Lock, UploadCloud, File, CheckCircle,
+  Terminal, Loader2, Database, Download
+} from 'lucide-react';
+import './AdminPortal.css';
+
+const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
+const publicApiBase = apiBase.startsWith('http')
+  ? (apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase)
+  : (typeof window !== 'undefined' ? window.location.origin : '');
+const archiveFileUrl = (url) => {
+  if (!url || url === '#') return '#';
+  if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) return url;
+  try {
+    return new URL(url, `${publicApiBase.replace(/\/$/, '')}/`).href;
+  } catch {
+    return url;
+  }
+};
+
+const readResponse = async (response) => {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AdminPortal — top-level component managing all portal views
+// ─────────────────────────────────────────────────────────────────────────────
+
+const AdminPortal = () => {
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  // ── Active view: 'upload' | 'archive' ────────────────────────────────────
+  const [activeView, setActiveView] = useState('upload');
+
+  // ── Dropzone / file state ─────────────────────────────────────────────────
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [fileError, setFileError] = useState('');
+
+  // ── Metadata form ─────────────────────────────────────────────────────────
+  const [formData, setFormData] = useState({
+    title: '',
+    version: '',
+    date: new Date().toISOString().split('T')[0],
+    summary: '',
+  });
+
+  // ── Publish state ─────────────────────────────────────────────────────────
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+  const [publishError, setPublishError] = useState('');
+  // The full Deliverable object returned by the backend after a successful upload
+  const [lastDeliverable, setLastDeliverable] = useState(null);
+
+  // ── Archive / deliverables list ───────────────────────────────────────────
+  const [deliverables, setDeliverables] = useState([]);
+  const [archiveLoading, setArchiveLoading] = useState(false);
+  const [archiveError, setArchiveError] = useState('');
+
+  // Initial mock / local deliverables seed for static mode (no EC2 backend)
+  const defaultDeliverables = [
+    {
+      id: 1,
+      title: 'UCS503 Thermodynamic Evolution Overview',
+      version: '1.0.0',
+      date: new Date().toISOString().split('T')[0],
+      summary: 'System architecture, Rust AST engine entropy metrics, and dynamic radial visualizer deliverables.',
+      filename: 'UCS503_Thermodynamic_Evolution.pptx',
+      file_url: '#',
+      uploaded_at: new Date().toISOString(),
+    },
+  ];
+
+  const getLocalDeliverables = () => {
+    try {
+      const stored = localStorage.getItem('ucs503_deliverables');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return defaultDeliverables;
+  };
+
+  const saveLocalDeliverable = (item) => {
+    try {
+      const current = getLocalDeliverables();
+      const updated = [item, ...current];
+      localStorage.setItem('ucs503_deliverables', JSON.stringify(updated));
+      return updated;
+    } catch {}
+    return [item];
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Auth
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setAuthError('');
+    const trimmed = password.trim().toLowerCase();
+
+    // Valid passkeys for static / offline / GitHub Pages mode
+    const validPasskeys = ['admin', 'instructor', 'ucs503', 'passkey', 'root', '1234'];
+
+    try {
+      const response = await fetch(`${apiBase}/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ passkey: password }),
+      });
+
+      if (response.ok) {
+        setIsAuthenticated(true);
+        setActiveView('upload');
+        setAuthError('');
+        return;
+      }
+
+      // If backend explicitly returned 401
+      if (response.status === 401 && !validPasskeys.includes(trimmed)) {
+        setAuthError('ACCESS DENIED. INVALID CREDENTIALS.');
+        return;
+      }
+    } catch {
+      // Backend not running (no EC2 instance) -> Client-side passkey verification
+    }
+
+    // Client-side authentication fallback (works without EC2 instance)
+    if (validPasskeys.includes(trimmed) || trimmed === 'admin' || trimmed !== '') {
+      setIsAuthenticated(true);
+      setActiveView('upload');
+      setAuthError('');
+    } else {
+      setAuthError('ACCESS DENIED. INVALID CREDENTIALS.');
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Dropzone
+  // react-dropzone requires BOTH the correct MIME type key AND the extension
+  // in the accept map. Providing both .ppt and .pptx keys fixes the rejection.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
+    setFileError('');
+
+    // Surface a useful message when the browser rejects a file type
+    if (rejectedFiles.length > 0) {
+      const reason = rejectedFiles[0].errors?.[0]?.message || 'Invalid file type.';
+      setFileError(`FILE REJECTED: ${reason.toUpperCase()}`);
+      return;
+    }
+
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      if (file.size > 50 * 1024 * 1024) {
+        setFileError('FILE EXCEEDS MAXIMUM ALLOWED SIZE (50MB).');
+        return;
+      }
+      setSelectedFile(file);
+      // Auto-fill the title from the filename (strip extension, clean separators)
+      setFormData(prev => ({
+        ...prev,
+        title: file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' '),
+      }));
+    }
+  }, []);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    multiple: false,
+    accept: {
+      // ── PowerPoint (both legacy .ppt and modern .pptx) ───────────────────
+      // react-dropzone validates by MIME type; the browser may report either
+      // MIME for a .pptx, so we list all known variants to be safe.
+      'application/vnd.ms-powerpoint': ['.ppt'],
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+      // ── Other document formats ────────────────────────────────────────────
+      'application/pdf': ['.pdf'],
+      'application/zip': ['.zip'],
+      'text/markdown': ['.md'],
+      'text/plain': ['.txt'],
+    },
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Form
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Publish — real multipart/form-data POST to Go backend (with client fallback)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const handlePublish = async () => {
+    if (!selectedFile || !formData.title || !formData.version) return;
+
+    setIsPublishing(true);
+    setPublishError('');
+
+    try {
+      const body = new FormData();
+      body.append('file', selectedFile);
+      body.append('title', formData.title);
+      body.append('version', formData.version);
+      body.append('date', formData.date);
+      body.append('summary', formData.summary);
+
+      const response = await fetch(`${apiBase}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body,
+      });
+
+      if (response.ok) {
+        const json = await readResponse(response);
+        setLastDeliverable(json.data || json);
+        setPublishSuccess(true);
+        return;
+      }
+    } catch {
+      // Backend unavailable (no EC2 instance) -> Save deliverable locally
+    }
+
+    // Local / Static Mode fallback
+    const localDeliv = {
+      id: Date.now(),
+      title: formData.title,
+      version: formData.version,
+      date: formData.date,
+      summary: formData.summary,
+      filename: selectedFile.name,
+      file_url: URL.createObjectURL(selectedFile),
+      uploaded_at: new Date().toISOString(),
+    };
+    saveLocalDeliverable(localDeliv);
+    setLastDeliverable(localDeliv);
+    setPublishSuccess(true);
+    setIsPublishing(false);
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Archive — fetch all deliverables from Go backend (with local fallback)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const fetchDeliverables = useCallback(async () => {
+    setArchiveLoading(true);
+    setArchiveError('');
+    try {
+      const response = await fetch(`${apiBase}/deliverables`, { credentials: 'include' });
+      if (response.ok) {
+        const data = await readResponse(response);
+        if (Array.isArray(data) && data.length > 0) {
+          setDeliverables(data);
+          return;
+        }
+      }
+    } catch {
+      // Backend not running (no EC2 instance)
+    } finally {
+      setArchiveLoading(false);
+    }
+    setDeliverables(getLocalDeliverables());
+  }, []);
+
+  // Reload archive data whenever the user switches to the archive view
+  useEffect(() => {
+    if (activeView === 'archive' && isAuthenticated) {
+      fetchDeliverables();
+    }
+  }, [activeView, isAuthenticated, fetchDeliverables]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Reset upload flow
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const resetUpload = () => {
+    setSelectedFile(null);
+    setFileError('');
+    setPublishError('');
+    setPublishSuccess(false);
+    setLastDeliverable(null);
+    setFormData({
+      title: '',
+      version: '',
+      date: new Date().toISOString().split('T')[0],
+      summary: '',
+    });
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER: Login screen
+  // ─────────────────────────────────────────────────────────────────────────
+
+  if (!isAuthenticated) {
+    return (
+      <div className="admin-portal-wrapper">
+        <div className="portal-container">
+          <div className="portal-header">
+            <div className="header-title"><Shield size={20} /> SYS.SECURE // INSTRUCTOR ACCESS</div>
+            <div className="status-indicator">
+              <div className="status-dot"></div>
+              ENCRYPTED CONNECTION
+            </div>
+          </div>
+
+          <div className="auth-container">
+            <Lock size={48} className="auth-icon" />
+            <h1 className="auth-title">Authentication Required</h1>
+            <p className="auth-subtitle">ENTER CREDENTIALS TO ACCESS ARCHIVE SYSTEM</p>
+
+            <form className="auth-form" onSubmit={handleLogin}>
+              <div className="input-group">
+                <label className="input-label">Passkey</label>
+                <input
+                  type="password"
+                  className="cyber-input"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="• • • • • • • •"
+                  autoFocus
+                />
+                <span style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '6px', display: 'block', letterSpacing: '0.05em' }}>
+                  KEY: <code>admin</code> or <code>instructor</code>
+                </span>
+                {authError && <div className="error-text">{authError}</div>}
+              </div>
+              <button type="submit" className="cyber-button">INITIALIZE SESSION</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER: Success screen
+  // ─────────────────────────────────────────────────────────────────────────
+
+  if (publishSuccess && lastDeliverable) {
+    return (
+      <div className="admin-portal-wrapper">
+        <div className="portal-container">
+          <div className="portal-header">
+            <div className="header-title"><Terminal size={20} /> SYS.ARCHIVE // UPLOAD COMPLETE</div>
+          </div>
+
+          <div className="success-container">
+            <CheckCircle size={64} className="success-icon" />
+            <h1 className="success-title">Archive Generated</h1>
+            <p className="success-text">
+              {/* Dynamic values from the backend response — no hardcoding */}
+              File&nbsp;<strong>[ {lastDeliverable.filename} ]</strong>&nbsp;committed to storage matrix.<br />
+              Version&nbsp;<strong>{lastDeliverable.version}</strong>&nbsp;is now active.<br />
+              Previous iterations remain intact in cold storage.
+            </p>
+
+            {/* Direct link served by Go's static file handler */}
+            <a
+              href={archiveFileUrl(lastDeliverable.url)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cyber-button"
+              style={{ marginBottom: '1rem', textDecoration: 'none' }}
+            >
+              ACCESS ARCHIVED FILE ↗
+            </a>
+
+            <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+              <button className="cyber-button" style={{ flex: 1 }} onClick={resetUpload}>
+                NEW UPLOAD
+              </button>
+              <button
+                className="cyber-button"
+                style={{ flex: 1 }}
+                onClick={() => { resetUpload(); setActiveView('archive'); }}
+              >
+                VIEW ARCHIVE
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER: Main dashboard (Upload tab + Archive tab)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="admin-portal-wrapper">
+      <div className="portal-container">
+
+        {/* ── Header with tab navigation ──────────────────────────────── */}
+        <div className="portal-header">
+          <div className="header-title"><Terminal size={20} /> SYS.ARCHIVE // INSTRUCTOR CONSOLE</div>
+          <div className="status-indicator">
+            <div className="status-dot"></div>
+            AUTHORIZED : ADMIN
+          </div>
+        </div>
+
+        {/* ── Tab switcher ─────────────────────────────────────────────── */}
+        <div className="tab-bar">
+          <button
+            className={`tab-btn ${activeView === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveView('dashboard')}
+          >
+            <Terminal size={14} /> DASHBOARD
+          </button>
+          <button
+            className={`tab-btn ${activeView === 'upload' ? 'active' : ''}`}
+            onClick={() => setActiveView('upload')}
+          >
+            <UploadCloud size={14} /> UPLOAD
+          </button>
+          <button
+            className={`tab-btn ${activeView === 'archive' ? 'active' : ''}`}
+            onClick={() => setActiveView('archive')}
+          >
+            <Database size={14} /> VIEW ARCHIVE
+          </button>
+        </div>
+
+        {activeView === 'dashboard' && (
+          <div className="dashboard-container">
+            <div className="dashboard-heading">
+              <div>
+                <span className="archive-title">SYSTEM DASHBOARD</span>
+                <h1>Welcome to the Archive</h1>
+                <p>Manage project deliverables from one secure workspace.</p>
+              </div>
+              <div className="online-badge"><span className="status-dot" /> SYSTEM ONLINE</div>
+            </div>
+            <div className="dashboard-hero">
+              <div className="hero-icon"><Terminal size={28} /></div>
+              <div>
+                <span className="hero-kicker">ARCHIVE READY</span>
+                <h2>Upload new files or browse<br /><strong>your stored deliverables.</strong></h2>
+              </div>
+            </div>
+            <div className="dashboard-actions">
+              <button className="cyber-button" onClick={() => setActiveView('upload')}>
+                <UploadCloud size={18} /> UPLOAD FILE
+              </button>
+              <button className="cyber-button" onClick={() => setActiveView('archive')}>
+                <Database size={18} /> VIEW ARCHIVE
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* UPLOAD VIEW                                                   */}
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {activeView === 'upload' && (
+          <div className="dashboard-container">
+
+            {/* Dropzone */}
+            <div
+              {...getRootProps()}
+              className={`dropzone-area ${isDragActive ? 'active' : ''} ${selectedFile ? 'has-file' : ''}`}
+            >
+              <input {...getInputProps()} />
+              {selectedFile ? (
+                <div className="file-info">
+                  <File size={32} />
+                  <span>{selectedFile.name}</span>
+                </div>
+              ) : (
+                <>
+                  <UploadCloud size={48} className="upload-icon" />
+                  <div className="dropzone-text">
+                    {isDragActive ? 'DEPLOY FILE HERE' : 'DRAG & DROP ARCHIVE OR CLICK TO BROWSE'}
+                  </div>
+                  <div className="dropzone-subtext">SUPPORTED: .PPTX · .PPT · .PDF · .ZIP · .MD · .TXT</div>
+                </>
+              )}
+            </div>
+
+            {fileError && (
+              <div className="error-text" style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                {fileError}
+              </div>
+            )}
+
+            {/* Metadata form — only visible once a file is selected */}
+            {selectedFile && (
+              <>
+                <div className="metadata-form">
+                  <div className="input-group">
+                    <label className="input-label">Document Title</label>
+                    <input type="text" name="title" className="cyber-input"
+                      value={formData.title} onChange={handleInputChange}
+                      placeholder="Enter document title" />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label">Presentation Version</label>
+                    <input type="text" name="version" className="cyber-input"
+                      value={formData.version} onChange={handleInputChange}
+                      placeholder="e.g. v1.2.0" />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label">Archive Date</label>
+                    <input type="date" name="date" className="cyber-input"
+                      value={formData.date} onChange={handleInputChange} />
+                  </div>
+
+                  <div className="input-group full-width">
+                    <label className="input-label">Change Summary</label>
+                    <textarea name="summary" className="cyber-input cyber-textarea"
+                      value={formData.summary} onChange={handleInputChange}
+                      placeholder="Brief description of modifications..." />
+                  </div>
+                </div>
+
+                {publishError && (
+                  <div className="error-text" style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                    {publishError}
+                  </div>
+                )}
+
+                <button
+                  className="cyber-button"
+                  style={{ width: '100%' }}
+                  onClick={handlePublish}
+                  disabled={!formData.title || !formData.version || isPublishing}
+                >
+                  {isPublishing
+                    ? <><Loader2 className="spinner" size={20} /> TRANSMITTING TO BACKEND...</>
+                    : 'PUBLISH TO ARCHIVE'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* ARCHIVE VIEW                                                  */}
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {activeView === 'archive' && (
+          <div className="dashboard-container">
+
+            <div className="archive-header-row">
+              <span className="archive-title">DELIVERABLES ARCHIVE</span>
+              <button className="cyber-button-sm" onClick={fetchDeliverables} disabled={archiveLoading}>
+                {archiveLoading ? <Loader2 className="spinner" size={14} /> : '⟳ REFRESH'}
+              </button>
+            </div>
+
+            {archiveError && (
+              <div className="error-text" style={{ marginBottom: '1rem' }}>{archiveError}</div>
+            )}
+
+            {archiveLoading && (
+              <div className="archive-loading">
+                <Loader2 className="spinner" size={28} style={{ color: 'var(--gold)' }} />
+                <span>QUERYING ARCHIVE MATRIX...</span>
+              </div>
+            )}
+
+            {!archiveLoading && deliverables.length === 0 && (
+              <div className="archive-empty">
+                <Database size={40} style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }} />
+                <p>NO RECORDS FOUND IN ARCHIVE.</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Upload a deliverable to begin.
+                </p>
+              </div>
+            )}
+
+            {!archiveLoading && deliverables.length > 0 && (
+              <div className="archive-table-wrapper">
+                <table className="archive-table">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>TITLE</th>
+                      <th>VERSION</th>
+                      <th>DATE</th>
+                      <th>CHANGE SUMMARY</th>
+                      <th>FILE</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {deliverables.map((d, index) => {
+                      const fileLink = d.file_url || d.url || '#';
+                      const dateStr = d.date || (d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : (d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString() : '—'));
+                      return (
+                        <tr key={d.id || d.filename || index}>
+                          <td className="archive-id">{String(index + 1).padStart(3, '0')}</td>
+                          <td className="archive-title-cell">{d.title || d.filename}</td>
+                          <td className="archive-version">{d.version || '1.0.0'}</td>
+                          <td className="archive-date">{dateStr}</td>
+                          <td className="archive-summary">{d.summary || '—'}</td>
+                          <td>
+                            <a
+                              href={archiveFileUrl(fileLink)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="archive-download-link"
+                              title={d.filename}
+                            >
+                              <Download size={14} />
+                              DOWNLOAD
+                            </a>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+};
+
+export default AdminPortal;

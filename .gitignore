@@ -1,0 +1,17 @@
+# Node/React
+node_modules/
+dist/
+.vite/
+admin-portal/assets/
+
+# Rust
+target/
+parser/target/
+
+# Go / Backend
+uploads/
+*.exe
+
+# OS generated files
+.DS_Store
+GITHUB_SECRETS_COPY.txt
