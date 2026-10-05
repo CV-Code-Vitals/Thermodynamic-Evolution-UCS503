@@ -662,6 +662,10 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	r.POST("/api/audit", tokenMiddleware(analysisToken), auditH)
 	r.POST("/audit", tokenMiddleware(analysisToken), auditH)
 
+	// Simulated Annealing endpoint
+	r.POST("/api/evolve", tokenMiddleware(analysisToken), evolveHandler())
+	r.POST("/evolve", tokenMiddleware(analysisToken), evolveHandler())
+
 	// Deliverables & Admin Portal endpoints (backed by PostgreSQL / JSON storage)
 	if deliverableStore != nil {
 		uploadDelivH := uploadDeliverableHandler(deliverableStore, maxUploadBytes)

@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
   Shield, Lock, UploadCloud, File, CheckCircle,
-  Terminal, Loader2, Database, Download
+  Terminal, Loader2, Database, Download, Activity
 } from 'lucide-react';
 import './AdminPortal.css';
+import EvolutionLive from './EvolutionLive';
 
 const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 const publicApiBase = apiBase.startsWith('http')
@@ -41,8 +42,11 @@ const AdminPortal = () => {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // ── Active view: 'upload' | 'archive' ────────────────────────────────────
+  // ── Active view: 'upload' | 'archive' | 'evolve' ─────────────────────────
   const [activeView, setActiveView] = useState('upload');
+  
+  // Evolve state
+  const [evolveData, setEvolveData] = useState(null);
 
   // ── Dropzone / file state ─────────────────────────────────────────────────
   const [selectedFile, setSelectedFile] = useState(null);
@@ -436,6 +440,12 @@ const AdminPortal = () => {
           >
             <Database size={14} /> VIEW ARCHIVE
           </button>
+          <button
+            className={`tab-btn ${activeView === 'evolve' ? 'active' : ''}`}
+            onClick={() => setActiveView('evolve')}
+          >
+            <Activity size={14} /> EVOLUTION
+          </button>
         </div>
 
         {activeView === 'dashboard' && (
@@ -631,6 +641,44 @@ const AdminPortal = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* EVOLUTION VIEW                                                */}
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {activeView === 'evolve' && (
+          <EvolutionLive 
+            initialData={evolveData || {
+              function_name: 'BuildIndex',
+              file_path: 'test_samples/crawler.go',
+              repo_path: '/tmp/test_code',
+              start_byte: 1300,
+              end_byte: 1800,
+              base_energy: 38.4,
+              base_code: `func BuildIndex(results []CrawlResult) map[string][]string {
+    index := make(map[string][]string)               // make() allocation
+    for _, result := range results {                  // loop ×1
+        words := tokenise(result.Body)
+        for _, word := range words {                  // loop ×2
+            for _, existing := range index[word] {    // loop ×3 — triple nesting
+                if existing == result.URL {
+                    goto nextWord
+                }
+            }
+            index[word] = append(index[word], result.URL)
+        nextWord:
+        }
+    }
+    return index
+}`,
+              config: {
+                initial_temp: 100.0,
+                cooling_rate: 0.85,
+                max_steps: 20
+              }
+            }}
+            onBack={() => setActiveView('dashboard')}
+          />
         )}
 
       </div>
