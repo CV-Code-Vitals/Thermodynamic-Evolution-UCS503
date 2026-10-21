@@ -35,6 +35,25 @@ if (-not (Test-Path $fePath)) {
     exit 1
 }
 
+# Build the static portal for the local reverse proxy used by serve.js.
+Push-Location -Path $fePath
+$env:VITE_API_BASE = '/api'
+if (-not (Test-Path (Join-Path $fePath 'node_modules'))) {
+    npm ci
+    if ($LASTEXITCODE -ne 0) {
+        Pop-Location
+        Write-Host "Unable to install frontend dependencies." -ForegroundColor Red
+        exit 1
+    }
+}
+npm run build
+$buildExitCode = $LASTEXITCODE
+Pop-Location
+if ($buildExitCode -ne 0) {
+    Write-Host "Unable to build the local Admin Portal." -ForegroundColor Red
+    exit 1
+}
+
 # Start the static dashboard server so links to /admin-portal/ and
 # /graph-visualizer/ work from the root dashboard.
 $existingStatic = Get-NetTCPConnection -LocalPort 8000 -State Listen -ErrorAction SilentlyContinue
@@ -63,7 +82,7 @@ if (Test-PortFree $apiPort) {
 # Start frontend in new window
 $feTarget = "http://localhost:$apiPort"
 if (Test-PortFree 5173) {
-    $feCmd = "Set-Location -Path '$fePath'; `$env:VITE_DEV_API_TARGET='$feTarget'; if (-not (Test-Path 'node_modules')) { npm install }; npm run dev -- --host 0.0.0.0 --port 5173"
+    $feCmd = "Set-Location -Path '$fePath'; `$env:VITE_DEV_API_TARGET='$feTarget'; if (-not (Test-Path 'node_modules')) { npm install }; npm run dev"
     Start-Process powershell -ArgumentList "-NoExit","-Command",$feCmd
 } else {
     Write-Host 'Frontend already running on port 5173; reusing it.' -ForegroundColor Yellow

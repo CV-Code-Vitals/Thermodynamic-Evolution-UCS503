@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"syscall"
 	"time"
 )
 
@@ -83,8 +82,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		testCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 		cmd := exec.CommandContext(testCtx, "go", "test", "./...")
 		cmd.Dir = repoPath
-		cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP}
-		
+
 		err = cmd.Run()
 		cancel()
 

@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   ucs503-api:
-    image: ghcr.io/zylus08/ucs503-api:latest
+    image: ghcr.io/zylus08/ucs503-api:${IMAGE_TAG:-latest}
     restart: always
     env_file:
       - .env
@@ -20,9 +18,29 @@ services:
       - api_uploads:/app/uploads
       - api_data:/app/data
 
+  ucs503-analysis:
+    image: ghcr.io/zylus08/ucs503-analysis:${IMAGE_TAG:-latest}
+    restart: always
+    environment:
+      ANALYSIS_API_TOKEN: ${ANALYSIS_API_TOKEN:?set ANALYSIS_API_TOKEN in .env}
+      DATABASE_URL: ${DATABASE_URL:-}
+      ENGINE_PATH: /app/thermodynamic-ast-engine
+      GIN_MODE: release
+      PORT: "8080"
+    ports:
+      - "127.0.0.1:8081:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+    volumes:
+      - analysis_uploads:/app/uploads
+
 volumes:
   api_uploads:
   api_data:
+  analysis_uploads:
 
 # optional: nginx service example (if you want to run proxy in compose)
 #  nginx:

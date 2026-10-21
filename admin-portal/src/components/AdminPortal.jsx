@@ -111,10 +111,10 @@ const AdminPortal = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError('');
-    const trimmed = password.trim().toLowerCase();
-
-    // Valid passkeys for static / offline / GitHub Pages mode
-    const validPasskeys = ['admin', 'instructor', 'ucs503', 'passkey', 'root', '1234'];
+    if (!password.trim()) {
+      setAuthError('ENTER YOUR CONFIGURED ADMIN PASSKEY.');
+      return;
+    }
 
     try {
       const response = await fetch(`${apiBase}/login`, {
@@ -124,29 +124,25 @@ const AdminPortal = () => {
         body: JSON.stringify({ passkey: password }),
       });
 
-      if (response.ok) {
-        setIsAuthenticated(true);
-        setActiveView('upload');
-        setAuthError('');
-        return;
-      }
-
-      // If backend explicitly returned 401
-      if (response.status === 401 && !validPasskeys.includes(trimmed)) {
+      if (response.status === 401) {
         setAuthError('ACCESS DENIED. INVALID CREDENTIALS.');
         return;
       }
-    } catch {
-      // Backend not running (no EC2 instance) -> Client-side passkey verification
-    }
+      if (!response.ok) {
+        setAuthError('AUTHENTICATION SERVICE ERROR. PLEASE TRY AGAIN.');
+        return;
+      }
 
-    // Client-side authentication fallback (works without EC2 instance)
-    if (validPasskeys.includes(trimmed) || trimmed === 'admin' || trimmed !== '') {
+      const result = await readResponse(response);
+      if (result.status !== 'authenticated') {
+        setAuthError('AUTHENTICATION SERVICE RETURNED AN INVALID RESPONSE.');
+        return;
+      }
+
       setIsAuthenticated(true);
       setActiveView('upload');
-      setAuthError('');
-    } else {
-      setAuthError('ACCESS DENIED. INVALID CREDENTIALS.');
+    } catch {
+      setAuthError('AUTHENTICATION SERVICE UNAVAILABLE. PLEASE TRY AGAIN.');
     }
   };
 
@@ -337,10 +333,12 @@ const AdminPortal = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="• • • • • • • •"
+                  autoComplete="current-password"
                   autoFocus
+                  required
                 />
                 <span style={{ fontSize: '0.75rem', color: '#71717a', marginTop: '6px', display: 'block', letterSpacing: '0.05em' }}>
-                  KEY: <code>admin</code> or <code>instructor</code>
+                  Enter the administrator passkey configured on the API server.
                 </span>
                 {authError && <div className="error-text">{authError}</div>}
               </div>
