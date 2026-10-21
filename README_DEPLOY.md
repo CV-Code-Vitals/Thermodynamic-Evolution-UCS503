@@ -82,7 +82,26 @@ docker tag ghcr.io/<owner>/ucs503-api:local ghcr.io/<owner>/ucs503-api:latest
 echo $GHCR_PAT | docker login ghcr.io -u <your-github-username> --password-stdin
 docker push ghcr.io/<owner>/ucs503-api:latest
 
-Deploy on EC2 with docker-compose
+Deploy both backends on EC2 with Docker Compose
+
+The `Publish Backend Docker Images` workflow builds and publishes both Go
+services to GHCR after backend changes land on `main`. When EC2 deployment is
+enabled, the follow-up workflow copies the Compose file and deploys the exact
+images built for that commit.
+
+Configure these GitHub repository secrets:
+- `EC2_HOST`, `EC2_USER`, and `EC2_SSH_PRIVATE_KEY`
+- `GHCR_PAT` with permission to pull the repository's GHCR packages
+- Optional `EC2_SSH_PORT` (defaults to `22`)
+
+Set the repository variable `EC2_DEPLOY_ENABLED` to `true` to turn on automatic
+deployment. On the EC2 instance, create `~/ucs503/.env` with the production
+values from `.env.example` before the first deployment. Use an EC2 instance
+profile for S3 access instead of static AWS access keys, and allow the instance
+to reach the RDS endpoint. If containers use the instance profile, require
+IMDSv2 and set the instance metadata response hop limit to 2. Keep the database
+and application ports closed to the public internet.
+
 # On EC2 create folder ~/ucs503, copy docker-compose.ec2.yml and .env
 # Populate .env with production values (see .env.example)
 cd ~/ucs503
@@ -91,13 +110,17 @@ docker compose up -d
 
 Verify
 - curl https://api.yourdomain.com/status
+- On EC2, verify the analysis backend with `curl http://127.0.0.1:8081/status`.
+- The analysis backend listens on `127.0.0.1:8081`; configure your host reverse
+  proxy or load balancer to forward the analysis API there, and do not expose
+  port 8081 publicly.
 - use the Admin Portal to log in and upload archives
 - check S3 console for objects
 - check RDS for metadata
 
 Rollback
-- docker pull ghcr.io/<owner>/ucs503-api:<previous-tag>
-- update docker-compose to use that tag and docker compose up -d
+- Set `IMAGE_TAG` to a previously published commit SHA, then run:
+  `IMAGE_TAG=<previous-tag> docker compose -f docker-compose.ec2.yml up -d`
 
 Notes
 - Use the provided .env.example as a template on the server (do NOT commit secrets)

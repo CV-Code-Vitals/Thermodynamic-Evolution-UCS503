@@ -1,0 +1,5 @@
+**
+!go-backend/
+!go-backend/**
+!thermodynamic-ast-engine/
+!thermodynamic-ast-engine/**

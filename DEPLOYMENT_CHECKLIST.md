@@ -8,6 +8,11 @@ This checklist gathers the final items to confirm before pushing to GitHub and d
   - go mod download
   - go vet ./...
   - go build ./...
+- [ ] Run analysis backend checks
+  - cd go-backend
+  - go vet ./...
+  - go test ./...
+  - go build ./...
 - [ ] Run frontend checks and build
   - cd admin-portal
   - npm ci
@@ -19,32 +24,31 @@ This checklist gathers the final items to confirm before pushing to GitHub and d
 - [ ] Ensure archives.json does not contain secrets. If it contains paths/URLs that are private, consider removing before push or migrating to DB.
 - [ ] Update top-level README with a short note about deployment (optional)
 
-3) GitHub secrets to add (see GITHUB_SECRETS_COPY.txt)
-- ADMIN_PASSKEY
-- AWS_ACCESS_KEY_ID
-- AWS_SECRET_ACCESS_KEY
-- S3_BUCKET
-- S3_REGION
-- DATABASE_URL
+3) GitHub secrets to add
 - GHCR_PAT
 - VITE_API_BASE
 - EC2_HOST
 - EC2_USER
 - EC2_SSH_PRIVATE_KEY (SSH private key contents)
+- Optional EC2_SSH_PORT (defaults to 22)
 - Repository variable `EC2_DEPLOY_ENABLED=true` (required to run the EC2 deploy job)
 - (Optional) S3_PRESIGN_EXPIRE_HOURS
 
 4) CI / Workflows
 - [ ] Confirm .github/workflows/ci-go.yml exists and triggers on api changes
-- [ ] Confirm .github/workflows/publish-api-image.yml builds & pushes image to GHCR
-- [ ] Confirm .github/workflows/deploy-to-ec2.yml has EC2 secrets configured
+- [ ] Confirm .github/workflows/publish-api-image.yml builds and pushes both backend images to GHCR
+- [ ] Confirm .github/workflows/deploy-to-ec2.yml has EC2 secrets configured and `EC2_DEPLOY_ENABLED=true`
 - [ ] Confirm .github/workflows/deploy-frontend.yml contains VITE_API_BASE secret usage
 
 5) Server (EC2) preparation checklist
 - [ ] EC2 instance up (Ubuntu recommended) with Docker & docker compose installed
-- [ ] .env file created on server (see .env.example) and owned by appropriate user with permissions 600
-- [ ] docker-compose.ec2.yml (or your compose file) placed on server and uses image ghcr.io/<owner>/ucs503-api:latest
-- [ ] Nginx or ALB configured to reverse-proxy to API (optional but recommended)
+- [ ] `.env` file created on server (see `.env.example`) and owned by appropriate user with permissions 600
+- [ ] Configure `ADMIN_PASSKEY`, `ANALYSIS_API_TOKEN`, database settings, and S3 settings in the server `.env`
+- [ ] Attach an EC2 instance role with least-privilege access to the S3 bucket; do not store AWS access keys on the instance
+- [ ] If containers use the EC2 instance role, require IMDSv2 and set the instance metadata response hop limit to 2
+- [ ] Allow EC2 to connect to RDS, and restrict the database security group to the EC2 security group
+- [ ] Nginx or ALB configured to reverse-proxy to the API on `127.0.0.1:8080` and analysis backend on `127.0.0.1:8081`
+- [ ] Keep ports 8080, 8081, and 5432 closed to public ingress
 - [ ] SSL cert obtained with certbot or via ACM/load balancer
 
 6) Post-deploy checks (after push & deploy)

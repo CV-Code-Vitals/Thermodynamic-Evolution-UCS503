@@ -1,4 +1,4 @@
-name: Publish API Docker image
+name: Publish Backend Docker Images
 
 on:
   push:
@@ -6,6 +6,10 @@ on:
       - main
     paths:
       - 'api/**'
+      - 'go-backend/**'
+      - 'thermodynamic-ast-engine/**'
+      - 'docker-compose.ec2.yml'
+      - '.github/workflows/publish-api-image.yml'
 
 jobs:
   build-and-push:
@@ -13,13 +17,9 @@ jobs:
     permissions:
       contents: read
       packages: write
-      id-token: write
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -31,7 +31,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push API image
         uses: docker/build-push-action@v4
         with:
           context: ./api
@@ -41,6 +41,12 @@ jobs:
             ghcr.io/zylus08/ucs503-api:latest
             ghcr.io/zylus08/ucs503-api:${{ github.sha }}
 
-      # Render deployment is not used in this repo.
-      # If you later add Render, use a valid condition like:
-      #   if: ${{ secrets.RENDER_SERVICE_ID != '' && secrets.RENDER_API_KEY != '' }}
+      - name: Build and push analysis backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./go-backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/zylus08/ucs503-analysis:latest
+            ghcr.io/zylus08/ucs503-analysis:${{ github.sha }}
