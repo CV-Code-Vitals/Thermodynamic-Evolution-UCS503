@@ -37,10 +37,15 @@ if (-not (Test-Path $fePath)) {
 
 # Build the static portal for the local reverse proxy used by serve.js.
 Push-Location -Path $fePath
+$originalViteApiBase = $env:VITE_API_BASE
+$originalAllowRelativeApiBase = $env:VITE_ALLOW_RELATIVE_API_BASE
 $env:VITE_API_BASE = '/api'
+$env:VITE_ALLOW_RELATIVE_API_BASE = 'true'
 if (-not (Test-Path (Join-Path $fePath 'node_modules'))) {
     npm ci
     if ($LASTEXITCODE -ne 0) {
+        if ($null -eq $originalViteApiBase) { Remove-Item Env:VITE_API_BASE -ErrorAction SilentlyContinue } else { $env:VITE_API_BASE = $originalViteApiBase }
+        if ($null -eq $originalAllowRelativeApiBase) { Remove-Item Env:VITE_ALLOW_RELATIVE_API_BASE -ErrorAction SilentlyContinue } else { $env:VITE_ALLOW_RELATIVE_API_BASE = $originalAllowRelativeApiBase }
         Pop-Location
         Write-Host "Unable to install frontend dependencies." -ForegroundColor Red
         exit 1
@@ -48,6 +53,8 @@ if (-not (Test-Path (Join-Path $fePath 'node_modules'))) {
 }
 npm run build
 $buildExitCode = $LASTEXITCODE
+if ($null -eq $originalViteApiBase) { Remove-Item Env:VITE_API_BASE -ErrorAction SilentlyContinue } else { $env:VITE_API_BASE = $originalViteApiBase }
+if ($null -eq $originalAllowRelativeApiBase) { Remove-Item Env:VITE_ALLOW_RELATIVE_API_BASE -ErrorAction SilentlyContinue } else { $env:VITE_ALLOW_RELATIVE_API_BASE = $originalAllowRelativeApiBase }
 Pop-Location
 if ($buildExitCode -ne 0) {
     Write-Host "Unable to build the local Admin Portal." -ForegroundColor Red

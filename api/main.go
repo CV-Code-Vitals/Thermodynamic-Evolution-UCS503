@@ -146,7 +146,8 @@ func isAllowedOrigin(origin string) bool {
 		origin == "http://127.0.0.1:5173" ||
 		origin == "http://localhost:8000" ||
 		origin == "http://127.0.0.1:8000" ||
-		origin == "https://zylus08.github.io"
+	origin == "https://cv-code-vitals.github.io" ||
+	origin == "https://zylus08.github.io"
 }
 
 // Browser form posts bypass CORS. Require a configured Origin for cookie-authenticated mutations.

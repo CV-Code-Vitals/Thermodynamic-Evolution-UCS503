@@ -38,8 +38,8 @@ jobs:
           file: ./api/Dockerfile
           push: true
           tags: |
-            ghcr.io/zylus08/ucs503-api:latest
-            ghcr.io/zylus08/ucs503-api:${{ github.sha }}
+            ghcr.io/cv-code-vitals/ucs503-api:latest
+            ghcr.io/cv-code-vitals/ucs503-api:${{ github.sha }}
 
       - name: Build and push analysis backend image
         uses: docker/build-push-action@v4
@@ -48,5 +48,5 @@ jobs:
           file: ./go-backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/zylus08/ucs503-analysis:latest
-            ghcr.io/zylus08/ucs503-analysis:${{ github.sha }}
+            ghcr.io/cv-code-vitals/ucs503-analysis:latest
+            ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}
