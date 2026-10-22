@@ -1,9 +1,11 @@
 services:
   ucs503-api:
-    image: ghcr.io/zylus08/ucs503-api:${IMAGE_TAG:-latest}
+    image: ghcr.io/cv-code-vitals/ucs503-api:${IMAGE_TAG:-latest}
     restart: always
     env_file:
       - .env
+    environment:
+      TRUST_PROXY: "true"
     ports:
       - "127.0.0.1:8080:8080"
     # If you prefer to proxy via nginx on the host, expose only on 127.0.0.1:8080
@@ -19,7 +21,7 @@ services:
       - api_data:/app/data
 
   ucs503-analysis:
-    image: ghcr.io/zylus08/ucs503-analysis:${IMAGE_TAG:-latest}
+    image: ghcr.io/cv-code-vitals/ucs503-analysis:${IMAGE_TAG:-latest}
     restart: always
     environment:
       ANALYSIS_API_TOKEN: ${ANALYSIS_API_TOKEN:?set ANALYSIS_API_TOKEN in .env}

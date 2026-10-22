@@ -39,6 +39,11 @@ jobs:
           cd api
           go vet ./...
 
+      - name: go test
+        run: |
+          cd api
+          go test ./...
+
       - name: go build
         run: |
           cd api

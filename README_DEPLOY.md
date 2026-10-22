@@ -63,6 +63,12 @@ GitHub Pages setup
 - In the repository, open Settings > Pages and set the Source to "GitHub Actions".
 - Do not select "Deploy from a branch"; the frontend workflow uploads the built site
   as a Pages artifact.
+- Add the Actions secret `VITE_API_BASE` with the full HTTPS URL of the deployed API
+  (for example, `https://api.yourdomain.com/api`). Do not use `/api` here: GitHub
+  Pages has no backend proxy, and production builds now fail instead of publishing
+  a portal that sends login requests to the Pages site.
+- Configure the API's `CORS_ALLOWED_ORIGINS` environment variable to include
+  `https://cv-code-vitals.github.io`.
 - After pushing to `main`, wait for the "Deploy Frontend to GitHub Pages" workflow
   to finish before opening `/Thermodynamic-Evolution-UCS503/admin-portal/`.
 
