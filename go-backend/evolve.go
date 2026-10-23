@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/saksham/self-healing-pipeline/agent"
@@ -32,14 +34,32 @@ func evolveHandler() gin.HandlerFunc {
 		mutator.APIBase = "https://api.openai.com" // default
 	}
 
+	// Configure the hardened Docker sandbox evaluator
+	evaluator := agent.NewDockerEvaluator(agent.DockerEvaluatorConfig{
+		Image: os.Getenv("SANDBOX_RUNNER_IMAGE"),
+	})
+
 	annealer := &agent.Annealer{
-		Mutator: mutator,
+		Mutator:   mutator,
+		Evaluator: evaluator,
 	}
 
 	return func(c *gin.Context) {
 		var req EvolveRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+			return
+		}
+
+		// Security pre-validation of target paths
+		if strings.TrimSpace(req.RepoPath) == "" || strings.TrimSpace(req.FilePath) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "repo_path and file_path are required"})
+			return
+		}
+
+		cleanRel := filepath.Clean(filepath.FromSlash(req.FilePath))
+		if filepath.IsAbs(cleanRel) || strings.HasPrefix(cleanRel, "..") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Path traversal in file_path is forbidden"})
 			return
 		}
 
@@ -54,14 +74,14 @@ func evolveHandler() gin.HandlerFunc {
 		go func() {
 			defer close(ch)
 			result, err := annealer.Evolve(ctx, req.RepoPath, req.FilePath, req.FunctionName, req.StartByte, req.EndByte, req.BaseEnergy, req.Config, ch)
-			
+
 			if err != nil {
 				data, _ := json.Marshal(map[string]string{"error": err.Error()})
 				fmt.Fprintf(c.Writer, "event: error\ndata: %s\n\n", string(data))
 				c.Writer.Flush()
 				return
 			}
-			
+
 			data, _ := json.Marshal(result)
 			fmt.Fprintf(c.Writer, "event: complete\ndata: %s\n\n", string(data))
 			c.Writer.Flush()
