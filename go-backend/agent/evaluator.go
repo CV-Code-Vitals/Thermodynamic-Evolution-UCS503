@@ -104,6 +104,9 @@ type DockerEvaluator struct {
 func NewDockerEvaluator(cfg DockerEvaluatorConfig) *DockerEvaluator {
 	img := cfg.Image
 	if strings.TrimSpace(img) == "" {
+		img = os.Getenv("SANDBOX_RUNNER_IMAGE")
+	}
+	if strings.TrimSpace(img) == "" {
 		img = "ucs503-sandbox-runner:latest"
 	}
 	bin := cfg.DockerBinary
@@ -235,6 +238,7 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 		}, err
 	}
 	defer os.RemoveAll(tempWorkspace) // Guarantee full cleanup on all exit paths
+	_ = os.Chmod(tempWorkspace, 0o777)
 
 	if err := copyProjectFiles(req.RepoPath, tempWorkspace); err != nil {
 		return &EvaluationResult{
@@ -247,7 +251,7 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 
 	// Inject mutated file into the ephemeral workspace
 	targetDest := filepath.Join(tempWorkspace, cleanedRel)
-	if err := os.MkdirAll(filepath.Dir(targetDest), 0o750); err != nil {
+	if err := os.MkdirAll(filepath.Dir(targetDest), 0o777); err != nil {
 		return &EvaluationResult{
 			TestsPassed: false,
 			Outcome:     OutcomeInfrastructureFailure,
@@ -255,7 +259,7 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 			Error:       fmt.Errorf("failed to create directory for mutated file: %w", err),
 		}, err
 	}
-	if err := os.WriteFile(targetDest, newContent, 0o600); err != nil {
+	if err := os.WriteFile(targetDest, newContent, 0o666); err != nil {
 		return &EvaluationResult{
 			TestsPassed: false,
 			Outcome:     OutcomeInfrastructureFailure,
@@ -414,7 +418,7 @@ func copyProjectFiles(srcDir, destDir string) error {
 		}
 
 		targetPath := filepath.Join(destDir, rel)
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0o750); err != nil {
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0o777); err != nil {
 			return err
 		}
 
@@ -429,7 +433,7 @@ func copyFile(src, dst string) error {
 	}
 	defer in.Close()
 
-	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600)
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o666)
 	if err != nil {
 		return err
 	}

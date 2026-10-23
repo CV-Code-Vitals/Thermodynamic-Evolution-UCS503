@@ -516,7 +516,9 @@ func TestDockerEvaluator_NeverFallsBackToHost(t *testing.T) {
 // ── Test 10: Docker Integration Test (detects live daemon) ────────────────────
 
 func TestDockerEvaluator_LiveExecution(t *testing.T) {
-	evaluator := NewDockerEvaluator(DockerEvaluatorConfig{})
+	evaluator := NewDockerEvaluator(DockerEvaluatorConfig{
+		Image: os.Getenv("SANDBOX_RUNNER_IMAGE"),
+	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,8 +47,70 @@ type EnergyEvaluator interface {
 
 // RustEngineEvaluator implements EnergyEvaluator by invoking the compiled Rust thermodynamic-ast-engine CLI.
 type RustEngineEvaluator struct {
-	EnginePath string
-	Timeout    time.Duration
+	EnginePath    string
+	Timeout       time.Duration
+	Cache         *EnergyCache
+	EngineVersion string
+}
+
+// EnergyCache provides bounded in-memory caching for deterministic AST energy measurements.
+type EnergyCache struct {
+	mu      sync.RWMutex
+	entries map[string]*EnergyMeasurement
+	maxSize int
+}
+
+// NewEnergyCache creates an EnergyCache with bounded entry capacity.
+func NewEnergyCache(maxSize int) *EnergyCache {
+	if maxSize <= 0 {
+		maxSize = 256
+	}
+	return &EnergyCache{
+		entries: make(map[string]*EnergyMeasurement),
+		maxSize: maxSize,
+	}
+}
+
+// Get retrieves a cached measurement, returning a copy to prevent mutation.
+func (c *EnergyCache) Get(key string) (*EnergyMeasurement, bool) {
+	if c == nil {
+		return nil, false
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	m, ok := c.entries[key]
+	if !ok {
+		return nil, false
+	}
+	copyMeas := *m
+	return &copyMeas, true
+}
+
+// Put stores a copy of the measurement in cache, evicting an entry if at max capacity.
+func (c *EnergyCache) Put(key string, m *EnergyMeasurement) {
+	if c == nil || m == nil {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.entries) >= c.maxSize {
+		for k := range c.entries {
+			delete(c.entries, k)
+			break
+		}
+	}
+	copyMeas := *m
+	c.entries[key] = &copyMeas
+}
+
+// Size returns the current number of cached evaluations.
+func (c *EnergyCache) Size() int {
+	if c == nil {
+		return 0
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return len(c.entries)
 }
 
 // NewRustEngineEvaluator constructs an evaluator with automatic engine discovery.
@@ -63,8 +126,10 @@ func NewRustEngineEvaluator(customPath string) (*RustEngineEvaluator, error) {
 	}
 
 	return &RustEngineEvaluator{
-		EnginePath: path,
-		Timeout:    10 * time.Second,
+		EnginePath:    path,
+		Timeout:       10 * time.Second,
+		Cache:         NewEnergyCache(512),
+		EngineVersion: "2.0.0",
 	}, nil
 }
 
@@ -101,6 +166,22 @@ func (r *RustEngineEvaluator) EvaluateEnergy(ctx context.Context, sourceContent 
 	h := sha256.Sum256(sourceContent)
 	sourceHash := hex.EncodeToString(h[:])
 
+	cleanRel := filepath.Clean(filepath.FromSlash(relFilePath))
+
+	version := r.EngineVersion
+	if version == "" {
+		version = "unknown"
+	}
+
+	// Fast cache lookup
+	cacheKey := fmt.Sprintf("%s:%s:%s:v=%s", sourceHash, cleanRel, funcName, version)
+	if r.Cache != nil {
+		if cached, ok := r.Cache.Get(cacheKey); ok {
+			cached.Duration = time.Since(start)
+			return cached, nil
+		}
+	}
+
 	// 1. Prepare sanitized temporary directory for engine analysis
 	tempDir, err := os.MkdirTemp("", "ucs503-ast-*")
 	if err != nil {
@@ -108,8 +189,6 @@ func (r *RustEngineEvaluator) EvaluateEnergy(ctx context.Context, sourceContent 
 	}
 	defer os.RemoveAll(tempDir) // Guarantee cleanup
 
-	// Normalize relative path and write candidate file
-	cleanRel := filepath.Clean(filepath.FromSlash(relFilePath))
 	targetDest := filepath.Join(tempDir, cleanRel)
 	if err := os.MkdirAll(filepath.Dir(targetDest), 0o750); err != nil {
 		return nil, fmt.Errorf("create target dir: %w", err)
@@ -172,6 +251,15 @@ func (r *RustEngineEvaluator) EvaluateEnergy(ctx context.Context, sourceContent 
 	measurement.SourceHash = sourceHash
 	measurement.EngineVersion = report.EngineVersion
 	measurement.FilePath = cleanRel
+
+	if report.EngineVersion != "" && report.EngineVersion != version {
+		cacheKey = fmt.Sprintf("%s:%s:%s:v=%s", sourceHash, cleanRel, funcName, report.EngineVersion)
+	}
+
+	// Populate cache
+	if r.Cache != nil {
+		r.Cache.Put(cacheKey, measurement)
+	}
 
 	return measurement, nil
 }

@@ -5,12 +5,16 @@ on:
     paths:
       - 'api/**'
       - 'go-backend/**'
+      - 'thermodynamic-ast-engine/**'
+      - 'docker/**'
       - 'template.yaml'
       - '.github/workflows/ci-go.yml'
   pull_request:
     paths:
       - 'api/**'
       - 'go-backend/**'
+      - 'thermodynamic-ast-engine/**'
+      - 'docker/**'
       - 'template.yaml'
       - '.github/workflows/ci-go.yml'
 
@@ -24,6 +28,9 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.25'
+          cache-dependency-path: |
+            api/go.sum
+            go-backend/go.sum
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -31,7 +38,9 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('api/go.sum', 'go-backend/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Install dependencies
         run: |
@@ -63,10 +72,53 @@ jobs:
           sam validate --lint --template-file template.yaml
           sam build --template-file template.yaml
 
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build and Test Rust Thermodynamic AST Engine
+        run: |
+          cd thermodynamic-ast-engine
+          cargo test
+          cargo build --release
+
+      - name: Build Docker Sandbox Runner Image
+        run: |
+          docker build -t ucs503-sandbox-runner:latest -f docker/sandbox-runner/Dockerfile .
+
+      - name: Run Live Docker Sandbox Integration Tests (Mandatory Gate)
+        run: |
+          cd go-backend
+          export ENGINE_PATH="$GITHUB_WORKSPACE/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine"
+          export SANDBOX_RUNNER_IMAGE="ucs503-sandbox-runner:latest"
+          TEST_EXIT=0
+          go test -v -run TestDockerEvaluator_LiveExecution ./agent > sandbox_test.log 2>&1 || TEST_EXIT=$?
+          cat sandbox_test.log
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "ERROR: Live Docker Sandbox integration test failed with exit code $TEST_EXIT!"
+            exit $TEST_EXIT
+          fi
+          if grep -q -F -- "--- SKIP: TestDockerEvaluator_LiveExecution" sandbox_test.log; then
+            echo "ERROR: Live Docker Sandbox integration test was skipped!"
+            exit 1
+          fi
+          if ! grep -q -F -- "--- PASS: TestDockerEvaluator_LiveExecution" sandbox_test.log; then
+            echo "ERROR: Mandatory Live Docker Sandbox integration test did not pass!"
+            exit 1
+          fi
+
+      - name: Upload Sandbox Test Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-integration-test-logs
+          path: go-backend/sandbox_test.log
+
       - name: Check analysis backend
         run: |
           cd go-backend
           go mod download
           go vet ./...
-          go test ./...
+          export ENGINE_PATH="$GITHUB_WORKSPACE/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine"
+          export SANDBOX_RUNNER_IMAGE="ucs503-sandbox-runner:latest"
+          go test -v ./...
           go build ./...

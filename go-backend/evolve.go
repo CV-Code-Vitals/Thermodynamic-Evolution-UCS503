@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/saksham/self-healing-pipeline/agent"
@@ -26,15 +27,20 @@ type EvolveRequest struct {
 }
 
 func evolveHandler() gin.HandlerFunc {
-	mutator := &agent.MutationAgent{
-		Client:  &http.Client{},
-		APIBase: os.Getenv("MUTATION_API_BASE"),
-		APIKey:  os.Getenv("MUTATION_API_KEY"),
-		Model:   os.Getenv("MUTATION_MODEL"),
+	var llmAgent *agent.MutationAgent
+	if os.Getenv("MUTATION_API_KEY") != "" {
+		llmAgent = &agent.MutationAgent{
+			Client:  &http.Client{Timeout: 30 * time.Second},
+			APIBase: os.Getenv("MUTATION_API_BASE"),
+			APIKey:  os.Getenv("MUTATION_API_KEY"),
+			Model:   os.Getenv("MUTATION_MODEL"),
+		}
+		if llmAgent.APIBase == "" {
+			llmAgent.APIBase = "https://api.openai.com"
+		}
 	}
-	if mutator.APIBase == "" {
-		mutator.APIBase = "https://api.openai.com" // default
-	}
+
+	mutator := agent.NewAdaptiveMutator(llmAgent, 0)
 
 	// Configure the hardened Docker sandbox evaluator
 	evaluator := agent.NewDockerEvaluator(agent.DockerEvaluatorConfig{

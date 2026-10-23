@@ -2,6 +2,8 @@ package agent
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -10,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // CodeMutator defines the interface for generating candidate code patches.
@@ -19,9 +23,12 @@ type CodeMutator interface {
 
 // AnnealingConfig defines the hyperparameters for simulated annealing.
 type AnnealingConfig struct {
-	InitialTemp float64 `json:"initial_temp"`
-	CoolingRate float64 `json:"cooling_rate"`
-	MaxSteps    int     `json:"max_steps"`
+	InitialTemp              float64 `json:"initial_temp"`
+	CoolingRate              float64 `json:"cooling_rate"`
+	MaxSteps                 int     `json:"max_steps"`
+	TargetEnergy             float64 `json:"target_energy,omitempty"`
+	MinTemp                  float64 `json:"min_temp,omitempty"`
+	EnableDuplicateDetection bool    `json:"enable_duplicate_detection,omitempty"`
 }
 
 // StepTelemetry captures per-iteration telemetry for the live evolution stream.
@@ -42,17 +49,27 @@ type StepTelemetry struct {
 	CodePatch       string           `json:"code_patch,omitempty"`
 	SourceHash      string           `json:"source_hash,omitempty"`
 	Metrics         *FunctionMetrics `json:"metrics,omitempty"`
+	CandidateID     string           `json:"candidate_id,omitempty"`
+	Strategy        string           `json:"strategy,omitempty"`
 }
 
 // AnnealingResult contains the final accepted code and metrics.
 type AnnealingResult struct {
-	OptimizedCode  string  `json:"optimized_code"`
-	BaselineEnergy float64 `json:"baseline_energy"`
-	FinalEnergy    float64 `json:"final_energy"`
-	EnergyDelta    float64 `json:"energy_delta"`
-	TotalSteps     int     `json:"total_steps"`
-	AcceptedMoves  int     `json:"accepted_moves"`
-	BestImproved   bool    `json:"best_improved"`
+	OptimizedCode      string                   `json:"optimized_code"`
+	BaselineEnergy     float64                  `json:"baseline_energy"`
+	FinalEnergy        float64                  `json:"final_energy"`
+	EnergyDelta        float64                  `json:"energy_delta"`
+	TotalSteps         int                      `json:"total_steps"`
+	AcceptedMoves      int                      `json:"accepted_moves"`
+	BestImproved       bool                     `json:"best_improved"`
+	TerminationReason  string                   `json:"termination_reason"`
+	ProposalsGenerated int                      `json:"proposals_generated"`
+	CorrectnessPassed  int                      `json:"correctness_passed"`
+	CorrectnessFailed  int                      `json:"correctness_failed"`
+	DuplicatesSkipped  int                      `json:"duplicates_skipped"`
+	StrategyStats      map[string]StrategyStats `json:"strategy_stats,omitempty"`
+	InitialSourceHash  string                   `json:"initial_source_hash"`
+	FinalSourceHash    string                   `json:"final_source_hash"`
 }
 
 // Annealer orchestrates code optimization through simulated annealing.
@@ -105,6 +122,9 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 	}
 
 	// 1. Establish baseline energy using real AST engine
+	hInit := sha256.Sum256(contentBytes)
+	initialSourceHash := hex.EncodeToString(hInit[:])
+
 	baselineMeas, err := a.EnergyEvaluator.EvaluateEnergy(ctx, contentBytes, cleanedRel, funcName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to evaluate baseline structural energy: %w", err)
@@ -136,13 +156,34 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		coolingRate = 0.85
 	}
 
+	// Search metrics tracking
 	acceptedMoves := 0
+	proposalsGenerated := 0
+	correctnessPassed := 0
+	correctnessFailed := 0
+	duplicatesSkipped := 0
+	terminationReason := "max_steps_reached"
+
+	// Duplicate detection set seeded with baseline
+	seenCandidateHashes := map[string]bool{initialSourceHash: true}
+
+	targetedMutator, isTargeted := a.Mutator.(TargetedMutator)
 
 	for step := 1; step <= cfg.MaxSteps; step++ {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		default:
+		}
+
+		// Check search budget termination conditions
+		if cfg.MinTemp > 0 && currentTemp < cfg.MinTemp {
+			terminationReason = "temperature_exhausted"
+			break
+		}
+		if cfg.TargetEnergy > 0 && bestEnergy <= cfg.TargetEnergy {
+			terminationReason = "target_energy_reached"
+			break
 		}
 
 		telemetry := StepTelemetry{
@@ -153,16 +194,93 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 			BaselineEnergy: baselineEnergy,
 		}
 
-		// 2. Propose mutation via LLM / agent mutator
-		mutatedCode, err := a.Mutator.ProposeMutation(ctx, currentCode, funcName)
-		if err != nil {
-			telemetry.Reason = "mutation_failed: " + err.Error()
+		// Current state snapshot hash
+		hCur := sha256.Sum256(workingFileBytes)
+		currentSourceHash := hex.EncodeToString(hCur[:])
+
+		var mutatedCode string
+		var strategyName string
+		var candidateID string
+
+		proposalsGenerated++
+
+		if isTargeted {
+			candidateID = fmt.Sprintf("cand-%d-%s", step, uuid.New().String()[:8])
+			req := MutationRequest{
+				CandidateID:      candidateID,
+				BaseSnapshotHash: currentSourceHash,
+				FilePath:         cleanedRel,
+				FunctionName:     funcName,
+				StartByte:        startByte,
+				EndByte:          endByte,
+				CurrentCode:      currentCode,
+				FullContent:      workingFileBytes,
+				Iteration:        step,
+				Temperature:      currentTemp,
+			}
+			proposal, propErr := targetedMutator.ProposeTargeted(ctx, req)
+			if propErr != nil {
+				telemetry.Reason = "mutation_failed: " + propErr.Error()
+				if !sendTelemetry(ctx, ch, telemetry) {
+					return nil, ctx.Err()
+				}
+				currentTemp *= coolingRate
+				continue
+			}
+
+			// Snapshot integrity: verify proposal was derived from current state
+			if proposal.BaseSnapshotHash != currentSourceHash {
+				telemetry.Reason = fmt.Sprintf("stale_proposal_rejected: base hash mismatch (expected %s, got %s)",
+					currentSourceHash[:8], proposal.BaseSnapshotHash[:8])
+				if !sendTelemetry(ctx, ch, telemetry) {
+					return nil, ctx.Err()
+				}
+				currentTemp *= coolingRate
+				continue
+			}
+
+			mutatedCode = proposal.MutatedCode
+			strategyName = proposal.StrategyName
+			candidateID = proposal.CandidateID
+		} else {
+			candidateID = fmt.Sprintf("cand-%d", step)
+			strategyName = "legacy_mutator"
+			mutCode, mutErr := a.Mutator.ProposeMutation(ctx, currentCode, funcName)
+			if mutErr != nil {
+				telemetry.Reason = "mutation_failed: " + mutErr.Error()
+				if !sendTelemetry(ctx, ch, telemetry) {
+					return nil, ctx.Err()
+				}
+				currentTemp *= coolingRate
+				continue
+			}
+			mutatedCode = mutCode
+		}
+
+		telemetry.CandidateID = candidateID
+		telemetry.Strategy = strategyName
+
+		// Check duplicate candidate before container execution
+		prospectiveBytes := make([]byte, 0, startByte+len(mutatedCode)+(len(workingFileBytes)-endByte))
+		prospectiveBytes = append(prospectiveBytes, workingFileBytes[:startByte]...)
+		prospectiveBytes = append(prospectiveBytes, []byte(mutatedCode)...)
+		prospectiveBytes = append(prospectiveBytes, workingFileBytes[endByte:]...)
+
+		hCand := sha256.Sum256(prospectiveBytes)
+		candHash := hex.EncodeToString(hCand[:])
+
+		if cfg.EnableDuplicateDetection && seenCandidateHashes[candHash] {
+			duplicatesSkipped++
+			telemetry.Accepted = false
+			telemetry.Reason = "duplicate_candidate_skipped"
+			telemetry.SourceHash = candHash
 			if !sendTelemetry(ctx, ch, telemetry) {
 				return nil, ctx.Err()
 			}
 			currentTemp *= coolingRate
 			continue
 		}
+		seenCandidateHashes[candHash] = true
 
 		// 3. Evaluate candidate correctness in secure sandbox boundary
 		evalReq := EvaluationRequest{
@@ -177,6 +295,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 
 		evalRes, err := a.Evaluator.EvaluateCandidate(ctx, evalReq)
 		if err != nil {
+			correctnessFailed++
 			telemetry.TestsPassed = false
 			telemetry.Accepted = false
 			telemetry.Reason = "evaluation_error: " + err.Error()
@@ -192,6 +311,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		}
 
 		if !evalRes.TestsPassed {
+			correctnessFailed++
 			telemetry.TestsPassed = false
 			telemetry.Accepted = false
 			telemetry.Reason = string(evalRes.Outcome)
@@ -202,6 +322,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 			continue
 		}
 
+		correctnessPassed++
 		telemetry.TestsPassed = true
 
 		// 4. Evaluate actual structural energy using the Rust AST engine
@@ -223,7 +344,6 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		telemetry.CodePatch = mutatedCode
 
 		// 5. Calculate genuine energy differential: lower is better!
-		// deltaE = candidateEnergy - currentEnergy
 		deltaE := candidateEnergy - currentEnergy
 		telemetry.DeltaE = deltaE
 		telemetry.NewEnergy = candidateEnergy
@@ -245,6 +365,12 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 				bestCode = mutatedCode
 				bestFileBytes = evalRes.UpdatedFileBytes
 				telemetry.IsBestSoFar = true
+
+				if isTargeted {
+					if adaptive, ok := a.Mutator.(*AdaptiveMutator); ok {
+						adaptive.RecordOutcome(strategyName, true, true)
+					}
+				}
 			}
 		} else {
 			// Uphill transition: complexity increased
@@ -285,20 +411,91 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 	// 7. Persist ONLY if the best discovered candidate improved over the initial baseline
 	bestImproved := bestEnergy < baselineEnergy && bestCode != initialCode
 	if bestImproved {
-		if err := os.WriteFile(fullPath, bestFileBytes, 0o644); err != nil {
+		if err := AtomicWriteFileWithConflictDetection(fullPath, bestFileBytes, initialSourceHash, 0o644); err != nil {
 			return nil, fmt.Errorf("failed to persist accepted mutation: %w", err)
 		}
 	}
 
+	hFinal := sha256.Sum256(bestFileBytes)
+	finalSourceHash := hex.EncodeToString(hFinal[:])
+
+	var stratStats map[string]StrategyStats
+	if isTargeted {
+		stratStats = targetedMutator.GetStrategyStats()
+	}
+
 	return &AnnealingResult{
-		OptimizedCode:  bestCode,
-		BaselineEnergy: baselineEnergy,
-		FinalEnergy:    bestEnergy,
-		EnergyDelta:    baselineEnergy - bestEnergy, // Positive value represents energy reduced (improvement)
-		TotalSteps:     cfg.MaxSteps,
-		AcceptedMoves:  acceptedMoves,
-		BestImproved:   bestImproved,
+		OptimizedCode:      bestCode,
+		BaselineEnergy:     baselineEnergy,
+		FinalEnergy:        bestEnergy,
+		EnergyDelta:        baselineEnergy - bestEnergy, // Positive value represents energy reduced (improvement)
+		TotalSteps:         cfg.MaxSteps,
+		AcceptedMoves:      acceptedMoves,
+		BestImproved:       bestImproved,
+		TerminationReason:  terminationReason,
+		ProposalsGenerated: proposalsGenerated,
+		CorrectnessPassed:  correctnessPassed,
+		CorrectnessFailed:  correctnessFailed,
+		DuplicatesSkipped:  duplicatesSkipped,
+		StrategyStats:      stratStats,
+		InitialSourceHash:  initialSourceHash,
+		FinalSourceHash:    finalSourceHash,
 	}, nil
+}
+
+// AtomicWriteFileWithConflictDetection atomically replaces targetPath with data,
+// detecting concurrent modifications by verifying expectedBaselineHash against disk contents.
+func AtomicWriteFileWithConflictDetection(targetPath string, data []byte, expectedBaselineHash string, perm os.FileMode) error {
+	dir := filepath.Dir(targetPath)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("create parent directory for atomic write: %w", err)
+	}
+
+	// 1. Write to an ephemeral temporary file in the same directory first
+	tmpFile, err := os.CreateTemp(dir, ".ucs503-persist-*")
+	if err != nil {
+		return fmt.Errorf("create temporary file for atomic write: %w", err)
+	}
+	tmpName := tmpFile.Name()
+	defer os.Remove(tmpName) // Clean up if rename fails or conflict occurs
+
+	if _, err := tmpFile.Write(data); err != nil {
+		tmpFile.Close()
+		return fmt.Errorf("write candidate data: %w", err)
+	}
+
+	if err := tmpFile.Sync(); err != nil {
+		tmpFile.Close()
+		return fmt.Errorf("sync candidate file: %w", err)
+	}
+
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("close temporary file: %w", err)
+	}
+
+	_ = os.Chmod(tmpName, perm)
+
+	// 2. Conflict detection: read disk content as close to atomic rename as practical
+	currentDiskBytes, err := os.ReadFile(targetPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return fmt.Errorf("read target file for conflict check: %w", err)
+		}
+	} else {
+		h := sha256.Sum256(currentDiskBytes)
+		currentHash := hex.EncodeToString(h[:])
+		if expectedBaselineHash != "" && currentHash != expectedBaselineHash {
+			return fmt.Errorf("%w: file on disk was modified externally (expected hash %s, found %s)",
+				ErrConcurrentModification, expectedBaselineHash, currentHash)
+		}
+	}
+
+	// 3. Atomically replace targetPath
+	if err := os.Rename(tmpName, targetPath); err != nil {
+		return fmt.Errorf("atomic rename failed: %w", err)
+	}
+
+	return nil
 }
 
 // sendTelemetry sends a step event on ch with context cancellation protection to prevent goroutine leaks.

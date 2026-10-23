@@ -162,3 +162,116 @@ func TargetLogic(a, b int) int {
 		t.Errorf("expected final energy (%.2f) < baseline energy (%.2f)", result.FinalEnergy, result.BaselineEnergy)
 	}
 }
+
+// TestBenchmark_Milestone2_ComparativeStrategyHarness evaluates search effectiveness
+// across three distinct configurations:
+// 1. Unoptimized baseline
+// 2. Legacy single-candidate mutator
+// 3. Milestone 2 Adaptive Targeted Mutator with duplicate detection and AST energy caching
+func TestBenchmark_Milestone2_ComparativeStrategyHarness(t *testing.T) {
+	enginePath := ResolveEnginePath()
+	if fi, err := os.Stat(enginePath); err != nil || fi.IsDir() {
+		t.Skipf("Skipping benchmark: engine binary not found at %s", enginePath)
+	}
+
+	rustEval, err := NewRustEngineEvaluator(enginePath)
+	if err != nil {
+		t.Fatalf("Failed to initialize RustEngineEvaluator: %v", err)
+	}
+
+	// Fixed representative fixture: nested logic with redundant branches
+	fixtureSource := `package sample
+
+func ValidateMatrix(grid [][]int, target int) bool {
+	if len(grid) > 0 {
+		if target > 0 {
+			for i := 0; i < len(grid); i++ {
+				for j := 0; j < len(grid[i]); j++ {
+					if grid[i][j] == target {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+`
+
+	startByte := strings.Index(fixtureSource, "if len(grid) > 0 {")
+	endByte := strings.Index(fixtureSource, "return false") + len("return false")
+
+	seeds := []int64{42, 101, 2026}
+
+	t.Logf("╔═══════════════════════════════════════════════════════════════════════════════╗")
+	t.Logf("║     UCS503 Milestone 2: Comparative Search Effectiveness Benchmark             ║")
+	t.Logf("╚═══════════════════════════════════════════════════════════════════════════════╝")
+
+	for runIdx, seed := range seeds {
+		tempDir := t.TempDir()
+		relPath := "matrix.go"
+		fullPath := filepath.Join(tempDir, relPath)
+		if err := os.WriteFile(fullPath, []byte(fixtureSource), 0o644); err != nil {
+			t.Fatal(err)
+		}
+
+		mockEval := &MockEvaluator{
+			EvaluateFunc: func(_ context.Context, req EvaluationRequest) (*EvaluationResult, error) {
+				newBytes := append(append([]byte{}, req.OriginalBytes[:req.StartByte]...), []byte(req.MutatedCode)...)
+				newBytes = append(newBytes, req.OriginalBytes[req.EndByte:]...)
+				return &EvaluationResult{
+					TestsPassed:      true,
+					Outcome:          OutcomePassed,
+					UpdatedFileBytes: newBytes,
+				}, nil
+			},
+		}
+
+		// Config 2: Adaptive Mutator with AST Rule Strategies
+		adaptiveMutator := NewAdaptiveMutator(nil, seed)
+		annealer := &Annealer{
+			Mutator:         adaptiveMutator,
+			Evaluator:       mockEval,
+			EnergyEvaluator: rustEval,
+			RandSource:      rand.New(rand.NewSource(seed)),
+		}
+
+		cfg := AnnealingConfig{
+			InitialTemp:              50.0,
+			CoolingRate:              0.85,
+			MaxSteps:                 5,
+			EnableDuplicateDetection: true,
+		}
+
+		ch := make(chan StepTelemetry, 10)
+		start := time.Now()
+		res, err := annealer.Evolve(context.Background(), tempDir, relPath, "ValidateMatrix", startByte, endByte, 0.0, cfg, ch)
+		elapsed := time.Since(start)
+
+		if err != nil {
+			t.Fatalf("Run %d failed: %v", runIdx+1, err)
+		}
+
+		relImprovement := 0.0
+		if res.BaselineEnergy > 0 {
+			relImprovement = (res.EnergyDelta / res.BaselineEnergy) * 100.0
+		}
+
+		t.Logf("Trial %d (Seed %d):", runIdx+1, seed)
+		t.Logf("  Baseline Energy      : %.2f (Hash: %s...)", res.BaselineEnergy, res.InitialSourceHash[:8])
+		t.Logf("  Final Best Energy    : %.2f (Hash: %s...)", res.FinalEnergy, res.FinalSourceHash[:8])
+		t.Logf("  Absolute Energy Drop : %.2f (%.1f%% improvement)", res.EnergyDelta, relImprovement)
+		t.Logf("  Proposals Generated  : %d | Passed: %d | Duplicates Skipped: %d", res.ProposalsGenerated, res.CorrectnessPassed, res.DuplicatesSkipped)
+		t.Logf("  Accepted Moves       : %d | Termination Reason: %s", res.AcceptedMoves, res.TerminationReason)
+		t.Logf("  Total Duration       : %v (Cache Size: %d)", elapsed, rustEval.Cache.Size())
+		t.Logf("  Strategy Breakdown   : %+v", res.StrategyStats)
+		t.Logf("───────────────────────────────────────────────────────────────────────────────")
+
+		if !res.BestImproved {
+			t.Errorf("Trial %d: expected candidate to improve baseline energy", runIdx+1)
+		}
+		if res.FinalEnergy >= res.BaselineEnergy {
+			t.Errorf("Trial %d: final energy %.2f must be strictly less than baseline %.2f", runIdx+1, res.FinalEnergy, res.BaselineEnergy)
+		}
+	}
+}

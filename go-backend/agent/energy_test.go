@@ -2,12 +2,16 @@ package agent
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"math"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -580,3 +584,127 @@ func TestAnnealer_EqualEnergyMoveExploration(t *testing.T) {
 		t.Errorf("original file was corrupted by equal-energy candidate")
 	}
 }
+
+// ── Test 14: Cache Key Differentiation & Version / Function Sensitivity ───────
+
+func TestEnergyCache_KeyIncludesVersionAndFunction(t *testing.T) {
+	cache := NewEnergyCache(10)
+
+	source := "func Foo() int { return 42 }"
+	h := sha256Sum(source)
+
+	keyV1 := fmt.Sprintf("%s:foo.go:Foo:v=2.0.0", h)
+	keyV2 := fmt.Sprintf("%s:foo.go:Foo:v=2.1.0", h)
+	keyOtherFunc := fmt.Sprintf("%s:foo.go:Bar:v=2.0.0", h)
+
+	m1 := &EnergyMeasurement{Energy: 15.0, FunctionName: "Foo", EngineVersion: "2.0.0"}
+	m2 := &EnergyMeasurement{Energy: 25.0, FunctionName: "Foo", EngineVersion: "2.1.0"}
+	mOther := &EnergyMeasurement{Energy: 35.0, FunctionName: "Bar", EngineVersion: "2.0.0"}
+
+	cache.Put(keyV1, m1)
+	cache.Put(keyV2, m2)
+	cache.Put(keyOtherFunc, mOther)
+
+	if cache.Size() != 3 {
+		t.Fatalf("expected 3 distinct entries in cache, got %d", cache.Size())
+	}
+
+	gotV1, ok1 := cache.Get(keyV1)
+	gotV2, ok2 := cache.Get(keyV2)
+	gotOther, ok3 := cache.Get(keyOtherFunc)
+
+	if !ok1 || gotV1.Energy != 15.0 {
+		t.Errorf("expected V1 energy 15.0, got %v", gotV1)
+	}
+	if !ok2 || gotV2.Energy != 25.0 {
+		t.Errorf("expected V2 energy 25.0, got %v", gotV2)
+	}
+	if !ok3 || gotOther.Energy != 35.0 {
+		t.Errorf("expected other func energy 35.0, got %v", gotOther)
+	}
+}
+
+// ── Test 15: Cache Corruption Resistance (Returned Copies) ───────────────────
+
+func TestEnergyCache_MutationResistance(t *testing.T) {
+	cache := NewEnergyCache(10)
+
+	orig := &EnergyMeasurement{
+		Energy:       50.0,
+		FunctionName: "OriginalFunc",
+		Metrics: FunctionMetrics{
+			CyclomaticComplexity: 5,
+		},
+	}
+
+	cache.Put("test-key", orig)
+
+	// Caller retrieves and mutates the returned struct
+	retrieved, ok := cache.Get("test-key")
+	if !ok {
+		t.Fatal("expected cache hit")
+	}
+
+	retrieved.Energy = 999.9
+	retrieved.FunctionName = "CorruptedFunc"
+	retrieved.Metrics.CyclomaticComplexity = 999
+
+	// Secondary retrieval must return pristine, unmutated values
+	secondRetrieval, ok := cache.Get("test-key")
+	if !ok {
+		t.Fatal("expected second cache hit")
+	}
+
+	if secondRetrieval.Energy != 50.0 {
+		t.Errorf("cache was corrupted by caller mutation: expected 50.0, got %.2f", secondRetrieval.Energy)
+	}
+	if secondRetrieval.FunctionName != "OriginalFunc" {
+		t.Errorf("cache was corrupted by caller mutation: expected OriginalFunc, got %s", secondRetrieval.FunctionName)
+	}
+	if secondRetrieval.Metrics.CyclomaticComplexity != 5 {
+		t.Errorf("cache metrics corrupted: expected 5, got %d", secondRetrieval.Metrics.CyclomaticComplexity)
+	}
+}
+
+// ── Test 16: Thread Safety & Concurrent Access ────────────────────────────────
+
+func TestEnergyCache_ConcurrentAccess(t *testing.T) {
+	cache := NewEnergyCache(32)
+
+	var wg sync.WaitGroup
+	workers := 50
+	iterations := 100
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		workerID := i
+		go func() {
+			defer wg.Done()
+			for j := 0; j < iterations; j++ {
+				key := fmt.Sprintf("key-%d", (workerID+j)%20)
+				if j%2 == 0 {
+					cache.Put(key, &EnergyMeasurement{
+						Energy:       float64(workerID*10 + j),
+						FunctionName: key,
+					})
+				} else {
+					_, _ = cache.Get(key)
+				}
+				_ = cache.Size()
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	if cache.Size() > 32 {
+		t.Errorf("cache exceeded max size 32 during concurrent operations, got %d", cache.Size())
+	}
+}
+
+// helper sha256Sum for tests
+func sha256Sum(s string) string {
+	h := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(h[:])
+}
+
