@@ -95,8 +95,9 @@ func TestAnnealer_MockEvaluator_SuccessfulOptimization(t *testing.T) {
 	}
 
 	annealer := &Annealer{
-		Mutator:   mutator,
-		Evaluator: evaluator,
+		Mutator:         mutator,
+		Evaluator:       evaluator,
+		EnergyEvaluator: &MockEnergyEvaluator{FixedEnergy: 40.0},
 	}
 
 	cfg := AnnealingConfig{
@@ -158,8 +159,9 @@ func TestAnnealer_CandidateTestFailure(t *testing.T) {
 	}
 
 	annealer := &Annealer{
-		Mutator:   mutator,
-		Evaluator: evaluator,
+		Mutator:         mutator,
+		Evaluator:       evaluator,
+		EnergyEvaluator: &MockEnergyEvaluator{FixedEnergy: 40.0},
 	}
 
 	cfg := AnnealingConfig{
@@ -222,7 +224,11 @@ func TestAnnealer_ExecutionTimeout(t *testing.T) {
 	}
 
 	mutator := &mockMutator{mutations: []string{"for {}"}} // Infinite loop
-	annealer := &Annealer{Mutator: mutator, Evaluator: evaluator}
+	annealer := &Annealer{
+		Mutator:         mutator,
+		Evaluator:       evaluator,
+		EnergyEvaluator: &MockEnergyEvaluator{FixedEnergy: 40.0},
+	}
 
 	cfg := AnnealingConfig{InitialTemp: 10.0, CoolingRate: 0.5, MaxSteps: 1}
 	ch := make(chan StepTelemetry, 2)
@@ -257,7 +263,11 @@ func TestAnnealer_ContextCancellation(t *testing.T) {
 
 	evaluator := &MockEvaluator{}
 	mutator := &mockMutator{}
-	annealer := &Annealer{Mutator: mutator, Evaluator: evaluator}
+	annealer := &Annealer{
+		Mutator:         mutator,
+		Evaluator:       evaluator,
+		EnergyEvaluator: &MockEnergyEvaluator{FixedEnergy: 40.0},
+	}
 
 	cfg := AnnealingConfig{InitialTemp: 100.0, CoolingRate: 0.8, MaxSteps: 5}
 	ch := make(chan StepTelemetry, 5)
@@ -312,8 +322,9 @@ func TestAnnealer_FailsClosedWhenEvaluatorMissing(t *testing.T) {
 
 	// Explicitly nil Evaluator
 	annealer := &Annealer{
-		Mutator:   mutator,
-		Evaluator: nil,
+		Mutator:         mutator,
+		Evaluator:       nil,
+		EnergyEvaluator: &MockEnergyEvaluator{FixedEnergy: 40.0},
 	}
 
 	cfg := AnnealingConfig{InitialTemp: 10.0, CoolingRate: 0.5, MaxSteps: 1}
@@ -322,6 +333,26 @@ func TestAnnealer_FailsClosedWhenEvaluatorMissing(t *testing.T) {
 	_, err := annealer.Evolve(context.Background(), repoDir, relPath, "Add", 0, 10, 50.0, cfg, ch)
 	if !errors.Is(err, ErrHostExecutionBlocked) {
 		t.Fatalf("expected ErrHostExecutionBlocked when Evaluator is nil, got: %v", err)
+	}
+}
+
+func TestAnnealer_FailsClosedWhenEnergyEvaluatorMissing(t *testing.T) {
+	repoDir, relPath := setupTestRepo(t)
+	mutator := &mockMutator{}
+	evaluator := &MockEvaluator{}
+
+	annealer := &Annealer{
+		Mutator:         mutator,
+		Evaluator:       evaluator,
+		EnergyEvaluator: nil,
+	}
+
+	cfg := AnnealingConfig{InitialTemp: 10.0, CoolingRate: 0.5, MaxSteps: 1}
+	ch := make(chan StepTelemetry, 2)
+
+	_, err := annealer.Evolve(context.Background(), repoDir, relPath, "Add", 0, 10, 50.0, cfg, ch)
+	if err == nil || !strings.Contains(err.Error(), "EnergyEvaluator") {
+		t.Fatalf("expected error when EnergyEvaluator is nil, got: %v", err)
 	}
 }
 

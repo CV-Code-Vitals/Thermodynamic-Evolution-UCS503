@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -39,10 +41,19 @@ func evolveHandler() gin.HandlerFunc {
 		Image: os.Getenv("SANDBOX_RUNNER_IMAGE"),
 	})
 
-	annealer := &agent.Annealer{
-		Mutator:   mutator,
-		Evaluator: evaluator,
+	// Configure the AST thermodynamic energy evaluator (resolves Rust engine path dynamically)
+	energyEvaluator := &agent.LazyRustEngineEvaluator{
+		CustomPath: os.Getenv("ENGINE_PATH"),
 	}
+
+	annealer := &agent.Annealer{
+		Mutator:         mutator,
+		Evaluator:       evaluator,
+		EnergyEvaluator: energyEvaluator,
+	}
+
+	// Global concurrency admission controller for expensive evolution workflows
+	limiter := NewEvolutionAdmissionControllerFromEnv()
 
 	return func(c *gin.Context) {
 		var req EvolveRequest
@@ -63,13 +74,28 @@ func evolveHandler() gin.HandlerFunc {
 			return
 		}
 
+		// Context-aware concurrency admission control
+		release, err := limiter.Acquire(c.Request.Context())
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, ErrLimiterCancelled) {
+				c.JSON(http.StatusRequestTimeout, gin.H{"error": "Request cancelled while waiting for evolution capacity"})
+				return
+			}
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "Evolution engine at maximum capacity. Please retry shortly.",
+				"code":  "server_busy",
+			})
+			return
+		}
+		defer release() // Guarantees capacity is released on every exit path
+
 		c.Header("Content-Type", "text/event-stream")
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 		c.Header("X-Accel-Buffering", "no")
 
 		ctx := c.Request.Context()
-		ch := make(chan agent.StepTelemetry)
+		ch := make(chan agent.StepTelemetry, 16)
 
 		go func() {
 			defer close(ch)

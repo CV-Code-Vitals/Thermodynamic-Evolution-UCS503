@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // CodeMutator defines the interface for generating candidate code patches.
@@ -25,40 +26,66 @@ type AnnealingConfig struct {
 
 // StepTelemetry captures per-iteration telemetry for the live evolution stream.
 type StepTelemetry struct {
-	Step        int     `json:"step"`
-	Temp        float64 `json:"temp"`
-	OldEnergy   float64 `json:"old_energy"`
-	NewEnergy   float64 `json:"new_energy"`
-	DeltaE      float64 `json:"delta_e"`
-	TestsPassed bool    `json:"tests_passed"`
-	Accepted    bool    `json:"accepted"`
-	Reason      string  `json:"reason"`
-	CodePatch   string  `json:"code_patch,omitempty"`
+	Step            int              `json:"step"`
+	Temp            float64          `json:"temp"`
+	OldEnergy       float64          `json:"old_energy"`
+	NewEnergy       float64          `json:"new_energy"`
+	DeltaE          float64          `json:"delta_e"`
+	BestEnergy      float64          `json:"best_energy"`
+	BaselineEnergy  float64          `json:"baseline_energy"`
+	CandidateEnergy float64          `json:"candidate_energy"`
+	AcceptanceProb  float64          `json:"acceptance_prob,omitempty"`
+	IsBestSoFar     bool             `json:"is_best_so_far"`
+	TestsPassed     bool             `json:"tests_passed"`
+	Accepted        bool             `json:"accepted"`
+	Reason          string           `json:"reason"`
+	CodePatch       string           `json:"code_patch,omitempty"`
+	SourceHash      string           `json:"source_hash,omitempty"`
+	Metrics         *FunctionMetrics `json:"metrics,omitempty"`
 }
 
 // AnnealingResult contains the final accepted code and metrics.
 type AnnealingResult struct {
-	OptimizedCode string  `json:"optimized_code"`
-	EnergyDelta   float64 `json:"energy_delta"`
-	TotalSteps    int     `json:"total_steps"`
+	OptimizedCode  string  `json:"optimized_code"`
+	BaselineEnergy float64 `json:"baseline_energy"`
+	FinalEnergy    float64 `json:"final_energy"`
+	EnergyDelta    float64 `json:"energy_delta"`
+	TotalSteps     int     `json:"total_steps"`
+	AcceptedMoves  int     `json:"accepted_moves"`
+	BestImproved   bool    `json:"best_improved"`
 }
 
 // Annealer orchestrates code optimization through simulated annealing.
-// All candidate evaluation is strictly mediated by Evaluator — no direct host execution occurs.
+// All candidate evaluation is strictly mediated by Evaluator, and all energy
+// metrics are measured by the real AST EnergyEvaluator.
 type Annealer struct {
-	Mutator   CodeMutator
-	Evaluator CandidateEvaluator
+	Mutator         CodeMutator
+	Evaluator       CandidateEvaluator
+	EnergyEvaluator EnergyEvaluator
+	RandSource      *rand.Rand
+}
+
+func (a *Annealer) rng() *rand.Rand {
+	if a.RandSource != nil {
+		return a.RandSource
+	}
+	return rand.New(rand.NewSource(time.Now().UnixNano()))
 }
 
 // Evolve runs the simulated annealing loop against a target function.
-// It generates candidates, delegates evaluation to the isolated sandbox boundary,
-// and only updates disk if an optimization is accepted.
+// It measures a real AST baseline energy, iteratively proposes mutations,
+// gates evaluation through the container sandbox boundary, calculates genuine
+// energy differentials using the Rust engine, and updates state according to
+// mathematically sound Metropolis simulated annealing rules.
 func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName string, startByte, endByte int, baseEnergy float64, cfg AnnealingConfig, ch chan<- StepTelemetry) (*AnnealingResult, error) {
 	if a.Evaluator == nil {
 		return nil, fmt.Errorf("%w: annealer requires a configured CandidateEvaluator", ErrHostExecutionBlocked)
 	}
 	if a.Mutator == nil {
 		return nil, errors.New("annealer requires a configured CodeMutator")
+	}
+	if a.EnergyEvaluator == nil {
+		return nil, errors.New("annealer requires a configured EnergyEvaluator")
 	}
 
 	// Validate path boundaries
@@ -77,13 +104,39 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		return nil, fmt.Errorf("%w: byte range [%d:%d] out of range for file size %d", ErrInvalidRequest, startByte, endByte, len(contentBytes))
 	}
 
+	// 1. Establish baseline energy using real AST engine
+	baselineMeas, err := a.EnergyEvaluator.EvaluateEnergy(ctx, contentBytes, cleanedRel, funcName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to evaluate baseline structural energy: %w", err)
+	}
+	baselineEnergy := baselineMeas.Energy
+	if baselineEnergy <= 0.0 {
+		return nil, fmt.Errorf("%w: baseline energy %.4f is non-positive or invalid", ErrInvalidEnergy, baselineEnergy)
+	}
+
 	currentCode := string(contentBytes[startByte:endByte])
-	bestCode := currentCode
 	initialCode := currentCode
 
-	currentTemp := cfg.InitialTemp
-	currentEnergy := baseEnergy
+	// Separate representations:
+	// - current state: actively explored state in annealing (may accept uphill moves)
+	// - best state: lowest valid energy discovered so far
+	currentEnergy := baselineEnergy
+	bestEnergy := baselineEnergy
+	bestCode := currentCode
+
 	workingFileBytes := append([]byte{}, contentBytes...)
+	bestFileBytes := append([]byte{}, contentBytes...)
+
+	currentTemp := cfg.InitialTemp
+	if currentTemp <= 0.0 || math.IsNaN(currentTemp) || math.IsInf(currentTemp, 0) {
+		currentTemp = 100.0
+	}
+	coolingRate := cfg.CoolingRate
+	if coolingRate <= 0.0 || coolingRate >= 1.0 || math.IsNaN(coolingRate) || math.IsInf(coolingRate, 0) {
+		coolingRate = 0.85
+	}
+
+	acceptedMoves := 0
 
 	for step := 1; step <= cfg.MaxSteps; step++ {
 		select {
@@ -92,18 +145,26 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		default:
 		}
 
-		telemetry := StepTelemetry{Step: step, Temp: currentTemp, OldEnergy: currentEnergy}
+		telemetry := StepTelemetry{
+			Step:           step,
+			Temp:           currentTemp,
+			OldEnergy:      currentEnergy,
+			BestEnergy:     bestEnergy,
+			BaselineEnergy: baselineEnergy,
+		}
 
-		// 1. Propose mutation via LLM / agent mutator
+		// 2. Propose mutation via LLM / agent mutator
 		mutatedCode, err := a.Mutator.ProposeMutation(ctx, currentCode, funcName)
 		if err != nil {
 			telemetry.Reason = "mutation_failed: " + err.Error()
-			ch <- telemetry
+			if !sendTelemetry(ctx, ch, telemetry) {
+				return nil, ctx.Err()
+			}
+			currentTemp *= coolingRate
 			continue
 		}
 
-		// 2. Evaluate candidate code through the isolated execution boundary
-		// Notice: host files are NEVER modified during this evaluation!
+		// 3. Evaluate candidate correctness in secure sandbox boundary
 		evalReq := EvaluationRequest{
 			RepoPath:      repoPath,
 			FilePath:      cleanedRel,
@@ -119,69 +180,136 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 			telemetry.TestsPassed = false
 			telemetry.Accepted = false
 			telemetry.Reason = "evaluation_error: " + err.Error()
-			ch <- telemetry
+			if !sendTelemetry(ctx, ch, telemetry) {
+				return nil, ctx.Err()
+			}
 
-			// If the sandbox is unavailable, fail closed immediately — do not silently loop or fallback!
 			if errors.Is(err, ErrSandboxUnavailable) || errors.Is(err, ErrHostExecutionBlocked) {
 				return nil, fmt.Errorf("secure execution failed: %w", err)
 			}
+			currentTemp *= coolingRate
 			continue
 		}
 
-		// 3. Process test results
 		if !evalRes.TestsPassed {
 			telemetry.TestsPassed = false
 			telemetry.Accepted = false
 			telemetry.Reason = string(evalRes.Outcome)
+			if !sendTelemetry(ctx, ch, telemetry) {
+				return nil, ctx.Err()
+			}
+			currentTemp *= coolingRate
+			continue
+		}
+
+		telemetry.TestsPassed = true
+
+		// 4. Evaluate actual structural energy using the Rust AST engine
+		energyMeas, err := a.EnergyEvaluator.EvaluateEnergy(ctx, evalRes.UpdatedFileBytes, cleanedRel, funcName)
+		if err != nil {
+			telemetry.Accepted = false
+			telemetry.Reason = "energy_evaluation_failed: " + err.Error()
+			if !sendTelemetry(ctx, ch, telemetry) {
+				return nil, ctx.Err()
+			}
+			currentTemp *= coolingRate
+			continue
+		}
+
+		candidateEnergy := energyMeas.Energy
+		telemetry.CandidateEnergy = candidateEnergy
+		telemetry.SourceHash = energyMeas.SourceHash
+		telemetry.Metrics = &energyMeas.Metrics
+		telemetry.CodePatch = mutatedCode
+
+		// 5. Calculate genuine energy differential: lower is better!
+		// deltaE = candidateEnergy - currentEnergy
+		deltaE := candidateEnergy - currentEnergy
+		telemetry.DeltaE = deltaE
+		telemetry.NewEnergy = candidateEnergy
+
+		// 6. Simulated annealing acceptance rule
+		if deltaE <= 0.0 {
+			// Downhill transition: structural improvement
+			telemetry.Accepted = true
+			telemetry.Reason = "improvement"
+			currentEnergy = candidateEnergy
+			currentCode = mutatedCode
+			workingFileBytes = evalRes.UpdatedFileBytes
+			endByte = startByte + len(mutatedCode)
+			acceptedMoves++
+
+			// Track best-so-far valid candidate
+			if candidateEnergy < bestEnergy {
+				bestEnergy = candidateEnergy
+				bestCode = mutatedCode
+				bestFileBytes = evalRes.UpdatedFileBytes
+				telemetry.IsBestSoFar = true
+			}
 		} else {
-			telemetry.TestsPassed = true
+			// Uphill transition: complexity increased
+			// Metropolis acceptance probability: p = exp(-deltaE / T)
+			p := 0.0
+			if !math.IsNaN(currentTemp) && !math.IsInf(currentTemp, 0) && currentTemp > 1e-6 {
+				exponent := -deltaE / currentTemp
+				if exponent < -700.0 {
+					p = 0.0 // Underflow guard: exp(-700) ~ 1e-304
+				} else {
+					p = math.Exp(exponent)
+				}
+			}
+			telemetry.AcceptanceProb = p
 
-			// Simulated energy reduction (until inline AST evaluation is integrated in Milestone 1)
-			newEnergy := currentEnergy - rand.Float64()*5.0 + 1.0
-			deltaE := newEnergy - currentEnergy
-			telemetry.NewEnergy = newEnergy
-			telemetry.DeltaE = deltaE
-			telemetry.CodePatch = mutatedCode
-
-			if deltaE < 0 {
+			if a.rng().Float64() < p {
+				// Stochastically accepted into current state to escape local minima
 				telemetry.Accepted = true
-				telemetry.Reason = "improvement"
-				currentEnergy = newEnergy
+				telemetry.Reason = "stochastic_acceptance"
+				currentEnergy = candidateEnergy
 				currentCode = mutatedCode
-				bestCode = currentCode
 				workingFileBytes = evalRes.UpdatedFileBytes
 				endByte = startByte + len(mutatedCode)
+				acceptedMoves++
+				// Best state is NOT overwritten by an uphill transition
 			} else {
-				// Metropolis acceptance criterion for stochastic exploration
-				p := math.Exp(-deltaE / currentTemp)
-				if rand.Float64() < p {
-					telemetry.Accepted = true
-					telemetry.Reason = "stochastic_acceptance"
-					currentEnergy = newEnergy
-					currentCode = mutatedCode
-					workingFileBytes = evalRes.UpdatedFileBytes
-					endByte = startByte + len(mutatedCode)
-				} else {
-					telemetry.Accepted = false
-					telemetry.Reason = "rejected"
-				}
+				telemetry.Accepted = false
+				telemetry.Reason = "rejected"
 			}
 		}
 
-		ch <- telemetry
-		currentTemp *= cfg.CoolingRate
+		if !sendTelemetry(ctx, ch, telemetry) {
+			return nil, ctx.Err()
+		}
+		currentTemp *= coolingRate
 	}
 
-	// 4. If an improvement was accepted, safely persist the verified code to disk
-	if bestCode != initialCode {
-		if err := os.WriteFile(fullPath, workingFileBytes, 0o644); err != nil {
+	// 7. Persist ONLY if the best discovered candidate improved over the initial baseline
+	bestImproved := bestEnergy < baselineEnergy && bestCode != initialCode
+	if bestImproved {
+		if err := os.WriteFile(fullPath, bestFileBytes, 0o644); err != nil {
 			return nil, fmt.Errorf("failed to persist accepted mutation: %w", err)
 		}
 	}
 
 	return &AnnealingResult{
-		OptimizedCode: bestCode,
-		EnergyDelta:   baseEnergy - currentEnergy,
-		TotalSteps:    cfg.MaxSteps,
+		OptimizedCode:  bestCode,
+		BaselineEnergy: baselineEnergy,
+		FinalEnergy:    bestEnergy,
+		EnergyDelta:    baselineEnergy - bestEnergy, // Positive value represents energy reduced (improvement)
+		TotalSteps:     cfg.MaxSteps,
+		AcceptedMoves:  acceptedMoves,
+		BestImproved:   bestImproved,
 	}, nil
+}
+
+// sendTelemetry sends a step event on ch with context cancellation protection to prevent goroutine leaks.
+func sendTelemetry(ctx context.Context, ch chan<- StepTelemetry, telem StepTelemetry) bool {
+	if ch == nil {
+		return true
+	}
+	select {
+	case ch <- telem:
+		return true
+	case <-ctx.Done():
+		return false
+	}
 }
