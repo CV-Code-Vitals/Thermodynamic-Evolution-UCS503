@@ -56,7 +56,7 @@ jobs:
       - name: Set up AWS SAM CLI
         uses: aws-actions/setup-sam@v2
         with:
-          version: 1.x
+          version: 1.169.0
 
       - name: Validate and build serverless template
         run: |
