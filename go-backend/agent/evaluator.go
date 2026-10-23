@@ -50,9 +50,9 @@ type ResourceLimits struct {
 // DefaultResourceLimits returns hardened default bounds.
 func DefaultResourceLimits() ResourceLimits {
 	return ResourceLimits{
-		Timeout:        15 * time.Second,
-		MaxMemoryMB:    512,
-		MaxCPUs:        1.0,
+		Timeout:        30 * time.Second,
+		MaxMemoryMB:    1024,
+		MaxCPUs:        2.0,
 		MaxPids:        128,
 		MaxOutputBytes: 64 * 1024, // 64 KiB
 	}
@@ -276,13 +276,21 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 	// Convert workspace path to slashes for Docker compatibility across platforms
 	workspaceMount := filepath.ToSlash(tempWorkspace)
 
+	tmpfsSizeMB := limits.MaxMemoryMB / 2
+	if tmpfsSizeMB < 256 {
+		tmpfsSizeMB = 256
+	}
+	if tmpfsSizeMB > 512 {
+		tmpfsSizeMB = 512
+	}
+
 	args := []string{
 		"run",
 		"--rm",
 		"--name", containerName,
 		"--network", "none", // NO network access
 		"--read-only", // Read-only root FS
-		"--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+		"--tmpfs", fmt.Sprintf("/tmp:rw,nosuid,nodev,size=%dm", tmpfsSizeMB),
 		"-e", "GOCACHE=/tmp/gocache",
 		"-e", "CGO_ENABLED=0",
 		"--user", "10001:10001", // Non-root
