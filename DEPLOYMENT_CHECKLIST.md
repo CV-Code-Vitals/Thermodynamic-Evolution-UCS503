@@ -1,69 +1,70 @@
-Final Deployment Checklist — Thermodynamic-Evolution-UCS503
+# Serverless Admin Archive Deployment Checklist
 
-This checklist gathers the final items to confirm before pushing to GitHub and deploying to AWS (EC2 + RDS + S3). Follow each step and only push when everything in the "Pre-push verification" section is complete.
+## Before AWS setup
 
-1) Pre-push verification (local)
-- [ ] Run Go static checks and build
-  - cd api
-  - go mod download
-  - go vet ./...
-  - go build ./...
-- [ ] Run analysis backend checks
-  - cd go-backend
-  - go vet ./...
-  - go test ./...
-  - go build ./...
-- [ ] Run frontend checks and build
-  - cd admin-portal
-  - npm ci
-  - npm run build
-- [ ] Run linter/tests if you have them (add as needed)
+- [ ] Confirm this is the intended AWS account and `ap-south-1` (Mumbai) region.
+- [ ] Review the low-volume cost range and verify it in the AWS Pricing
+  Calculator with current regional rates.
+- [ ] Confirm the existing $20 monthly budget alert and notification recipients.
+  It is an alert, not a spending cap.
+- [ ] Obtain explicit approval before creating SSM parameters or deploying the
+  SAM stack. No AWS resources should be created before approval.
+- [ ] Confirm the GitHub Pages origin is exactly `https://zylus08.github.io`.
+  Do not include the project path in CORS `Origin`.
 
-2) Repository hygiene
-- [ ] Remove any sensitive data from the working tree (no .env with secrets, no AWS keys, no PEM files)
-- [ ] Ensure archives.json does not contain secrets. If it contains paths/URLs that are private, consider removing before push or migrating to DB.
-- [ ] Update top-level README with a short note about deployment (optional)
+## Local preflight
 
-3) GitHub secrets to add
-- GHCR_PAT
-- VITE_API_BASE
-- EC2_HOST
-- EC2_USER
-- EC2_SSH_PRIVATE_KEY (SSH private key contents)
-- Optional EC2_SSH_PORT (defaults to 22)
-- Repository variable `EC2_DEPLOY_ENABLED=true` (required to run the EC2 deploy job)
-- (Optional) S3_PRESIGN_EXPIRE_HOURS
+- [ ] Run `sam validate --lint --template-file template.yaml`.
+- [ ] Run `sam build --template-file template.yaml`.
+- [ ] In `api/`, run `go test ./...`, `go vet ./...`, and `go build ./...`.
+- [ ] In `admin-portal/`, run `npm test`, `npm run lint`, and
+  `npm run build` with a test HTTPS `VITE_API_BASE`.
+- [ ] Verify the built static frontend contains no passkey, token-signing
+  secret, AWS credential, bearer token, or presigned URL.
+- [ ] Confirm `.env.example` contains only local development guidance and no
+  real credential values.
 
-4) CI / Workflows
-- [ ] Confirm .github/workflows/ci-go.yml exists and triggers on api changes
-- [ ] Confirm .github/workflows/publish-api-image.yml builds and pushes both backend images to GHCR
-- [ ] Confirm .github/workflows/deploy-to-ec2.yml has EC2 secrets configured and `EC2_DEPLOY_ENABLED=true`
-- [ ] Confirm .github/workflows/deploy-frontend.yml contains VITE_API_BASE secret usage
+## After approval: parameters and stack
 
-5) Server (EC2) preparation checklist
-- [ ] EC2 instance up (Ubuntu recommended) with Docker & docker compose installed
-- [ ] `.env` file created on server (see `.env.example`) and owned by appropriate user with permissions 600
-- [ ] Configure `ADMIN_PASSKEY`, `ANALYSIS_API_TOKEN`, database settings, and S3 settings in the server `.env`
-- [ ] Attach an EC2 instance role with least-privilege access to the S3 bucket; do not store AWS access keys on the instance
-- [ ] If containers use the EC2 instance role, require IMDSv2 and set the instance metadata response hop limit to 2
-- [ ] Allow EC2 to connect to RDS, and restrict the database security group to the EC2 security group
-- [ ] Nginx or ALB configured to reverse-proxy to the API on `127.0.0.1:8080` and analysis backend on `127.0.0.1:8081`
-- [ ] Keep ports 8080, 8081, and 5432 closed to public ingress
-- [ ] SSL cert obtained with certbot or via ACM/load balancer
+- [ ] In Parameter Store in `ap-south-1`, create standard-tier SecureString
+  parameters `/ucs503/admin/passkey` and `/ucs503/admin/token-hmac-key` using
+  the AWS-managed SSM key.
+- [ ] Use independent, random production values; never use the local passkey.
+- [ ] Deploy `template.yaml` with stack name `ucs503-admin-archive`,
+  `FrontendOrigin=https://zylus08.github.io`, and the exact SSM parameter names.
+- [ ] Review the SAM change set before accepting resource creation.
+- [ ] Save the `ApiBaseUrl`, archive bucket name, and DynamoDB table name
+  outputs in an approved secure operations record; never save secret values.
+- [ ] Set the repository Actions variable `VITE_API_BASE` to the public API
+  HTTPS URL ending in `/api`. It is not a secret.
+- [ ] Leave `EC2_DEPLOY_ENABLED` unset/false. The legacy EC2 workflow should
+  remain unused.
 
-6) Post-deploy checks (after push & deploy)
-- [ ] Curl the health endpoint:
-  curl https://api.yourdomain.com/status
-- [ ] Upload test file via Admin Portal and confirm S3 object appears (or local uploads dir)
-- [ ] Confirm metadata record in RDS (psql) or archives.json updated
-- [ ] Confirm download link works (presigned URL or direct object URL)
+## Smoke tests
 
-7) Rollback plan
-- [ ] Keep the previous Docker image tag available on GHCR to roll back quickly
-- [ ] Backup archives.json (if still using local storage) and a DB snapshot for RDS before migration
+- [ ] Check `GET https://<api-id>.execute-api.ap-south-1.amazonaws.com/status`.
+- [ ] Verify the GitHub Pages portal can log in with the configured passkey and
+  that an incorrect passkey is rejected.
+- [ ] Upload one disposable PDF, PPT, or PPTX smaller than 50 MiB.
+- [ ] Confirm it appears in the archive list, can be downloaded, and can be
+  deleted after the UI confirmation.
+- [ ] Confirm no files other than supported PDF/PPT/PPTX types are accepted.
+  The service does not scan for malware.
+- [ ] Confirm the S3 bucket blocks public access, and unauthenticated requests
+  cannot read archive objects; confirm the bucket policy denies insecure
+  (non-HTTPS) transport.
+- [ ] Confirm failed upload finalization is not reported as a successful
+  archive entry.
 
-Notes
-- Do not commit .env or any private keys. Use GitHub Secrets for CI and server-side management tools (AWS Secrets Manager, Parameter Store) for production.
-- If using EC2 instance roles, you can avoid storing AWS keys on the server.
+## Rollback and cleanup
 
-If you want, I can run through this checklist with you interactively and help set each secret and run the first push. Tell me which step to begin with.
+- [ ] For a code rollback, deploy the previous known-good commit/template to
+  the existing stack. Do not delete the stack to roll back.
+- [ ] Keep S3 and DynamoDB data during rollback. The SAM template retains the
+  bucket, table, and log group to reduce accidental data loss.
+- [ ] For full teardown, separately approve the destructive cleanup, export
+  required archive data, empty/delete the S3 archive bucket, delete the
+  retained DynamoDB table and CloudWatch log group, remove both SSM parameters,
+  and remove the SAM artifact bucket if it is no longer needed.
+- [ ] Recheck AWS Budgets after deployment. Notifications do not automatically
+  stop charges.

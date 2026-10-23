@@ -32,10 +32,14 @@ jobs:
         working-directory: ./admin-portal
         run: npm test
 
+      - name: Lint frontend
+        working-directory: ./admin-portal
+        run: npm run lint
+
       - name: Build (Vite)
         working-directory: ./admin-portal
         env:
-          VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
+          VITE_API_BASE: ${{ vars.VITE_API_BASE }}
         run: |
           npm run build
 

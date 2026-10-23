@@ -50,8 +50,8 @@ func TestExtractZip_HappyPath(t *testing.T) {
 	zipPath := filepath.Join(tmp, "test.zip")
 
 	makeTestZip(t, zipPath, map[string]string{
-		"hello.py":      "print('hello')\n",
-		"sub/world.go":  "package main\n",
+		"hello.py":     "print('hello')\n",
+		"sub/world.go": "package main\n",
 	})
 
 	destDir := filepath.Join(tmp, "out")
@@ -96,6 +96,25 @@ func TestExtractZip_ZipSlip(t *testing.T) {
 		t.Fatal("expected error for zip slip, got nil")
 	}
 	t.Logf("correctly rejected: %v", err)
+}
+
+func TestExtractZip_RejectsWindowsSeparatorsInMemberNames(t *testing.T) {
+	tmp := t.TempDir()
+	zipPath := filepath.Join(tmp, "windows-separator.zip")
+	makeTestZip(t, zipPath, map[string]string{
+		`nested\file.txt`: "ambiguous member path",
+	})
+
+	destDir := filepath.Join(tmp, "out")
+	if err := os.MkdirAll(destDir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := extractZip(zipPath, destDir); err == nil {
+		t.Fatal("expected backslash-separated member path to be rejected")
+	}
+	if _, err := os.Stat(filepath.Join(destDir, "nested", "file.txt")); !os.IsNotExist(err) {
+		t.Fatalf("ambiguous member path was extracted: %v", err)
+	}
 }
 
 // TestExtractZip_CorruptZip verifies that a corrupted zip returns an error.

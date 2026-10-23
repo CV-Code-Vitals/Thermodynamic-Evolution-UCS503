@@ -5,10 +5,14 @@ on:
     paths:
       - 'api/**'
       - 'go-backend/**'
+      - 'template.yaml'
+      - '.github/workflows/ci-go.yml'
   pull_request:
     paths:
       - 'api/**'
       - 'go-backend/**'
+      - 'template.yaml'
+      - '.github/workflows/ci-go.yml'
 
 jobs:
   go-checks:
@@ -48,6 +52,16 @@ jobs:
         run: |
           cd api
           go build ./...
+
+      - name: Set up AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          version: 1.169.0
+
+      - name: Validate and build serverless template
+        run: |
+          sam validate --lint --template-file template.yaml
+          sam build --template-file template.yaml
 
       - name: Check analysis backend
         run: |

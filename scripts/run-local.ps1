@@ -6,11 +6,10 @@
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $repoRoot = Resolve-Path -Path (Join-Path $scriptDir "..")
 
-# Use a predictable local-only credential. Production still requires the
-# ADMIN_PASSKEY environment variable or deployment secret.
+# Require an explicit local-only passkey; do not fall back to a hardcoded value.
 if (-not $env:ADMIN_PASSKEY -or $env:ADMIN_PASSKEY -eq '') {
-    $env:ADMIN_PASSKEY = 'admin'
-    Write-Host "ADMIN_PASSKEY was not set; using local development passkey 'admin'." -ForegroundColor Yellow
+    Write-Host "ADMIN_PASSKEY must be set before starting the API. Example: `$env:ADMIN_PASSKEY = 'your-local-only-passkey'" -ForegroundColor Red
+    exit 1
 }
 
 # Paths
@@ -78,9 +77,9 @@ if (-not $existingStatic) {
     Write-Host 'Port 8000 is occupied by another application; stop it before using the dashboard.' -ForegroundColor Red
 }
 
-# Start API in new window (child process will inherit ADMIN_PASSKEY from environment)
+# Start API in new window (child process will inherit local-only credentials)
 if (Test-PortFree $apiPort) {
-    $apiCmd = "Set-Location -Path '$apiPath'; `$env:PORT='$apiPort'; `$env:LOCAL_DEV='true'; go run main.go"
+    $apiCmd = "Set-Location -Path '$apiPath'; `$env:APP_ENV='development'; `$env:CORS_ALLOWED_ORIGINS='http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000'; `$env:PORT='$apiPort'; go run ."
     Start-Process powershell -ArgumentList "-NoExit","-Command",$apiCmd
 } else {
     Write-Host "Unable to start API on selected port $apiPort." -ForegroundColor Red

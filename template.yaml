@@ -1,0 +1,246 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Private Admin Portal archive API (API Gateway, Lambda, S3, and DynamoDB).
+
+Parameters:
+  FrontendOrigin:
+    Type: String
+    Default: https://zylus08.github.io
+    AllowedPattern: '^https://[A-Za-z0-9.-]+$'
+    Description: Exact HTTPS origin of the GitHub Pages portal, with no path or trailing slash.
+  AdminPasskeyParameterName:
+    Type: String
+    MinLength: 1
+    Description: Name of the standard-tier SSM SecureString containing the admin passkey.
+  TokenHMACKeyParameterName:
+    Type: String
+    MinLength: 1
+    Description: Name of the standard-tier SSM SecureString containing the token signing key.
+
+Globals:
+  Function:
+    Runtime: provided.al2023
+    Architectures:
+      - x86_64
+    MemorySize: 512
+    Timeout: 25
+    ReservedConcurrentExecutions: 5
+
+Resources:
+  ServerApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: '$default'
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Authorization
+          - Content-Type
+        MaxAge: 300
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+
+  ArchiveApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-api
+      RetentionInDays: 14
+
+  ArchiveApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: ArchiveRuntime
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ArchiveObjectOperations
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource:
+                  - !Sub ${ArchiveBucket.Arn}/pending/*
+                  - !Sub ${ArchiveBucket.Arn}/archives/*
+              - Sid: ArchiveMetadataOperations
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                Resource:
+                  - !GetAtt ArchiveTable.Arn
+                  - !Sub ${ArchiveTable.Arn}/index/state-uploadedAt-index
+              - Sid: ReadConfiguredSecrets
+                Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AdminPasskeyParameterName}
+                  - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${TokenHMACKeyParameterName}
+              - Sid: InspectConfiguredSecretMetadata
+                Effect: Allow
+                Action:
+                  - ssm:DescribeParameters
+                Resource: '*'
+              - Sid: WriteFunctionLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-api:*
+              - Sid: DecryptConfiguredSSMParameters
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub ssm.${AWS::Region}.${AWS::URLSuffix}
+                    kms:EncryptionContext:PARAMETER_ARN:
+                      - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AdminPasskeyParameterName}
+                      - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${TokenHMACKeyParameterName}
+
+  ArchiveBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        IgnorePublicAcls: true
+        BlockPublicPolicy: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - !Ref FrontendOrigin
+            AllowedMethods:
+              - GET
+              - POST
+            AllowedHeaders:
+              - '*'
+            MaxAge: 300
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpirePendingUploads
+            Status: Enabled
+            Prefix: pending/
+            ExpirationInDays: 1
+
+  ArchiveBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Bucket: !Ref ArchiveBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !GetAtt ArchiveBucket.Arn
+              - !Sub ${ArchiveBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  ArchiveTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: state
+          AttributeType: S
+        - AttributeName: uploadedAt
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: state-uploadedAt-index
+          KeySchema:
+            - AttributeName: state
+              KeyType: HASH
+            - AttributeName: uploadedAt
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
+  ArchiveApiFunction:
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - ArchiveApiLogGroup
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-api
+      CodeUri: api/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Role: !GetAtt ArchiveApiRole.Arn
+      Environment:
+        Variables:
+          APP_ENV: production
+          S3_BUCKET: !Ref ArchiveBucket
+          DYNAMODB_TABLE: !Ref ArchiveTable
+          ADMIN_PASSKEY_PARAMETER: !Ref AdminPasskeyParameterName
+          TOKEN_HMAC_KEY_PARAMETER: !Ref TokenHMACKeyParameterName
+          CORS_ALLOWED_ORIGINS: !Ref FrontendOrigin
+      Events:
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ServerApi
+            Path: /api/{proxy+}
+            Method: ANY
+        Health:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ServerApi
+            Path: /status
+            Method: GET
+
+Outputs:
+  ApiBaseUrl:
+    Description: Set this public URL as the VITE_API_BASE GitHub Actions variable.
+    Value: !Sub https://${ServerApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/api
+  ArchiveBucketName:
+    Description: Private S3 bucket containing archive objects.
+    Value: !Ref ArchiveBucket
+  ArchiveTableName:
+    Description: DynamoDB archive metadata table.
+    Value: !Ref ArchiveTable
