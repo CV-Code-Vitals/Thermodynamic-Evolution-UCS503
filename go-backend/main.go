@@ -182,16 +182,14 @@ func extractZip(zipPath, destDir string) error {
 	}
 	var extractedBytes int64
 	for _, f := range r.File {
-		// ── Build the target path ─────────────────────────────────────────────
-		// filepath.Join cleans ".." traversals, but we still need an explicit
-		// prefix check because a crafted zip could still escape on Windows.
+		// Zip paths use forward slashes; reject backslashes to avoid platform-
+		// dependent interpretation before validating the relative path.
+		if strings.Contains(f.Name, `\`) || !filepath.IsLocal(filepath.FromSlash(f.Name)) {
+			return fmt.Errorf("zip slip detected: illegal path %q", f.Name)
+		}
 		targetPath := filepath.Join(destDir, filepath.FromSlash(f.Name))
-
-		// Zip Slip guard: ensure targetPath is inside destDir
-		if !strings.HasPrefix(
-			filepath.Clean(targetPath)+string(os.PathSeparator),
-			filepath.Clean(destDir)+string(os.PathSeparator),
-		) {
+		relativePath, err := filepath.Rel(destDir, targetPath)
+		if err != nil || !filepath.IsLocal(relativePath) {
 			return fmt.Errorf("zip slip detected: illegal path %q", f.Name)
 		}
 

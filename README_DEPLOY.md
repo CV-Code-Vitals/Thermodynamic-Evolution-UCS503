@@ -1,133 +1,210 @@
-README - Deploy & Local Run
+# Local Development and AWS Deployment
 
-This document collects the exact commands to run locally, build, and deploy the API and frontend.
+The Admin Portal archive uses GitHub Pages for the static UI and, when you
+approve an AWS deployment, API Gateway HTTP API, a Go Lambda, private S3, and
+DynamoDB in `ap-south-1` (Mumbai). The archive starts empty. The deployment
+does not create EC2, RDS, an Application Load Balancer, or a custom domain.
 
-Local dev - API (Go)
-1) Install Go 1.25
-2) From repository root, preferred quick start (Windows PowerShell):
-   .\scripts\run-local.ps1
+**Local tests and SAM validation/build do not create AWS resources. Creating
+the SSM parameters and deploying the stack both create AWS resources; do not
+do either until you have reviewed the cost and explicitly approved.**
 
-If `ADMIN_PASSKEY` is not set, the Windows local script uses `admin` as a
-development-only passkey. Production deployments must set `ADMIN_PASSKEY`
-through a server environment variable or GitHub/hosting secret.
+## Run locally on Windows
 
-The `api/` service is the Admin Portal backend. The separate `go-backend/`
-service runs repository analysis and scanning; it requires `ANALYSIS_API_TOKEN`
-and should not be used as a drop-in replacement for the Admin Portal API.
+Requirements: Go 1.25, Node.js 22, and npm. From the repository root:
 
-Or (cross-platform manual):
-   # API
-   cd api
-   go mod download
-   # Ensure ADMIN_PASSKEY is set before running the API (no default). Example in PowerShell:
-   #   $env:ADMIN_PASSKEY = "your_local_passkey_here"
-   # Or in bash:
-   #   export ADMIN_PASSKEY=your_local_passkey_here
-   $env:PORT=8080
-   go run main.go
+```powershell
+$env:ADMIN_PASSKEY = 'choose-a-local-only-passkey'
+.\scripts\run-local.ps1
+```
 
-   When the frontend is hosted on a different origin, set `CORS_ALLOWED_ORIGINS`
-   on the API to the frontend origin (for example, `https://zylus08.github.io`).
-   Multiple origins may be comma-separated.
+The script starts the API, Vite frontend, and local dashboard in separate
+PowerShell windows. The Admin Portal is at `http://localhost:5173`; the API
+health check is `http://localhost:8080/status`. The development API stores
+files and metadata on the local machine and does not require AWS credentials.
+Set `ADMIN_PASSKEY` explicitly before starting the API or local scripts. There is no built-in admin fallback; a missing passkey aborts startup.
 
-   If running `go-backend/`, also set `ANALYSIS_API_TOKEN`; analysis, scanning,
-   deliverables, and uploaded-file routes reject requests without that token.
+To run the services manually, open two terminals:
 
-   # Frontend (run in separate terminal)
-   cd admin-portal
-   npm ci
-   npm run dev
+```powershell
+# Terminal 1
+Set-Location api
+$env:APP_ENV = 'development'
+$env:ADMIN_PASSKEY = 'choose-a-local-only-passkey'
+$env:CORS_ALLOWED_ORIGINS = 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000'
+go run .
+```
 
-Health check:
-   curl http://localhost:8080/status
+```powershell
+# Terminal 2
+Set-Location admin-portal
+npm ci
+npm run dev
+```
 
-Local dev - Frontend (Vite)
-1) Node.js (16+)
-   cd admin-portal
-   npm ci
-   npm run dev
-2) Open browser to Vite dev URL (printed in terminal)
-   The Vite dev server proxies /api to http://localhost:8080
+For local static-site builds, the Windows runner configures the `/api` proxy
+automatically. A local `TOKEN_HMAC_KEY` is optional; when omitted the API
+generates an ephemeral key at startup, invalidating sessions when it restarts.
+Do not put production credentials in `.env`, frontend variables, or source
+control.
 
-Scripts
-- Windows: .\scripts\run-local.ps1  (opens two PowerShell windows and starts API+frontend — requires ADMIN_PASSKEY to be set in the environment)
-- Unix/macOS: ./scripts/run-local.sh (starts API+frontend in background — requires ADMIN_PASSKEY to be set in the environment)
+The separate `go-backend/` analysis service is not the Admin Portal API and is
+not part of this serverless archive deployment.
 
-Build frontend for GitHub Pages (static)
-cd admin-portal
-# ensure VITE_API_BASE is set (in CI this comes from GitHub Secrets)
-npm run build
-# output will be in admin-portal/dist
+## Archive behavior and limits
 
-GitHub Pages setup
-- In the repository, open Settings > Pages and set the Source to "GitHub Actions".
-- Do not select "Deploy from a branch"; the frontend workflow uploads the built site
-  as a Pages artifact.
-- Add the Actions secret `VITE_API_BASE` with the full HTTPS URL of the deployed API
-  (for example, `https://api.yourdomain.com/api`). Do not use `/api` here: GitHub
-  Pages has no backend proxy, and production builds now fail instead of publishing
-  a portal that sends login requests to the Pages site.
-- Configure the API's `CORS_ALLOWED_ORIGINS` environment variable to include
-  `https://cv-code-vitals.github.io`.
-- After pushing to `main`, wait for the "Deploy Frontend to GitHub Pages" workflow
-  to finish before opening `/Thermodynamic-Evolution-UCS503/admin-portal/`.
+- Accepts PDF, legacy PowerPoint (`.ppt`), and PowerPoint Open XML (`.pptx`)
+  files up to 50 MiB. These checks validate type and size; they are not malware
+  scanning.
+- Uploads go through a short-lived, signed S3 form and are finalized by the API
+  only after the object upload succeeds and the backend validates its content.
+- Listing is limited to available records. Downloads use short-lived signed
+  URLs; the portal keeps its bearer token in memory only.
+- Delete is permanent in this initial configuration and idempotent: deleting
+  an already-absent archive succeeds, including retries after a lost response.
+  S3 versioning and malware scanning are not enabled.
+- Pending S3 uploads expire after one day and pending DynamoDB records after
+  two days. Available archive objects and metadata have no automatic expiry.
 
-Build and run Docker image locally (API)
-# from repo root
-cd api
-GOOS=linux GOARCH=amd64 go build -o api_server main.go
-# build a Docker image
-docker build -t ghcr.io/<owner>/ucs503-api:local -f Dockerfile .
-# run locally
-docker run -e ADMIN_PASSKEY="your-secure-passkey" -e PORT=8080 -p 8080:8080 ghcr.io/<owner>/ucs503-api:local
+## Pre-deployment cost review
 
-Push image to GHCR (manual)
-# Tag and push
-docker tag ghcr.io/<owner>/ucs503-api:local ghcr.io/<owner>/ucs503-api:latest
-# Login
-echo $GHCR_PAT | docker login ghcr.io -u <your-github-username> --password-stdin
-docker push ghcr.io/<owner>/ucs503-api:latest
+Workload assumption for a planning estimate: 10 uploads/month averaging 10 MB,
+2 GB already stored at the start, and 1 GB/month downloaded. This implies about
+100 MB of new data each month, with storage growing by that amount if no files
+are deleted.
 
-Deploy both backends on EC2 with Docker Compose
+For that low-volume workload, budget **approximately US$0.15–$1/month** before
+taxes, credits, optional scanning, and any usage shared with other workloads.
+This is a planning range, not a saved AWS Pricing Calculator quote. It assumes
+no EC2/RDS/NAT/custom-domain/paid malware scanning, low API and DynamoDB
+request counts, short-retention low-volume logs, and no unusual retry or abuse
+traffic. Main cost drivers are S3 Standard storage, requests and data transfer,
+API Gateway requests, Lambda execution, DynamoDB on-demand reads/writes, and
+CloudWatch logs. Actual rates vary by region and account eligibility; confirm
+the final configuration in the [AWS Pricing Calculator](https://calculator.aws/)
+for Asia Pacific (Mumbai) immediately before deployment.
 
-The `Publish Backend Docker Images` workflow builds and publishes both Go
-services to GHCR after backend changes land on `main`. When EC2 deployment is
-enabled, the follow-up workflow copies the Compose file and deploys the exact
-images built for that commit.
+AWS Standard Parameter Store parameters use SecureString with the
+AWS-managed SSM key. Confirm the current Parameter Store and KMS pricing in
+the calculator as part of the final estimate. The estimate does not assume
+free-tier eligibility or apply the previously mentioned account credits.
+Earlier project context mentioned about US$80 in account credits; verify the
+remaining balance, expiry, and service eligibility directly in Billing before
+including any credits in a decision.
+Verify the existing **$20 monthly AWS Budget alert** and its recipients before
+creating resources. A budget alert sends notifications; it is **not** a hard
+spending cap and does not stop resources or charges.
 
-Configure these GitHub repository secrets:
-- `EC2_HOST`, `EC2_USER`, and `EC2_SSH_PRIVATE_KEY`
-- `GHCR_PAT` with permission to pull the repository's GHCR packages
-- Optional `EC2_SSH_PORT` (defaults to `22`)
+Pricing references:
 
-Set the repository variable `EC2_DEPLOY_ENABLED` to `true` to turn on automatic
-deployment. On the EC2 instance, create `~/ucs503/.env` with the production
-values from `.env.example` before the first deployment. Use an EC2 instance
-profile for S3 access instead of static AWS access keys, and allow the instance
-to reach the RDS endpoint. If containers use the instance profile, require
-IMDSv2 and set the instance metadata response hop limit to 2. Keep the database
-and application ports closed to the public internet.
+- [API Gateway pricing](https://aws.amazon.com/api-gateway/pricing/)
+- [Lambda pricing](https://aws.amazon.com/lambda/pricing/)
+- [S3 pricing](https://aws.amazon.com/s3/pricing/)
+- [DynamoDB pricing](https://aws.amazon.com/dynamodb/pricing/)
+- [CloudWatch pricing](https://aws.amazon.com/cloudwatch/pricing/)
+- [Systems Manager pricing](https://aws.amazon.com/systems-manager/pricing/)
+- [AWS Pricing Calculator](https://calculator.aws/)
 
-# On EC2 create folder ~/ucs503, copy docker-compose.ec2.yml and .env
-# Populate .env with production values (see .env.example)
-cd ~/ucs503
-docker compose pull
-docker compose up -d
+## AWS setup (only after you approve)
 
-Verify
-- curl https://api.yourdomain.com/status
-- On EC2, verify the analysis backend with `curl http://127.0.0.1:8081/status`.
-- The analysis backend listens on `127.0.0.1:8081`; configure your host reverse
-  proxy or load balancer to forward the analysis API there, and do not expose
-  port 8081 publicly.
-- use the Admin Portal to log in and upload archives
-- check S3 console for objects
-- check RDS for metadata
+1. Install AWS CLI and AWS SAM CLI. Authenticate with an authorized IAM Identity
+   Center profile; do not create or store long-lived access keys in this
+   repository. Check the selected account and region:
 
-Rollback
-- Set `IMAGE_TAG` to a previously published commit SHA, then run:
-  `IMAGE_TAG=<previous-tag> docker compose -f docker-compose.ec2.yml up -d`
+   ```powershell
+   aws configure sso --profile your-profile
+   aws sso login --profile your-profile
+   aws sts get-caller-identity --profile your-profile
+   aws configure get region --profile your-profile
+   ```
 
-Notes
-- Use the provided .env.example as a template on the server (do NOT commit secrets)
-- For CI and deploy, use the GitHub workflows already added to this repository
+2. From the repository root, validate and build locally:
+
+   ```powershell
+   sam validate --lint --template-file template.yaml
+   sam build --template-file template.yaml
+   ```
+
+   On Windows, `sam build` needs GNU Make available on `PATH`; alternatively,
+   start Docker Desktop and use `sam build --use-container`. These commands do
+   not create AWS resources. CI performs `sam validate --lint` and `sam build`
+   on every relevant Go/template change.
+
+3. Review the current calculator estimate, the exact template resources, and
+   the account's budget alert. **Stop and ask for explicit approval before
+   creating the parameters or stack.**
+
+4. Only after approval, in the AWS Console select **Asia Pacific (Mumbai) /
+   `ap-south-1`**, then open **Systems Manager → Parameter Store**. Create two
+   **Standard** **SecureString** parameters encrypted with the AWS-managed
+   `alias/aws/ssm` key:
+
+   - `/ucs503/admin/passkey` — a unique, strong admin passkey.
+   - `/ucs503/admin/token-hmac-key` — an independent, randomly generated
+     signing secret with at least 32 random bytes.
+
+   Never reuse the local development passkey. Do not paste either value into
+   chat, GitHub Actions, `.env`, or the Vite frontend. The template gives the
+   Lambda role `GetParameter` access only to these configured parameter names;
+   its separate `DescribeParameters` permission can inspect metadata but not
+   read other parameter values.
+
+5. Only after approval and successful build, deploy the reviewed template:
+
+   ```powershell
+   sam deploy --guided `
+     --stack-name ucs503-admin-archive `
+     --region ap-south-1 `
+     --profile your-profile `
+     --capabilities CAPABILITY_IAM `
+     --resolve-s3 `
+     --parameter-overrides `
+       FrontendOrigin=https://zylus08.github.io `
+       AdminPasskeyParameterName=/ucs503/admin/passkey `
+       TokenHMACKeyParameterName=/ucs503/admin/token-hmac-key
+   ```
+
+   Review the change set and costs before confirming. SAM may create a separate
+   S3 artifact bucket for deployment packages. The template creates the API,
+   Lambda, execution role, private archive bucket (public access blocked and
+   insecure transport denied), DynamoDB table/index, and retained CloudWatch
+   log group.
+
+6. Copy the `ApiBaseUrl` output from the completed stack. In the GitHub
+   repository, add the Actions **variable** `VITE_API_BASE` with that public
+   HTTPS URL, including `/api` (for example,
+   `https://<api-id>.execute-api.ap-south-1.amazonaws.com/api`). It is a public
+   endpoint, not a secret. The allowed browser origin is the exact origin
+   `https://zylus08.github.io`; the project path is not part of an Origin
+   header. Change the SAM `FrontendOrigin` parameter if the Pages hostname
+   changes.
+
+7. Publish the frontend using the GitHub Pages workflow. After deployment,
+   verify `GET https://<api-id>.execute-api.ap-south-1.amazonaws.com/status`
+   (the API health route is `/status`),
+   then test login, upload, list, download, and delete with a disposable file.
+   Verify the archive bucket is private and that an unauthenticated S3 request
+   cannot read an object. Do not paste presigned URLs or secrets into logs or
+   tickets.
+
+## Rollback and cleanup
+
+- To roll back application code, check out the last known-good commit and run
+  `sam build` then `sam deploy` against the same stack and parameters. Do not
+  delete the stack as a rollback; the archive data is retained.
+- Keep the previous frontend revision and restore it by rerunning the Pages
+  workflow from that revision. Confirm `VITE_API_BASE` still matches the stack.
+- The template intentionally retains the archive S3 bucket, DynamoDB table,
+  and log group when the stack is deleted or replaced. `sam delete` therefore
+  does **not** erase all data or stop every retained resource. Before cleanup,
+  download any needed files and metadata. Then, after a separate explicit
+  approval, run `sam delete --stack-name ucs503-admin-archive --region
+  ap-south-1 --profile your-profile` to remove the stack-managed API, Lambda,
+  and role. Empty and delete the retained archive bucket, delete the retained
+  DynamoDB table and log group, remove both SSM parameters, and remove the SAM
+  artifact bucket if it is no longer needed. This is destructive and cannot
+  be undone without backups.
+
+The legacy EC2 deployment workflow is manual-only and requires both a
+deliberate workflow input and the `EC2_DEPLOY_ENABLED` repository variable.
+Leave that variable unset/false; it is unrelated to this serverless plan.

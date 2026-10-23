@@ -1,18 +1,18 @@
 name: Deploy Backends to EC2
 
 on:
-  workflow_run:
-    workflows:
-      - Publish Backend Docker Images
-    types:
-      - completed
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      enable_ec2_deployment:
+        description: Explicitly opt in to the legacy EC2 deployment workflow
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   prepare-server:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.EC2_DEPLOY_ENABLED == 'true' }}
+    if: ${{ inputs.enable_ec2_deployment && vars.EC2_DEPLOY_ENABLED == 'true' }}
     steps:
       - name: Create deployment directory
         uses: appleboy/ssh-action@v0.1.9
@@ -26,12 +26,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: prepare-server
-    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.EC2_DEPLOY_ENABLED == 'true' }}
+    if: ${{ inputs.enable_ec2_deployment && vars.EC2_DEPLOY_ENABLED == 'true' }}
     steps:
       - name: Checkout deployed revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.ref }}
 
       - name: Copy Compose configuration to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -45,23 +45,27 @@ jobs:
 
       - name: Deploy to EC2 via SSH
         uses: appleboy/ssh-action@v0.1.9
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHCR_USER: ${{ github.repository_owner }}
+          IMAGE_TAG: ${{ github.sha }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: ${{ secrets.EC2_SSH_PORT || '22' }}
+          envs: GHCR_PAT,GHCR_USER,IMAGE_TAG
           script: |
             set -e
             cd ~/ucs503
-            export IMAGE_TAG='${{ github.event.workflow_run.head_sha }}'
-            echo "Logging into ghcr..."
-            echo '${{ secrets.GHCR_PAT }}' | docker login ghcr.io -u '${{ github.repository_owner }}' --password-stdin
+            printf '%s' "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
             docker compose -f docker-compose.ec2.yml pull
             docker compose -f docker-compose.ec2.yml up -d --remove-orphans
 
   deployment-not-configured:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' && vars.EC2_DEPLOY_ENABLED != 'true' }}
+    if: ${{ !inputs.enable_ec2_deployment || vars.EC2_DEPLOY_ENABLED != 'true' }}
     steps:
       - name: Explain skipped deployment
-        run: 'echo "EC2 deployment skipped: configure EC2_HOST, EC2_USER, EC2_SSH_PRIVATE_KEY, GHCR_PAT, and EC2_DEPLOY_ENABLED=true."'
+        run: 'echo "Legacy EC2 deployment skipped. Set the manual opt-in input and EC2_DEPLOY_ENABLED=true only after separately approving and configuring EC2."'

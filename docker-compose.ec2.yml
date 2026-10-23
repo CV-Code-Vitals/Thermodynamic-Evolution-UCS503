@@ -5,12 +5,14 @@ services:
     env_file:
       - .env
     environment:
+      APP_ENV: production
+      ADMIN_PASSKEY: ${ADMIN_PASSKEY:?Set ADMIN_PASSKEY in .env}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
+      S3_BUCKET: ${S3_BUCKET:?Set S3_BUCKET in .env}
+      S3_REGION: ${S3_REGION:?Set S3_REGION in .env}
       TRUST_PROXY: "true"
     ports:
-      - "127.0.0.1:8080:8080"
-    # If you prefer to proxy via nginx on the host, expose only on 127.0.0.1:8080
-    # ports:
-    #   - "127.0.0.1:8080:8080"
+      - "8080:8080"
     logging:
       driver: "json-file"
       options:

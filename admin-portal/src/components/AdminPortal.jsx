@@ -1,35 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
-  Shield, Lock, UploadCloud, File, CheckCircle,
-  Terminal, Loader2, Database, Download, Activity
+  Shield, Lock, UploadCloud, File, CheckCircle, Trash2,
+  Terminal, Loader2, Database, Download
 } from 'lucide-react';
 import './AdminPortal.css';
-import EvolutionLive from './EvolutionLive';
+import { fetchArchiveDownload } from '../archive-download';
+import { createArchiveApi } from '../archive-api';
 
 const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
-const publicApiBase = apiBase.startsWith('http')
-  ? (apiBase.endsWith('/api') ? apiBase.slice(0, -4) : apiBase)
-  : (typeof window !== 'undefined' ? window.location.origin : '');
-const archiveFileUrl = (url) => {
-  if (!url || url === '#') return '#';
-  if (url.startsWith('blob:') || url.startsWith('http://') || url.startsWith('https://')) return url;
-  try {
-    return new URL(url, `${publicApiBase.replace(/\/$/, '')}/`).href;
-  } catch {
-    return url;
-  }
+const archiveApi = createArchiveApi(apiBase);
+const acceptedContentTypes = {
+  '.pdf': 'application/pdf',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 };
 
-const readResponse = async (response) => {
-  const text = await response.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { message: text };
-  }
-};
+const getContentType = (file) =>
+  file.type || acceptedContentTypes[file.name.slice(file.name.lastIndexOf('.')).toLowerCase()] || '';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AdminPortal — top-level component managing all portal views
@@ -38,15 +26,13 @@ const readResponse = async (response) => {
 const AdminPortal = () => {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState('');
+  const isAuthenticated = Boolean(token);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // ── Active view: 'upload' | 'archive' | 'evolve' ─────────────────────────
+  // ── Active view: dashboard, upload, archive, or deferred evolution ───────
   const [activeView, setActiveView] = useState('upload');
-  
-  // Evolve state
-  const [evolveData, setEvolveData] = useState(null);
 
   // ── Dropzone / file state ─────────────────────────────────────────────────
   const [selectedFile, setSelectedFile] = useState(null);
@@ -64,6 +50,8 @@ const AdminPortal = () => {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [publishError, setPublishError] = useState('');
+  const [pendingUploadId, setPendingUploadId] = useState('');
+  const [pendingUploadUnavailable, setPendingUploadUnavailable] = useState(false);
   // The full Deliverable object returned by the backend after a successful upload
   const [lastDeliverable, setLastDeliverable] = useState(null);
 
@@ -71,38 +59,8 @@ const AdminPortal = () => {
   const [deliverables, setDeliverables] = useState([]);
   const [archiveLoading, setArchiveLoading] = useState(false);
   const [archiveError, setArchiveError] = useState('');
-
-  // Initial mock / local deliverables seed for static mode (no EC2 backend)
-  const defaultDeliverables = [
-    {
-      id: 1,
-      title: 'UCS503 Thermodynamic Evolution Overview',
-      version: '1.0.0',
-      date: new Date().toISOString().split('T')[0],
-      summary: 'System architecture, Rust AST engine entropy metrics, and dynamic radial visualizer deliverables.',
-      filename: 'UCS503_Thermodynamic_Evolution.pptx',
-      file_url: '#',
-      uploaded_at: new Date().toISOString(),
-    },
-  ];
-
-  const getLocalDeliverables = () => {
-    try {
-      const stored = localStorage.getItem('ucs503_deliverables');
-      if (stored) return JSON.parse(stored);
-    } catch {}
-    return defaultDeliverables;
-  };
-
-  const saveLocalDeliverable = (item) => {
-    try {
-      const current = getLocalDeliverables();
-      const updated = [item, ...current];
-      localStorage.setItem('ucs503_deliverables', JSON.stringify(updated));
-      return updated;
-    } catch {}
-    return [item];
-  };
+  const [downloadingId, setDownloadingId] = useState('');
+  const [deletingId, setDeletingId] = useState('');
 
   // ─────────────────────────────────────────────────────────────────────────
   // Auth
@@ -117,33 +75,25 @@ const AdminPortal = () => {
     }
 
     try {
-      const response = await fetch(`${apiBase}/login`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ passkey: password }),
-      });
-
-      if (response.status === 401) {
-        setAuthError('ACCESS DENIED. INVALID CREDENTIALS.');
-        return;
-      }
-      if (!response.ok) {
-        setAuthError('AUTHENTICATION SERVICE ERROR. PLEASE TRY AGAIN.');
-        return;
-      }
-
-      const result = await readResponse(response);
-      if (result.status !== 'authenticated') {
-        setAuthError('AUTHENTICATION SERVICE RETURNED AN INVALID RESPONSE.');
-        return;
-      }
-
-      setIsAuthenticated(true);
+      const result = await archiveApi.login(password);
+      setToken(result.token);
+      setPassword('');
       setActiveView('upload');
-    } catch {
-      setAuthError('AUTHENTICATION SERVICE UNAVAILABLE. PLEASE TRY AGAIN.');
+    } catch (error) {
+      setAuthError(error.message || 'AUTHENTICATION SERVICE UNAVAILABLE. PLEASE TRY AGAIN.');
     }
+  };
+
+  const handleLogout = () => {
+    setToken('');
+    setPassword('');
+    setDeliverables([]);
+    setSelectedFile(null);
+    setPublishSuccess(false);
+    setPendingUploadId('');
+    setPendingUploadUnavailable(false);
+    setLastDeliverable(null);
+    setActiveView('upload');
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -165,7 +115,7 @@ const AdminPortal = () => {
     if (acceptedFiles.length > 0) {
       const file = acceptedFiles[0];
       if (file.size > 50 * 1024 * 1024) {
-        setFileError('FILE EXCEEDS MAXIMUM ALLOWED SIZE (50MB).');
+        setFileError('FILE EXCEEDS MAXIMUM ALLOWED SIZE (50 MiB).');
         return;
       }
       setSelectedFile(file);
@@ -180,6 +130,7 @@ const AdminPortal = () => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
+    disabled: Boolean(pendingUploadId),
     accept: {
       // ── PowerPoint (both legacy .ppt and modern .pptx) ───────────────────
       // react-dropzone validates by MIME type; the browser may report either
@@ -188,10 +139,8 @@ const AdminPortal = () => {
       'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
       // ── Other document formats ────────────────────────────────────────────
       'application/pdf': ['.pdf'],
-      'application/zip': ['.zip'],
-      'text/markdown': ['.md'],
-      'text/plain': ['.txt'],
     },
+    maxSize: 50 * 1024 * 1024,
   });
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -204,7 +153,7 @@ const AdminPortal = () => {
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Publish — real multipart/form-data POST to Go backend (with client fallback)
+  // Publish — authorize, upload directly to storage, then finalize.
   // ─────────────────────────────────────────────────────────────────────────
 
   const handlePublish = async () => {
@@ -214,69 +163,86 @@ const AdminPortal = () => {
     setPublishError('');
 
     try {
-      const body = new FormData();
-      body.append('file', selectedFile);
-      body.append('title', formData.title);
-      body.append('version', formData.version);
-      body.append('date', formData.date);
-      body.append('summary', formData.summary);
-
-      const response = await fetch(`${apiBase}/upload`, {
-        method: 'POST',
-        credentials: 'include',
-        body,
-      });
-
-      if (response.ok) {
-        const json = await readResponse(response);
-        setLastDeliverable(json.data || json);
-        setPublishSuccess(true);
-        return;
+      let uploadId = pendingUploadId;
+      if (!uploadId) {
+        uploadId = await archiveApi.upload(token, {
+          originalName: selectedFile.name,
+          contentType: getContentType(selectedFile),
+          size: selectedFile.size,
+          ...formData,
+        }, selectedFile);
+        setPendingUploadId(uploadId);
       }
-    } catch {
-      // Backend unavailable (no EC2 instance) -> Save deliverable locally
+      const result = await archiveApi.completeUpload(token, uploadId);
+      setPendingUploadId('');
+      setPendingUploadUnavailable(false);
+      setLastDeliverable(result);
+      setPublishSuccess(true);
+    } catch (error) {
+      if (error.code === 'archive_not_found' || error.code === 'archive_conflict') {
+        setPendingUploadUnavailable(true);
+        setPublishError('THIS UPLOAD IS NO LONGER AVAILABLE TO FINALIZE. RESET IT TO START A NEW UPLOAD.');
+      } else {
+        setPublishError(error.message || 'UPLOAD FAILED. PLEASE TRY AGAIN.');
+      }
+    } finally {
+      setIsPublishing(false);
     }
-
-    // Local / Static Mode fallback
-    const localDeliv = {
-      id: Date.now(),
-      title: formData.title,
-      version: formData.version,
-      date: formData.date,
-      summary: formData.summary,
-      filename: selectedFile.name,
-      file_url: URL.createObjectURL(selectedFile),
-      uploaded_at: new Date().toISOString(),
-    };
-    saveLocalDeliverable(localDeliv);
-    setLastDeliverable(localDeliv);
-    setPublishSuccess(true);
-    setIsPublishing(false);
   };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Archive — fetch all deliverables from Go backend (with local fallback)
+  // Archive — fetch deliverables from the Go backend
   // ─────────────────────────────────────────────────────────────────────────
 
   const fetchDeliverables = useCallback(async () => {
     setArchiveLoading(true);
     setArchiveError('');
     try {
-      const response = await fetch(`${apiBase}/deliverables`, { credentials: 'include' });
-      if (response.ok) {
-        const data = await readResponse(response);
-        if (Array.isArray(data) && data.length > 0) {
-          setDeliverables(data);
-          return;
-        }
-      }
-    } catch {
-      // Backend not running (no EC2 instance)
+      setDeliverables(await archiveApi.list(token));
+    } catch (error) {
+      setArchiveError(error.message || 'Unable to load archive. Please try again.');
+      setDeliverables([]);
     } finally {
       setArchiveLoading(false);
     }
-    setDeliverables(getLocalDeliverables());
-  }, []);
+  }, [token]);
+
+  const handleDownload = async (deliverable) => {
+    const id = deliverable.id || deliverable.filename;
+    setArchiveError('');
+    setDownloadingId(id);
+    try {
+      const download = await archiveApi.createDownloadUrl(token, id);
+      const blob = await fetchArchiveDownload(apiBase, download.url, token);
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = deliverable.originalName || deliverable.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+    } catch (error) {
+      setArchiveError(error.message || 'Unable to download archive. Please try again.');
+    } finally {
+      setDownloadingId('');
+    }
+  };
+
+  const handleDelete = async (deliverable) => {
+    const id = deliverable.id || deliverable.filename;
+    if (!window.confirm(`Permanently delete "${deliverable.originalName || deliverable.title || id}"?`)) return;
+    setArchiveError('');
+    setDeletingId(id);
+    try {
+      await archiveApi.deleteArchive(token, id);
+      await fetchDeliverables();
+    } catch (error) {
+      setArchiveError(error.message || 'Unable to delete archive. Please try again.');
+    } finally {
+      setDeletingId('');
+    }
+  };
 
   // Reload archive data whenever the user switches to the archive view
   useEffect(() => {
@@ -295,6 +261,8 @@ const AdminPortal = () => {
     setPublishError('');
     setPublishSuccess(false);
     setLastDeliverable(null);
+    setPendingUploadId('');
+    setPendingUploadUnavailable(false);
     setFormData({
       title: '',
       version: '',
@@ -360,6 +328,7 @@ const AdminPortal = () => {
         <div className="portal-container">
           <div className="portal-header">
             <div className="header-title"><Terminal size={20} /> SYS.ARCHIVE // UPLOAD COMPLETE</div>
+            <button type="button" className="cyber-button-sm" onClick={handleLogout}>LOG OUT</button>
           </div>
 
           <div className="success-container">
@@ -368,20 +337,24 @@ const AdminPortal = () => {
             <p className="success-text">
               {/* Dynamic values from the backend response — no hardcoding */}
               File&nbsp;<strong>[ {lastDeliverable.filename} ]</strong>&nbsp;committed to storage matrix.<br />
-              Version&nbsp;<strong>{lastDeliverable.version}</strong>&nbsp;is now active.<br />
-              Previous iterations remain intact in cold storage.
+              Version&nbsp;<strong>{lastDeliverable.version}</strong>&nbsp;is now archived.<br />
+              Existing archive records remain available.
             </p>
 
-            {/* Direct link served by Go's static file handler */}
-            <a
-              href={archiveFileUrl(lastDeliverable.url)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              type="button"
+              onClick={() => handleDownload(lastDeliverable)}
               className="cyber-button"
               style={{ marginBottom: '1rem', textDecoration: 'none' }}
+              disabled={Boolean(downloadingId)}
             >
-              ACCESS ARCHIVED FILE ↗
-            </a>
+              {downloadingId
+                ? <><Loader2 className="spinner" size={16} /> PREPARING DOWNLOAD...</>
+                : 'ACCESS ARCHIVED FILE ↗'}
+            </button>
+            {archiveError && (
+              <div className="error-text" style={{ marginBottom: '1rem' }}>{archiveError}</div>
+            )}
 
             <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
               <button className="cyber-button" style={{ flex: 1 }} onClick={resetUpload}>
@@ -416,6 +389,7 @@ const AdminPortal = () => {
             <div className="status-dot"></div>
             AUTHORIZED : ADMIN
           </div>
+          <button type="button" className="cyber-button-sm" onClick={handleLogout}>LOG OUT</button>
         </div>
 
         {/* ── Tab switcher ─────────────────────────────────────────────── */}
@@ -442,7 +416,7 @@ const AdminPortal = () => {
             className={`tab-btn ${activeView === 'evolve' ? 'active' : ''}`}
             onClick={() => setActiveView('evolve')}
           >
-            <Activity size={14} /> EVOLUTION
+            <Database size={14} /> EVOLUTION (UNAVAILABLE)
           </button>
         </div>
 
@@ -497,10 +471,13 @@ const AdminPortal = () => {
                   <div className="dropzone-text">
                     {isDragActive ? 'DEPLOY FILE HERE' : 'DRAG & DROP ARCHIVE OR CLICK TO BROWSE'}
                   </div>
-                  <div className="dropzone-subtext">SUPPORTED: .PPTX · .PPT · .PDF · .ZIP · .MD · .TXT</div>
+                  <div className="dropzone-subtext">SUPPORTED: .PPTX · .PPT · .PDF · MAXIMUM 50 MiB</div>
                 </>
               )}
             </div>
+            <p className="archive-note">
+              File type and size are validated; files are not malware-scanned.
+            </p>
 
             {fileError && (
               <div className="error-text" style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
@@ -511,6 +488,11 @@ const AdminPortal = () => {
             {/* Metadata form — only visible once a file is selected */}
             {selectedFile && (
               <>
+                {pendingUploadId && (
+                  <p className="archive-note">
+                    File uploaded. Retrying will finalize the same upload; it will not upload the file again.
+                  </p>
+                )}
                 <div className="metadata-form">
                   <div className="input-group">
                     <label className="input-label">Document Title</label>
@@ -546,15 +528,26 @@ const AdminPortal = () => {
                   </div>
                 )}
 
+                {pendingUploadUnavailable && (
+                  <button
+                    type="button"
+                    className="cyber-button"
+                    style={{ width: '100%', marginBottom: '1rem' }}
+                    onClick={resetUpload}
+                  >
+                    RESET UPLOAD AND START OVER
+                  </button>
+                )}
+
                 <button
                   className="cyber-button"
                   style={{ width: '100%' }}
                   onClick={handlePublish}
-                  disabled={!formData.title || !formData.version || isPublishing}
+                  disabled={!formData.title || !formData.version || isPublishing || pendingUploadUnavailable}
                 >
                   {isPublishing
                     ? <><Loader2 className="spinner" size={20} /> TRANSMITTING TO BACKEND...</>
-                    : 'PUBLISH TO ARCHIVE'}
+                    : pendingUploadId ? 'RETRY FINALIZATION' : 'PUBLISH TO ARCHIVE'}
                 </button>
               </>
             )}
@@ -606,30 +599,44 @@ const AdminPortal = () => {
                       <th>DATE</th>
                       <th>CHANGE SUMMARY</th>
                       <th>FILE</th>
+                      <th>ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
                     {deliverables.map((d, index) => {
-                      const fileLink = d.file_url || d.url || '#';
                       const dateStr = d.date || (d.uploaded_at ? new Date(d.uploaded_at).toLocaleDateString() : (d.uploadedAt ? new Date(d.uploadedAt).toLocaleDateString() : '—'));
                       return (
                         <tr key={d.id || d.filename || index}>
                           <td className="archive-id">{String(index + 1).padStart(3, '0')}</td>
-                          <td className="archive-title-cell">{d.title || d.filename}</td>
+                          <td className="archive-title-cell">{d.title || d.originalName || d.filename}</td>
                           <td className="archive-version">{d.version || '1.0.0'}</td>
                           <td className="archive-date">{dateStr}</td>
                           <td className="archive-summary">{d.summary || '—'}</td>
                           <td>
-                            <a
-                              href={archiveFileUrl(fileLink)}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => handleDownload(d)}
                               className="archive-download-link"
                               title={d.filename}
+                              disabled={Boolean(downloadingId)}
                             >
-                              <Download size={14} />
-                              DOWNLOAD
-                            </a>
+                              {downloadingId === (d.id || d.filename)
+                                ? <Loader2 className="spinner" size={14} />
+                                : <Download size={14} />}
+                              {downloadingId === (d.id || d.filename) ? 'PREPARING' : 'DOWNLOAD'}
+                            </button>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(d)}
+                              className="archive-download-link"
+                              disabled={Boolean(deletingId)}
+                              aria-label={`Delete ${d.originalName || d.title || d.filename}`}
+                            >
+                              <Trash2 size={14} />
+                              {deletingId === (d.id || d.filename) ? 'DELETING' : 'DELETE'}
+                            </button>
                           </td>
                         </tr>
                       );
@@ -645,38 +652,10 @@ const AdminPortal = () => {
         {/* EVOLUTION VIEW                                                */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeView === 'evolve' && (
-          <EvolutionLive 
-            initialData={evolveData || {
-              function_name: 'BuildIndex',
-              file_path: 'test_samples/crawler.go',
-              repo_path: '/tmp/test_code',
-              start_byte: 1300,
-              end_byte: 1800,
-              base_energy: 38.4,
-              base_code: `func BuildIndex(results []CrawlResult) map[string][]string {
-    index := make(map[string][]string)               // make() allocation
-    for _, result := range results {                  // loop ×1
-        words := tokenise(result.Body)
-        for _, word := range words {                  // loop ×2
-            for _, existing := range index[word] {    // loop ×3 — triple nesting
-                if existing == result.URL {
-                    goto nextWord
-                }
-            }
-            index[word] = append(index[word], result.URL)
-        nextWord:
-        }
-    }
-    return index
-}`,
-              config: {
-                initial_temp: 100.0,
-                cooling_rate: 0.85,
-                max_steps: 20
-              }
-            }}
-            onBack={() => setActiveView('dashboard')}
-          />
+          <div className="dashboard-container">
+            <h2>Evolution is not available in this release.</h2>
+            <p>The archive supports secure PDF and PowerPoint storage only.</p>
+          </div>
         )}
 
       </div>

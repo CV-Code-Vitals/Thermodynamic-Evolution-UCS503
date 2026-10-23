@@ -16,7 +16,7 @@ COPY . .
 
 # Build a statically linked Go application
 # CGO_ENABLED=0 ensures the binary runs cleanly on Alpine
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o api_server main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o api_server .
 
 # ---------------------------------------------------------
 # Stage 2: Create a minimal production image

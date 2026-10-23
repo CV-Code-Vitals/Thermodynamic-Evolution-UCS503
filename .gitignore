@@ -11,6 +11,12 @@ parser/target/
 # Go / Backend
 uploads/
 *.exe
+.aws-sam/
+
+# Local secrets and runtime config
+.env
+.env.*
+!.env.example
 
 # OS generated files
 .DS_Store

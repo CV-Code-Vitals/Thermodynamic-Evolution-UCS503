@@ -4,10 +4,10 @@
 set -e
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Use a predictable local-only credential. Production must provide a secret.
+# Require an explicit local-only passkey; do not fall back to a hardcoded value.
 if [ -z "$ADMIN_PASSKEY" ]; then
-  export ADMIN_PASSKEY=admin
-  echo "ADMIN_PASSKEY was not set; using local development passkey 'admin'."
+  echo "ADMIN_PASSKEY must be set before starting the API. Example: export ADMIN_PASSKEY='your-local-only-passkey'" >&2
+  exit 1
 fi
 
 # Start the static dashboard server so links to /admin-portal/ and
@@ -18,7 +18,7 @@ STATIC_PID=$!
 
 # Start API in background
 echo "Starting API on port 8080..."
-ADMIN_PASSKEY="$ADMIN_PASSKEY" LOCAL_DEV=true PORT=8080 bash -c "cd \"$ROOT_DIR/api\" && go run main.go" &
+APP_ENV=development ADMIN_PASSKEY="$ADMIN_PASSKEY" CORS_ALLOWED_ORIGINS="http://localhost:5173,http://127.0.0.1:5173,http://localhost:8000,http://127.0.0.1:8000" PORT=8080 bash -c "cd \"$ROOT_DIR/api\" && go run ." &
 API_PID=$!
 
 echo "Starting frontend (Vite) on port 5173..."
