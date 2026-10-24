@@ -447,21 +447,10 @@ func copyProjectFiles(srcDir, destDir string) error {
 			return nil
 		}
 
-		base := info.Name()
-
-		// Skip hidden directories and VCS
 		if info.IsDir() {
-			if strings.HasPrefix(base, ".") || base == "uploads" || base == "node_modules" || base == "target" {
+			if shouldSkipProjectDirectory(info.Name()) {
 				return filepath.SkipDir
 			}
-			return nil
-		}
-
-		// Skip hidden files, environment files, credentials, and executables
-		if strings.HasPrefix(base, ".") || strings.HasPrefix(base, ".env") ||
-			strings.HasSuffix(base, ".exe") || strings.HasSuffix(base, ".bin") ||
-			strings.HasSuffix(base, ".dll") || strings.HasSuffix(base, ".so") ||
-			strings.HasSuffix(base, ".zip") {
 			return nil
 		}
 
@@ -470,10 +459,7 @@ func copyProjectFiles(srcDir, destDir string) error {
 			return nil
 		}
 
-		// Only copy Go source files, module definitions, and text fixtures
-		ext := strings.ToLower(filepath.Ext(base))
-		isGoSource := ext == ".go" || ext == ".mod" || ext == ".sum" || ext == ".json" || ext == ".txt" || ext == ".yaml" || ext == ".yml"
-		if !isGoSource {
+		if !shouldCopyProjectFile(info) {
 			return nil
 		}
 
