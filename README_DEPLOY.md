@@ -51,6 +51,59 @@ control.
 The separate `go-backend/` analysis service is not the Admin Portal API and is
 not part of this serverless archive deployment.
 
+## Separate analysis and sandbox hosts
+
+The deployment Compose files are split by trust boundary:
+
+- `docker-compose.analysis.yml` runs only the Go analysis API and Rust engine.
+  It has no Docker socket and stores uploads in an analysis-host-local Docker
+  volume.
+- `docker-compose.sandbox.yml` runs only the authenticated sandbox broker.
+  It runs in the host network namespace without a published Compose port,
+  mounts the local Docker socket, and uses a host-local temporary workspace.
+  The workspace path is mounted at the same absolute path in the container so
+  the host Docker daemon can bind-mount each candidate workspace.
+- `docker-compose.ec2.yml` is a legacy, manual-only single-host configuration.
+  It retains obsolete archive API/database and shared-volume assumptions; do
+  not use it for the split deployment.
+
+Both new Compose files require `IMAGE_TAG` to be a commit SHA and do not fall
+back to `latest`. The `.env.analysis.example` and `.env.sandbox.example` files
+contain placeholders only. The Compose files do not retrieve secrets from SSM;
+an approved deployment process must materialize runtime values from SSM into
+protected host-side environment files and certificate files. Never put real
+tokens or private keys in the examples, repository, image, or browser bundle.
+
+Before starting the sandbox broker, prepare the host-local workspace directory
+with ownership matching the image's unprivileged app user (UID/GID `10002`),
+and set `DOCKER_GID` to the numeric group ID that owns `/var/run/docker.sock`.
+The broker's container user needs that supplementary group to use Docker; this
+is still highly privileged access, which is why the broker and socket must
+remain on a dedicated sandbox host. The workspace directory must be writable
+by UID `10002`, and its path must match `SANDBOX_BROKER_WORKSPACE_DIR`.
+The mounted broker private key must be readable by UID `10002` and not by
+unrelated host users; mount the certificate and CA certificate read-only.
+
+Both services use host networking to avoid public Compose port mappings. This
+does not replace network isolation: deploy them only on private instances with
+security groups that allow analysis ingress solely from the selected private
+API integration and broker TCP `8082` solely from the analysis instance. The
+sandbox instance must have no public IP or inbound SSH. Use SSM for
+administration. The broker certificate must cover the private host name used
+by `SANDBOX_SERVICE_URL`; the analysis host must trust its issuing CA via the
+mounted `SANDBOX_TLS_CA_SOURCE` file.
+
+Validate the configuration without starting containers:
+
+```sh
+docker compose --env-file .env.analysis.example -f docker-compose.analysis.yml config
+docker compose --env-file .env.sandbox.example -f docker-compose.sandbox.yml config
+node --test scripts/compose-config.test.mjs
+```
+
+These checks validate Compose syntax and policy only; they do not provision
+instances, retrieve secrets, configure security groups, or deploy images.
+
 ## Archive behavior and limits
 
 - Accepts PDF, legacy PowerPoint (`.ppt`), and PowerPoint Open XML (`.pptx`)

@@ -1,0 +1,33 @@
+services:
+  ucs503-sandbox-broker:
+    image: ghcr.io/cv-code-vitals/ucs503-analysis:${IMAGE_TAG:?Set IMAGE_TAG to a commit SHA}
+    command: ["./backend_server", "--broker"]
+    restart: unless-stopped
+    network_mode: host
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    group_add:
+      - "${DOCKER_GID:?Set DOCKER_GID to the host Docker socket group ID}"
+    environment:
+      GIN_MODE: release
+      PORT: "8082"
+      SANDBOX_BROKER_WORKSPACE_DIR: ${SANDBOX_WORKSPACE_HOST_DIR:?Set a host-local workspace directory}
+      SANDBOX_RUNNER_IMAGE: ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${IMAGE_TAG:?Set IMAGE_TAG to a commit SHA}
+      SANDBOX_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Load SANDBOX_SERVICE_TOKEN from SSM}
+      SANDBOX_TLS_CERT_FILE: /run/ucs503-tls/broker.crt
+      SANDBOX_TLS_KEY_FILE: /run/ucs503-tls/broker.key
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${SANDBOX_WORKSPACE_HOST_DIR:?Set a host-local workspace directory}:${SANDBOX_WORKSPACE_HOST_DIR:?Set a host-local workspace directory}
+      - ${SANDBOX_TLS_CERT_SOURCE:?Mount the broker certificate from the host}:/run/ucs503-tls/broker.crt:ro
+      - ${SANDBOX_TLS_KEY_SOURCE:?Mount the broker private key from the host}:/run/ucs503-tls/broker.key:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: "3"
