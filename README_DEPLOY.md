@@ -103,6 +103,10 @@ node --test scripts/compose-config.test.mjs
 
 These checks validate Compose syntax and policy only; they do not provision
 instances, retrieve secrets, configure security groups, or deploy images.
+CI runs these checks alongside Go tests and vetting. It builds the mandatory
+live Docker runner under the triggering commit SHA and fails if the integration
+test skips; the image publishing workflow publishes only commit-SHA tags for
+the analysis and sandbox runner images.
 
 ## Archive behavior and limits
 

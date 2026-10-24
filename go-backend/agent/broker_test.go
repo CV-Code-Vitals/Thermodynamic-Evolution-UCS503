@@ -13,12 +13,79 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
 )
 
 const testBrokerWorkspaceID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+func TestSandboxRunnerIsolationAndCIPinsImage(t *testing.T) {
+	_, sourceFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("could not resolve broker test source path")
+	}
+	repoRoot := filepath.Clean(filepath.Join(filepath.Dir(sourceFile), "..", ".."))
+	readRepoFile := func(relativePath string) string {
+		t.Helper()
+		content, err := os.ReadFile(filepath.Join(repoRoot, relativePath))
+		if err != nil {
+			t.Fatalf("read %s: %v", relativePath, err)
+		}
+		return string(content)
+	}
+
+	dockerfile := readRepoFile(filepath.Join("docker", "sandbox-runner", "Dockerfile"))
+	if !strings.Contains(dockerfile, "USER 10001:10001") {
+		t.Error("sandbox runner Dockerfile must use a non-root user")
+	}
+
+	evaluatorSource := readRepoFile(filepath.Join("go-backend", "agent", "evaluator.go"))
+	for _, required := range []string{
+		`"--network", "none"`,
+		`"--read-only"`,
+		`"--cap-drop", "ALL"`,
+		`"--security-opt", "no-new-privileges"`,
+		`"--memory"`,
+		`"--cpus"`,
+		`"--pids-limit"`,
+		"outBuf.maxBytes = limits.MaxOutputBytes",
+		`limitedBuffer`,
+	} {
+		if !strings.Contains(evaluatorSource, required) {
+			t.Errorf("sandbox evaluator is missing required isolation control %q", required)
+		}
+	}
+
+	ciWorkflow := readRepoFile(filepath.Join(".github", "workflows", "ci-go.yml"))
+	if !strings.Contains(ciWorkflow, "SANDBOX_RUNNER_IMAGE: ucs503-sandbox-runner:${{ github.sha }}") {
+		t.Error("mandatory Docker integration tests must use a commit-SHA-tagged runner image")
+	}
+	if !strings.Contains(ciWorkflow, `docker build -t "$SANDBOX_RUNNER_IMAGE"`) {
+		t.Error("CI must build the same pinned image used by the integration tests")
+	}
+	if strings.Contains(ciWorkflow, "ucs503-sandbox-runner:latest") {
+		t.Error("CI must not use a mutable latest sandbox runner image")
+	}
+	if !strings.Contains(ciWorkflow, "TestDockerEvaluator_LiveExecution") ||
+		!strings.Contains(ciWorkflow, "--- PASS: TestDockerEvaluator_LiveExecution") ||
+		!strings.Contains(ciWorkflow, "--- SKIP: TestDockerEvaluator_LiveExecution") {
+		t.Error("CI must preserve the mandatory live Docker test and its pass/skip checks")
+	}
+
+	publishWorkflow := readRepoFile(filepath.Join(".github", "workflows", "publish-api-image.yml"))
+	if !strings.Contains(publishWorkflow, "ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}") ||
+		!strings.Contains(publishWorkflow, "ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${{ github.sha }}") {
+		t.Error("image publishing must tag analysis and runner images with the commit SHA")
+	}
+	if strings.Contains(publishWorkflow, ":latest") {
+		t.Error("published deployment images must not use the mutable latest tag")
+	}
+	if strings.Contains(publishWorkflow, "ucs503-api") {
+		t.Error("image publishing must not publish the obsolete standalone archive API")
+	}
+}
 
 // TestRemoteBrokerEvaluator_MissingOrInvalidConfig verifies that empty or invalid configuration
 // causes safe, immediate failures.

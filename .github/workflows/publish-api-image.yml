@@ -1,15 +1,13 @@
-name: Publish Backend Docker Images
+name: Publish Analysis and Sandbox Images
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'api/**'
       - 'go-backend/**'
       - 'thermodynamic-ast-engine/**'
       - 'docker/**'
-      - 'docker-compose.ec2.yml'
       - '.github/workflows/publish-api-image.yml'
 
 jobs:
@@ -32,25 +30,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push API image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./api
-          file: ./api/Dockerfile
-          push: true
-          tags: |
-            ghcr.io/cv-code-vitals/ucs503-api:latest
-            ghcr.io/cv-code-vitals/ucs503-api:${{ github.sha }}
-
       - name: Build and push analysis backend image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./go-backend/Dockerfile
           push: true
-          tags: |
-            ghcr.io/cv-code-vitals/ucs503-analysis:latest
-            ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}
+          tags: ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}
 
       - name: Build and push sandbox runner image
         uses: docker/build-push-action@v4
@@ -58,6 +44,4 @@ jobs:
           context: .
           file: ./docker/sandbox-runner/Dockerfile
           push: true
-          tags: |
-            ghcr.io/cv-code-vitals/ucs503-sandbox-runner:latest
-            ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${{ github.sha }}
+          tags: ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${{ github.sha }}
