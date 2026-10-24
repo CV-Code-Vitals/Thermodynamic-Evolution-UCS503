@@ -50,7 +50,7 @@ type ResourceLimits struct {
 // DefaultResourceLimits returns hardened default bounds.
 func DefaultResourceLimits() ResourceLimits {
 	return ResourceLimits{
-		Timeout:        30 * time.Second,
+		Timeout:        60 * time.Second,
 		MaxMemoryMB:    1024,
 		MaxCPUs:        2.0,
 		MaxPids:        128,
@@ -114,20 +114,21 @@ func NewDockerEvaluator(cfg DockerEvaluatorConfig) *DockerEvaluator {
 		bin = "docker"
 	}
 	limits := cfg.ResourceLimits
+	def := DefaultResourceLimits()
 	if limits.Timeout <= 0 {
-		limits.Timeout = 15 * time.Second
+		limits.Timeout = def.Timeout
 	}
 	if limits.MaxMemoryMB <= 0 {
-		limits.MaxMemoryMB = 512
+		limits.MaxMemoryMB = def.MaxMemoryMB
 	}
 	if limits.MaxCPUs <= 0 {
-		limits.MaxCPUs = 1.0
+		limits.MaxCPUs = def.MaxCPUs
 	}
 	if limits.MaxPids <= 0 {
-		limits.MaxPids = 128
+		limits.MaxPids = def.MaxPids
 	}
 	if limits.MaxOutputBytes <= 0 {
-		limits.MaxOutputBytes = 64 * 1024
+		limits.MaxOutputBytes = def.MaxOutputBytes
 	}
 
 	return &DockerEvaluator{

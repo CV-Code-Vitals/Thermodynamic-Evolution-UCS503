@@ -550,6 +550,6 @@ func TestDockerEvaluator_LiveExecution(t *testing.T) {
 	}
 
 	if !res.TestsPassed {
-		t.Errorf("expected live test to pass in container, output: %s", res.Output)
+		t.Errorf("expected live test to pass in container, outcome: %s, duration: %v, err: %v, output:\n%s", res.Outcome, res.Duration, res.Error, res.Output)
 	}
 }
