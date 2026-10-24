@@ -553,3 +553,156 @@ func TestDockerEvaluator_LiveExecution(t *testing.T) {
 		t.Errorf("expected live test to pass in container, outcome: %s, duration: %v, err: %v, output:\n%s", res.Outcome, res.Duration, res.Error, res.Output)
 	}
 }
+
+// ── Test 11: Adversarial Path Traversal & Windows Volume Injection ────────────
+
+func TestEvaluateCandidate_PathTraversal_Comprehensive(t *testing.T) {
+	evaluator := NewDockerEvaluator(DockerEvaluatorConfig{
+		DockerBinary: "docker",
+	})
+
+	adversarialPaths := []string{
+		"../outside.go",
+		"../../etc/passwd",
+		"/etc/passwd",
+		"foo/../../bar.go",
+		"C:calc.go",
+		"C:\\Windows\\System32\\cmd.exe",
+		"D:/data/secret.txt",
+		"\\\\server\\share\\calc.go",
+	}
+
+	orig := []byte("package sample\nfunc Add() {}\n")
+
+	for _, badPath := range adversarialPaths {
+		t.Run(badPath, func(t *testing.T) {
+			req := EvaluationRequest{
+				RepoPath:      t.TempDir(),
+				FilePath:      badPath,
+				OriginalBytes: orig,
+				MutatedCode:   "func Add() {}",
+				StartByte:     0,
+				EndByte:       len(orig),
+			}
+
+			res, err := evaluator.EvaluateCandidate(context.Background(), req)
+			if !errors.Is(err, ErrSecurityViolation) {
+				t.Fatalf("path %q: expected ErrSecurityViolation, got: %v", badPath, err)
+			}
+			if res.Outcome != OutcomeSecurityRejected {
+				t.Errorf("path %q: expected OutcomeSecurityRejected, got %s", badPath, res.Outcome)
+			}
+			if res.TestsPassed {
+				t.Errorf("path %q: TestsPassed must be false", badPath)
+			}
+		})
+	}
+}
+
+// ── Test 12: Adversarial Symlink Traversal Rejection in Workspace ──────────────
+
+func TestCopyProjectFiles_SymlinksSkipped(t *testing.T) {
+	srcDir := t.TempDir()
+	destDir := t.TempDir()
+	outsideDir := t.TempDir()
+
+	// Outside sensitive file
+	secretFile := filepath.Join(outsideDir, "shadow.txt")
+	_ = os.WriteFile(secretFile, []byte("root:supersecret"), 0o600)
+
+	// In-tree legitimate file
+	_ = os.WriteFile(filepath.Join(srcDir, "valid.go"), []byte("package main"), 0o600)
+
+	// Symlink pointing to outside secret file
+	symlinkPath := filepath.Join(srcDir, "link.txt")
+	err := os.Symlink(secretFile, symlinkPath)
+	if err != nil {
+		// On Windows without Developer Mode, creating symlinks may require elevated privileges
+		t.Skipf("skipping symlink test (host OS restricted symlink creation): %v", err)
+	}
+
+	if err := copyProjectFiles(srcDir, destDir); err != nil {
+		t.Fatalf("copyProjectFiles failed: %v", err)
+	}
+
+	// Verify valid file was copied
+	if _, err := os.Stat(filepath.Join(destDir, "valid.go")); err != nil {
+		t.Error("valid.go was not copied")
+	}
+
+	// Verify symlink was strictly NOT copied
+	if _, err := os.Lstat(filepath.Join(destDir, "link.txt")); !os.IsNotExist(err) {
+		t.Error("link.txt symlink was copied to sandbox workspace!")
+	}
+}
+
+// ── Test 13: Out-of-Bounds Byte Range Rejection ────────────────────────────────
+
+func TestEvaluateCandidate_ByteRangeOutOfBounds(t *testing.T) {
+	evaluator := NewDockerEvaluator(DockerEvaluatorConfig{})
+	orig := []byte("package sample\n")
+
+	testCases := []struct {
+		name      string
+		startByte int
+		endByte   int
+	}{
+		{"negative start", -1, 5},
+		{"inverted range", 10, 5},
+		{"start beyond len", len(orig) + 1, len(orig) + 2},
+		{"end beyond len", 0, len(orig) + 10},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := EvaluationRequest{
+				RepoPath:      t.TempDir(),
+				FilePath:      "calc.go",
+				OriginalBytes: orig,
+				MutatedCode:   "// mutation",
+				StartByte:     tc.startByte,
+				EndByte:       tc.endByte,
+			}
+
+			res, err := evaluator.EvaluateCandidate(context.Background(), req)
+			if !errors.Is(err, ErrInvalidRequest) {
+				t.Fatalf("expected ErrInvalidRequest, got: %v", err)
+			}
+			if res.Outcome != OutcomeSecurityRejected {
+				t.Errorf("expected OutcomeSecurityRejected, got %s", res.Outcome)
+			}
+		})
+	}
+}
+
+// ── Test 14: Docker Evaluator Configuration & Default Limits ──────────────────
+
+func TestDockerEvaluator_ConfigurationResolution(t *testing.T) {
+	// 1. Explicit Image
+	e1 := NewDockerEvaluator(DockerEvaluatorConfig{Image: "custom-img:1.0"})
+	if e1.image != "custom-img:1.0" {
+		t.Errorf("expected custom-img:1.0, got %s", e1.image)
+	}
+
+	// 2. Default Resource Limits inherited
+	def := DefaultResourceLimits()
+	if e1.limits.Timeout != def.Timeout {
+		t.Errorf("expected timeout %v, got %v", def.Timeout, e1.limits.Timeout)
+	}
+	if e1.limits.MaxMemoryMB != def.MaxMemoryMB {
+		t.Errorf("expected memory %v, got %v", def.MaxMemoryMB, e1.limits.MaxMemoryMB)
+	}
+	if e1.limits.MaxCPUs != def.MaxCPUs {
+		t.Errorf("expected cpus %v, got %v", def.MaxCPUs, e1.limits.MaxCPUs)
+	}
+
+	// 3. Fallback when env var is empty
+	origEnv := os.Getenv("SANDBOX_RUNNER_IMAGE")
+	defer os.Setenv("SANDBOX_RUNNER_IMAGE", origEnv)
+	os.Unsetenv("SANDBOX_RUNNER_IMAGE")
+
+	e2 := NewDockerEvaluator(DockerEvaluatorConfig{})
+	if e2.image != "ucs503-sandbox-runner:latest" {
+		t.Errorf("expected default image ucs503-sandbox-runner:latest, got %s", e2.image)
+	}
+}

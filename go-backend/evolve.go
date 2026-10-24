@@ -74,8 +74,10 @@ func evolveHandler() gin.HandlerFunc {
 			return
 		}
 
+		cleanInput := filepath.ToSlash(req.FilePath)
 		cleanRel := filepath.Clean(filepath.FromSlash(req.FilePath))
-		if filepath.IsAbs(cleanRel) || strings.HasPrefix(cleanRel, "..") {
+		if filepath.IsAbs(cleanRel) || strings.HasPrefix(cleanInput, "/") || strings.HasPrefix(cleanInput, "\\") ||
+			strings.HasPrefix(cleanRel, "..") || filepath.VolumeName(cleanRel) != "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Path traversal in file_path is forbidden"})
 			return
 		}

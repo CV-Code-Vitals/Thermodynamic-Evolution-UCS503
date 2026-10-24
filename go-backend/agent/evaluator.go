@@ -177,9 +177,11 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 		}, ErrInvalidRequest
 	}
 
-	// Reject path traversal
+	// Reject path traversal and absolute/rooted paths
+	cleanInput := filepath.ToSlash(req.FilePath)
 	cleanedRel := filepath.Clean(filepath.FromSlash(req.FilePath))
-	if filepath.IsAbs(cleanedRel) || strings.HasPrefix(cleanedRel, "..") {
+	if filepath.IsAbs(cleanedRel) || strings.HasPrefix(cleanInput, "/") || strings.HasPrefix(cleanInput, "\\") ||
+		strings.HasPrefix(cleanedRel, "..") || filepath.VolumeName(cleanedRel) != "" {
 		return &EvaluationResult{
 			Outcome:  OutcomeSecurityRejected,
 			Duration: time.Since(start),
@@ -252,6 +254,14 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 
 	// Inject mutated file into the ephemeral workspace
 	targetDest := filepath.Join(tempWorkspace, cleanedRel)
+	relCheck, err := filepath.Rel(tempWorkspace, targetDest)
+	if err != nil || strings.HasPrefix(relCheck, "..") || filepath.IsAbs(relCheck) {
+		return &EvaluationResult{
+			Outcome:  OutcomeSecurityRejected,
+			Duration: time.Since(start),
+			Error:    fmt.Errorf("%w: path escape detected in target destination", ErrSecurityViolation),
+		}, ErrSecurityViolation
+	}
 	if err := os.MkdirAll(filepath.Dir(targetDest), 0o777); err != nil {
 		return &EvaluationResult{
 			TestsPassed: false,
@@ -419,6 +429,11 @@ func copyProjectFiles(srcDir, destDir string) error {
 			return nil
 		}
 
+		// Explicitly skip symlinks to prevent out-of-tree file exposure
+		if info.Mode()&os.ModeSymlink != 0 {
+			return nil
+		}
+
 		// Only copy Go source files, module definitions, and text fixtures
 		ext := strings.ToLower(filepath.Ext(base))
 		isGoSource := ext == ".go" || ext == ".mod" || ext == ".sum" || ext == ".json" || ext == ".txt" || ext == ".yaml" || ext == ".yml"
@@ -426,7 +441,17 @@ func copyProjectFiles(srcDir, destDir string) error {
 			return nil
 		}
 
-		targetPath := filepath.Join(destDir, rel)
+		cleanRel := filepath.Clean(rel)
+		if strings.HasPrefix(cleanRel, "..") || filepath.IsAbs(cleanRel) || filepath.VolumeName(cleanRel) != "" {
+			return nil
+		}
+
+		targetPath := filepath.Join(destDir, cleanRel)
+		relCheck, err := filepath.Rel(destDir, targetPath)
+		if err != nil || strings.HasPrefix(relCheck, "..") || filepath.IsAbs(relCheck) {
+			return nil
+		}
+
 		if err := os.MkdirAll(filepath.Dir(targetPath), 0o777); err != nil {
 			return err
 		}
