@@ -61,6 +61,7 @@ func DefaultResourceLimits() ResourceLimits {
 // EvaluationRequest contains the code and context needed to test a mutation safely.
 type EvaluationRequest struct {
 	RepoPath      string         `json:"repo_path"`
+	WorkspaceID   string         `json:"workspace_id,omitempty"`
 	FilePath      string         `json:"file_path"`
 	OriginalBytes []byte         `json:"original_bytes,omitempty"`
 	MutatedCode   string         `json:"mutated_code"`
@@ -85,6 +86,17 @@ type CandidateEvaluator interface {
 	CheckAvailable(ctx context.Context) error
 }
 
+type RemoteWorkspaceEvaluator interface {
+	CandidateEvaluator
+	PrepareWorkspace(ctx context.Context, repoPath string) (string, error)
+	CleanupWorkspace(ctx context.Context, workspaceID string) error
+}
+
+const (
+	MaxBrokerEvaluationRequestBytes  = 44 << 20
+	MaxBrokerEvaluationResponseBytes = 24 << 20
+)
+
 // DockerEvaluatorConfig holds settings for the Docker sandbox evaluator.
 type DockerEvaluatorConfig struct {
 	Image          string
@@ -95,10 +107,10 @@ type DockerEvaluatorConfig struct {
 
 // DockerEvaluator implements CandidateEvaluator using an ephemeral, unprivileged Docker container.
 type DockerEvaluator struct {
-	image          string
-	dockerBinary   string
-	limits         ResourceLimits
-	runnerChecker  func(ctx context.Context) error
+	image         string
+	dockerBinary  string
+	limits        ResourceLimits
+	runnerChecker func(ctx context.Context) error
 }
 
 // NewDockerEvaluator constructs a DockerEvaluator with sensible defaults.

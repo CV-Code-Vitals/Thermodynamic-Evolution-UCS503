@@ -1,9 +1,14 @@
 package agent
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,6 +17,8 @@ import (
 	"testing"
 	"time"
 )
+
+const testBrokerWorkspaceID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 // TestRemoteBrokerEvaluator_MissingOrInvalidConfig verifies that empty or invalid configuration
 // causes safe, immediate failures.
@@ -37,13 +44,13 @@ func TestRemoteBrokerEvaluator_MissingOrInvalidConfig(t *testing.T) {
 // is down, unreachable, or returns a 5xx error, candidate evaluation fails closed.
 func TestRemoteBrokerEvaluator_BrokerUnavailable_FailsClosed(t *testing.T) {
 	// Point to an unreachable port
-	evaluator := NewRemoteBrokerEvaluator("http://127.0.0.1:54321", "test-token-123456")
+	evaluator := NewRemoteBrokerEvaluator("https://127.0.0.1:54321", "test-token-123456")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	res, err := evaluator.EvaluateCandidate(ctx, EvaluationRequest{
-		RepoPath:    t.TempDir(),
+		WorkspaceID: testBrokerWorkspaceID,
 		FilePath:    "main.go",
 		MutatedCode: "package main",
 	})
@@ -66,7 +73,7 @@ func TestRemoteBrokerEvaluator_BrokerUnavailable_FailsClosed(t *testing.T) {
 // between the analysis service and sandbox broker cause explicit security rejections.
 func TestRemoteBrokerEvaluator_AuthenticationFailure(t *testing.T) {
 	expectedToken := "correct-secret-token-32byteslong!"
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("X-Sandbox-Token")
 		if token != expectedToken {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
@@ -78,7 +85,7 @@ func TestRemoteBrokerEvaluator_AuthenticationFailure(t *testing.T) {
 	defer server.Close()
 
 	// 1. Wrong token
-	badEvaluator := NewRemoteBrokerEvaluator(server.URL, "wrong-token-value-here")
+	badEvaluator := newTestRemoteBrokerEvaluator(t, server, "wrong-token-value-here")
 	ctx := context.Background()
 
 	err := badEvaluator.CheckAvailable(ctx)
@@ -87,7 +94,7 @@ func TestRemoteBrokerEvaluator_AuthenticationFailure(t *testing.T) {
 	}
 
 	res, err := badEvaluator.EvaluateCandidate(ctx, EvaluationRequest{
-		RepoPath:    t.TempDir(),
+		WorkspaceID: testBrokerWorkspaceID,
 		FilePath:    "calc.go",
 		MutatedCode: "package calc",
 	})
@@ -102,7 +109,7 @@ func TestRemoteBrokerEvaluator_AuthenticationFailure(t *testing.T) {
 	}
 
 	// 2. Correct token
-	goodEvaluator := NewRemoteBrokerEvaluator(server.URL, expectedToken)
+	goodEvaluator := newTestRemoteBrokerEvaluator(t, server, expectedToken)
 	if err := goodEvaluator.CheckAvailable(ctx); err != nil {
 		t.Fatalf("expected CheckAvailable to succeed with valid token, got: %v", err)
 	}
@@ -111,7 +118,7 @@ func TestRemoteBrokerEvaluator_AuthenticationFailure(t *testing.T) {
 // TestRemoteBrokerEvaluator_TimeoutPropagation verifies that request deadlines and context
 // cancellations are propagated and result in safe timeout classification.
 func TestRemoteBrokerEvaluator_TimeoutPropagation(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"status":"ok"}`))
@@ -124,13 +131,13 @@ func TestRemoteBrokerEvaluator_TimeoutPropagation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	evaluator := NewRemoteBrokerEvaluator(server.URL, "valid-token")
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "valid-token-1234567890")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
 	res, err := evaluator.EvaluateCandidate(ctx, EvaluationRequest{
-		RepoPath:    t.TempDir(),
+		WorkspaceID: testBrokerWorkspaceID,
 		FilePath:    "main.go",
 		MutatedCode: "package main",
 	})
@@ -152,7 +159,7 @@ func TestRemoteBrokerEvaluator_SuccessfulEvaluation(t *testing.T) {
 	origContent := []byte("package calc\nfunc Add(a, b int) int { return 0 }\n")
 	expectedOutput := "=== RUN TestAdd\n--- PASS: TestAdd (0.01s)\nPASS"
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"status":"ok"}`))
@@ -168,17 +175,22 @@ func TestRemoteBrokerEvaluator_SuccessfulEvaluation(t *testing.T) {
 				http.Error(w, "unexpected file path", http.StatusBadRequest)
 				return
 			}
+			if req.WorkspaceID != testBrokerWorkspaceID || req.RepoPath != "" {
+				http.Error(w, "unexpected workspace fields", http.StatusBadRequest)
+				return
+			}
 			if string(req.OriginalBytes) != string(origContent) {
 				http.Error(w, "original bytes mismatch", http.StatusBadRequest)
 				return
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(EvaluationResult{
-				TestsPassed: true,
-				Outcome:     OutcomePassed,
-				Output:      expectedOutput,
-				Duration:    45 * time.Millisecond,
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"tests_passed":       true,
+				"outcome":            OutcomePassed,
+				"output":             expectedOutput,
+				"duration":           45 * time.Millisecond,
+				"updated_file_bytes": []byte("updated source"),
 			})
 			return
 		}
@@ -186,10 +198,10 @@ func TestRemoteBrokerEvaluator_SuccessfulEvaluation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	evaluator := NewRemoteBrokerEvaluator(server.URL, "auth-token-1234")
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "auth-token-1234567890")
 
 	res, err := evaluator.EvaluateCandidate(context.Background(), EvaluationRequest{
-		RepoPath:      t.TempDir(),
+		WorkspaceID:   testBrokerWorkspaceID,
 		FilePath:      "calc.go",
 		OriginalBytes: origContent,
 		MutatedCode:   "return a + b",
@@ -209,6 +221,44 @@ func TestRemoteBrokerEvaluator_SuccessfulEvaluation(t *testing.T) {
 	if res.Output != expectedOutput {
 		t.Fatalf("expected output %q, got %q", expectedOutput, res.Output)
 	}
+	if string(res.UpdatedFileBytes) != "updated source" {
+		t.Fatalf("UpdatedFileBytes = %q, want updated source", res.UpdatedFileBytes)
+	}
+}
+
+func TestRemoteBrokerEvaluator_DecodesEvaluationErrorWithoutFailingTransport(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/health" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"tests_passed":       false,
+			"outcome":            OutcomeCompilationFailed,
+			"updated_file_bytes": []byte("invalid source"),
+			"error":              "candidate did not compile",
+		})
+	}))
+	defer server.Close()
+
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "auth-token-1234567890")
+	result, err := evaluator.EvaluateCandidate(context.Background(), EvaluationRequest{
+		WorkspaceID: testBrokerWorkspaceID,
+		FilePath:    "main.go",
+		MutatedCode: "invalid source",
+	})
+	if err != nil {
+		t.Fatalf("EvaluateCandidate() transport error = %v, want nil", err)
+	}
+	if result.Outcome != OutcomeCompilationFailed || result.TestsPassed {
+		t.Fatalf("evaluation outcome = %q, passed = %t", result.Outcome, result.TestsPassed)
+	}
+	if result.Error == nil || result.Error.Error() != "candidate did not compile" {
+		t.Fatalf("evaluation error = %v, want candidate did not compile", result.Error)
+	}
+	if string(result.UpdatedFileBytes) != "invalid source" {
+		t.Fatalf("updated bytes = %q, want invalid source", result.UpdatedFileBytes)
+	}
 }
 
 // TestNewEvaluator_Resolution verifies that NewEvaluator selects RemoteBrokerEvaluator
@@ -222,15 +272,15 @@ func TestNewEvaluator_Resolution(t *testing.T) {
 	}
 
 	// 2. Set: returns *RemoteBrokerEvaluator
-	t.Setenv("SANDBOX_SERVICE_URL", "http://sandbox-broker:8082")
+	t.Setenv("SANDBOX_SERVICE_URL", "https://sandbox-broker:8082")
 	t.Setenv("SANDBOX_SERVICE_TOKEN", "super-secret-token")
 	eval2 := NewEvaluator(DockerEvaluatorConfig{})
 	remoteEval, ok := eval2.(*RemoteBrokerEvaluator)
 	if !ok {
 		t.Fatalf("expected *RemoteBrokerEvaluator when SANDBOX_SERVICE_URL is set, got %T", eval2)
 	}
-	if remoteEval.brokerURL != "http://sandbox-broker:8082" {
-		t.Fatalf("expected brokerURL 'http://sandbox-broker:8082', got %q", remoteEval.brokerURL)
+	if remoteEval.brokerURL != "https://sandbox-broker:8082" {
+		t.Fatalf("expected brokerURL 'https://sandbox-broker:8082', got %q", remoteEval.brokerURL)
 	}
 	if remoteEval.token != "super-secret-token" {
 		t.Fatalf("expected token 'super-secret-token', got %q", remoteEval.token)
@@ -306,4 +356,169 @@ func TestEvaluateCandidate_RestrictedRepoPaths(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestRemoteBrokerEvaluator_PrepareWorkspace(t *testing.T) {
+	var archiveEntries []string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/v1/workspaces" {
+			http.NotFound(w, r)
+			return
+		}
+		if r.Header.Get("X-Sandbox-Token") != "workspace-token-1234567890" {
+			http.Error(w, "missing token", http.StatusUnauthorized)
+			return
+		}
+		if r.Header.Get("Content-Type") != "application/zip" {
+			http.Error(w, "unexpected content type", http.StatusUnsupportedMediaType)
+			return
+		}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		for _, entry := range reader.File {
+			archiveEntries = append(archiveEntries, entry.Name)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"workspace_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}`))
+	}))
+	defer server.Close()
+
+	repo := t.TempDir()
+	if err := os.WriteFile(filepath.Join(repo, "main.go"), []byte("package main"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "workspace-token-1234567890")
+	workspaceID, err := evaluator.PrepareWorkspace(context.Background(), repo)
+	if err != nil {
+		t.Fatalf("PrepareWorkspace() error = %v", err)
+	}
+	if workspaceID != testBrokerWorkspaceID {
+		t.Fatalf("workspace ID = %q, want %s", workspaceID, testBrokerWorkspaceID)
+	}
+	if len(archiveEntries) != 1 || archiveEntries[0] != "main.go" {
+		t.Fatalf("uploaded archive entries = %v, want [main.go]", archiveEntries)
+	}
+}
+
+func TestRemoteBrokerEvaluator_CleanupWorkspace(t *testing.T) {
+	var deletedPath string
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Sandbox-Token") != "workspace-token-1234567890" {
+			http.Error(w, "missing token", http.StatusUnauthorized)
+			return
+		}
+		if r.Method != http.MethodDelete {
+			http.Error(w, "wrong method", http.StatusMethodNotAllowed)
+			return
+		}
+		deletedPath = r.URL.Path
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "workspace-token-1234567890")
+	if err := evaluator.CleanupWorkspace(context.Background(), testBrokerWorkspaceID); err != nil {
+		t.Fatalf("CleanupWorkspace() error = %v", err)
+	}
+	if deletedPath != "/v1/workspaces/"+testBrokerWorkspaceID {
+		t.Fatalf("deleted path = %q", deletedPath)
+	}
+}
+
+func TestRemoteBrokerEvaluator_RequiresHTTPS(t *testing.T) {
+	evaluator := NewRemoteBrokerEvaluator("http://sandbox-broker:8082", "workspace-token-1234567890")
+	if err := evaluator.CheckAvailable(context.Background()); err == nil {
+		t.Fatal("CheckAvailable() accepted a plaintext broker URL")
+	}
+}
+
+func TestRemoteBrokerEvaluator_RequiresTLS12OrNewer(t *testing.T) {
+	client, err := newRemoteBrokerHTTPClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.CloseIdleConnections()
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("HTTP transport has type %T, want *http.Transport", client.Transport)
+	}
+	if transport.TLSClientConfig.MinVersion != tls.VersionTLS12 {
+		t.Fatalf("TLS minimum = %d, want %d", transport.TLSClientConfig.MinVersion, tls.VersionTLS12)
+	}
+}
+
+func TestAnnealer_UsesOneRemoteWorkspaceForEvolution(t *testing.T) {
+	repo, relPath := setupTestRepo(t)
+	fileBytes, err := os.ReadFile(filepath.Join(repo, relPath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := strings.Index(string(fileBytes), "return a + b")
+	evaluator := &remoteWorkspaceMock{workspaceID: testBrokerWorkspaceID}
+	evaluator.EvaluateFunc = func(_ context.Context, req EvaluationRequest) (*EvaluationResult, error) {
+		if req.WorkspaceID != evaluator.workspaceID {
+			t.Fatalf("evaluation workspace ID = %q, want %q", req.WorkspaceID, evaluator.workspaceID)
+		}
+		return &EvaluationResult{TestsPassed: true, Outcome: OutcomePassed}, nil
+	}
+	annealer := &Annealer{
+		Mutator:         &mockMutator{mutations: []string{"return a + b"}},
+		Evaluator:       evaluator,
+		EnergyEvaluator: &MockEnergyEvaluator{FixedEnergy: 40},
+	}
+	_, err = annealer.Evolve(context.Background(), repo, relPath, "Add", start, start+len("return a + b"), 50, AnnealingConfig{
+		InitialTemp: 10,
+		CoolingRate: 0.5,
+		MaxSteps:    1,
+	}, make(chan StepTelemetry, 1))
+	if err != nil {
+		t.Fatalf("Evolve() error = %v", err)
+	}
+	if evaluator.prepareCalls != 1 || evaluator.cleanupCalls != 1 || evaluator.evaluateCalls != 1 {
+		t.Fatalf("workspace calls: prepare=%d evaluate=%d cleanup=%d", evaluator.prepareCalls, evaluator.evaluateCalls, evaluator.cleanupCalls)
+	}
+}
+
+type remoteWorkspaceMock struct {
+	MockEvaluator
+	workspaceID   string
+	prepareCalls  int
+	evaluateCalls int
+	cleanupCalls  int
+}
+
+func (m *remoteWorkspaceMock) PrepareWorkspace(context.Context, string) (string, error) {
+	m.prepareCalls++
+	return m.workspaceID, nil
+}
+
+func (m *remoteWorkspaceMock) CleanupWorkspace(context.Context, string) error {
+	m.cleanupCalls++
+	return nil
+}
+
+func (m *remoteWorkspaceMock) EvaluateCandidate(ctx context.Context, req EvaluationRequest) (*EvaluationResult, error) {
+	m.evaluateCalls++
+	return m.EvaluateFunc(ctx, req)
+}
+
+func newTestRemoteBrokerEvaluator(t *testing.T, server *httptest.Server, token string) *RemoteBrokerEvaluator {
+	t.Helper()
+	certPath := filepath.Join(t.TempDir(), "broker-ca.pem")
+	certificate := server.Certificate()
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certificate.Raw})
+	if err := os.WriteFile(certPath, certPEM, 0o600); err != nil {
+		t.Fatalf("write test broker CA: %v", err)
+	}
+	t.Setenv("SANDBOX_TLS_CA_FILE", certPath)
+	return NewRemoteBrokerEvaluator(server.URL, token)
 }

@@ -8,7 +8,9 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -17,6 +19,8 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/saksham/self-healing-pipeline/agent"
 )
 
 // ── extractZip tests ──────────────────────────────────────────────────────────
@@ -447,4 +451,332 @@ func TestIntegration_ScanRepoValidation(t *testing.T) {
 			t.Errorf("expected 400 Bad Request for malicious url %q, got %d", bad, rec.Code)
 		}
 	}
+}
+
+func TestBroker_RejectsWorkspaceRequestsWithoutToken(t *testing.T) {
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := newSandboxBrokerHandler("broker-token-1234567890", nil, manager, nil)
+	request := httptest.NewRequest(http.MethodPost, "/v1/workspaces", bytes.NewReader([]byte("not a zip")))
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("workspace create status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+}
+
+func TestBroker_RejectsUnknownWorkspace(t *testing.T) {
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := newSandboxBrokerHandler("broker-token-1234567890", nil, manager, nil)
+	request := httptest.NewRequest(http.MethodPost, "/v1/evaluate", bytes.NewReader([]byte(`{"workspace_id":"unknown","file_path":"main.go"}`)))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890")
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("unknown workspace status = %d, want %d", response.Code, http.StatusNotFound)
+	}
+}
+
+func TestBroker_CleansWorkspaceAfterExpiry(t *testing.T) {
+	root := t.TempDir()
+	zipPath := filepath.Join(t.TempDir(), "workspace.zip")
+	makeTestZip(t, zipPath, map[string]string{"main.go": "package main"})
+	archiveBytes, err := os.ReadFile(zipPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manager, err := newBrokerWorkspaceManager(root, time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Unix(1_800_000_000, 0)
+	manager.now = func() time.Time { return now }
+	workspaceID, err := manager.CreateWorkspace(archiveBytes)
+	if err != nil {
+		t.Fatalf("CreateWorkspace() error = %v", err)
+	}
+	workspacePath, release, err := manager.AcquireWorkspace(workspaceID)
+	if err != nil {
+		t.Fatalf("AcquireWorkspace() error = %v", err)
+	}
+	release()
+	now = now.Add(2 * time.Minute)
+
+	removed, err := manager.CleanupExpired()
+	if err != nil {
+		t.Fatalf("CleanupExpired() error = %v", err)
+	}
+	if removed != 1 {
+		t.Fatalf("expired workspaces removed = %d, want 1", removed)
+	}
+	if _, err := os.Stat(workspacePath); !os.IsNotExist(err) {
+		t.Fatalf("expired workspace still exists, stat error = %v", err)
+	}
+}
+
+func TestBroker_ExpiryDefersDeletionUntilLeaseRelease(t *testing.T) {
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(t.TempDir(), "workspace.zip")
+	makeTestZip(t, archivePath, map[string]string{"main.go": "package main"})
+	archiveBytes, err := os.ReadFile(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Unix(1_800_000_000, 0)
+	manager.now = func() time.Time { return now }
+	workspaceID, err := manager.CreateWorkspace(archiveBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspacePath, release, err := manager.AcquireWorkspace(workspaceID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	now = now.Add(2 * time.Minute)
+	removed, err := manager.CleanupExpired()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed != 0 {
+		t.Fatalf("expired workspaces removed while leased = %d, want 0", removed)
+	}
+	if _, err := os.Stat(workspacePath); err != nil {
+		t.Fatalf("workspace removed while lease active: %v", err)
+	}
+	if err := release(); err != nil {
+		t.Fatalf("release expired workspace lease: %v", err)
+	}
+	if _, err := os.Stat(workspacePath); !os.IsNotExist(err) {
+		t.Fatalf("expired workspace still exists after lease release: %v", err)
+	}
+}
+
+func TestBroker_LeaseDefersWorkspaceDeletion(t *testing.T) {
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(t.TempDir(), "workspace.zip")
+	makeTestZip(t, archivePath, map[string]string{"main.go": "package main"})
+	archiveBytes, err := os.ReadFile(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspaceID, err := manager.CreateWorkspace(archiveBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspacePath, release, err := manager.AcquireWorkspace(workspaceID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := manager.DeleteWorkspace(workspaceID); err != nil {
+		t.Fatalf("DeleteWorkspace() with active lease error = %v", err)
+	}
+	if _, err := os.Stat(workspacePath); err != nil {
+		t.Fatalf("workspace removed while leased: %v", err)
+	}
+	if _, _, err := manager.AcquireWorkspace(workspaceID); !errors.Is(err, errBrokerWorkspaceNotFound) {
+		t.Fatalf("AcquireWorkspace() after pending deletion error = %v, want not found", err)
+	}
+	if err := release(); err != nil {
+		t.Fatalf("release active lease: %v", err)
+	}
+	if err := release(); err != nil {
+		t.Fatalf("second release should be idempotent: %v", err)
+	}
+	if _, err := os.Stat(workspacePath); !os.IsNotExist(err) {
+		t.Fatalf("workspace still exists after lease release: %v", err)
+	}
+}
+
+func TestBroker_EvaluationFailureReleasesAdmissionAndWorkspace(t *testing.T) {
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(t.TempDir(), "workspace.zip")
+	makeTestZip(t, archivePath, map[string]string{"main.go": "package main"})
+	archiveBytes, err := os.ReadFile(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspaceID, err := manager.CreateWorkspace(archiveBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+	limiter := NewEvolutionAdmissionController(1, time.Second)
+	router := newSandboxBrokerHandler(
+		"broker-token-1234567890",
+		&brokerResponseTestEvaluator{err: errors.New("simulated evaluator failure")},
+		manager,
+		limiter,
+	)
+	requestBody, err := json.Marshal(agent.EvaluationRequest{
+		WorkspaceID: workspaceID,
+		FilePath:    "main.go",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/v1/evaluate", bytes.NewReader(requestBody))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890")
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("evaluation error status = %d, want %d", response.Code, http.StatusServiceUnavailable)
+	}
+	if limiter.CurrentLoad() != 0 {
+		t.Fatalf("admission load after evaluator failure = %d, want 0", limiter.CurrentLoad())
+	}
+	if err := manager.DeleteWorkspace(workspaceID); err != nil {
+		t.Fatalf("workspace lease was not released after evaluator failure: %v", err)
+	}
+}
+
+func TestBroker_CancellationReleasesWorkspaceLease(t *testing.T) {
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	archivePath := filepath.Join(t.TempDir(), "workspace.zip")
+	makeTestZip(t, archivePath, map[string]string{"main.go": "package main"})
+	archiveBytes, err := os.ReadFile(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspaceID, err := manager.CreateWorkspace(archiveBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	limiter := NewEvolutionAdmissionController(1, time.Second)
+	releaseAdmission, err := limiter.Acquire(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer releaseAdmission()
+
+	requestBody, err := json.Marshal(agent.EvaluationRequest{
+		WorkspaceID: workspaceID,
+		FilePath:    "main.go",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	request := httptest.NewRequest(http.MethodPost, "/v1/evaluate", bytes.NewReader(requestBody)).WithContext(ctx)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890")
+	response := httptest.NewRecorder()
+	router := newSandboxBrokerHandler("broker-token-1234567890", &brokerResponseTestEvaluator{}, manager, limiter)
+
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusServiceUnavailable {
+		t.Fatalf("cancelled evaluation status = %d, want %d", response.Code, http.StatusServiceUnavailable)
+	}
+	if err := manager.DeleteWorkspace(workspaceID); err != nil {
+		t.Fatalf("DeleteWorkspace() after cancelled request = %v, want released lease", err)
+	}
+}
+
+func TestBroker_EvaluationResponseCarriesUpdatedBytesAndError(t *testing.T) {
+	zipPath := filepath.Join(t.TempDir(), "workspace.zip")
+	makeTestZip(t, zipPath, map[string]string{"main.go": "package main"})
+	archiveBytes, err := os.ReadFile(zipPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workspaceID, err := manager.CreateWorkspace(archiveBytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	evaluator := &brokerResponseTestEvaluator{
+		result: &agent.EvaluationResult{
+			Outcome:          agent.OutcomeCompilationFailed,
+			Output:           "compile output",
+			UpdatedFileBytes: []byte("invalid source"),
+			Error:            errors.New("candidate did not compile"),
+		},
+	}
+	router := newSandboxBrokerHandler(
+		"broker-token-1234567890",
+		evaluator,
+		manager,
+		NewEvolutionAdmissionController(1, time.Second),
+	)
+	requestBody, err := json.Marshal(agent.EvaluationRequest{
+		WorkspaceID:   workspaceID,
+		FilePath:      "main.go",
+		OriginalBytes: []byte("package main"),
+		MutatedCode:   "invalid source",
+		StartByte:     0,
+		EndByte:       len("package main"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, "/v1/evaluate", bytes.NewReader(requestBody))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890")
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("evaluation status = %d, want %d: %s", response.Code, http.StatusOK, response.Body.String())
+	}
+	var result struct {
+		Outcome          agent.EvaluationOutcome `json:"outcome"`
+		Output           string                  `json:"output"`
+		UpdatedFileBytes []byte                  `json:"updated_file_bytes"`
+		Error            string                  `json:"error"`
+	}
+	if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil {
+		t.Fatalf("decode broker evaluation response: %v", err)
+	}
+	if result.Outcome != agent.OutcomeCompilationFailed || result.Output != "compile output" {
+		t.Fatalf("evaluation response = %+v", result)
+	}
+	if string(result.UpdatedFileBytes) != "invalid source" {
+		t.Fatalf("updated bytes = %q, want invalid source", result.UpdatedFileBytes)
+	}
+	if result.Error != "candidate did not compile" {
+		t.Fatalf("evaluation error = %q, want candidate did not compile", result.Error)
+	}
+}
+
+type brokerResponseTestEvaluator struct {
+	result *agent.EvaluationResult
+	err    error
+}
+
+func (e *brokerResponseTestEvaluator) CheckAvailable(context.Context) error {
+	return nil
+}
+
+func (e *brokerResponseTestEvaluator) EvaluateCandidate(context.Context, agent.EvaluationRequest) (*agent.EvaluationResult, error) {
+	return e.result, e.err
 }
