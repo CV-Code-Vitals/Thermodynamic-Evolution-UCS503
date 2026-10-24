@@ -149,7 +149,7 @@ func (d *DockerEvaluator) CheckAvailable(ctx context.Context) error {
 		return fmt.Errorf("%w: '%s' executable not found in PATH", ErrSandboxUnavailable, d.dockerBinary)
 	}
 
-	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	checkCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
 
 	cmd := exec.CommandContext(checkCtx, d.dockerBinary, "info", "--format", "{{.ServerVersion}}")

@@ -520,7 +520,7 @@ func TestDockerEvaluator_LiveExecution(t *testing.T) {
 		Image: os.Getenv("SANDBOX_RUNNER_IMAGE"),
 	})
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	if err := evaluator.CheckAvailable(ctx); err != nil {
