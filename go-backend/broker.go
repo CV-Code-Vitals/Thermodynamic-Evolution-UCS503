@@ -41,7 +41,7 @@ func runSandboxBroker() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
-	// Broker token authentication middleware
+	// Broker token authentication middleware (allows loopback probes or valid X-Sandbox-Token)
 	authMiddleware := func(c *gin.Context) {
 		provided := c.GetHeader("X-Sandbox-Token")
 		if len(provided) != len(token) || subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1 {
@@ -53,8 +53,20 @@ func runSandboxBroker() {
 		c.Next()
 	}
 
-	// Health check endpoint (checks Docker daemon availability)
-	r.GET("/health", authMiddleware, func(c *gin.Context) {
+	// Health check endpoint (allows token or internal loopback health probes)
+	r.GET("/health", func(c *gin.Context) {
+		clientIP := c.ClientIP()
+		isLoopback := clientIP == "127.0.0.1" || clientIP == "::1"
+		provided := c.GetHeader("X-Sandbox-Token")
+		hasValidToken := len(provided) == len(token) && subtle.ConstantTimeCompare([]byte(provided), []byte(token)) == 1
+
+		if !isLoopback && !hasValidToken {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "unauthorized: invalid or missing X-Sandbox-Token header",
+			})
+			return
+		}
+
 		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 		defer cancel()
 
@@ -80,6 +92,9 @@ func runSandboxBroker() {
 			return
 		}
 
+		// Enforce server-side resource bounds (defense-in-depth against client override)
+		req.Limits = clampLimits(req.Limits)
+
 		// Enforce admission control
 		release, err := limiter.Acquire(c.Request.Context())
 		if err != nil {
@@ -100,4 +115,33 @@ func runSandboxBroker() {
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("[FATAL] Sandbox Broker failed: %v", err)
 	}
+}
+
+// clampLimits enforces server-side ceilings on candidate execution limits.
+func clampLimits(limits agent.ResourceLimits) agent.ResourceLimits {
+	def := agent.DefaultResourceLimits()
+	const (
+		maxAllowedTimeout     = 120 * time.Second
+		maxAllowedMemoryMB    = 2048
+		maxAllowedCPUs        = 2.0
+		maxAllowedPids        = 256
+		maxAllowedOutputBytes = 256 * 1024
+	)
+
+	if limits.Timeout <= 0 || limits.Timeout > maxAllowedTimeout {
+		limits.Timeout = def.Timeout
+	}
+	if limits.MaxMemoryMB <= 0 || limits.MaxMemoryMB > maxAllowedMemoryMB {
+		limits.MaxMemoryMB = def.MaxMemoryMB
+	}
+	if limits.MaxCPUs <= 0 || limits.MaxCPUs > maxAllowedCPUs {
+		limits.MaxCPUs = def.MaxCPUs
+	}
+	if limits.MaxPids <= 0 || limits.MaxPids > maxAllowedPids {
+		limits.MaxPids = def.MaxPids
+	}
+	if limits.MaxOutputBytes <= 0 || limits.MaxOutputBytes > maxAllowedOutputBytes {
+		limits.MaxOutputBytes = def.MaxOutputBytes
+	}
+	return limits
 }

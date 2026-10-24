@@ -268,3 +268,42 @@ func TestSandboxWorkspace_CustomBaseDir(t *testing.T) {
 		}
 	}
 }
+
+// TestEvaluateCandidate_RestrictedRepoPaths verifies that attempts to evaluate against sensitive
+// system root locations or escape paths are rejected immediately with ErrSecurityViolation.
+func TestEvaluateCandidate_RestrictedRepoPaths(t *testing.T) {
+	evaluator := NewDockerEvaluator(DockerEvaluatorConfig{})
+
+	sensitivePaths := []string{
+		"/",
+		"/etc",
+		"/etc/ssl",
+		"/root",
+		"/proc",
+		"/sys",
+		"/dev",
+		"../outside",
+		"C:/Windows",
+		"C:/Windows/System32",
+	}
+
+	for _, p := range sensitivePaths {
+		t.Run(p, func(t *testing.T) {
+			res, err := evaluator.EvaluateCandidate(context.Background(), EvaluationRequest{
+				RepoPath:    p,
+				FilePath:    "main.go",
+				MutatedCode: "package main",
+			})
+
+			if err == nil {
+				t.Fatalf("expected ErrSecurityViolation for RepoPath %q, got nil", p)
+			}
+			if !errors.Is(err, ErrSecurityViolation) {
+				t.Fatalf("expected ErrSecurityViolation for RepoPath %q, got: %v", p, err)
+			}
+			if res.Outcome != OutcomeSecurityRejected {
+				t.Fatalf("expected OutcomeSecurityRejected, got: %s", res.Outcome)
+			}
+		})
+	}
+}

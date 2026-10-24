@@ -190,6 +190,15 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 		}, ErrInvalidRequest
 	}
 
+	// Reject restricted system directories for RepoPath
+	if err := validateCandidateRepoPath(req.RepoPath); err != nil {
+		return &EvaluationResult{
+			Outcome:  OutcomeSecurityRejected,
+			Duration: time.Since(start),
+			Error:    err,
+		}, err
+	}
+
 	// Reject path traversal and absolute/rooted paths
 	cleanInput := filepath.ToSlash(req.FilePath)
 	cleanedRel := filepath.Clean(filepath.FromSlash(req.FilePath))
@@ -573,6 +582,23 @@ func (m *MockEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationReq
 func (m *MockEvaluator) CheckAvailable(ctx context.Context) error {
 	if m.CheckFunc != nil {
 		return m.CheckFunc(ctx)
+	}
+	return nil
+}
+
+// validateCandidateRepoPath ensures the repository root is not pointed at a sensitive system directory.
+func validateCandidateRepoPath(repoPath string) error {
+	clean := filepath.Clean(filepath.FromSlash(repoPath))
+	slash := filepath.ToSlash(clean)
+
+	sensitivePrefixes := []string{"/etc", "/root", "/sys", "/proc", "/dev", "/boot", "/var/run", "C:/Windows", "C:/Program Files"}
+	for _, p := range sensitivePrefixes {
+		if strings.EqualFold(slash, p) || strings.HasPrefix(strings.ToLower(slash), strings.ToLower(p)+"/") {
+			return fmt.Errorf("%w: repository path %q points to a restricted system location", ErrSecurityViolation, repoPath)
+		}
+	}
+	if slash == "/" || slash == "." || strings.HasPrefix(clean, "..") {
+		return fmt.Errorf("%w: repository path %q is invalid", ErrSecurityViolation, repoPath)
 	}
 	return nil
 }
