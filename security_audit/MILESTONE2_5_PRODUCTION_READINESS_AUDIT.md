@@ -30,20 +30,22 @@ Our mandate was to independently verify whether the system is **safe, reproducib
 ### Git Lineage
 - **Milestone 2.4 Code Fix Commit:** `8867c336afbd7c71e8a75f4faff34b46bb3f560d`
 - **Milestone 2.4 Documentation Baseline Commit:** `1faaca7ea9d3e1d2e047d8d041e070f1565fa14a`
-- **Milestone 2.5 Security Hardened Commit:** `f8357847c65c9c85f87af15fbb407090561eb169`
+- **Milestone 2.5 Security Fix Commit (Symlink & Initial Path Check):** `f8357847c65c9c85f87af15fbb407090561eb169`
+- **Milestone 2.5 Fully Verified Release Commit:** `75cd5b906a128dae2fbc8cabd560b7e0eab3ac00`
 - **Tracking Branch:** `main` (synchronized with `origin/main`)
 
-### Hosted CI Evidence Verification (Run ID `40043857063`)
+### Hosted CI Evidence Verification (Run ID `40046901749`)
 - **Status:** `completed`, **Conclusion:** `success`
 - **Workflow:** `CI - Go build & vet`
-- **Artifact:** `sandbox-integration-test-logs` (ID `12539684470`, Size 272 bytes)
-- **Log SHA-256 Hash:** `110ABCC1982A2C00D04E721BAACCFF63F04AA17EE4523A99AB79F913BBCD8086`
+- **Job ID:** `120730613991` (all 17 steps completed with `success`)
+- **Artifact:** `sandbox-integration-test-logs` (ID `12541183087`, Size 270 bytes)
+- **Log SHA-256 Hash:** `3CA812CBE8B1533EEEA9A70A96573B2D37E442238EC8CCEC5BF0A1ADC2225AE5`
 - **Artifact Contents:**
   ```text
   === RUN   TestDockerEvaluator_LiveExecution
-  --- PASS: TestDockerEvaluator_LiveExecution (16.20s)
+  --- PASS: TestDockerEvaluator_LiveExecution (9.71s)
   PASS
-  ok  	github.com/saksham/self-healing-pipeline/agent	16.201s
+  ok  	github.com/saksham/self-healing-pipeline/agent	9.708s
   ```
 
 ---
