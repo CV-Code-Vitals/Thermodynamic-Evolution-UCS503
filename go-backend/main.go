@@ -631,11 +631,27 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	// ── Routes ────────────────────────────────────────────────────────────────
 
 	// Health & status checks (registered under multiple endpoints for proxy resilience)
+	sandboxEvaluator := agent.NewEvaluator(agent.DockerEvaluatorConfig{
+		Image: os.Getenv("SANDBOX_RUNNER_IMAGE"),
+	})
 	healthHandler := func(c *gin.Context) {
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+
+		sandboxAvailable := false
+		var sandboxErr string
+		if err := sandboxEvaluator.CheckAvailable(ctx); err == nil {
+			sandboxAvailable = true
+		} else {
+			sandboxErr = err.Error()
+		}
+
 		c.JSON(http.StatusOK, gin.H{
-			"status":      "ok",
-			"engine_path": enginePath,
-			"version":     "1.0.0",
+			"status":            "ok",
+			"engine_path":       enginePath,
+			"version":           "1.0.0",
+			"sandbox_available": sandboxAvailable,
+			"sandbox_error":     sandboxErr,
 		})
 	}
 	r.GET("/health", healthHandler)
@@ -685,6 +701,18 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 }
 
 func main() {
+	// Check if invoked in dedicated Sandbox Broker mode (isolated Docker daemon worker)
+	for _, arg := range os.Args[1:] {
+		if arg == "--broker" || arg == "--sandbox-broker" {
+			runSandboxBroker()
+			return
+		}
+	}
+	if os.Getenv("SANDBOX_SERVICE_MODE") == "true" {
+		runSandboxBroker()
+		return
+	}
+
 	// ── Read configuration ────────────────────────────────────────────────────
 	enginePath := resolveEnginePath()
 	port := envOr("PORT", "8080")

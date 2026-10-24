@@ -42,8 +42,8 @@ func evolveHandler() gin.HandlerFunc {
 
 	mutator := agent.NewAdaptiveMutator(llmAgent, 0)
 
-	// Configure the hardened Docker sandbox evaluator
-	evaluator := agent.NewDockerEvaluator(agent.DockerEvaluatorConfig{
+	// Configure the hardened sandbox evaluator (supports direct Docker or authenticated remote broker)
+	evaluator := agent.NewEvaluator(agent.DockerEvaluatorConfig{
 		Image: os.Getenv("SANDBOX_RUNNER_IMAGE"),
 	})
 

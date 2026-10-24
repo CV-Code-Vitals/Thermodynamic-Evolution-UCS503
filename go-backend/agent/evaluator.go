@@ -62,7 +62,7 @@ func DefaultResourceLimits() ResourceLimits {
 type EvaluationRequest struct {
 	RepoPath      string         `json:"repo_path"`
 	FilePath      string         `json:"file_path"`
-	OriginalBytes []byte         `json:"-"`
+	OriginalBytes []byte         `json:"original_bytes,omitempty"`
 	MutatedCode   string         `json:"mutated_code"`
 	StartByte     int            `json:"start_byte"`
 	EndByte       int            `json:"end_byte"`
@@ -82,6 +82,7 @@ type EvaluationResult struct {
 // CandidateEvaluator defines the boundary through which all candidate code must be evaluated.
 type CandidateEvaluator interface {
 	EvaluateCandidate(ctx context.Context, req EvaluationRequest) (*EvaluationResult, error)
+	CheckAvailable(ctx context.Context) error
 }
 
 // DockerEvaluatorConfig holds settings for the Docker sandbox evaluator.
@@ -139,6 +140,18 @@ func NewDockerEvaluator(cfg DockerEvaluatorConfig) *DockerEvaluator {
 	}
 }
 
+// NewEvaluator constructs a CandidateEvaluator based on environment configuration.
+// If SANDBOX_SERVICE_URL is defined, it constructs a RemoteBrokerEvaluator.
+// Otherwise, it constructs a local DockerEvaluator.
+func NewEvaluator(cfg DockerEvaluatorConfig) CandidateEvaluator {
+	brokerURL := os.Getenv("SANDBOX_SERVICE_URL")
+	if strings.TrimSpace(brokerURL) != "" {
+		brokerToken := os.Getenv("SANDBOX_SERVICE_TOKEN")
+		return NewRemoteBrokerEvaluator(brokerURL, brokerToken)
+	}
+	return NewDockerEvaluator(cfg)
+}
+
 // CheckAvailable verifies whether the Docker sandbox runtime is accessible.
 func (d *DockerEvaluator) CheckAvailable(ctx context.Context) error {
 	if d.runnerChecker != nil {
@@ -192,19 +205,26 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 		}, ErrSecurityViolation
 	}
 
-	if req.StartByte < 0 || req.EndByte < req.StartByte || req.StartByte > len(req.OriginalBytes) || req.EndByte > len(req.OriginalBytes) {
+	origBytes := req.OriginalBytes
+	if len(origBytes) == 0 && req.RepoPath != "" {
+		if b, err := os.ReadFile(filepath.Join(req.RepoPath, cleanedRel)); err == nil {
+			origBytes = b
+		}
+	}
+
+	if req.StartByte < 0 || req.EndByte < req.StartByte || req.StartByte > len(origBytes) || req.EndByte > len(origBytes) {
 		return &EvaluationResult{
 			Outcome:  OutcomeSecurityRejected,
 			Duration: time.Since(start),
-			Error:    fmt.Errorf("%w: byte range [%d:%d] out of bounds for file of size %d", ErrInvalidRequest, req.StartByte, req.EndByte, len(req.OriginalBytes)),
+			Error:    fmt.Errorf("%w: byte range [%d:%d] out of bounds for file of size %d", ErrInvalidRequest, req.StartByte, req.EndByte, len(origBytes)),
 		}, ErrInvalidRequest
 	}
 
 	// 2. Splice candidate code into buffer
-	newContent := make([]byte, 0, req.StartByte+len(req.MutatedCode)+(len(req.OriginalBytes)-req.EndByte))
-	newContent = append(newContent, req.OriginalBytes[:req.StartByte]...)
+	newContent := make([]byte, 0, req.StartByte+len(req.MutatedCode)+(len(origBytes)-req.EndByte))
+	newContent = append(newContent, origBytes[:req.StartByte]...)
 	newContent = append(newContent, []byte(req.MutatedCode)...)
-	newContent = append(newContent, req.OriginalBytes[req.EndByte:]...)
+	newContent = append(newContent, origBytes[req.EndByte:]...)
 
 	// 3. Static security & syntax pre-checks (Fast-fail before container overhead)
 	if err := validateCandidateSource(req.FilePath, req.MutatedCode, newContent); err != nil {
@@ -234,7 +254,11 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 	}
 
 	// 5. Prepare isolated ephemeral workspace directory
-	tempWorkspace, err := os.MkdirTemp("", "ucs503-sandbox-ws-*")
+	baseWS := os.Getenv("SANDBOX_WORKSPACE_DIR")
+	if strings.TrimSpace(baseWS) != "" {
+		_ = os.MkdirAll(baseWS, 0o777)
+	}
+	tempWorkspace, err := os.MkdirTemp(baseWS, "ucs503-sandbox-ws-*")
 	if err != nil {
 		return &EvaluationResult{
 			TestsPassed: false,
@@ -526,9 +550,14 @@ func (f *FailClosedEvaluator) EvaluateCandidate(_ context.Context, _ EvaluationR
 	}, ErrHostExecutionBlocked
 }
 
+func (f *FailClosedEvaluator) CheckAvailable(_ context.Context) error {
+	return ErrHostExecutionBlocked
+}
+
 // MockEvaluator enables deterministic unit tests without requiring a live container runtime.
 type MockEvaluator struct {
 	EvaluateFunc func(ctx context.Context, req EvaluationRequest) (*EvaluationResult, error)
+	CheckFunc    func(ctx context.Context) error
 }
 
 func (m *MockEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationRequest) (*EvaluationResult, error) {
@@ -539,4 +568,11 @@ func (m *MockEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationReq
 		TestsPassed: true,
 		Outcome:     OutcomePassed,
 	}, nil
+}
+
+func (m *MockEvaluator) CheckAvailable(ctx context.Context) error {
+	if m.CheckFunc != nil {
+		return m.CheckFunc(ctx)
+	}
+	return nil
 }

@@ -5,7 +5,7 @@ services:
     env_file:
       - .env
     environment:
-      APP_ENV: production
+      APP_ENV: standalone
       ADMIN_PASSKEY: ${ADMIN_PASSKEY:?Set ADMIN_PASSKEY in .env}
       DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       S3_BUCKET: ${S3_BUCKET:?Set S3_BUCKET in .env}
@@ -21,6 +21,8 @@ services:
     volumes:
       - api_uploads:/app/uploads
       - api_data:/app/data
+    networks:
+      - public_net
 
   ucs503-analysis:
     image: ghcr.io/cv-code-vitals/ucs503-analysis:${IMAGE_TAG:-latest}
@@ -31,6 +33,9 @@ services:
       ENGINE_PATH: /app/thermodynamic-ast-engine
       GIN_MODE: release
       PORT: "8080"
+      SANDBOX_SERVICE_URL: http://ucs503-sandbox-broker:8082
+      SANDBOX_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Set SANDBOX_SERVICE_TOKEN in .env}
+      SANDBOX_WORKSPACE_DIR: /app/sandboxes
     ports:
       - "127.0.0.1:8081:8080"
     logging:
@@ -40,19 +45,45 @@ services:
         max-file: "3"
     volumes:
       - analysis_uploads:/app/uploads
+      - sandboxes_shared:/app/sandboxes
+    networks:
+      - public_net
+      - sandbox_internal
+    depends_on:
+      - ucs503-sandbox-broker
+
+  ucs503-sandbox-broker:
+    image: ghcr.io/cv-code-vitals/ucs503-analysis:${IMAGE_TAG:-latest}
+    restart: always
+    user: "root"
+    command: ["./backend_server", "--broker"]
+    environment:
+      SANDBOX_SERVICE_MODE: "true"
+      SANDBOX_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Set SANDBOX_SERVICE_TOKEN in .env}
+      SANDBOX_RUNNER_IMAGE: ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${IMAGE_TAG:-latest}
+      SANDBOX_WORKSPACE_DIR: /app/sandboxes
+      PORT: "8082"
+    expose:
+      - "8082"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - sandboxes_shared:/app/sandboxes
+      - analysis_uploads:/app/uploads:ro
+    networks:
+      - sandbox_internal
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
 
 volumes:
   api_uploads:
   api_data:
   analysis_uploads:
+  sandboxes_shared:
 
-# optional: nginx service example (if you want to run proxy in compose)
-#  nginx:
-#    image: nginx:stable
-#    volumes:
-#      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
-#    ports:
-#      - "80:80"
-#      - "443:443"
-#    depends_on:
-#      - ucs503-api
+networks:
+  public_net:
+  sandbox_internal:
+    internal: true

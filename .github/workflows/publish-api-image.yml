@@ -8,6 +8,7 @@ on:
       - 'api/**'
       - 'go-backend/**'
       - 'thermodynamic-ast-engine/**'
+      - 'docker/**'
       - 'docker-compose.ec2.yml'
       - '.github/workflows/publish-api-image.yml'
 
@@ -50,3 +51,13 @@ jobs:
           tags: |
             ghcr.io/cv-code-vitals/ucs503-analysis:latest
             ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}
+
+      - name: Build and push sandbox runner image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./docker/sandbox-runner/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/cv-code-vitals/ucs503-sandbox-runner:latest
+            ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${{ github.sha }}
