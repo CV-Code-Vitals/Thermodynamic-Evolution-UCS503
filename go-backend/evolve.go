@@ -76,8 +76,11 @@ func evolveHandler() gin.HandlerFunc {
 
 		cleanInput := filepath.ToSlash(req.FilePath)
 		cleanRel := filepath.Clean(filepath.FromSlash(req.FilePath))
+		isWinDrive := len(req.FilePath) >= 2 && req.FilePath[1] == ':' &&
+			((req.FilePath[0] >= 'a' && req.FilePath[0] <= 'z') || (req.FilePath[0] >= 'A' && req.FilePath[0] <= 'Z'))
+
 		if filepath.IsAbs(cleanRel) || strings.HasPrefix(cleanInput, "/") || strings.HasPrefix(cleanInput, "\\") ||
-			strings.HasPrefix(cleanRel, "..") || filepath.VolumeName(cleanRel) != "" {
+			strings.HasPrefix(cleanRel, "..") || filepath.VolumeName(cleanRel) != "" || isWinDrive {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Path traversal in file_path is forbidden"})
 			return
 		}

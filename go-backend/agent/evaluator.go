@@ -180,8 +180,11 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 	// Reject path traversal and absolute/rooted paths
 	cleanInput := filepath.ToSlash(req.FilePath)
 	cleanedRel := filepath.Clean(filepath.FromSlash(req.FilePath))
+	isWinDrive := len(req.FilePath) >= 2 && req.FilePath[1] == ':' &&
+		((req.FilePath[0] >= 'a' && req.FilePath[0] <= 'z') || (req.FilePath[0] >= 'A' && req.FilePath[0] <= 'Z'))
+
 	if filepath.IsAbs(cleanedRel) || strings.HasPrefix(cleanInput, "/") || strings.HasPrefix(cleanInput, "\\") ||
-		strings.HasPrefix(cleanedRel, "..") || filepath.VolumeName(cleanedRel) != "" {
+		strings.HasPrefix(cleanedRel, "..") || filepath.VolumeName(cleanedRel) != "" || isWinDrive {
 		return &EvaluationResult{
 			Outcome:  OutcomeSecurityRejected,
 			Duration: time.Since(start),
