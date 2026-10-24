@@ -291,7 +291,7 @@ func (d *DockerEvaluator) EvaluateCandidate(ctx context.Context, req EvaluationR
 		"--name", containerName,
 		"--network", "none", // NO network access
 		"--read-only", // Read-only root FS
-		"--tmpfs", fmt.Sprintf("/tmp:rw,nosuid,nodev,size=%dm", tmpfsSizeMB),
+		"--tmpfs", fmt.Sprintf("/tmp:rw,exec,nosuid,nodev,mode=1777,size=%dm", tmpfsSizeMB),
 		"-e", "GOCACHE=/tmp/gocache",
 		"-e", "CGO_ENABLED=0",
 		"--user", "10001:10001", // Non-root
