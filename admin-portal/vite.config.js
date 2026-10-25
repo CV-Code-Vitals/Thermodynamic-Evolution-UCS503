@@ -5,25 +5,27 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const projectRoot = dirname(fileURLToPath(import.meta.url))
-const graphVisualizerPath = resolve(projectRoot, '../graph-visualizer/index.html')
+const graphAssets = ['index.html', 'graph.mjs', 'model.mjs']
+const graphAssetPath = (name) => resolve(projectRoot, '../graph-visualizer', name)
 
 function graphVisualizerPlugin() {
   return {
     name: 'graph-visualizer',
     configureServer(server) {
-      server.middlewares.use('/graph-visualizer/index.html', (request, response, next) => {
+      server.middlewares.use('/graph-visualizer/', (request, response, next) => {
         if (!['GET', 'HEAD'].includes(request.method)) return next()
+        const name = request.url.split('?')[0].replace(/^\//, '') || 'index.html'
+        if (!graphAssets.includes(name)) return next()
         response.statusCode = 200
-        response.setHeader('Content-Type', 'text/html; charset=utf-8')
-        response.end(request.method === 'HEAD' ? undefined : readFileSync(graphVisualizerPath))
+        response.setHeader('Cache-Control', 'no-store')
+        response.setHeader('Content-Type', name.endsWith('.html') ? 'text/html; charset=utf-8' : 'application/javascript')
+        response.end(request.method === 'HEAD' ? undefined : readFileSync(graphAssetPath(name)))
       })
     },
     generateBundle() {
-      this.emitFile({
-        type: 'asset',
-        fileName: 'graph-visualizer/index.html',
-        source: readFileSync(graphVisualizerPath, 'utf8'),
-      })
+      for (const name of graphAssets) {
+        this.emitFile({ type: 'asset', fileName: `graph-visualizer/${name}`, source: readFileSync(graphAssetPath(name), 'utf8') })
+      }
     },
   }
 }

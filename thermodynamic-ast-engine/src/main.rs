@@ -1,7 +1,7 @@
 // =============================================================================
 // thermodynamic-ast-engine · src/main.rs  (v2.0 — Tree-sitter AST-driven)
 //
-// A structural thermodynamic entropy analyzer for Go and Python source files.
+// A multilingual source inventory and structural code analyzer.
 //
 // Design pillars
 // ──────────────
@@ -35,8 +35,8 @@ use rayon::prelude::*;
     name        = "thermodynamic-ast-engine",
     version     = env!("CARGO_PKG_VERSION"),
     author      = env!("CARGO_PKG_AUTHORS"),
-    about       = "Tree-sitter AST-driven thermodynamic energy analyzer for Go/Python source \
-                   files. Emits a JSON report of structural entropy hotspots.",
+    about       = "Multilingual source inventory and Tree-sitter structural code analyzer. \
+                   Emits function metrics for supported grammars and file metadata for other text languages.",
     long_about  = None,
 )]
 struct Cli {
@@ -73,7 +73,7 @@ struct Cli {
 /// The vulnerability / entropy driver category detected by AST analysis.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum VulnerabilityType {
-    /// Deeply nested control-flow blocks (O(n^k) risk)
+    /// Deeply nested control-flow blocks
     DeepNesting,
     /// Direct or mutual recursion without obvious guardrails
     RecursiveCall,
@@ -123,6 +123,8 @@ pub struct FunctionMetrics {
 pub struct Hotspot {
     /// Name of the containing function / method
     pub function_name: String,
+    #[serde(default)]
+    pub calls: Vec<String>,
     /// 1-indexed line number where the function starts
     pub line_number: usize,
     /// Byte range [start, end] within the source file
@@ -148,6 +150,12 @@ pub struct FileReport {
     pub language: String,
     /// Total number of non-blank, non-comment lines scanned
     pub lines_scanned: usize,
+    #[serde(default)]
+    pub analysis_mode: String,
+    #[serde(default)]
+    pub parse_errors: bool,
+    #[serde(default)]
+    pub imports: Vec<relationships::ImportReference>,
     /// Sum of all individual hotspot energy scores
     pub total_entropy: f64,
     /// Mean energy per detected hotspot (0 if no hotspots)
@@ -173,6 +181,8 @@ pub struct ThermodynamicReport {
     pub global_entropy: f64,
     /// Per-file reports, sorted by `total_entropy` descending
     pub file_reports: Vec<FileReport>,
+    #[serde(default)]
+    pub relationships: Vec<relationships::Relationship>,
 }
 
 // =============================================================================
@@ -205,20 +215,14 @@ pub fn compute_energy(metrics: &FunctionMetrics) -> f64 {
 // § 4  Tree-sitter AST visitor engine
 // =============================================================================
 
-/// Supported language enum for the visitor dispatch.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Language {
-    Go,
-    Python,
-}
+mod languages;
+mod relationships;
+pub use languages::Language;
 
 /// Create a tree-sitter parser for the given language.
 fn create_parser(lang: Language) -> Option<tree_sitter::Parser> {
     let mut parser = tree_sitter::Parser::new();
-    let ts_lang = match lang {
-        Language::Go => tree_sitter_go::LANGUAGE.into(),
-        Language::Python => tree_sitter_python::LANGUAGE.into(),
-    };
+    let ts_lang = lang.grammar()?;
     parser.set_language(&ts_lang).ok()?;
     Some(parser)
 }
@@ -249,6 +253,11 @@ fn is_decision_point(kind: &str, lang: Language) -> bool {
                 | "assert_statement"
                 | "conditional_expression"
         ),
+        _ => matches!(kind, "if_statement" | "if_expression" | "for_statement" | "for_expression"
+            | "for_in_statement" | "foreach_statement" | "for_each_statement" | "enhanced_for_statement"
+            | "while_statement" | "while_expression" | "do_statement" | "case_statement" | "switch_case"
+            | "switch_section" | "match_arm" | "catch_clause" | "conditional_expression"
+            | "ternary_expression" | "guard_statement" | "switch_entry" | "elif_clause" | "case_item" | "if" | "elsif" | "unless" | "when" | "rescue" | "for" | "while" | "until"),
     }
 }
 
@@ -262,6 +271,8 @@ fn is_boolean_operator(kind: &str, text: &str, lang: Language) -> bool {
         Language::Python => {
             kind == "boolean_operator"
         }
+        _ => matches!(kind, "binary_expression" | "binary_operator" | "conjunction_expression" | "disjunction_expression")
+            && (text.contains("&&") || text.contains("||")),
     }
 }
 
@@ -286,6 +297,10 @@ fn is_nesting_block(kind: &str, lang: Language) -> bool {
                 | "with_statement"
                 | "try_statement"
         ),
+        _ => matches!(kind, "if_statement" | "if_expression" | "for_statement" | "for_expression"
+            | "for_in_statement" | "foreach_statement" | "for_each_statement" | "enhanced_for_statement"
+            | "while_statement" | "while_expression" | "do_statement" | "switch_statement"
+            | "switch_expression" | "match_expression" | "try_statement" | "if" | "for" | "unless" | "while" | "until"),
     }
 }
 
@@ -293,28 +308,33 @@ fn is_nesting_block(kind: &str, lang: Language) -> bool {
 fn is_function_node(kind: &str, lang: Language) -> bool {
     match lang {
         Language::Go => matches!(kind, "function_declaration" | "method_declaration"),
-        Language::Python => matches!(kind, "function_definition"),
+        Language::Python | Language::C | Language::Cpp | Language::Bash => kind == "function_definition",
+        Language::JavaScript | Language::TypeScript | Language::Tsx => matches!(kind,
+            "function_declaration" | "generator_function_declaration" | "function_expression"
+            | "generator_function" | "arrow_function" | "method_definition"),
+        Language::Rust => kind == "function_item",
+        Language::Swift => matches!(kind, "function_declaration" | "init_declaration" | "deinit_declaration"),
+        Language::Java | Language::CSharp => matches!(kind,
+            "method_declaration" | "constructor_declaration" | "compact_constructor_declaration" | "local_function_statement"),
+        Language::Ruby => matches!(kind, "method" | "singleton_method"),
+        Language::Php => matches!(kind, "function_definition" | "method_declaration" | "anonymous_function" | "arrow_function"),
+        Language::Text => false,
     }
 }
 
-/// Extract function name from a function AST node.
-fn extract_function_name(node: &tree_sitter::Node, source: &[u8], lang: Language) -> String {
-    match lang {
-        Language::Go => {
-            // For method_declaration, the name is inside the receiver + name
-            // For function_declaration, it's the `name` child
-            node.child_by_field_name("name")
-                .and_then(|n| n.utf8_text(source).ok())
-                .unwrap_or("<anonymous>")
-                .to_string()
+fn extract_function_name(node: &tree_sitter::Node, source: &[u8], _lang: Language) -> String {
+    fn name_node(node: tree_sitter::Node) -> Option<tree_sitter::Node> {
+        if matches!(node.kind(), "identifier" | "field_identifier" | "operator_name") {
+            return Some(node);
         }
-        Language::Python => {
-            node.child_by_field_name("name")
-                .and_then(|n| n.utf8_text(source).ok())
-                .unwrap_or("<anonymous>")
-                .to_string()
-        }
+        node.child_by_field_name("declarator").or_else(|| node.child_by_field_name("name")).and_then(name_node)
     }
+    let named = node.child_by_field_name("name")
+        .or_else(|| node.child_by_field_name("declarator").and_then(name_node))
+        .or_else(|| node.parent().filter(|p| matches!(p.kind(), "variable_declarator" | "pair" | "assignment_expression"))
+            .and_then(|p| p.child_by_field_name("name").or_else(|| p.child_by_field_name("key")).or_else(|| p.child_by_field_name("left"))));
+    named.and_then(|n| n.utf8_text(source).ok()).map(str::to_owned)
+        .unwrap_or_else(|| format!("<anonymous@{}>", node.start_position().row + 1))
 }
 
 /// Check if a node represents a concurrency / resource primitive.
@@ -372,6 +392,7 @@ fn is_concurrency_primitive(kind: &str, text: &str, lang: Language) -> bool {
             }
             false
         }
+        _ => kind == "lock_statement",
     }
 }
 
@@ -405,6 +426,7 @@ fn is_blocking_io(text: &str, lang: Language) -> bool {
                 || t.contains("socket.recv")
                 || t.contains("urllib")
         }
+        _ => false,
     }
 }
 
@@ -427,6 +449,7 @@ fn is_allocation(text: &str, lang: Language) -> bool {
                 || t.contains("torch.ones")
                 || t.contains("bytearray(")
         }
+        _ => false,
     }
 }
 
@@ -578,7 +601,7 @@ pub fn is_excluded_extension(ext: &str) -> bool {
         ext.to_ascii_lowercase().as_str(),
         "exe" | "dll" | "so" | "dylib" | "bin" | "o" | "a" | "lib" | "class" | "jar" | "war"
         | "pyc" | "pyo" | "pyd" | "wasm"
-        | "png" | "jpg" | "jpeg" | "gif" | "bmp" | "ico" | "webp" | "tiff" | "psd" | "raw" | "svg"
+        | "png" | "jpg" | "jpeg" | "gif" | "bmp" | "ico" | "webp" | "tiff" | "psd" | "raw"
         | "mp3" | "mp4" | "wav" | "ogg" | "flac" | "mkv" | "avi" | "mov" | "webm"
         | "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "iso" | "dmg" | "pkg"
         | "pdf" | "doc" | "docx" | "ppt" | "pptx" | "xls" | "xlsx"
@@ -651,15 +674,18 @@ pub fn detect_language(path: &Path) -> Option<Language> {
 
     match ext.to_ascii_lowercase().as_str() {
         "go" => Some(Language::Go),
-        "py" | "pyw" => Some(Language::Python),
-        _ => None,
-    }
-}
-
-fn language_name(lang: Language) -> &'static str {
-    match lang {
-        Language::Go => "Go",
-        Language::Python => "Python",
+        "py" | "pyw" | "pyi" => Some(Language::Python),
+        "js" | "jsx" | "mjs" | "cjs" => Some(Language::JavaScript),
+        "ts" | "mts" | "cts" => Some(Language::TypeScript),
+        "tsx" => Some(Language::Tsx),
+        "rs" => Some(Language::Rust), "java" => Some(Language::Java),
+        "swift" => Some(Language::Swift),
+        "c" | "h" => Some(Language::C),
+        "cpp" | "cc" | "cxx" | "hpp" | "hxx" | "hh" => Some(Language::Cpp),
+        "cs" => Some(Language::CSharp), "rb" | "rake" => Some(Language::Ruby),
+        "php" | "phtml" => Some(Language::Php),
+        "sh" | "bash" | "zsh" => Some(Language::Bash),
+        _ => Some(Language::Text),
     }
 }
 
@@ -696,7 +722,10 @@ pub fn scan_file(
 
     // ── Read source ────────────────────────────────────────────────────────
     let source = fs::read(path)?;
-    let source_text = String::from_utf8_lossy(&source);
+    let source_text = match std::str::from_utf8(&source) {
+        Ok(text) if !source.contains(&0) => text,
+        _ => return Ok(None),
+    };
 
     // Count non-blank, non-comment lines
     let lines_scanned = source_text
@@ -704,16 +733,20 @@ pub fn scan_file(
         .filter(|line| {
             let trimmed = line.trim();
             !trimmed.is_empty()
-                && !trimmed.starts_with('#')
-                && !trimmed.starts_with("//")
-                && !trimmed.starts_with("/*")
+                && (lang == Language::Text || !trimmed.starts_with('#'))
+                && (lang == Language::Text || !trimmed.starts_with("//"))
+                && (lang == Language::Text || !trimmed.starts_with("/*"))
         })
         .count();
 
     // ── Parse with tree-sitter ─────────────────────────────────────────────
     let mut parser = match create_parser(lang) {
         Some(p) => p,
-        None => return Ok(None),
+        None => return Ok(Some(FileReport {
+            file_path: path.to_string_lossy().into_owned(), language: lang.name(path),
+            lines_scanned, analysis_mode: "text".to_owned(), parse_errors: false, imports: Vec::new(),
+            total_entropy: 0.0, mean_hotspot_entropy: 0.0, hotspots: Vec::new(),
+        })),
     };
 
     let tree = match parser.parse(&source, None) {
@@ -777,6 +810,7 @@ pub fn scan_file(
 
             hotspots.push(Hotspot {
                 function_name: func_name,
+                calls: relationships::calls(node, source, lang),
                 line_number: start_line,
                 byte_range,
                 source_snippet: snippet,
@@ -815,8 +849,11 @@ pub fn scan_file(
 
     Ok(Some(FileReport {
         file_path: path.to_string_lossy().into_owned(),
-        language: language_name(lang).to_owned(),
+        language: lang.name(path),
         lines_scanned,
+        analysis_mode: "ast".to_owned(),
+        parse_errors: root.has_error(),
+        imports: relationships::imports(root, &source, lang),
         total_entropy: (total_entropy * 100.0).round() / 100.0,
         mean_hotspot_entropy: mean_entropy,
         hotspots,
@@ -985,7 +1022,7 @@ fn determine_primary_driver(
         return (
             VulnerabilityType::HotAllocation,
             format!(
-                "Heap allocation inside loop body — O(n) memory pressure (S={})",
+                "Allocation inside a loop may repeat on each iteration (AST nodes={})",
                 metrics.ast_node_count
             ),
         );
@@ -994,7 +1031,7 @@ fn determine_primary_driver(
         return (
             VulnerabilityType::DeepNesting,
             format!(
-                "Nesting depth {} exceeds safe threshold — O(n^k) complexity risk (M={})",
+                "Nesting depth {} indicates deeply nested control flow (M={})",
                 metrics.max_nesting_depth, metrics.cyclomatic_complexity
             ),
         );
@@ -1143,6 +1180,7 @@ pub fn build_and_write_report(
         files_analyzed: file_reports.len(),
         total_hotspots,
         global_entropy: (global_entropy * 100.0).round() / 100.0,
+        relationships: relationships::build(&file_reports, scanned_dir),
         file_reports,
     };
 
@@ -1266,7 +1304,7 @@ fn main() {
 
     if file_reports.is_empty() {
         println!(
-            "{} No supported source files (Go/Python) found in '{}'.",
+            "{} No readable text files found in '{}'.",
             "WARN:".yellow().bold(),
             cli.directory.display()
         );
@@ -1331,10 +1369,60 @@ mod tests {
     }
 
     #[test]
+    fn multilingual_function_analysis() {
+        let root = std::env::temp_dir().join(format!("ucs503-languages-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        let cases = [
+            ("js", "const choose = (x) => { if (x) return 1; return 0; };", "choose"),
+            ("jsx", "function Card(x) { if (x) return <div/>; return null; }", "Card"),
+            ("ts", "function choose(x: boolean): number { if (x) return 1; return 0; }", "choose"),
+            ("tsx", "const Card = (x: boolean) => { if (x) return <div/>; return null; };", "Card"),
+            ("rs", "fn choose(x: bool) -> i32 { if x { 1 } else { 0 } }", "choose"),
+            ("swift", "func choose(_ x: Bool) -> Int { if x { return 1 }; return 0 }", "choose"),
+            ("java", "class Example { int choose(boolean x) { if (x) return 1; return 0; } }", "choose"),
+            ("c", "int choose(int x) { if (x) return 1; return 0; }", "choose"),
+            ("cpp", "class Example { public: int choose(bool x) { if (x) return 1; return 0; } };", "choose"),
+            ("cs", "class Example { int choose(bool x) { if (x) return 1; return 0; } }", "choose"),
+            ("rb", "def choose(x)\n if x\n 1\n else\n 0\n end\nend", "choose"),
+            ("php", "<?php function choose($x) { if ($x) return 1; return 0; }", "choose"),
+            ("sh", "choose() { if test -n \"$1\"; then echo yes; fi; }", "choose"),
+        ];
+        for (extension, source, expected_name) in cases {
+            let path = root.join(format!("sample.{}", extension));
+            fs::write(&path, source).unwrap();
+            let report = scan_file(&path, 0.0, 10.0).unwrap().unwrap();
+            assert_eq!(report.analysis_mode, "ast", "{}", extension);
+            assert!(!report.parse_errors, "{}", extension);
+            assert_eq!(report.hotspots.len(), 1, "{}", extension);
+            assert_eq!(report.hotspots[0].function_name, expected_name, "{}", extension);
+            assert!(report.hotspots[0].metrics.cyclomatic_complexity >= 2, "{}", extension);
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn unknown_text_is_included_without_invented_function_metrics() {
+        let path = std::env::temp_dir().join(format!("ucs503-fallback-{}.novel", std::process::id()));
+        fs::write(&path, "module Example\n  perform work\n").unwrap();
+        let report = scan_file(&path, 0.0, 10.0).unwrap().unwrap();
+        assert_eq!(report.analysis_mode, "text");
+        assert_eq!(report.language, "novel (text)");
+        assert_eq!(report.lines_scanned, 2);
+        assert!(report.hotspots.is_empty());
+        assert_eq!(report.total_entropy, 0.0);
+        fs::write(&path, b"invalid UTF8: \xff").unwrap();
+        assert!(scan_file(&path, 0.0, 10.0).unwrap().is_none());
+        fs::write(&path, vec![0u8; MAX_FILE_SIZE_BYTES as usize + 1]).unwrap();
+        assert!(scan_file(&path, 0.0, 10.0).unwrap().is_none());
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
     fn test_language_detection() {
         assert_eq!(detect_language(Path::new("foo.py")), Some(Language::Python));
         assert_eq!(detect_language(Path::new("bar.go")), Some(Language::Go));
-        assert_eq!(detect_language(Path::new("baz.rs")), None); // Only Go/Python now
+        assert_eq!(detect_language(Path::new("baz.rs")), Some(Language::Rust));
+        assert_eq!(detect_language(Path::new("unknown.newlang")), Some(Language::Text));
         assert_eq!(detect_language(Path::new("image.png")), None);
         assert_eq!(detect_language(Path::new("package-lock.json")), None);
     }

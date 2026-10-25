@@ -137,6 +137,9 @@ func scanRepoHandler(enginePath string, engineTimeout time.Duration, workspaces 
 		}
 		targets := make([]evolutionTarget, 0)
 		for _, file := range report.FileReports {
+			if file.Language != "Go" {
+				continue
+			}
 			filePath := file.FilePath
 			if filepath.IsAbs(filePath) {
 				filePath, err = filepath.Rel(targetDir, filePath)

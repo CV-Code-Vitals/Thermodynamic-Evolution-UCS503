@@ -8,8 +8,8 @@ export default function GraphVisualizer({ report }) {
 
   const sendReport = useCallback(() => {
     const target = frameRef.current?.contentWindow;
-    if (!target || !report) return;
-    target.postMessage({ type: 'ucs503:report', report }, window.location.origin);
+    if (!target) return;
+    target.postMessage({ type: 'ucs503:report', report: report || { file_reports: [] } }, window.location.origin);
   }, [report]);
 
   useEffect(() => {

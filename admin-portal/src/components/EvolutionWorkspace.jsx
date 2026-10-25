@@ -41,9 +41,9 @@ export default function EvolutionWorkspace({ apiBase, token, initialScan = null,
   }
   return (
     <div className="dashboard-container">
-      <h2>Optimize a Go function</h2>
-      <p>Scan a public GitHub repository, select a function, and test proposed changes in the sandbox.</p>
-      <p>Scanning supports Go and Python. Optimization supports Go modules with tests and dependencies available in the offline sandbox. The score measures code structure; runtime performance needs a separate benchmark.</p>
+      <h2>Analyze a repository</h2>
+      <p>Scan a public GitHub repository and explore its files and functions in the graph.</p>
+      <p>Function analysis supports Go, Python, JavaScript / JSX, TypeScript / TSX, Rust, Java, C, C++, C#, Ruby, PHP, Swift and shell. Other text files appear with their language and line count. Optimization supports Go modules with tests and dependencies available in the offline sandbox. The score measures code structure; runtime performance needs a separate benchmark.</p>
       <form className="auth-form" onSubmit={scanRepository}>
         <label className="input-label" htmlFor="evolution-repository">GitHub repository URL</label>
         <input id="evolution-repository" className="cyber-input" type="url" required
@@ -74,7 +74,7 @@ export default function EvolutionWorkspace({ apiBase, token, initialScan = null,
                 repo_url: scan.repo_url,
               })}>REVIEW FUNCTION</button>
             </>
-          ) : <p>No supported Go functions were found. Python analysis is available, but optimization currently requires Go.</p>}
+          ) : <p>Open the Graph tab to explore the scan. No eligible Go functions were found for automated optimization.</p>}
         </div>
       )}
     </div>
