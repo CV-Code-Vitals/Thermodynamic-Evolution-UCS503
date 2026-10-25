@@ -76,7 +76,7 @@ type EvaluationResult struct {
 	Output           string            `json:"output"`
 	Duration         time.Duration     `json:"duration"`
 	UpdatedFileBytes []byte            `json:"-"`
-	Error            error             `json:"error,omitempty"`
+	Error            error             `json:"-"`
 }
 
 // CandidateEvaluator defines the boundary through which all candidate code must be evaluated.
@@ -95,10 +95,10 @@ type DockerEvaluatorConfig struct {
 
 // DockerEvaluator implements CandidateEvaluator using an ephemeral, unprivileged Docker container.
 type DockerEvaluator struct {
-	image          string
-	dockerBinary   string
-	limits         ResourceLimits
-	runnerChecker  func(ctx context.Context) error
+	image         string
+	dockerBinary  string
+	limits        ResourceLimits
+	runnerChecker func(ctx context.Context) error
 }
 
 // NewDockerEvaluator constructs a DockerEvaluator with sensible defaults.

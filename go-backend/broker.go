@@ -106,7 +106,10 @@ func runSandboxBroker() {
 		}
 		defer release()
 
-		res, _ := evaluator.EvaluateCandidate(c.Request.Context(), req)
+		res, err := evaluator.EvaluateCandidate(c.Request.Context(), req)
+		if err != nil && res.Output == "" {
+			res.Output = err.Error()
+		}
 		c.JSON(http.StatusOK, res)
 	})
 

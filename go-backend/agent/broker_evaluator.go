@@ -177,5 +177,19 @@ func (r *RemoteBrokerEvaluator) EvaluateCandidate(ctx context.Context, req Evalu
 		}, err
 	}
 
-	return &evalRes, evalRes.Error
+	if evalRes.Outcome == OutcomeInfrastructureFailure {
+		evalRes.Error = ErrSandboxUnavailable
+		return &evalRes, evalRes.Error
+	}
+	if evalRes.TestsPassed {
+		if evalRes.Outcome != OutcomePassed || len(req.OriginalBytes) == 0 || req.StartByte < 0 || req.EndByte < req.StartByte || req.EndByte > len(req.OriginalBytes) {
+			return nil, fmt.Errorf("%w: inconsistent successful broker response or invalid source range", ErrInvalidRequest)
+		}
+		// The broker tests this exact splice. Keep source bytes on the analysis side.
+		updated := make([]byte, 0, len(req.OriginalBytes)+len(req.MutatedCode))
+		updated = append(updated, req.OriginalBytes[:req.StartByte]...)
+		updated = append(updated, req.MutatedCode...)
+		evalRes.UpdatedFileBytes = append(updated, req.OriginalBytes[req.EndByte:]...)
+	}
+	return &evalRes, nil
 }

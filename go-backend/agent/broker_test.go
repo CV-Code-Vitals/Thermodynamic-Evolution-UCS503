@@ -151,6 +151,7 @@ func TestRemoteBrokerEvaluator_TimeoutPropagation(t *testing.T) {
 func TestRemoteBrokerEvaluator_SuccessfulEvaluation(t *testing.T) {
 	origContent := []byte("package calc\nfunc Add(a, b int) int { return 0 }\n")
 	expectedOutput := "=== RUN TestAdd\n--- PASS: TestAdd (0.01s)\nPASS"
+	expectedSource := "package calc\nfunc Add(a, b int) int { return a + b }\n"
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/health" {
@@ -193,8 +194,8 @@ func TestRemoteBrokerEvaluator_SuccessfulEvaluation(t *testing.T) {
 		FilePath:      "calc.go",
 		OriginalBytes: origContent,
 		MutatedCode:   "return a + b",
-		StartByte:     32,
-		EndByte:       40,
+		StartByte:     strings.Index(string(origContent), "return 0"),
+		EndByte:       strings.Index(string(origContent), "return 0") + len("return 0"),
 	})
 
 	if err != nil {
@@ -208,6 +209,34 @@ func TestRemoteBrokerEvaluator_SuccessfulEvaluation(t *testing.T) {
 	}
 	if res.Output != expectedOutput {
 		t.Fatalf("expected output %q, got %q", expectedOutput, res.Output)
+	}
+	if string(res.UpdatedFileBytes) != expectedSource {
+		t.Fatalf("broker result lost the source needed for energy evaluation: %q", res.UpdatedFileBytes)
+	}
+}
+
+func TestRemoteBrokerEvaluatorPreservesFailureOutcomes(t *testing.T) {
+	for _, outcome := range []EvaluationOutcome{OutcomeTestFailed, OutcomeInfrastructureFailure} {
+		t.Run(string(outcome), func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/health" {
+					w.WriteHeader(http.StatusOK)
+					return
+				}
+				_ = json.NewEncoder(w).Encode(EvaluationResult{Outcome: outcome, Error: errors.New("execution failed"), Output: "candidate failure log"})
+			}))
+			defer server.Close()
+			result, err := NewRemoteBrokerEvaluator(server.URL, "test-token").EvaluateCandidate(context.Background(), EvaluationRequest{RepoPath: t.TempDir(), FilePath: "main.go"})
+			if result == nil || result.TestsPassed || result.Outcome != outcome || result.Output != "candidate failure log" {
+				t.Fatalf("failed broker result was lost: %+v, %v", result, err)
+			}
+			if outcome == OutcomeInfrastructureFailure && !errors.Is(err, ErrSandboxUnavailable) {
+				t.Fatalf("infrastructure failure was not propagated: %v", err)
+			}
+			if outcome == OutcomeTestFailed && err != nil {
+				t.Fatalf("candidate failure became a transport error: %v", err)
+			}
+		})
 	}
 }
 
