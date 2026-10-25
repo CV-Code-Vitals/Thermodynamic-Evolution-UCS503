@@ -211,9 +211,11 @@ func TestLambdaArchiveCallsUseRequestScopedTimeout(t *testing.T) {
 func TestLambdaErrorLoggingDoesNotExposeSecretOrPresignedURL(t *testing.T) {
 	const secret = "do-not-log-this"
 	const signedURL = "https://private.example/file?signature=secret"
+	const bearer = "valid-token"
+	const internalToken = "authorizer-context-token-that-must-not-be-logged"
 	loggerOutput := &strings.Builder{}
 	logger := slog.New(slog.NewJSONHandler(loggerOutput, nil))
-	archives := &lambdaContractArchiveService{downloadError: errors.New(secret + " " + signedURL)}
+	archives := &lambdaContractArchiveService{downloadError: errors.New(secret + " " + signedURL + " " + internalToken)}
 	handler := newRouter(Dependencies{
 		Auth:     &testAuthenticator{validToken: "valid-token"},
 		Archives: archives,
@@ -229,8 +231,10 @@ func TestLambdaErrorLoggingDoesNotExposeSecretOrPresignedURL(t *testing.T) {
 	if response.Code != http.StatusBadGateway || loggerOutput.Len() == 0 {
 		t.Fatalf("expected structured internal-error log, status=%d logs=%q", response.Code, loggerOutput.String())
 	}
-	if strings.Contains(loggerOutput.String(), secret) || strings.Contains(loggerOutput.String(), signedURL) {
-		t.Fatalf("logs exposed secret or signed URL: %s", loggerOutput.String())
+	for _, sensitiveValue := range []string{secret, signedURL, bearer, internalToken, "Authorization"} {
+		if strings.Contains(loggerOutput.String(), sensitiveValue) {
+			t.Fatalf("logs exposed %q: %s", sensitiveValue, loggerOutput.String())
+		}
 	}
 }
 

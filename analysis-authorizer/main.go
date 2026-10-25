@@ -21,15 +21,32 @@ import (
 const (
 	tokenHMACKeyParameter     = "/ucs503/admin/token-hmac-key"
 	analysisAPITokenParameter = "/ucs503/analysis/api-token"
+
+	legacyTokenPayloadSize = 40
+	versionedTokenSize     = 49
+	versionedToken         = 1
 )
 
 type AuthorizerRequest struct {
-	Headers map[string]string `json:"headers"`
+	Headers   map[string]string `json:"headers"`
+	MethodArn string            `json:"methodArn"`
+}
+
+type AuthorizerPolicyStatement struct {
+	Action   string `json:"Action"`
+	Effect   string `json:"Effect"`
+	Resource string `json:"Resource"`
+}
+
+type AuthorizerPolicyDocument struct {
+	Version   string                      `json:"Version"`
+	Statement []AuthorizerPolicyStatement `json:"Statement"`
 }
 
 type AuthorizerResponse struct {
-	IsAuthorized bool              `json:"isAuthorized"`
-	Context      map[string]string `json:"context,omitempty"`
+	PrincipalID    string                   `json:"principalId"`
+	PolicyDocument AuthorizerPolicyDocument `json:"policyDocument"`
+	Context        map[string]string        `json:"context,omitempty"`
 }
 
 type SecretStore interface {
@@ -56,7 +73,10 @@ func VerifyArchiveBearer(token, signingKey string, now time.Time) bool {
 		return false
 	}
 	payload, err := base64.RawURLEncoding.DecodeString(parts[0])
-	if err != nil || len(payload) != 40 {
+	if err != nil || (len(payload) != legacyTokenPayloadSize && len(payload) != versionedTokenSize) {
+		return false
+	}
+	if len(payload) == versionedTokenSize && payload[0] != versionedToken {
 		return false
 	}
 	providedMAC, err := base64.RawURLEncoding.DecodeString(parts[1])
@@ -70,15 +90,30 @@ func VerifyArchiveBearer(token, signingKey string, now time.Time) bool {
 		return false
 	}
 
-	expiresAt := time.Unix(0, int64(binary.BigEndian.Uint64(payload[:8])))
+	if len(payload) == legacyTokenPayloadSize {
+		expiresAt := time.Unix(0, int64(binary.BigEndian.Uint64(payload[:8])))
+		return expiresAt.After(now)
+	}
+
+	issuedAt := time.Unix(0, int64(binary.BigEndian.Uint64(payload[1:9])))
+	expiresAt := time.Unix(0, int64(binary.BigEndian.Uint64(payload[9:17])))
+	if issuedAt.After(now) || !expiresAt.After(issuedAt) {
+		return false
+	}
 	return expiresAt.After(now)
 }
 
 func NewAuthorizerHandler(store SecretStore, now func() time.Time) func(context.Context, AuthorizerRequest) (AuthorizerResponse, error) {
 	return func(ctx context.Context, request AuthorizerRequest) (AuthorizerResponse, error) {
+		methodARN := strings.TrimSpace(request.MethodArn)
+		if methodARN == "" {
+			return AuthorizerResponse{}, errors.New("API Gateway method ARN is required")
+		}
+
+		deny := newAuthorizerResponse(methodARN, "Deny")
 		bearer, ok := authorizationBearer(request.Headers)
 		if !ok {
-			return AuthorizerResponse{IsAuthorized: false}, nil
+			return deny, nil
 		}
 
 		signingKey, err := store.Get(ctx, tokenHMACKeyParameter)
@@ -86,7 +121,7 @@ func NewAuthorizerHandler(store SecretStore, now func() time.Time) func(context.
 			return AuthorizerResponse{}, fmt.Errorf("read token signing key: %w", err)
 		}
 		if !VerifyArchiveBearer(bearer, signingKey, now()) {
-			return AuthorizerResponse{IsAuthorized: false}, nil
+			return deny, nil
 		}
 
 		analysisToken, err := store.Get(ctx, analysisAPITokenParameter)
@@ -97,10 +132,23 @@ func NewAuthorizerHandler(store SecretStore, now func() time.Time) func(context.
 			return AuthorizerResponse{}, errors.New("analysis API token is empty")
 		}
 
-		return AuthorizerResponse{
-			IsAuthorized: true,
-			Context:      map[string]string{"analysisApiToken": analysisToken},
-		}, nil
+		authorized := newAuthorizerResponse(methodARN, "Allow")
+		authorized.Context = map[string]string{"analysisApiToken": analysisToken}
+		return authorized, nil
+	}
+}
+
+func newAuthorizerResponse(methodARN, effect string) AuthorizerResponse {
+	return AuthorizerResponse{
+		PrincipalID: "admin-session",
+		PolicyDocument: AuthorizerPolicyDocument{
+			Version: "2012-10-17",
+			Statement: []AuthorizerPolicyStatement{{
+				Action:   "execute-api:Invoke",
+				Effect:   effect,
+				Resource: methodARN,
+			}},
+		},
 	}
 }
 

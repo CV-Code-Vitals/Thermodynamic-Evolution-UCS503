@@ -59,11 +59,11 @@ test("sandbox compose keeps Docker access private and publishes no broker port",
   assert.match(service, /SANDBOX_SERVICE_TOKEN:/);
   assert.match(service, /SANDBOX_TLS_CERT_FILE:/);
   assert.match(service, /SANDBOX_TLS_KEY_FILE:/);
-  assert.match(service, /group_add:/);
-  assert.match(service, /DOCKER_GID/);
+  assert.match(service, /DOCKER_HOST:\s*unix:\/\/\/run\/docker\.sock/);
   assert.match(service, /SANDBOX_BROKER_WORKSPACE_DIR:/);
-  assert.match(service, /\/var\/run\/docker\.sock:\/var\/run\/docker\.sock/);
-  assert.equal((service.match(/\/var\/run\/docker\.sock/g) ?? []).length, 2);
+  assert.match(service, /source:\s*\$\{DOCKER_SOCKET_SOURCE/);
+  assert.match(service, /target:\s*\/run\/docker\.sock/);
+  assert.doesNotMatch(service, /DOCKER_GID|\/var\/run\/docker\.sock/);
   assertNoPublishedPorts(service, "sandbox broker");
   assert.doesNotMatch(service, /ucs503-api|DATABASE_URL|sandboxes_shared|\blatest\b/i);
 });
@@ -80,7 +80,7 @@ test("example environment files describe required runtime values without actual 
   assert.match(sandboxEnv, /^SANDBOX_SERVICE_TOKEN=replace-with-ssm-value$/m);
   assert.match(sandboxEnv, /^SANDBOX_TLS_CERT_SOURCE=/m);
   assert.match(sandboxEnv, /^SANDBOX_TLS_KEY_SOURCE=/m);
-  assert.match(sandboxEnv, /^DOCKER_GID=\d+$/m);
+  assert.match(sandboxEnv, /^DOCKER_SOCKET_SOURCE=\/run\/user\/10002\/docker\.sock$/m);
 });
 
 test("legacy EC2 compose is explicitly documented as manual-only", () => {

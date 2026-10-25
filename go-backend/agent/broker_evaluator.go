@@ -22,6 +22,8 @@ var (
 	ErrBrokerAuthenticationFailed = errors.New("sandbox broker authentication failed: invalid or missing token")
 )
 
+const minSandboxServiceTokenBytes = 32
+
 type remoteBrokerEvaluationResponse struct {
 	TestsPassed      bool              `json:"tests_passed"`
 	Outcome          EvaluationOutcome `json:"outcome"`
@@ -51,8 +53,8 @@ func NewRemoteBrokerEvaluator(brokerURL, token string) *RemoteBrokerEvaluator {
 		evaluator.configErr = fmt.Errorf("%w: SANDBOX_SERVICE_URL must be an absolute HTTPS URL without user info or query", ErrSandboxUnavailable)
 		return evaluator
 	}
-	if len(evaluator.token) < 16 {
-		evaluator.configErr = fmt.Errorf("%w: SANDBOX_SERVICE_TOKEN must be at least 16 characters", ErrBrokerAuthenticationFailed)
+	if len(evaluator.token) < minSandboxServiceTokenBytes {
+		evaluator.configErr = fmt.Errorf("%w: SANDBOX_SERVICE_TOKEN must be at least %d bytes", ErrBrokerAuthenticationFailed, minSandboxServiceTokenBytes)
 		return evaluator
 	}
 	evaluator.httpClient, err = newRemoteBrokerHTTPClient()
@@ -63,21 +65,17 @@ func NewRemoteBrokerEvaluator(brokerURL, token string) *RemoteBrokerEvaluator {
 }
 
 func newRemoteBrokerHTTPClient() (*http.Client, error) {
-	roots, err := x509.SystemCertPool()
+	caPath := strings.TrimSpace(os.Getenv("SANDBOX_TLS_CA_FILE"))
+	if caPath == "" {
+		return nil, errors.New("SANDBOX_TLS_CA_FILE must configure the private broker CA")
+	}
+	caPEM, err := os.ReadFile(caPath)
 	if err != nil {
-		return nil, fmt.Errorf("load system TLS roots: %w", err)
+		return nil, fmt.Errorf("read sandbox TLS trust certificate: %w", err)
 	}
-	if roots == nil {
-		return nil, errors.New("system TLS root pool is unavailable")
-	}
-	if caPath := strings.TrimSpace(os.Getenv("SANDBOX_TLS_CA_FILE")); caPath != "" {
-		caPEM, err := os.ReadFile(caPath)
-		if err != nil {
-			return nil, fmt.Errorf("read sandbox TLS trust certificate: %w", err)
-		}
-		if !roots.AppendCertsFromPEM(caPEM) {
-			return nil, errors.New("sandbox TLS trust file contains no certificates")
-		}
+	roots := x509.NewCertPool()
+	if !roots.AppendCertsFromPEM(caPEM) {
+		return nil, errors.New("sandbox TLS trust file contains no certificates")
 	}
 
 	transport := &http.Transport{

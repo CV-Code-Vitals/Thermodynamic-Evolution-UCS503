@@ -60,9 +60,10 @@ The deployment Compose files are split by trust boundary:
   volume.
 - `docker-compose.sandbox.yml` runs only the authenticated sandbox broker.
   It runs in the host network namespace without a published Compose port,
-  mounts the local Docker socket, and uses a host-local temporary workspace.
-  The workspace path is mounted at the same absolute path in the container so
-  the host Docker daemon can bind-mount each candidate workspace.
+  mounts only the dedicated UID's rootless Docker socket, and uses a host-local
+  temporary workspace. The workspace path is mounted at the same absolute
+  path in the container so the rootless daemon can bind-mount each candidate
+  workspace.
 - `docker-compose.ec2.yml` is a legacy, manual-only single-host configuration.
   It retains obsolete archive API/database and shared-volume assumptions; do
   not use it for the split deployment.
@@ -74,15 +75,22 @@ an approved deployment process must materialize runtime values from SSM into
 protected host-side environment files and certificate files. Never put real
 tokens or private keys in the examples, repository, image, or browser bundle.
 
-Before starting the sandbox broker, prepare the host-local workspace directory
-with ownership matching the image's unprivileged app user (UID/GID `10002`),
-and set `DOCKER_GID` to the numeric group ID that owns `/var/run/docker.sock`.
-The broker's container user needs that supplementary group to use Docker; this
-is still highly privileged access, which is why the broker and socket must
-remain on a dedicated sandbox host. The workspace directory must be writable
-by UID `10002`, and its path must match `SANDBOX_BROKER_WORKSPACE_DIR`.
+Before starting the sandbox broker, prepare a dedicated host user named
+`ucs503-sandbox` with UID/GID `10002`, install rootless Docker for that user,
+enable systemd lingering (`loginctl enable-linger ucs503-sandbox`), and enable
+the user's Docker service. Verify its socket is
+`/run/user/10002/docker.sock`; set `DOCKER_SOCKET_SOURCE` to that host path.
+The broker runs as UID `10002` and uses the mounted socket at
+`/run/docker.sock`. Never mount the rootful `/var/run/docker.sock` into the
+broker. The rootless daemon and workspace must share the same host path
+namespace. The workspace directory must be writable by UID `10002`, and its
+path must match `SANDBOX_BROKER_WORKSPACE_DIR`.
 The mounted broker private key must be readable by UID `10002` and not by
 unrelated host users; mount the certificate and CA certificate read-only.
+Before starting the broker, run `sudo node scripts/validate-sandbox-host.mjs`
+from a repository checkout on the sandbox host (Node.js 22 required). This
+read-only check verifies the account, lingering, socket ownership, workspace
+access, and rootless daemon.
 
 Both services use host networking to avoid public Compose port mappings. This
 does not replace network isolation: deploy them only on private instances with
@@ -91,7 +99,56 @@ API integration and broker TCP `8082` solely from the analysis instance. The
 sandbox instance must have no public IP or inbound SSH. Use SSM for
 administration. The broker certificate must cover the private host name used
 by `SANDBOX_SERVICE_URL`; the analysis host must trust its issuing CA via the
-mounted `SANDBOX_TLS_CA_SOURCE` file.
+mounted `SANDBOX_TLS_CA_SOURCE` file. The analysis client uses only that CA
+trust bundle for the broker; it does not fall back to public/system roots.
+The broker must present a certificate whose chain and hostname validate
+against the configured CA.
+
+### Broker authentication and secret rotation
+
+The analysis service sends `X-Sandbox-Token` only over the private broker
+connection after TLS certificate validation. The broker compares it in
+constant time. Generate at least 32 random bytes for this shared secret, store
+it as the `/ucs503/analysis/sandbox-service-token` SSM SecureString, and
+materialize it only into protected host-side runtime configuration for the
+analysis and sandbox services. Never put it in URLs, browser code, logs,
+Compose files, or container images.
+
+Rotate the broker token during a maintenance window because the broker accepts
+one configured token at a time: block broker ingress, update the SecureString
+and both hosts' protected runtime configuration, restart both services, verify
+the authenticated health check and a sandbox evaluation, then restore broker
+ingress. For a suspected compromise, block ingress immediately and perform
+this procedure before reopening it. After deployment, schedule this rotation
+at least every 90 days and immediately after any suspected exposure. Systems
+Manager Parameter Store retains parameter versions; record the version and
+rotation date, never the value. Automated rotation is not provisioned and
+requires a separately approved deployment change.
+
+For broker CA rotation, first deploy a trust bundle containing both the
+current and replacement CA to the analysis host, then replace the broker
+certificate and verify TLS and authenticated evaluation. Remove the old CA
+from the bundle after verification. Never make the client temporarily trust
+system/public roots to bridge a CA change.
+
+The Lambda authorizer reads the HMAC key and internal analysis API token from
+SSM on each authorization request. The API Gateway integration may use the
+`analysisApiToken` authorizer context value only to set the backend's internal
+authentication header. Configure access logs with operational metadata only;
+never log authorization headers, request/response bodies, or any
+`$context.authorizer.*` value, and do not enable payload/data tracing. Add a
+template test for these exclusions before creating the analysis API Gateway.
+
+Replacing `/ucs503/admin/token-hmac-key` immediately invalidates outstanding
+admin bearer tokens; users must sign in again. Coordinate that change with the
+existing archive API because it uses the same signing key. Replacing
+`/ucs503/analysis/api-token` must be coordinated with the analysis service's
+runtime configuration; block the admin routes, update SSM and the protected
+host-side value, restart the analysis service, verify a protected request,
+then restore the routes. Record rotation date and parameter version, but never
+record secret values. The infrastructure deployment must grant each role read
+access only to the parameters it needs and include a documented emergency
+revocation procedure.
 
 Validate the configuration without starting containers:
 
@@ -262,6 +319,126 @@ Pricing references:
   artifact bucket if it is no longer needed. This is destructive and cannot
   be undone without backups.
 
-The legacy EC2 deployment workflow is manual-only and requires both a
-deliberate workflow input and the `EC2_DEPLOY_ENABLED` repository variable.
-Leave that variable unset/false; it is unrelated to this serverless plan.
+## Split analysis deployment operations
+
+The split analysis deployment is separate from the Admin Portal archive and
+its existing GitHub Pages workflow, which remains unchanged. The removed
+SSH-based `deploy-to-ec2.yml` workflow cannot deploy the legacy single-host
+stack. `docker-compose.ec2.yml` and the old `ucs503-api` service are legacy;
+the new workflow does not deploy them or use the archive stack.
+
+### Deployment approval and cost gate
+
+The image publisher builds only commit-SHA tags for the analysis and sandbox
+runner images. To deploy or roll back, dispatch `.github/workflows/deploy-analysis.yml`
+with the full 40-character SHA and leave `enable_deployment` false unless the
+deployment is separately approved. The deployment job runs only when both that
+input is true and the repository variable `ANALYSIS_DEPLOY_ENABLED` is exactly
+`true`. It then waits for approval from the protected `analysis-deployment`
+GitHub Environment before downloading images, assuming an AWS role, uploading,
+or invoking SSM. No repository variable, environment rule, secret, AWS role,
+or AWS resource is configured by this change.
+
+Repository owners must review the itemized estimate and approve the deployment
+before configuring these Actions variables: `ANALYSIS_DEPLOY_ENABLED`,
+`ANALYSIS_DEPLOY_ROLE_ARN`, `ANALYSIS_DEPLOY_REGION`,
+`ANALYSIS_ARTIFACT_BUCKET`, `ANALYSIS_INSTANCE_ID`, and
+`SANDBOX_INSTANCE_ID`. Keep account-specific values in repository variables,
+not source code. Configure `analysis-deployment` with required reviewers and
+restrict the AWS role's GitHub OIDC trust to this repository and that
+environment. Grant the workflow only object upload to the designated private
+bucket prefix; `ssm:SendCommand` and `ssm:GetCommandInvocation` for the two
+approved managed instances; and `ssm:DescribeInstanceInformation` for the SSM
+readiness check. The sandbox power-state safeguard additionally requires
+`ec2:DescribeInstances` and `ec2:StartInstances`/`ec2:StopInstances`; scope
+start/stop to only the approved sandbox instance ARN. The workflow never starts
+or stops the analysis instance. Ensure the bucket blocks public access, uses
+encryption, and expires deployment bundles under an owner-approved retention
+policy. The workflow uploads to `bundles/analysis-deployments/<sha>/` and the
+two EC2 roles need read-only access to that bundle prefix.
+Do not create SSH keys, GHCR credentials for EC2, or long-lived AWS keys.
+
+The GitHub runner pulls only the selected SHA-tagged images, records their
+immutable Docker image IDs, saves them with the selected revision's Compose
+files, and uploads that bundle through short-lived GitHub OIDC credentials.
+SSM asks each private host to download the bundle from S3, `docker load` the
+images, and run Compose with `--pull never`; hosts do not pull from GHCR or
+require inbound SSH. The workflow verifies the running analysis and broker
+image IDs, confirms the sandbox runner image ID is loaded, and requires the
+analysis container health check and `/health` request to pass. After both
+hosts are deployed, it also verifies that analysis reports
+`sandbox_available: true`. If the sandbox
+was stopped before deployment, the workflow starts it, waits for SSM readiness,
+and restores its stopped state on success or failure; an initially running
+sandbox remains running. Use the same dispatch flow with a previously
+published SHA to roll back. The workflow does not change API Gateway, archive
+services, or other AWS resources.
+
+Before any deployment, confirm the expected monthly total against the
+approved budget (target about US$20/month; no more than US$25/month without
+additional explicit approval). Budget notifications are alerts, not spending
+caps. Review EC2 hours, EBS, S3 requests/storage/transfer, CloudWatch logs,
+SSM, and snapshot/backup charges after each release and monthly. Do not
+enable the deployment variable until the cost and target instances are
+approved.
+
+### SSM operations, health, and monitoring
+
+Both hosts must be registered as Systems Manager managed nodes, have the
+required SSM agent and Docker Compose runtime, and reach SSM and the private
+artifact bucket without a public IP. Use SSM Run Command or Session Manager
+for diagnostics; do not open SSH or add SSH secrets. The deployment workflow
+stores each selected release under `/opt/ucs503/releases/<commit-sha>` and
+keeps the analysis Compose volume under the fixed project name
+`ucs503-analysis`.
+
+After deployment, check the SSM command result for both instances, run
+`docker compose ps` on each host, and check the analysis health endpoint at
+`http://127.0.0.1:8080/health`. Exercise an authenticated analysis request and
+a sandbox evaluation over the private TLS connection before closing the
+change. Configure monitoring before production use: alarm on EC2 status
+checks, failed SSM commands, API Gateway/Lambda errors, throttles and latency,
+disk exhaustion, failed analysis health checks, and sandbox start/readiness
+failures or stale work leases. Set an explicit CloudWatch log retention period
+and alert recipients; never include bearer tokens, service tokens, private
+keys, request bodies, or authorizer context in logs. The Compose files rotate
+local container logs, but do not create CloudWatch alarms, centralized log
+retention, or host metrics collection. Confirm the exact alarm/log cost.
+
+### Output backup, restore, and recovery
+
+Analysis uploads bind to `/var/lib/ucs503-analysis/uploads` on a separate,
+encrypted gp3 data volume attached to the analysis instance. The infrastructure
+template configures daily EBS snapshots and seven-snapshot retention through
+Data Lifecycle Manager. Snapshot charges must be included in the itemized
+estimate. The template does not automate restore or verify snapshots; test a
+restore before production and retain the previous host/disk until expected
+outputs are confirmed.
+
+For an approved manual restore, provision a replacement analysis host and an
+encrypted data volume in the same Availability Zone, restore the selected EBS
+snapshot to that volume, attach and mount it at `/var/lib/ucs503-analysis`,
+and verify ownership for the container UID/GID `10002`. Start the service only
+after confirming `/var/lib/ucs503-analysis/uploads` contains the expected
+outputs. Record snapshot IDs and test dates, never credentials. Do not claim
+one-hour recovery until a replacement-host restore has been timed.
+
+For sandbox lease recovery, do not stop the host while an evaluation or
+workspace lease is active. Inspect analysis and broker logs through SSM after
+a crash; allow the lifecycle controller/watchdog to reconcile stale leases,
+confirm no runner container remains active, then restart the broker or allow
+the idle-stop controller to stop the sandbox. Escalate rather than manually
+clearing a lease whose owner or job state is uncertain. Verify the broker's
+authenticated health and a test evaluation after recovery. Lease recovery
+alarms and automated reconciliation must be enabled and tested as part of
+host operations; this workflow does not change their AWS settings.
+
+### Token and certificate rotation
+
+Use the existing **Broker authentication and secret rotation** procedures
+above for `SANDBOX_SERVICE_TOKEN`, the broker CA bundle/certificate,
+`ANALYSIS_API_TOKEN`, and the archive signing key. Fetch or update values only
+through the approved SSM/host process. Record rotation date and SSM parameter
+version, never values. Roll out CA trust overlap before replacing the broker
+certificate; coordinate shared-token changes across both hosts and verify
+authenticated health/evaluation before restoring ingress.

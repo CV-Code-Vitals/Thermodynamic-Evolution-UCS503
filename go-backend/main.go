@@ -42,6 +42,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -98,6 +100,20 @@ func resolveEnginePath() string {
 	}
 
 	return "./" + binaryName
+}
+
+func validateEngineBinary(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("stat engine binary %q: %w", path, err)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("engine binary %q is not a regular file", path)
+	}
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0 {
+		return fmt.Errorf("engine binary %q is not executable", path)
+	}
+	return nil
 }
 
 // =============================================================================
@@ -187,6 +203,9 @@ func extractZip(zipPath, destDir string) error {
 		if strings.Contains(f.Name, `\`) || !filepath.IsLocal(filepath.FromSlash(f.Name)) {
 			return fmt.Errorf("zip slip detected: illegal path %q", f.Name)
 		}
+		if f.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("zip contains symlink %q", f.Name)
+		}
 		targetPath := filepath.Join(destDir, filepath.FromSlash(f.Name))
 		relativePath, err := filepath.Rel(destDir, targetPath)
 		if err != nil || !filepath.IsLocal(relativePath) {
@@ -203,6 +222,9 @@ func extractZip(zipPath, destDir string) error {
 		if f.UncompressedSize64 > uint64(maxEntryBytes) {
 			return fmt.Errorf("zip entry %q exceeds size limit", f.Name)
 		}
+		if f.UncompressedSize64 > uint64(maxArchiveBytes-extractedBytes) {
+			return fmt.Errorf("zip exceeds total extraction limit")
+		}
 
 		// ── Extract file ──────────────────────────────────────────────────────
 		// Ensure parent directory exists (zip may not list directories explicitly)
@@ -215,9 +237,6 @@ func extractZip(zipPath, destDir string) error {
 			return fmt.Errorf("extract %q: %w", f.Name, err)
 		}
 		extractedBytes += written
-		if extractedBytes > maxArchiveBytes {
-			return fmt.Errorf("zip exceeds total extraction limit")
-		}
 	}
 
 	return nil
@@ -609,6 +628,17 @@ func auditHandler(enginePath string, engineTimeout time.Duration, maxUploadBytes
 
 // setupEngine configures middleware and all application routes.
 func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes int64, deliverableStore DeliverableStore) *gin.Engine {
+	return setupEngineWithSnapshots(enginePath, engineTimeout, maxUploadBytes, deliverableStore, nil)
+}
+
+func setupEngineWithSnapshots(
+	enginePath string,
+	engineTimeout time.Duration,
+	maxUploadBytes int64,
+	deliverableStore DeliverableStore,
+	snapshots SnapshotWorkspaceProvider,
+	lifecycle ...SandboxLifecycleController,
+) *gin.Engine {
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -667,7 +697,7 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	r.POST("/analyze", tokenMiddleware(analysisToken), analyzeH)
 
 	// Live Git repository scanner (for Graph Visualizer)
-	scanH := scanRepoHandler(enginePath, engineTimeout)
+	scanH := scanRepoHandler(enginePath, engineTimeout, snapshots, NewPublicScanController(time.Minute, 1))
 	r.POST("/api/scan", tokenMiddleware(analysisToken), scanH)
 	r.POST("/scan", tokenMiddleware(analysisToken), scanH)
 
@@ -677,8 +707,13 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	r.POST("/audit", tokenMiddleware(analysisToken), auditH)
 
 	// Simulated Annealing endpoint
-	r.POST("/api/evolve", tokenMiddleware(analysisToken), evolveHandler())
-	r.POST("/evolve", tokenMiddleware(analysisToken), evolveHandler())
+	evolveH := evolveHandler(snapshots)
+	evolveMiddleware := []gin.HandlerFunc{tokenMiddleware(analysisToken)}
+	if len(lifecycle) > 0 && lifecycle[0] != nil {
+		evolveMiddleware = append(evolveMiddleware, sandboxLifecycleMiddleware(lifecycle[0]))
+	}
+	r.POST("/api/evolve", append(evolveMiddleware, evolveH)...)
+	r.POST("/evolve", append(evolveMiddleware, evolveH)...)
 
 	// Deliverables & Admin Portal endpoints (backed by PostgreSQL / JSON storage)
 	if deliverableStore != nil {
@@ -726,15 +761,22 @@ func main() {
 	engineTimeout := time.Duration(timeoutSec) * time.Second
 	maxUploadBytes := int64(maxUploadMB) << 20 // MiB -> bytes
 
-	// Validate that the engine binary exists at startup so we fail fast
-	if _, err := os.Stat(enginePath); errors.Is(err, os.ErrNotExist) {
-		log.Printf("[WARN] Engine binary not found at %q -- set ENGINE_PATH env var if it is elsewhere.", enginePath)
-	} else {
-		log.Printf("[INFO] Engine binary confirmed: %s", enginePath)
+	if err := validateEngineBinary(enginePath); err != nil {
+		log.Fatalf("[FATAL] Invalid engine binary at %q; set ENGINE_PATH to a regular executable: %v", enginePath, err)
 	}
+	log.Printf("[INFO] Engine binary confirmed: %s", enginePath)
 
 	deliverableStore := initDeliverableStore()
-	r := setupEngine(enginePath, engineTimeout, maxUploadBytes, deliverableStore)
+	snapshots := sourceSnapshotStoreFromEnv()
+	var lifecycle SandboxLifecycleController
+	if strings.TrimSpace(os.Getenv("SOURCE_BUCKET")) != "" {
+		configuredLifecycle, err := sandboxLifecycleFromEnv(context.Background())
+		if err != nil {
+			log.Fatalf("configure sandbox lifecycle: %v", err)
+		}
+		lifecycle = configuredLifecycle
+	}
+	r := setupEngineWithSnapshots(enginePath, engineTimeout, maxUploadBytes, deliverableStore, snapshots, lifecycle)
 
 	// ── Start ─────────────────────────────────────────────────────────────────
 	addr := ":" + port
@@ -745,4 +787,16 @@ func main() {
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("[FATAL] Server failed: %v", err)
 	}
+}
+
+func sourceSnapshotStoreFromEnv() SnapshotWorkspaceProvider {
+	bucket := strings.TrimSpace(os.Getenv("SOURCE_BUCKET"))
+	if bucket == "" {
+		return nil
+	}
+	awsConfig, err := config.LoadDefaultConfig(context.Background())
+	if err != nil {
+		log.Fatalf("load AWS configuration for source snapshots: %v", err)
+	}
+	return NewS3SnapshotStore(s3.NewFromConfig(awsConfig), bucket, os.Getenv("SNAPSHOT_TEMP_DIR"))
 }

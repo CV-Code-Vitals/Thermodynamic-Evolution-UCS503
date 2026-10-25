@@ -1,0 +1,345 @@
+name: Deploy Analysis Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_sha:
+        description: Full 40-character commit SHA to deploy or roll back to
+        required: true
+        type: string
+      enable_deployment:
+        description: Explicitly authorize this deployment attempt
+        required: true
+        type: boolean
+        default: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      image_sha: ${{ steps.validate.outputs.image_sha }}
+    steps:
+      - name: Validate selected image SHA
+        id: validate
+        env:
+          IMAGE_SHA: ${{ inputs.image_sha }}
+        run: |
+          if [[ ! "$IMAGE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "image_sha must be a full lowercase 40-character commit SHA" >&2
+            exit 1
+          fi
+          echo "image_sha=$IMAGE_SHA" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: validate
+    if: ${{ inputs.enable_deployment && vars.ANALYSIS_DEPLOY_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: analysis-deployment
+    permissions:
+      contents: read
+      packages: read
+      id-token: write
+    steps:
+      - name: Check out the selected release configuration
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.image_sha }}
+
+      - name: Check deployment variables
+        env:
+          ANALYSIS_DEPLOY_ROLE_ARN: ${{ vars.ANALYSIS_DEPLOY_ROLE_ARN }}
+          ANALYSIS_DEPLOY_REGION: ${{ vars.ANALYSIS_DEPLOY_REGION }}
+          ANALYSIS_ARTIFACT_BUCKET: ${{ vars.ANALYSIS_ARTIFACT_BUCKET }}
+          ANALYSIS_INSTANCE_ID: ${{ vars.ANALYSIS_INSTANCE_ID }}
+          SANDBOX_INSTANCE_ID: ${{ vars.SANDBOX_INSTANCE_ID }}
+        run: |
+          for name in \
+            ANALYSIS_DEPLOY_ROLE_ARN \
+            ANALYSIS_DEPLOY_REGION \
+            ANALYSIS_ARTIFACT_BUCKET \
+            ANALYSIS_INSTANCE_ID \
+            SANDBOX_INSTANCE_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "Required repository variable is not configured: $name" >&2
+              exit 1
+            fi
+          done
+
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io \
+            --username "${{ github.actor }}" \
+            --password-stdin
+
+      - name: Download only the selected SHA-tagged images
+        id: image_ids
+        env:
+          IMAGE_SHA: ${{ needs.validate.outputs.image_sha }}
+        run: |
+          analysis_image="ghcr.io/cv-code-vitals/ucs503-analysis:$IMAGE_SHA"
+          runner_image="ghcr.io/cv-code-vitals/ucs503-sandbox-runner:$IMAGE_SHA"
+          docker pull "$analysis_image"
+          docker pull "$runner_image"
+          analysis_image_id="$(docker image inspect --format '{{.Id}}' "$analysis_image")"
+          runner_image_id="$(docker image inspect --format '{{.Id}}' "$runner_image")"
+          if [[ ! "$analysis_image_id" =~ ^sha256:[0-9a-f]{64}$ ||
+                ! "$runner_image_id" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "Docker returned an invalid image ID" >&2
+            exit 1
+          fi
+          echo "analysis_image_id=$analysis_image_id" >> "$GITHUB_OUTPUT"
+          echo "runner_image_id=$runner_image_id" >> "$GITHUB_OUTPUT"
+          docker save \
+            --output analysis-images.tar \
+            "$analysis_image" \
+            "$runner_image"
+          tar -czf analysis-deployment-bundle.tar.gz \
+            analysis-images.tar \
+            docker-compose.analysis.yml \
+            docker-compose.sandbox.yml
+
+      - name: Configure short-lived AWS credentials with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.ANALYSIS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.ANALYSIS_DEPLOY_REGION }}
+
+      - name: Upload private deployment bundle
+        env:
+          IMAGE_SHA: ${{ needs.validate.outputs.image_sha }}
+          ANALYSIS_ARTIFACT_BUCKET: ${{ vars.ANALYSIS_ARTIFACT_BUCKET }}
+        run: |
+          aws s3 cp analysis-deployment-bundle.tar.gz \
+            "s3://$ANALYSIS_ARTIFACT_BUCKET/bundles/analysis-deployments/$IMAGE_SHA/deployment-bundle.tar.gz" \
+            --sse AES256
+
+      - name: Deploy both private hosts through SSM
+        env:
+          IMAGE_SHA: ${{ needs.validate.outputs.image_sha }}
+          ANALYSIS_ARTIFACT_BUCKET: ${{ vars.ANALYSIS_ARTIFACT_BUCKET }}
+          ANALYSIS_INSTANCE_ID: ${{ vars.ANALYSIS_INSTANCE_ID }}
+          SANDBOX_INSTANCE_ID: ${{ vars.SANDBOX_INSTANCE_ID }}
+          AWS_REGION: ${{ vars.ANALYSIS_DEPLOY_REGION }}
+          ANALYSIS_IMAGE_ID: ${{ steps.image_ids.outputs.analysis_image_id }}
+          SANDBOX_RUNNER_IMAGE_ID: ${{ steps.image_ids.outputs.runner_image_id }}
+        run: |
+          set -euo pipefail
+
+          wait_for_sandbox_ssm() {
+            local instance_id="$1"
+            local ping_status
+            for attempt in $(seq 1 90); do
+              ping_status="$(aws ssm describe-instance-information \
+                --filters "Key=InstanceIds,Values=$instance_id" \
+                --query 'InstanceInformationList[0].PingStatus' \
+                --output text 2>/dev/null || echo Unknown)"
+              if [[ "$ping_status" == "Online" ]]; then
+                return 0
+              fi
+              sleep 10
+            done
+            echo "Timed out waiting for SSM Online on $instance_id" >&2
+            return 1
+          }
+
+          sandbox_started_by_workflow=false
+          cleanup_sandbox() {
+            local result=$?
+            trap - EXIT
+            if [[ "$sandbox_started_by_workflow" == true ]]; then
+              if ! aws ec2 stop-instances --instance-ids "$SANDBOX_INSTANCE_ID"; then
+                echo "Failed to restore the sandbox instance's initial stopped state" >&2
+                result=1
+              elif ! aws ec2 wait instance-stopped --instance-ids "$SANDBOX_INSTANCE_ID"; then
+                echo "Timed out waiting for the sandbox instance to stop" >&2
+                result=1
+              fi
+            fi
+            exit "$result"
+          }
+          trap cleanup_sandbox EXIT
+
+          deploy_instance() {
+            local instance_id="$1"
+            local compose_file="$2"
+            local env_file="$3"
+            local project_name="$4"
+            local service_name="$5"
+            local expected_image_id="$6"
+            local expected_runner_image_id="$7"
+            local remote_command parameters command_id status attempt
+
+            remote_command="set -eu
+            bundle=/var/tmp/ucs503-deploy-${IMAGE_SHA}.tar.gz
+            release=/opt/ucs503/releases/${IMAGE_SHA}
+            if [ '${project_name}' = 'ucs503-sandbox' ]; then
+              export DOCKER_HOST=unix:///run/user/10002/docker.sock
+            fi
+            mkdir -p \"\$release\"
+            aws s3 cp --region '${AWS_REGION}' \"s3://${ANALYSIS_ARTIFACT_BUCKET}/bundles/analysis-deployments/${IMAGE_SHA}/deployment-bundle.tar.gz\" \"\$bundle\"
+            tar -xzf \"\$bundle\" -C \"\$release\"
+            docker load -i \"\$release/analysis-images.tar\"
+            IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" up --pull never -d --remove-orphans
+            container_id=\$(IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps -q '${service_name}')
+            if [ -z \"\$container_id\" ]; then
+              echo 'Compose did not create the expected service container' >&2
+              exit 1
+            fi
+            actual_image_id=\$(docker inspect --format '{{.Image}}' \"\$container_id\")
+            expected_image_id='${expected_image_id}'
+            if [ \"\$actual_image_id\" != \"\$expected_image_id\" ]; then
+              echo 'Running service image ID does not match the selected release' >&2
+              exit 1
+            fi
+            if [ '${project_name}' = 'ucs503-sandbox' ]; then
+              actual_runner_image_id=\$(docker image inspect --format '{{.Id}}' 'ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${IMAGE_SHA}')
+              expected_runner_image_id='${expected_runner_image_id}'
+              if [ \"\$actual_runner_image_id\" != \"\$expected_runner_image_id\" ]; then
+                echo 'Loaded sandbox runner image ID does not match the selected release' >&2
+                exit 1
+              fi
+            else
+              health_status=
+              for attempt in \$(seq 1 30); do
+                health_status=\$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' \"\$container_id\")
+                if [ \"\$health_status\" = healthy ]; then
+                  break
+                fi
+                if [ \"\$health_status\" = unhealthy ] || [ \"\$health_status\" = missing ]; then
+                  echo 'Analysis container health check failed' >&2
+                  exit 1
+                fi
+                sleep 10
+              done
+              if [ \"\$health_status\" != healthy ]; then
+                echo 'Timed out waiting for a healthy analysis container' >&2
+                exit 1
+              fi
+              docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health >/dev/null
+            fi
+            docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
+
+            parameters="$(jq -n --arg command "$remote_command" '{commands: [$command]}')"
+            command_id="$(aws ssm send-command \
+              --instance-ids "$instance_id" \
+              --document-name AWS-RunShellScript \
+              --parameters "$parameters" \
+              --query 'Command.CommandId' \
+              --output text)"
+
+            for attempt in $(seq 1 90); do
+              status="$(aws ssm get-command-invocation \
+                --command-id "$command_id" \
+                --instance-id "$instance_id" \
+                --query Status \
+                --output text 2>/dev/null || echo Pending)"
+              case "$status" in
+                Success)
+                  echo "SSM deployment succeeded for $instance_id"
+                  return 0
+                  ;;
+                Failed|Cancelled|TimedOut|Cancelling)
+                  echo "SSM deployment failed for $instance_id (status: $status)" >&2
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+
+            echo "Timed out waiting for SSM deployment on $instance_id" >&2
+            return 1
+          }
+
+          verify_analysis_sandbox_smoke() {
+            local remote_command parameters command_id status attempt
+
+            remote_command="set -eu
+            release=/opt/ucs503/releases/${IMAGE_SHA}
+            container_id=\$(docker compose --project-name ucs503-analysis --env-file /etc/ucs503/analysis.env -f \"\$release/docker-compose.analysis.yml\" ps -q ucs503-analysis)
+            if [ -z \"\$container_id\" ]; then
+              echo 'Analysis container is missing during the sandbox readiness smoke test' >&2
+              exit 1
+            fi
+            health_payload=\$(docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health)
+            case \"\$health_payload\" in
+              *'\"status\":\"ok\"'*'\"sandbox_available\":true'*|*'\"sandbox_available\":true'*'\"status\":\"ok\"'*) ;;
+              *)
+                echo 'Analysis and sandbox broker readiness smoke test failed' >&2
+                exit 1
+                ;;
+            esac"
+
+            parameters="$(jq -n --arg command "$remote_command" '{commands: [$command]}')"
+            command_id="$(aws ssm send-command \
+              --instance-ids "$ANALYSIS_INSTANCE_ID" \
+              --document-name AWS-RunShellScript \
+              --parameters "$parameters" \
+              --query 'Command.CommandId' \
+              --output text)"
+
+            for attempt in $(seq 1 90); do
+              status="$(aws ssm get-command-invocation \
+                --command-id "$command_id" \
+                --instance-id "$ANALYSIS_INSTANCE_ID" \
+                --query Status \
+                --output text 2>/dev/null || echo Pending)"
+              case "$status" in
+                Success)
+                  echo "Analysis and sandbox broker readiness smoke test passed"
+                  return 0
+                  ;;
+                Failed|Cancelled|TimedOut|Cancelling)
+                  echo "Analysis and sandbox broker readiness smoke test failed (status: $status)" >&2
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+
+            echo "Timed out waiting for the analysis and sandbox broker readiness smoke test" >&2
+            return 1
+          }
+
+          deploy_instance \
+            "$ANALYSIS_INSTANCE_ID" \
+            docker-compose.analysis.yml \
+            /etc/ucs503/analysis.env \
+            ucs503-analysis \
+            ucs503-analysis \
+            "$ANALYSIS_IMAGE_ID" \
+            ""
+
+          sandbox_state="$(aws ec2 describe-instances \
+            --instance-ids "$SANDBOX_INSTANCE_ID" \
+            --query 'Reservations[0].Instances[0].State.Name' \
+            --output text)"
+          case "$sandbox_state" in
+            stopped)
+              sandbox_started_by_workflow=true
+              aws ec2 start-instances --instance-ids "$SANDBOX_INSTANCE_ID"
+              aws ec2 wait instance-running --instance-ids "$SANDBOX_INSTANCE_ID"
+              ;;
+            running)
+              ;;
+            *)
+              echo "Refusing deployment while sandbox instance is in state: $sandbox_state" >&2
+              exit 1
+              ;;
+          esac
+          wait_for_sandbox_ssm "$SANDBOX_INSTANCE_ID"
+
+          deploy_instance \
+            "$SANDBOX_INSTANCE_ID" \
+            docker-compose.sandbox.yml \
+            /etc/ucs503/sandbox.env \
+            ucs503-sandbox \
+            ucs503-sandbox-broker \
+            "$ANALYSIS_IMAGE_ID" \
+            "$SANDBOX_RUNNER_IMAGE_ID"
+
+          verify_analysis_sandbox_smoke

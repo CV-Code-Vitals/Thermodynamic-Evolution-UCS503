@@ -1,0 +1,1531 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Isolated private UCS503 analysis and on-demand sandbox stack. This template does not manage the archive stack.
+
+Parameters:
+  ResourcePrefix:
+    Type: String
+    Default: ucs503-analysis-v1
+    MinLength: 3
+    MaxLength: 18
+    AllowedPattern: '^[a-z][a-z0-9-]*[a-z0-9]$'
+    Description: Lowercase prefix for stack-owned resource names.
+  AnalysisAmiId:
+    Type: AWS::EC2::Image::Id
+    Description: Approved analysis AMI with the analysis runtime and SSM Agent; configure manually before deployment.
+  SandboxAmiId:
+    Type: AWS::EC2::Image::Id
+    Description: Approved sandbox AMI with the isolated broker/runtime and SSM Agent; configure manually before deployment.
+  AnalysisInstanceType:
+    Type: String
+    Default: t3.small
+    AllowedPattern: '^[a-z][a-z0-9.-]+$'
+  SandboxInstanceType:
+    Type: String
+    Default: t3.small
+    AllowedPattern: '^[a-z][a-z0-9.-]+$'
+  AnalysisRootVolumeSizeGiB:
+    Type: Number
+    Default: 30
+    MinValue: 8
+    MaxValue: 16384
+  SandboxRootVolumeSizeGiB:
+    Type: Number
+    Default: 20
+    MinValue: 8
+    MaxValue: 16384
+  AnalysisDataVolumeSizeGiB:
+    Type: Number
+    Default: 100
+    MinValue: 10
+    MaxValue: 16384
+    Description: Encrypted gp3 output/data volume; attached separately from the analysis root volume.
+  AnalysisVpcCidr:
+    Type: String
+    Default: 10.80.0.0/16
+  AnalysisSubnetCidr:
+    Type: String
+    Default: 10.80.1.0/24
+  SandboxSubnetCidr:
+    Type: String
+    Default: 10.80.2.0/24
+  AnalysisPrivateIp:
+    Type: String
+    Default: 10.80.1.10
+    AllowedPattern: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+    Description: Stable private address on the analysis ENI; must be inside AnalysisSubnetCidr.
+  SandboxPrivateIp:
+    Type: String
+    Default: 10.80.2.10
+    AllowedPattern: '^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
+    Description: Stable private address on the sandbox ENI; must be inside SandboxSubnetCidr.
+  ApiStageName:
+    Type: String
+    Default: v1
+    AllowedPattern: '^[A-Za-z0-9_-]+$'
+  FrontendOrigin:
+    Type: String
+    Default: https://zylus08.github.io
+    AllowedPattern: '^https://[A-Za-z0-9.-]+$'
+    Description: Exact GitHub Pages origin allowed by browser CORS.
+  SandboxLifecycleTableName:
+    Type: String
+    Default: sandbox-lifecycle
+    AllowedPattern: '^sandbox-lifecycle$'
+    Description: Task 6 contract. Keep this exact table name.
+  ApiTokenParameterName:
+    Type: String
+    Default: /ucs503/analysis/api-token
+  SigningKeyParameterName:
+    Type: String
+    Default: /ucs503/admin/token-hmac-key
+  SandboxTokenParameterName:
+    Type: String
+    Default: /ucs503/analysis/sandbox-service-token
+  SandboxTlsCertificateParameterName:
+    Type: String
+    Default: /ucs503/analysis/sandbox-tls-cert
+  SandboxTlsPrivateKeyParameterName:
+    Type: String
+    Default: /ucs503/analysis/sandbox-tls-key
+  SandboxCaParameterName:
+    Type: String
+    Default: /ucs503/analysis/sandbox-ca
+  SsmSessionLogRetentionDays:
+    Type: Number
+    Default: 365
+    AllowedValues: [30, 90, 180, 365, 400, 545, 731, 1096, 1827, 3653]
+
+Resources:
+  AnalysisVpc:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref AnalysisVpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-private-vpc'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisVpcIpv6:
+    Type: AWS::EC2::VPCCidrBlock
+    Properties:
+      VpcId: !Ref AnalysisVpc
+      AmazonProvidedIpv6CidrBlock: true
+
+  AnalysisSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AnalysisVpc
+      CidrBlock: !Ref AnalysisSubnetCidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      AssignIpv6AddressOnCreation: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-analysis-private'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  SandboxSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref AnalysisVpc
+      CidrBlock: !Ref SandboxSubnetCidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      AssignIpv6AddressOnCreation: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-sandbox-private'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisSubnetIpv6:
+    Type: AWS::EC2::SubnetCidrBlock
+    DependsOn: AnalysisVpcIpv6
+    Properties:
+      SubnetId: !Ref AnalysisSubnet
+      Ipv6CidrBlock: !Select
+        - 0
+        - !Cidr
+          - !Select [0, !GetAtt AnalysisVpc.Ipv6CidrBlocks]
+          - 256
+          - 64
+
+  SandboxSubnetIpv6:
+    Type: AWS::EC2::SubnetCidrBlock
+    DependsOn: AnalysisVpcIpv6
+    Properties:
+      SubnetId: !Ref SandboxSubnet
+      Ipv6CidrBlock: !Select
+        - 1
+        - !Cidr
+          - !Select [0, !GetAtt AnalysisVpc.Ipv6CidrBlocks]
+          - 256
+          - 64
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref AnalysisVpc
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-private'
+
+  AnalysisSubnetRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref AnalysisSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
+  SandboxSubnetRouteAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SandboxSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
+  EgressOnlyInternetGateway:
+    Type: AWS::EC2::EgressOnlyInternetGateway
+    Properties:
+      VpcId: !Ref AnalysisVpc
+
+  Ipv6ControlPlaneRoute:
+    Type: AWS::EC2::Route
+    DependsOn:
+      - AnalysisSubnetRouteAssociation
+      - SandboxSubnetRouteAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationIpv6CidrBlock: ::/0
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGateway
+
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub '${ResourcePrefix}-${AWS::AccountId}-${AWS::Region}-source'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-source-snapshots-after-one-day
+            Status: Enabled
+            Prefix: snapshots/
+            ExpirationInDays: 1
+          - Id: abort-incomplete-source-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+      Tags:
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub '${ResourcePrefix}-${AWS::AccountId}-${AWS::Region}-artifacts'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-image-bundles-after-thirty-days
+            Status: Enabled
+            Prefix: bundles/
+            ExpirationInDays: 30
+          - Id: abort-incomplete-artifact-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 7
+      Tags:
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  PrivateS3GatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      VpcId: !Ref AnalysisVpc
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ListOnlyStackBuckets
+            Effect: Allow
+            Principal: '*'
+            Action: s3:ListBucket
+            Resource:
+              - !GetAtt SourceBucket.Arn
+              - !GetAtt ArtifactBucket.Arn
+          - Sid: ReadOnlyStackObjects
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource:
+              - !Sub '${SourceBucket.Arn}/*'
+              - !Sub '${ArtifactBucket.Arn}/*'
+
+  SourceBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SourceBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !GetAtt SourceBucket.Arn
+              - !Sub '${SourceBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  ArtifactBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ArtifactBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: s3:*
+            Resource:
+              - !GetAtt ArtifactBucket.Arn
+              - !Sub '${ArtifactBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: false
+
+  ProxySecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Egress from the response-streaming proxy to private services only.
+      VpcId: !Ref AnalysisVpc
+      SecurityGroupEgress: []
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-proxy'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Private analysis API; only the proxy and sandbox broker may connect.
+      VpcId: !Ref AnalysisVpc
+      SecurityGroupEgress: []
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-analysis'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  SandboxSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Private sandbox broker; only the analysis instance may connect.
+      VpcId: !Ref AnalysisVpc
+      SecurityGroupEgress: []
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-sandbox'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  ProxyToAnalysisEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ProxySecurityGroup
+      IpProtocol: tcp
+      FromPort: 8080
+      ToPort: 8080
+      DestinationSecurityGroupId: !Ref AnalysisSecurityGroup
+
+  ProxyIpv6HttpsEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ProxySecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIpv6: ::/0
+
+  AnalysisFromProxyIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref AnalysisSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8080
+      ToPort: 8080
+      SourceSecurityGroupId: !Ref ProxySecurityGroup
+
+  AnalysisToSandboxEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AnalysisSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8082
+      ToPort: 8082
+      DestinationSecurityGroupId: !Ref SandboxSecurityGroup
+
+  AnalysisIpv6HttpsEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AnalysisSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIpv6: ::/0
+
+  SandboxFromAnalysisIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref SandboxSecurityGroup
+      IpProtocol: tcp
+      FromPort: 8082
+      ToPort: 8082
+      SourceSecurityGroupId: !Ref AnalysisSecurityGroup
+
+  SandboxIpv6HttpsEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SandboxSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      CidrIpv6: ::/0
+
+  AnalysisLifecycleTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Ref SandboxLifecycleTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisSsmSessionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub '/aws/ssm/sessions/${ResourcePrefix}'
+      RetentionInDays: !Ref SsmSessionLogRetentionDays
+
+  ProxyLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ResourcePrefix}-analysis-proxy'
+      RetentionInDays: 365
+
+  AuthorizerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ResourcePrefix}-analysis-authorizer'
+      RetentionInDays: 365
+
+  SourceStagerLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ResourcePrefix}-source-stager'
+      RetentionInDays: 365
+
+  LifecycleWatchdogLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${ResourcePrefix}-sandbox-watchdog'
+      RetentionInDays: 365
+
+  ProxyExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ProxyRuntimeOnly
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadAnonymousScanTokenOnly
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ApiTokenParameterName}'
+              - Sid: DecryptAnonymousScanTokenOnly
+                Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub 'ssm.${AWS::Region}.amazonaws.com'
+                    kms:EncryptionContext:PARAMETER_ARN: !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ApiTokenParameterName}'
+                  ForAnyValue:StringEquals:
+                    kms:ResourceAliases:
+                      - alias/aws/ssm
+              - Sid: InvokeSourceStagerOnly
+                Effect: Allow
+                Action: lambda:InvokeFunction
+                Resource: !GetAtt SourceStagerFunction.Arn
+              - Sid: WriteProxyLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${ProxyLogGroup.Arn}:*'
+              - Sid: VpcNetworkInterfaces
+                Effect: Allow
+                Action:
+                  - ec2:CreateNetworkInterface
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:DeleteNetworkInterface
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:UnassignPrivateIpAddresses
+                Resource: '*'
+
+  AuthorizerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AuthorizerSecretReads
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadSigningKeyAndAnalysisToken
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SigningKeyParameterName}'
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ApiTokenParameterName}'
+              - Sid: DecryptSigningKeyAndAnalysisToken
+                Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub 'ssm.${AWS::Region}.amazonaws.com'
+                  ForAnyValue:StringLike:
+                    kms:EncryptionContext:PARAMETER_ARN:
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SigningKeyParameterName}'
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ApiTokenParameterName}'
+                  ForAnyValue:StringEquals:
+                    kms:ResourceAliases:
+                      - alias/aws/ssm
+              - Sid: WriteAuthorizerLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${AuthorizerLogGroup.Arn}:*'
+
+  SourceStagerExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: WriteStagedSources
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: PutSourceSnapshots
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub '${SourceBucket.Arn}/snapshots/*'
+              - Sid: WriteStagerLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${SourceStagerLogGroup.Arn}:*'
+
+  AnalysisInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: AnalysisRuntimeResources
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadStagedSources
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${SourceBucket.Arn}/snapshots/*'
+              - Sid: ReadDeploymentBundles
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${ArtifactBucket.Arn}/bundles/*'
+              - Sid: ReadAnalysisRuntimeSecrets
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ApiTokenParameterName}'
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxTokenParameterName}'
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxCaParameterName}'
+              - Sid: DecryptAnalysisRuntimeSecrets
+                Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub 'ssm.${AWS::Region}.amazonaws.com'
+                  ForAnyValue:StringEquals:
+                    kms:ResourceAliases:
+                      - alias/aws/ssm
+                    kms:EncryptionContext:PARAMETER_ARN:
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${ApiTokenParameterName}'
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxTokenParameterName}'
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxCaParameterName}'
+              - Sid: UseSandboxLifecycleItem
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt AnalysisLifecycleTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys:
+                      - sandbox-lifecycle
+              - Sid: StartAndStopOnlyTheSandboxInstance
+                Effect: Allow
+                Action:
+                  - ec2:StartInstances
+                  - ec2:StopInstances
+                Resource: !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${SandboxInstance}'
+              - Sid: DescribeOnlyStackTaggedInstances
+                Effect: Allow
+                Action: ec2:DescribeInstances
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    ec2:ResourceTag/AnalysisStack: !Ref ResourcePrefix
+              - Sid: WriteAnalysisSsmSessionLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${AnalysisSsmSessionLogGroup.Arn}:*'
+
+  SandboxInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: SandboxRuntimeSecrets
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadBrokerCredentialsOnly
+                Effect: Allow
+                Action: ssm:GetParameter
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxTokenParameterName}'
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxTlsCertificateParameterName}'
+                  - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxTlsPrivateKeyParameterName}'
+              - Sid: DecryptBrokerCredentialsOnly
+                Effect: Allow
+                Action: kms:Decrypt
+                Resource: !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:key/*'
+                Condition:
+                  StringEquals:
+                    kms:ViaService: !Sub 'ssm.${AWS::Region}.amazonaws.com'
+                  ForAnyValue:StringLike:
+                    kms:EncryptionContext:PARAMETER_ARN:
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxTokenParameterName}'
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxTlsCertificateParameterName}'
+                      - !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${SandboxTlsPrivateKeyParameterName}'
+                  ForAnyValue:StringEquals:
+                    kms:ResourceAliases:
+                      - alias/aws/ssm
+              - Sid: ReadDeploymentBundles
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${ArtifactBucket.Arn}/bundles/analysis-deployments/*'
+              - Sid: WriteSandboxSsmSessionLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${AnalysisSsmSessionLogGroup.Arn}:*'
+
+  LifecycleWatchdogRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ReconcileSandboxIdleState
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: ReadAndUpdateLifecycleItem
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt AnalysisLifecycleTable.Arn
+                Condition:
+                  ForAllValues:StringEquals:
+                    dynamodb:LeadingKeys:
+                      - sandbox-lifecycle
+              - Sid: StopOnlyTheSandboxInstance
+                Effect: Allow
+                Action: ec2:StopInstances
+                Resource: !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${SandboxInstance}'
+              - Sid: DescribeOnlyStackTaggedInstances
+                Effect: Allow
+                Action: ec2:DescribeInstances
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    ec2:ResourceTag/AnalysisStack: !Ref ResourcePrefix
+              - Sid: WriteWatchdogLogs
+                Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub '${LifecycleWatchdogLogGroup.Arn}:*'
+
+  AnalysisInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref AnalysisInstanceRole
+
+  SandboxInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref SandboxInstanceRole
+
+  AnalysisPrivateNetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref AnalysisSubnet
+      PrivateIpAddress: !Ref AnalysisPrivateIp
+      Ipv6AddressCount: 1
+      GroupSet:
+        - !Ref AnalysisSecurityGroup
+      SourceDestCheck: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-analysis-eni'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  SandboxPrivateNetworkInterface:
+    Type: AWS::EC2::NetworkInterface
+    Properties:
+      SubnetId: !Ref SandboxSubnet
+      PrivateIpAddress: !Ref SandboxPrivateIp
+      Ipv6AddressCount: 1
+      GroupSet:
+        - !Ref SandboxSecurityGroup
+      SourceDestCheck: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-sandbox-eni'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  SandboxInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref SandboxAmiId
+      InstanceType: !Ref SandboxInstanceType
+      IamInstanceProfile: !Ref SandboxInstanceProfile
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          NetworkInterfaceId: !Ref SandboxPrivateNetworkInterface
+          DeleteOnTermination: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref SandboxRootVolumeSizeGiB
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-sandbox'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisDataVolume:
+    Type: AWS::EC2::Volume
+    Properties:
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Size: !Ref AnalysisDataVolumeSizeGiB
+      VolumeType: gp3
+      Encrypted: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-analysis-data'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisInstance:
+    Type: AWS::EC2::Instance
+    DependsOn:
+      - AnalysisSubnetIpv6
+      - PrivateS3GatewayEndpoint
+    Properties:
+      ImageId: !Ref AnalysisAmiId
+      InstanceType: !Ref AnalysisInstanceType
+      IamInstanceProfile: !Ref AnalysisInstanceProfile
+      NetworkInterfaces:
+        - DeviceIndex: '0'
+          NetworkInterfaceId: !Ref AnalysisPrivateNetworkInterface
+          DeleteOnTermination: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: !Ref AnalysisRootVolumeSizeGiB
+            VolumeType: gp3
+            Encrypted: true
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          install -d -m 0750 /var/lib/ucs503-analysis
+          VOLUME_ID='${AnalysisDataVolume}'
+          VOLUME_ID_COMPACT="$(printf '%s' "$VOLUME_ID" | tr -d '-')"
+          DEVICE="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_$VOLUME_ID_COMPACT"
+          for attempt in $(seq 1 60); do
+            [ -b "$DEVICE" ] && break
+            sleep 2
+          done
+          [ -b "$DEVICE" ]
+          if ! blkid "$DEVICE"; then
+            mkfs.xfs "$DEVICE"
+          fi
+          DATA_UUID="$(blkid -s UUID -o value "$DEVICE")"
+          grep -q "$DATA_UUID" /etc/fstab || printf 'UUID=%s /var/lib/ucs503-analysis xfs defaults,nofail 0 2\n' "$DATA_UUID" >> /etc/fstab
+          mount /var/lib/ucs503-analysis
+          install -d -m 0750 /var/lib/ucs503-analysis/uploads
+          chown 10002:10002 /var/lib/ucs503-analysis /var/lib/ucs503-analysis/uploads
+          chmod 0750 /var/lib/ucs503-analysis
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-analysis'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisDataVolumeAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      Device: /dev/sdf
+      InstanceId: !Ref AnalysisInstance
+      VolumeId: !Ref AnalysisDataVolume
+
+  SnapshotLifecycleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: dlm.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount: !Ref AWS::AccountId
+      Policies:
+        - PolicyName: ManageAnalysisDataSnapshots
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateSnapshot
+                  - ec2:CreateTags
+                  - ec2:DeleteSnapshot
+                  - ec2:DescribeVolumes
+                  - ec2:DescribeSnapshots
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    ec2:ResourceTag/AnalysisStack: !Ref ResourcePrefix
+
+  AnalysisDataSnapshotPolicy:
+    Type: AWS::DLM::LifecyclePolicy
+    Properties:
+      Description: Daily encrypted snapshots of the persistent analysis data volume; retain seven.
+      ExecutionRoleArn: !GetAtt SnapshotLifecycleRole.Arn
+      State: ENABLED
+      PolicyDetails:
+        PolicyType: EBS_SNAPSHOT_MANAGEMENT
+        ResourceTypes:
+          - VOLUME
+        TargetTags:
+          - Key: AnalysisStack
+            Value: !Ref ResourcePrefix
+          - Key: Name
+            Value: !Sub '${ResourcePrefix}-analysis-data'
+        Schedules:
+          - Name: daily-seven-day-retention
+            CopyTags: true
+            CreateRule:
+              Interval: 24
+              IntervalUnit: HOURS
+              Times:
+                - '03:00'
+            RetainRule:
+              Count: 7
+
+  ProxyFunction:
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - ProxyLogGroup
+    Properties:
+      FunctionName: !Sub '${ResourcePrefix}-analysis-proxy'
+      CodeUri: stream-proxy/
+      Handler: index.handler
+      Runtime: nodejs22.x
+      MemorySize: 512
+      Timeout: 900
+      Role: !GetAtt ProxyExecutionRole.Arn
+      VpcConfig:
+        SubnetIds:
+          - !Ref AnalysisSubnet
+        SecurityGroupIds:
+          - !Ref ProxySecurityGroup
+        Ipv6AllowedForDualStack: true
+      Environment:
+        Variables:
+          ANALYSIS_API_BASE: !Sub 'http://${AnalysisPrivateIp}:8080'
+          FRONTEND_ORIGIN: !Ref FrontendOrigin
+          SOURCE_STAGER_FUNCTION: !Ref SourceStagerFunction
+      Tags:
+        AnalysisStack: !Ref ResourcePrefix
+
+  AuthorizerFunction:
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - AuthorizerLogGroup
+    Properties:
+      FunctionName: !Sub '${ResourcePrefix}-analysis-authorizer'
+      CodeUri: ../../analysis-authorizer/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - arm64
+      MemorySize: 128
+      Timeout: 10
+      Role: !GetAtt AuthorizerExecutionRole.Arn
+      Tags:
+        AnalysisStack: !Ref ResourcePrefix
+    Metadata:
+      BuildMethod: go1.x
+      BuildArchitecture: arm64
+
+  SourceStagerFunction:
+    Type: AWS::Serverless::Function
+    DependsOn:
+      - SourceStagerLogGroup
+    Properties:
+      FunctionName: !Sub '${ResourcePrefix}-source-stager'
+      CodeUri: ../../source-stager/
+      Handler: bootstrap
+      Runtime: provided.al2023
+      Architectures:
+        - arm64
+      MemorySize: 1024
+      Timeout: 120
+      Role: !GetAtt SourceStagerExecutionRole.Arn
+      Environment:
+        Variables:
+          SOURCE_BUCKET: !Ref SourceBucket
+      Tags:
+        AnalysisStack: !Ref ResourcePrefix
+    Metadata:
+      BuildMethod: go1.x
+      BuildArchitecture: arm64
+
+  LifecycleWatchdogFunction:
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - LifecycleWatchdogLogGroup
+    Properties:
+      FunctionName: !Sub '${ResourcePrefix}-sandbox-watchdog'
+      Runtime: nodejs22.x
+      Handler: index.handler
+      Role: !GetAtt LifecycleWatchdogRole.Arn
+      Timeout: 60
+      MemorySize: 128
+      Environment:
+        Variables:
+          LIFECYCLE_TABLE: !Ref AnalysisLifecycleTable
+          LIFECYCLE_ITEM_ID: sandbox-lifecycle
+          SANDBOX_INSTANCE_ID: !Ref SandboxInstance
+      Code:
+        ZipFile: |
+          const { DynamoDBClient, GetItemCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+          const { EC2Client, DescribeInstancesCommand, StopInstancesCommand } = require('@aws-sdk/client-ec2');
+          const ddb = new DynamoDBClient({});
+          const ec2 = new EC2Client({});
+          const table = process.env.LIFECYCLE_TABLE;
+          const itemId = process.env.LIFECYCLE_ITEM_ID;
+          const instanceId = process.env.SANDBOX_INSTANCE_ID;
+
+          const number = (value) => Number(value?.N ?? 0);
+          const key = { id: { S: itemId } };
+          const conditionalFailure = (error) => error?.name === 'ConditionalCheckFailedException';
+          async function readItem() {
+            const response = await ddb.send(new GetItemCommand({
+              TableName: table,
+              Key: key,
+              ConsistentRead: true,
+            }));
+            return response.Item;
+          }
+
+          async function updateIdleFromStarting(idleUntil) {
+            try {
+              await ddb.send(new UpdateItemCommand({
+                TableName: table,
+                Key: key,
+                UpdateExpression: 'SET #state = :idle, #deadline = :deadline',
+                ConditionExpression: '#state = :starting AND #active = :zero',
+                ExpressionAttributeNames: { '#state': 'state', '#active': 'active_count', '#deadline': 'idle_until_epoch' },
+                ExpressionAttributeValues: {
+                  ':idle': { S: 'idle' },
+                  ':starting': { S: 'starting' },
+                  ':zero': { N: '0' },
+                  ':deadline': { N: String(idleUntil) },
+                },
+              }));
+            } catch (error) {
+              if (!conditionalFailure(error)) throw error;
+            }
+          }
+
+          async function updateIdleFromStopping() {
+            try {
+              await ddb.send(new UpdateItemCommand({
+                TableName: table,
+                Key: key,
+                UpdateExpression: 'SET #state = :idle, #deadline = :zero',
+                ConditionExpression: '#state = :stopping AND #active = :zero',
+                ExpressionAttributeNames: { '#state': 'state', '#active': 'active_count', '#deadline': 'idle_until_epoch' },
+                ExpressionAttributeValues: {
+                  ':idle': { S: 'idle' },
+                  ':stopping': { S: 'stopping' },
+                  ':zero': { N: '0' },
+                },
+              }));
+            } catch (error) {
+              if (!conditionalFailure(error)) throw error;
+            }
+          }
+
+          async function stopClaimedInstance() {
+            const response = await ec2.send(new DescribeInstancesCommand({ InstanceIds: [instanceId] }));
+            const state = response.Reservations?.[0]?.Instances?.[0]?.State?.Name;
+            if (!state) throw new Error('configured sandbox instance was not returned by EC2');
+            if (state === 'stopped' || state === 'terminated') {
+              await updateIdleFromStopping();
+              return;
+            }
+            if (state === 'stopping') return;
+            if (state !== 'running' && state !== 'pending') {
+              throw new Error(`configured sandbox instance is in unsupported state: ${state}`);
+            }
+            await ec2.send(new StopInstancesCommand({ InstanceIds: [instanceId] }));
+          }
+
+          async function rollbackStopClaim(error) {
+            try {
+              await ddb.send(new UpdateItemCommand({
+                TableName: table,
+                Key: key,
+                UpdateExpression: 'SET #state = :idle',
+                ConditionExpression: '#state = :stopping AND #active = :zero',
+                ExpressionAttributeNames: { '#state': 'state', '#active': 'active_count' },
+                ExpressionAttributeValues: {
+                  ':idle': { S: 'idle' },
+                  ':stopping': { S: 'stopping' },
+                  ':zero': { N: '0' },
+                },
+              }));
+            } catch (rollbackError) {
+              if (!conditionalFailure(rollbackError)) {
+                console.error('sandbox watchdog could not restore lifecycle state', { code: rollbackError?.name ?? 'UnknownError' });
+              }
+            }
+            console.error('sandbox watchdog operation failed', { code: error?.name ?? 'UnknownError' });
+          }
+
+          exports.handler = async () => {
+            const now = Math.floor(Date.now() / 1000);
+            let item = await readItem();
+            if (!item) return;
+            for (const [leaseId, expiry] of Object.entries(item.leases?.M ?? {})) {
+              if (number(expiry) > now) continue;
+              try {
+                await ddb.send(new UpdateItemCommand({
+                  TableName: table,
+                  Key: key,
+                  UpdateExpression: 'REMOVE #leases.#lease ADD #active :decrement',
+                  ConditionExpression: '#leases.#lease = :expiry AND #active > :zero',
+                  ExpressionAttributeNames: { '#leases': 'leases', '#lease': leaseId, '#active': 'active_count' },
+                  ExpressionAttributeValues: {
+                    ':decrement': { N: '-1' },
+                    ':zero': { N: '0' },
+                    ':expiry': expiry,
+                  },
+                }));
+              } catch (error) {
+                if (!conditionalFailure(error)) throw error;
+              }
+            }
+
+            item = await readItem();
+            if (!item || number(item.active_count) !== 0) return;
+            let state = item.state?.S;
+            let idleUntil = number(item.idle_until_epoch);
+
+            if (state === 'starting') {
+              const response = await ec2.send(new DescribeInstancesCommand({ InstanceIds: [instanceId] }));
+              const instanceState = response.Reservations?.[0]?.Instances?.[0]?.State?.Name;
+              if (!instanceState) throw new Error('configured sandbox instance was not returned by EC2');
+              if (instanceState === 'running') {
+                await updateIdleFromStarting(now + 600);
+                return;
+              }
+              if (instanceState === 'stopped' || instanceState === 'terminated') {
+                await updateIdleFromStarting(0);
+                return;
+              }
+              if (instanceState === 'stopping') return;
+              if (instanceState !== 'pending') {
+                throw new Error(`configured sandbox instance is in unsupported state: ${instanceState}`);
+              }
+              try {
+                await ddb.send(new UpdateItemCommand({
+                  TableName: table,
+                  Key: key,
+                  UpdateExpression: 'SET #state = :stopping',
+                  ConditionExpression: '#state = :starting AND #active = :zero',
+                  ExpressionAttributeNames: { '#state': 'state', '#active': 'active_count' },
+                  ExpressionAttributeValues: { ':stopping': { S: 'stopping' }, ':starting': { S: 'starting' }, ':zero': { N: '0' } },
+                }));
+              } catch (error) {
+                if (conditionalFailure(error)) return;
+                throw error;
+              }
+              state = 'stopping';
+            }
+
+            if (state === 'running' && idleUntil === 0) {
+              try {
+                await ddb.send(new UpdateItemCommand({
+                  TableName: table,
+                  Key: key,
+                  UpdateExpression: 'SET #state = :idle, #deadline = :deadline',
+                  ConditionExpression: '#state = :running AND #active = :zero AND #deadline = :zero',
+                  ExpressionAttributeNames: { '#state': 'state', '#active': 'active_count', '#deadline': 'idle_until_epoch' },
+                  ExpressionAttributeValues: {
+                    ':idle': { S: 'idle' },
+                    ':running': { S: 'running' },
+                    ':zero': { N: '0' },
+                    ':deadline': { N: String(now + 600) },
+                  },
+                }));
+              } catch (error) {
+                if (!conditionalFailure(error)) throw error;
+              }
+              return;
+            }
+
+            if (state === 'idle' && idleUntil > 0 && idleUntil <= now) {
+              try {
+                await ddb.send(new UpdateItemCommand({
+                  TableName: table,
+                  Key: key,
+                  UpdateExpression: 'SET #state = :stopping',
+                  ConditionExpression: '#state = :idle AND #active = :zero AND #deadline > :zero AND #deadline <= :now',
+                  ExpressionAttributeNames: { '#state': 'state', '#active': 'active_count', '#deadline': 'idle_until_epoch' },
+                  ExpressionAttributeValues: {
+                    ':stopping': { S: 'stopping' },
+                    ':idle': { S: 'idle' },
+                    ':zero': { N: '0' },
+                    ':now': { N: String(now) },
+                  },
+                }));
+              } catch (error) {
+                if (conditionalFailure(error)) return;
+                throw error;
+              }
+              state = 'stopping';
+            }
+
+            if (state !== 'stopping') return;
+            try {
+              await stopClaimedInstance();
+            } catch (error) {
+              await rollbackStopClaim(error);
+              throw error;
+            }
+          };
+      Tags:
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  SandboxWatchdogSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Reconcile expired sandbox leases and stop the sandbox after the idle deadline.
+      ScheduleExpression: rate(1 minute)
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt LifecycleWatchdogFunction.Arn
+          Id: SandboxLifecycleWatchdog
+
+  SandboxWatchdogInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref LifecycleWatchdogFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt SandboxWatchdogSchedule.Arn
+
+  AnalysisAuthorizer:
+    Type: AWS::ApiGateway::Authorizer
+    Properties:
+      Name: !Sub '${ResourcePrefix}-admin-token-authorizer'
+      Type: REQUEST
+      RestApiId: !Ref AnalysisApi
+      IdentitySource: method.request.header.Authorization
+      AuthorizerResultTtlInSeconds: 0
+      AuthorizerUri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AuthorizerFunction.Arn}/invocations'
+
+  AnalysisApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: !Sub '${ResourcePrefix}-rest-api'
+      Description: Public REST API for anonymous scans and authorized Evolution.
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+      DisableExecuteApiEndpoint: false
+      Tags:
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ParentId: !GetAtt AnalysisApi.RootResourceId
+      PathPart: api
+
+  ScanApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ParentId: !Ref AnalysisApiResource
+      PathPart: scan
+
+  EvolveApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ParentId: !Ref AnalysisApiResource
+      PathPart: evolve
+
+  ScanOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResourceId: !Ref ScanApiResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: '200'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+              method.response.header.Access-Control-Allow-Origin: !Sub "'${FrontendOrigin}'"
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  EvolveOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResourceId: !Ref EvolveApiResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: '200'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+              method.response.header.Access-Control-Allow-Origin: !Sub "'${FrontendOrigin}'"
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  ScanApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResourceId: !Ref ScanApiResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        ResponseTransferMode: STREAM
+        TimeoutInMillis: 900000
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2021-11-15/functions/${ProxyFunction.Arn}/response-streaming-invocations'
+
+  EvolveApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResourceId: !Ref EvolveApiResource
+      HttpMethod: POST
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AnalysisAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        ResponseTransferMode: STREAM
+        TimeoutInMillis: 900000
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2021-11-15/functions/${ProxyFunction.Arn}/response-streaming-invocations'
+
+  ApiGatewayCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: apigateway.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ApiGatewayAccessLogging
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:DescribeLogGroups
+                  - logs:DescribeLogStreams
+                  - logs:PutLogEvents
+                  - logs:GetLogEvents
+                  - logs:FilterLogEvents
+                Resource: '*'
+
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn: !GetAtt ApiGatewayCloudWatchRole.Arn
+
+  AnalysisApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      LogGroupName: !Sub '/aws/apigateway/${ResourcePrefix}-analysis'
+      RetentionInDays: 365
+
+  AnalysisApiDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ScanApiMethod
+      - ScanOptionsMethod
+      - EvolveApiMethod
+      - EvolveOptionsMethod
+      - AnalysisApiDefault4xxCors
+      - AnalysisApiDefault5xxCors
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      Description: !Sub 'Deployment for ${ResourcePrefix}'
+
+  AnalysisApiStage:
+    Type: AWS::ApiGateway::Stage
+    DependsOn:
+      - ApiGatewayAccount
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      DeploymentId: !Ref AnalysisApiDeployment
+      StageName: !Ref ApiStageName
+      AccessLogSetting:
+        DestinationArn: !GetAtt AnalysisApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","sourceIp":"$context.identity.sourceIp","requestTime":"$context.requestTime","httpMethod":"$context.httpMethod","resourcePath":"$context.resourcePath","status":"$context.status","protocol":"$context.protocol","responseLength":"$context.responseLength"}'
+      MethodSettings:
+        - ResourcePath: /*
+          HttpMethod: '*'
+          LoggingLevel: ERROR
+          DataTraceEnabled: false
+          MetricsEnabled: true
+      Tags:
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  AnalysisApiDefault4xxCors:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResponseType: DEFAULT_4XX
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${FrontendOrigin}'"
+
+  AnalysisApiDefault5xxCors:
+    Type: AWS::ApiGateway::GatewayResponse
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResponseType: DEFAULT_5XX
+      ResponseParameters:
+        gatewayresponse.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+        gatewayresponse.header.Access-Control-Allow-Methods: "'OPTIONS,POST'"
+        gatewayresponse.header.Access-Control-Allow-Origin: !Sub "'${FrontendOrigin}'"
+
+  ProxyApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ProxyFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${AnalysisApi}/*/POST/api/*'
+
+  AuthorizerApiInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref AuthorizerFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${AnalysisApi}/authorizers/${AnalysisAuthorizer}'
+
+Outputs:
+  AnalysisApiBaseUrl:
+    Description: API Gateway REST endpoint; no credentials are included.
+    Value: !Sub 'https://${AnalysisApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${ApiStageName}'
+  AnalysisPrivateIp:
+    Value: !Ref AnalysisPrivateIp
+  AnalysisInstanceId:
+    Value: !Ref AnalysisInstance
+  SandboxInstanceId:
+    Value: !Ref SandboxInstance
+  SourceBucketName:
+    Value: !Ref SourceBucket
+  ArtifactBucketName:
+    Value: !Ref ArtifactBucket
+  SandboxLifecycleTable:
+    Value: !Ref AnalysisLifecycleTable
+  SsmSessionLogGroupName:
+    Value: !Ref AnalysisSsmSessionLogGroup

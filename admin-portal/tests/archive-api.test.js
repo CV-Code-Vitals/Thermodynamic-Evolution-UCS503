@@ -14,18 +14,70 @@ test('login accepts only an authenticated response with a bearer token', async (
     assert.equal(options.headers['Content-Type'], 'application/json');
     assert.equal(options.credentials, 'omit');
     assert.deepEqual(JSON.parse(options.body), { passkey: 'correct-passkey' });
-    return jsonResponse(200, { status: 'authenticated', token: 'opaque-token' });
+    return jsonResponse(200, {
+      status: 'authenticated',
+      token: 'opaque-token',
+      expiresAt: '2026-10-25T12:15:00Z',
+      expiresInMs: 900000,
+    });
   });
 
   assert.deepEqual(await api.login('correct-passkey'), {
     status: 'authenticated',
     token: 'opaque-token',
+    expiresAt: '2026-10-25T12:15:00Z',
+    expiresInMs: 900000,
   });
 
   const invalidApi = createArchiveApi('/api', async () => jsonResponse(200, {
     status: 'authenticated',
   }));
   await assert.rejects(invalidApi.login('passkey'), /invalid response/i);
+});
+
+test('refresh sends the active bearer and validates the rotated session response', async () => {
+  const api = createArchiveApi('https://api.example.com/api', async (url, options) => {
+    assert.equal(url, 'https://api.example.com/api/refresh');
+    assert.equal(options.method, 'POST');
+    assert.match(options.headers.Authorization, /^Bearer .+/);
+    assert.equal(options.credentials, 'omit');
+    return jsonResponse(200, {
+      status: 'authenticated',
+      token: 'rotated-token',
+      expiresAt: '2026-10-25T12:30:00Z',
+      expiresInMs: 900000,
+    });
+  });
+
+  assert.deepEqual(await api.refresh('active-token'), {
+    status: 'authenticated',
+    token: 'rotated-token',
+    expiresAt: '2026-10-25T12:30:00Z',
+    expiresInMs: 900000,
+  });
+
+  const invalidApi = createArchiveApi('/api', async () => jsonResponse(200, {
+    status: 'authenticated',
+    token: 'rotated-token',
+    expiresAt: 'not-a-date',
+    expiresInMs: 900000,
+  }));
+  await assert.rejects(invalidApi.refresh('active-token'), /invalid response/i);
+});
+
+test('session refresh delay uses server-reported lifetime, independent of client clock skew', async () => {
+  const { getSessionRefreshDelay } = await import('../src/archive-api.js');
+  const serverNow = Date.UTC(2026, 9, 25, 12, 0, 0);
+  const browserNow = serverNow - 6 * 60 * 1000;
+  const expiresAt = serverNow + 15 * 60 * 1000;
+  const serverReportedLifetime = expiresAt - serverNow;
+  const skewedAbsoluteDelay = expiresAt - browserNow - 60_000;
+  const relativeDelay = getSessionRefreshDelay(serverReportedLifetime, true);
+
+  assert.ok(skewedAbsoluteDelay > expiresAt - serverNow);
+  assert.equal(relativeDelay, 14 * 60 * 1000);
+  assert.ok(relativeDelay < serverReportedLifetime);
+  assert.equal(getSessionRefreshDelay(serverReportedLifetime, false), serverReportedLifetime);
 });
 
 test('upload posts the presigned form before completing with bearer authentication', async () => {

@@ -4,24 +4,34 @@ on:
   push:
     paths:
       - 'api/**'
+      - 'analysis-authorizer/**'
       - 'go-backend/**'
       - 'thermodynamic-ast-engine/**'
       - 'docker/**'
       - 'docker-compose*.yml'
       - '.env*.example'
       - 'scripts/compose-config.test.mjs'
+      - 'scripts/validate-sandbox-host.mjs'
+      - 'tests/**'
+      - '.github/workflows/deploy-analysis.yml'
+      - 'infra/analysis/**'
       - 'template.yaml'
       - '.github/workflows/ci-go.yml'
       - '.github/workflows/publish-api-image.yml'
   pull_request:
     paths:
       - 'api/**'
+      - 'analysis-authorizer/**'
       - 'go-backend/**'
       - 'thermodynamic-ast-engine/**'
       - 'docker/**'
       - 'docker-compose*.yml'
       - '.env*.example'
       - 'scripts/compose-config.test.mjs'
+      - 'scripts/validate-sandbox-host.mjs'
+      - 'tests/**'
+      - '.github/workflows/deploy-analysis.yml'
+      - 'infra/analysis/**'
       - 'template.yaml'
       - '.github/workflows/ci-go.yml'
       - '.github/workflows/publish-api-image.yml'
@@ -41,16 +51,21 @@ jobs:
 
       - name: Validate split Compose configurations
         run: |
-          node --test scripts/compose-config.test.mjs
+          node --test \
+            scripts/compose-config.test.mjs \
+            tests/analysis-template.test.mjs \
+            tests/analysis-workflow.test.mjs \
+            tests/sandbox-host-validation.test.mjs
           docker compose --env-file .env.analysis.example -f docker-compose.analysis.yml config --quiet
           docker compose --env-file .env.sandbox.example -f docker-compose.sandbox.yml config --quiet
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
           go-version: '1.25'
           cache-dependency-path: |
             api/go.sum
+            analysis-authorizer/go.sum
             go-backend/go.sum
 
       - name: Cache Go modules
@@ -81,6 +96,14 @@ jobs:
       - name: go build
         run: |
           cd api
+          go build ./...
+
+      - name: Test and vet REST authorizer
+        run: |
+          cd analysis-authorizer
+          go mod download
+          go test ./...
+          go vet ./...
           go build ./...
 
       - name: Set up AWS SAM CLI

@@ -12,11 +12,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -78,6 +81,43 @@ func TestExtractZip_HappyPath(t *testing.T) {
 
 	checkFile("hello.py", "print('hello')\n")
 	checkFile("sub/world.go", "package main\n")
+}
+
+func TestValidateEngineBinary_RejectsMissingPath(t *testing.T) {
+	err := validateEngineBinary(filepath.Join(t.TempDir(), "missing-engine"))
+	if err == nil {
+		t.Fatal("expected missing engine path to fail validation")
+	}
+}
+
+func TestValidateEngineBinary_RejectsDirectory(t *testing.T) {
+	if err := validateEngineBinary(t.TempDir()); err == nil {
+		t.Fatal("expected engine directory to fail validation")
+	}
+}
+
+func TestValidateEngineBinary_RejectsNonExecutableFile(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Unix executable permission bits are not available on Windows")
+	}
+
+	enginePath := filepath.Join(t.TempDir(), "engine")
+	if err := os.WriteFile(enginePath, []byte("not executable"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateEngineBinary(enginePath); err == nil {
+		t.Fatal("expected non-executable engine file to fail validation")
+	}
+}
+
+func TestValidateEngineBinary_AcceptsExecutableFile(t *testing.T) {
+	enginePath := filepath.Join(t.TempDir(), "engine")
+	if err := os.WriteFile(enginePath, []byte("engine"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := validateEngineBinary(enginePath); err != nil {
+		t.Fatalf("expected executable engine file to pass validation: %v", err)
+	}
 }
 
 // TestExtractZip_ZipSlip ensures a path-traversal zip is rejected.
@@ -458,7 +498,7 @@ func TestBroker_RejectsWorkspaceRequestsWithoutToken(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	router := newSandboxBrokerHandler("broker-token-1234567890", nil, manager, nil)
+	router := newSandboxBrokerHandler("broker-token-1234567890-abcdef-ghi", nil, manager, nil)
 	request := httptest.NewRequest(http.MethodPost, "/v1/workspaces", bytes.NewReader([]byte("not a zip")))
 	response := httptest.NewRecorder()
 
@@ -469,21 +509,108 @@ func TestBroker_RejectsWorkspaceRequestsWithoutToken(t *testing.T) {
 	}
 }
 
+func TestBroker_RejectsMissingOrInvalidToken(t *testing.T) {
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const validToken = "broker-token-1234567890-abcdef-ghi"
+	router := newSandboxBrokerHandler(validToken, nil, manager, nil)
+	for name, token := range map[string]string{
+		"missing": "",
+		"invalid": "wrong-token-1234567890-abcdef-ghi",
+	} {
+		t.Run(name, func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, "/v1/workspaces", bytes.NewReader([]byte("not a zip")))
+			if token != "" {
+				request.Header.Set("X-Sandbox-Token", token)
+			}
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			if response.Code != http.StatusUnauthorized {
+				t.Fatalf("workspace create status = %d, want %d", response.Code, http.StatusUnauthorized)
+			}
+		})
+	}
+}
+
+func TestBroker_RejectsShortConfiguredToken(t *testing.T) {
+	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shortToken := strings.Repeat("x", 31)
+	router := newSandboxBrokerHandler(shortToken, nil, manager, nil)
+	request := httptest.NewRequest(http.MethodPost, "/v1/workspaces", bytes.NewReader([]byte("not a zip")))
+	request.Header.Set("X-Sandbox-Token", shortToken)
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusUnauthorized {
+		t.Fatalf("short configured token status = %d, want %d", response.Code, http.StatusUnauthorized)
+	}
+}
+
 func TestBroker_RejectsUnknownWorkspace(t *testing.T) {
 	manager, err := newBrokerWorkspaceManager(t.TempDir(), time.Minute)
 	if err != nil {
 		t.Fatal(err)
 	}
-	router := newSandboxBrokerHandler("broker-token-1234567890", nil, manager, nil)
+	router := newSandboxBrokerHandler("broker-token-1234567890-abcdef-ghi", nil, manager, nil)
 	request := httptest.NewRequest(http.MethodPost, "/v1/evaluate", bytes.NewReader([]byte(`{"workspace_id":"unknown","file_path":"main.go"}`)))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890")
+	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890-abcdef-ghi")
 	response := httptest.NewRecorder()
 
 	router.ServeHTTP(response, request)
 
 	if response.Code != http.StatusNotFound {
 		t.Fatalf("unknown workspace status = %d, want %d", response.Code, http.StatusNotFound)
+	}
+}
+
+func TestBroker_ClampsResourceLimits(t *testing.T) {
+	defaults := agent.DefaultResourceLimits()
+	got := clampLimits(agent.ResourceLimits{
+		Timeout:        time.Hour,
+		MaxMemoryMB:    1 << 20,
+		MaxCPUs:        100,
+		MaxPids:        1 << 20,
+		MaxOutputBytes: 1 << 30,
+	})
+	if got != defaults {
+		t.Fatalf("clampLimits(oversized) = %+v, want defaults %+v", got, defaults)
+	}
+
+	for name, cpus := range map[string]float64{
+		"NaN":         math.NaN(),
+		"positiveInf": math.Inf(1),
+		"negativeInf": math.Inf(-1),
+	} {
+		t.Run(name, func(t *testing.T) {
+			got := clampLimits(agent.ResourceLimits{
+				Timeout:        defaults.Timeout,
+				MaxMemoryMB:    defaults.MaxMemoryMB,
+				MaxCPUs:        cpus,
+				MaxPids:        defaults.MaxPids,
+				MaxOutputBytes: defaults.MaxOutputBytes,
+			})
+			if got.MaxCPUs != defaults.MaxCPUs {
+				t.Fatalf("clampLimits(MaxCPUs=%v) = %v, want default %v", cpus, got.MaxCPUs, defaults.MaxCPUs)
+			}
+		})
+	}
+
+	withinLimits := agent.ResourceLimits{
+		Timeout:        90 * time.Second,
+		MaxMemoryMB:    1800,
+		MaxCPUs:        1.5,
+		MaxPids:        200,
+		MaxOutputBytes: 128 * 1024,
+	}
+	if got := clampLimits(withinLimits); got != withinLimits {
+		t.Fatalf("clampLimits(within limits) = %+v, want unchanged %+v", got, withinLimits)
 	}
 }
 
@@ -622,7 +749,7 @@ func TestBroker_EvaluationFailureReleasesAdmissionAndWorkspace(t *testing.T) {
 	}
 	limiter := NewEvolutionAdmissionController(1, time.Second)
 	router := newSandboxBrokerHandler(
-		"broker-token-1234567890",
+		"broker-token-1234567890-abcdef-ghi",
 		&brokerResponseTestEvaluator{err: errors.New("simulated evaluator failure")},
 		manager,
 		limiter,
@@ -636,7 +763,7 @@ func TestBroker_EvaluationFailureReleasesAdmissionAndWorkspace(t *testing.T) {
 	}
 	request := httptest.NewRequest(http.MethodPost, "/v1/evaluate", bytes.NewReader(requestBody))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890")
+	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890-abcdef-ghi")
 	response := httptest.NewRecorder()
 
 	router.ServeHTTP(response, request)
@@ -685,9 +812,9 @@ func TestBroker_CancellationReleasesWorkspaceLease(t *testing.T) {
 	cancel()
 	request := httptest.NewRequest(http.MethodPost, "/v1/evaluate", bytes.NewReader(requestBody)).WithContext(ctx)
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890")
+	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890-abcdef-ghi")
 	response := httptest.NewRecorder()
-	router := newSandboxBrokerHandler("broker-token-1234567890", &brokerResponseTestEvaluator{}, manager, limiter)
+	router := newSandboxBrokerHandler("broker-token-1234567890-abcdef-ghi", &brokerResponseTestEvaluator{}, manager, limiter)
 
 	router.ServeHTTP(response, request)
 	if response.Code != http.StatusServiceUnavailable {
@@ -723,7 +850,7 @@ func TestBroker_EvaluationResponseCarriesUpdatedBytesAndError(t *testing.T) {
 		},
 	}
 	router := newSandboxBrokerHandler(
-		"broker-token-1234567890",
+		"broker-token-1234567890-abcdef-ghi",
 		evaluator,
 		manager,
 		NewEvolutionAdmissionController(1, time.Second),
@@ -741,7 +868,7 @@ func TestBroker_EvaluationResponseCarriesUpdatedBytesAndError(t *testing.T) {
 	}
 	request := httptest.NewRequest(http.MethodPost, "/v1/evaluate", bytes.NewReader(requestBody))
 	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890")
+	request.Header.Set("X-Sandbox-Token", "broker-token-1234567890-abcdef-ghi")
 	response := httptest.NewRecorder()
 
 	router.ServeHTTP(response, request)

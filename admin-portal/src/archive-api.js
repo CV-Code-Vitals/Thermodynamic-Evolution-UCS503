@@ -63,6 +63,22 @@ const isArchiveEntry = (entry) =>
   typeof (entry.id || entry.filename) === 'string' &&
   entry.state === 'available';
 
+const isAuthenticatedSession = (payload) =>
+  payload?.status === 'authenticated' &&
+  typeof payload.token === 'string' &&
+  payload.token.length > 0 &&
+  typeof payload.expiresAt === 'string' &&
+  Number.isFinite(Date.parse(payload.expiresAt)) &&
+  Number.isSafeInteger(payload.expiresInMs) &&
+  payload.expiresInMs > 0;
+
+export const getSessionRefreshDelay = (expiresInMs, canRefresh) => {
+  if (!Number.isSafeInteger(expiresInMs) || expiresInMs < 0) {
+    throw new Error('Authentication service returned an invalid session lifetime.');
+  }
+  return canRefresh ? Math.max(0, expiresInMs - 60_000) : expiresInMs;
+};
+
 export const createArchiveApi = (apiBase, fetchImpl = fetch) => {
   const authenticatedJSON = async (token, path, method = 'GET', body) => {
     requireToken(token);
@@ -83,7 +99,15 @@ export const createArchiveApi = (apiBase, fetchImpl = fetch) => {
       credentials: 'omit',
       body: JSON.stringify({ passkey }),
     });
-    if (payload?.status !== 'authenticated' || typeof payload.token !== 'string' || !payload.token) {
+    if (!isAuthenticatedSession(payload)) {
+      throw new Error('Authentication service returned an invalid response.');
+    }
+    return payload;
+  };
+
+  const refresh = async (token) => {
+    const payload = await authenticatedJSON(token, '/refresh', 'POST');
+    if (!isAuthenticatedSession(payload)) {
       throw new Error('Authentication service returned an invalid response.');
     }
     return payload;
@@ -161,6 +185,7 @@ export const createArchiveApi = (apiBase, fetchImpl = fetch) => {
 
   return {
     login,
+    refresh,
     beginUpload,
     completeUpload,
     upload: uploadFile,

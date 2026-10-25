@@ -270,6 +270,7 @@
     .loader { width: 48px; height: 48px; border: 3px solid rgba(255,215,0,0.3); border-radius: 50%; border-top-color: #FFD700; animation: spin 1s ease-in-out infinite; margin-bottom: 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
+  <script src="./config.js"></script>
 </head>
 <body>
 <div id="loading-overlay">
@@ -1398,223 +1399,6 @@ document.getElementById('search-box').addEventListener('input', function() {
 });
 
 /* ─────────────────────────────────────────────
-   CLIENT-SIDE GITHUB SCANNER (FALLBACK FOR GITHUB PAGES)
-   ───────────────────────────────────────────── */
-async function scanClientSide(owner, repo) {
-  const overlayTitle = document.querySelector('#loading-overlay div:nth-child(2)');
-  const overlaySub = document.querySelector('#loading-overlay div:nth-child(3)');
-  if (overlayTitle) overlayTitle.textContent = "QUERYING GITHUB API...";
-  if (overlaySub) overlaySub.textContent = `Fetching tree for ${owner}/${repo}...`;
-
-  // Fetch repository tree
-  let tree = [];
-  const branches = ['HEAD', 'main', 'master'];
-  let treeFetched = false;
-
-  for (const b of branches) {
-    try {
-      const treeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${b}?recursive=1`);
-      if (treeRes.ok) {
-        const treeData = await treeRes.json();
-        tree = treeData.tree || [];
-        treeFetched = true;
-        break;
-      } else if (treeRes.status === 403) {
-        throw new Error("GitHub API rate limit reached. Please test with local server on http://localhost:8000");
-      }
-    } catch (e) {
-      if (e.message.includes("rate limit")) throw e;
-    }
-  }
-
-  if (!treeFetched && tree.length === 0) {
-    throw new Error(`Could not access repository ${owner}/${repo}. Ensure it is public.`);
-  }
-
-  // Excluded binary and archive extensions for security integrity
-  const excludedExts = new Set([
-    'exe', 'dll', 'so', 'dylib', 'bin', 'o', 'a', 'lib', 'class', 'jar', 'wasm',
-    'pyc', 'pyo', 'pyd', 'png', 'jpg', 'jpeg', 'gif', 'bmp', 'ico', 'webp', 'svg',
-    'mp3', 'mp4', 'wav', 'ogg', 'pdf', 'zip', 'tar', 'gz', 'bz2', '7z', 'iso',
-    'woff', 'woff2', 'ttf', 'db', 'sqlite', 'lock', 'sum', 'map'
-  ]);
-
-  const ignoredDirs = ['node_modules/', 'vendor/', 'target/', 'dist/', 'build/', '.git/', 'venv/', '.venv/', '__pycache__/'];
-
-  function detectClientLanguage(path) {
-    const fileName = path.split('/').pop().toLowerCase();
-    if (fileName.endsWith('.min.js') || fileName.endsWith('.min.css') || fileName === 'package-lock.json' || fileName === 'cargo.lock') return null;
-    const ext = fileName.includes('.') ? fileName.split('.').pop() : '';
-    if (ext && excludedExts.has(ext)) return null;
-
-    if (ext === 'go') return 'Go';
-    if (ext === 'py' || ext === 'pyw') return 'Python';
-    if (['js', 'jsx', 'mjs', 'cjs'].includes(ext)) return 'JavaScript';
-    if (['ts', 'tsx'].includes(ext)) return 'TypeScript';
-    if (ext === 'rs') return 'Rust';
-    if (['c', 'h'].includes(ext)) return 'C';
-    if (['cpp', 'cc', 'cxx', 'hpp', 'hxx'].includes(ext)) return 'C++';
-    if (['java', 'cs', 'kt', 'scala'].includes(ext)) return 'Java/C#';
-    if (['sh', 'bash', 'zsh'].includes(ext)) return 'Shell';
-    if (['yaml', 'yml', 'json', 'toml', 'xml', 'sql'].includes(ext) || fileName === 'dockerfile' || fileName.startsWith('dockerfile.')) return 'Config';
-    if (ext || !fileName.startsWith('.')) return 'Generic';
-    return null;
-  }
-
-  // Filter for all valid source/text files within size & security constraints
-  const codeFiles = tree.filter(item => {
-    if (item.type !== 'blob') return false;
-    if (ignoredDirs.some(dir => item.path.includes(dir))) return false;
-    if (item.size && item.size > 512 * 1024) return false; // 512 KB limit
-    return detectClientLanguage(item.path) !== null;
-  }).slice(0, 25); // Top 25 files
-
-  if (codeFiles.length === 0) {
-    return {
-      engine_version: "0.2.0-browser",
-      generated_at: new Date().toISOString(),
-      scanned_directory: `https://github.com/${owner}/${repo}`,
-      files_analyzed: 0,
-      total_hotspots: 0,
-      global_entropy: 0.0,
-      file_reports: [],
-      call_graph: []
-    };
-  }
-
-  if (overlayTitle) overlayTitle.textContent = "ANALYZING AST THERMODYNAMICS...";
-  if (overlaySub) overlaySub.textContent = `Analyzing ${codeFiles.length} files...`;
-
-  const fileReports = [];
-  let globalEntropy = 0;
-  let totalHotspots = 0;
-
-  for (const item of codeFiles) {
-    const rawUrl = `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${item.path}`;
-    try {
-      const rawRes = await fetch(rawUrl);
-      if (!rawRes.ok) continue;
-      const content = await rawRes.text();
-      // Binary check: skip files with null character
-      if (content.includes('\0')) continue;
-      const lines = content.split('\n');
-      const lang = detectClientLanguage(item.path) || 'Generic';
-      
-      const hotspots = [];
-      let loopDepth = 0;
-      let curFunc = '<module>';
-
-      lines.forEach((line, idx) => {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('#') || trimmed.startsWith('/*')) return;
-
-        // Function detection
-        if (lang === 'Python') {
-          const fnMatch = line.match(/^\s*(?:async\s+)?def\s+([A-Za-z0-9_]+)\s*\(/);
-          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
-          if (/^\s*(for|while)\b/.test(line)) loopDepth++;
-          const indent = line.length - line.trimStart().length;
-          if (indent === 0) loopDepth = 0;
-        } else if (lang === 'Go') {
-          const fnMatch = line.match(/^\s*func\s+(?:\([^)]+\)\s+)?([A-Za-z0-9_]+)\s*\(/);
-          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
-          if (/\bfor\b/.test(line)) loopDepth++;
-          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
-        } else if (lang === 'JavaScript' || lang === 'TypeScript') {
-          const fnMatch = line.match(/(?:function\s+([A-Za-z0-9_]+)|(?:const|let|var)\s+([A-Za-z0-9_]+)\s*=\s*(?:async\s*)?\()/);
-          if (fnMatch) { curFunc = fnMatch[1] || fnMatch[2]; loopDepth = 0; }
-          if (/\b(for\s*\(|while\s*\(|\.forEach\(|\.map\()/.test(line)) loopDepth++;
-          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
-        } else if (lang === 'Rust') {
-          const fnMatch = line.match(/^\s*(?:pub(?:\([^)]+\))?\s+)?(?:async\s+)?fn\s+([A-Za-z0-9_]+)/);
-          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
-          if (/\b(for\s+\w+\s+in|while\s+|loop\s*\{)/.test(line)) loopDepth++;
-          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
-        } else {
-          const fnMatch = line.match(/(?:def|func|fn|function|class)\s+([A-Za-z0-9_]+)/);
-          if (fnMatch) { curFunc = fnMatch[1]; loopDepth = 0; }
-          if (/\b(for|while|loop)\b/.test(line)) loopDepth++;
-          if (line.includes('}')) loopDepth = Math.max(0, loopDepth - 1);
-        }
-
-        const mult = 1.0 + 0.5 * Math.pow(loopDepth, 2);
-
-        // Blocking I/O
-        if (/\b(requests\.(get|post|put|delete)|http\.Get|time\.Sleep|time\.sleep|fs\.(readFileSync|writeFileSync)|execSync|Thread\.sleep|fopen|fread)\b/.test(line)) {
-          const score = Math.round(18.0 * mult * 100) / 100;
-          hotspots.push({
-            function_name: curFunc, line_number: idx + 1,
-            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
-            vulnerability_type: "BlockingIO", description: "Blocking I/O call on execution path"
-          });
-        }
-        // Sync / Mutex
-        if (/\b(sync\.Mutex|threading\.Lock|threading\.RLock|Mutex|RwLock|synchronized|pthread_mutex)\b/.test(line)) {
-          const score = Math.round(22.0 * mult * 100) / 100;
-          hotspots.push({
-            function_name: curFunc, line_number: idx + 1,
-            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
-            vulnerability_type: "SyncContention", description: "Synchronization primitive contention risk"
-          });
-        }
-        // Hot Allocation
-        if (/\b(make\(|np\.zeros|new Array|new Buffer|Vec::with_capacity|malloc|calloc|new byte\[)\b/.test(line)) {
-          const score = Math.round(12.0 * mult * 100) / 100;
-          hotspots.push({
-            function_name: curFunc, line_number: idx + 1,
-            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
-            vulnerability_type: "HotAllocation", description: "Allocation inside hot execution path"
-          });
-        }
-        // Deep Nesting
-        if (loopDepth >= 2) {
-          const score = Math.round(25.0 * mult * 100) / 100;
-          hotspots.push({
-            function_name: curFunc, line_number: idx + 1,
-            source_snippet: trimmed.slice(0, 100), entropy_score: Math.min(100, score),
-            vulnerability_type: "DeepNesting", description: "Deeply nested execution loop"
-          });
-        }
-        // Config Secrets
-        if (lang === 'Config' && /(password|secret|api_key|token|private_key)\s*[:=]\s*['"][^'"]{4,}/i.test(line)) {
-          hotspots.push({
-            function_name: curFunc, line_number: idx + 1,
-            source_snippet: trimmed.slice(0, 100), entropy_score: 25.0,
-            vulnerability_type: "SyncContention", description: "Unrotated secret / sensitive credential in config"
-          });
-        }
-      });
-
-      const fileEntropy = hotspots.reduce((acc, h) => acc + h.entropy_score, 0);
-      globalEntropy += fileEntropy;
-      totalHotspots += hotspots.length;
-
-      fileReports.push({
-        file_path: item.path,
-        language: lang,
-        lines_scanned: lines.length,
-        total_entropy: Math.round(fileEntropy * 100) / 100,
-        mean_hotspot_entropy: hotspots.length ? Math.round((fileEntropy / hotspots.length) * 100) / 100 : 0,
-        hotspots: hotspots
-      });
-    } catch (e) {
-      console.warn("Could not fetch file:", item.path, e);
-    }
-  }
-
-  return {
-    engine_version: "0.2.0-browser",
-    generated_at: new Date().toISOString(),
-    scanned_directory: `https://github.com/${owner}/${repo}`,
-    files_analyzed: fileReports.length,
-    total_hotspots: totalHotspots,
-    global_entropy: Math.round(globalEntropy * 100) / 100,
-    file_reports: fileReports,
-    call_graph: []
-  };
-}
-
-/* ─────────────────────────────────────────────
    TOAST NOTIFICATIONS
    ───────────────────────────────────────────── */
 function showToast(msg, isError = false) {
@@ -1636,96 +1420,102 @@ function showToast(msg, isError = false) {
    DYNAMIC REPO SCANNING HANDLER
    ───────────────────────────────────────────── */
 window.triggerRepoScan = async function() {
-  console.log("[SCAN] triggerRepoScan called");
-  const repoInput = document.getElementById('repo-box');
-  let repoUrl = (repoInput ? repoInput.value : '').trim();
-  console.log("[SCAN] repoUrl input:", repoUrl);
-
-  if (!repoUrl) {
-    showToast("Please enter a GitHub repository URL (e.g. octocat/Spoon-Knife)", true);
-    console.warn("[SCAN] Empty repository URL provided");
+  const configuredBase = window.UCS503_ANALYSIS_API_BASE;
+  if (typeof configuredBase !== 'string' || !configuredBase.trim()) {
+    showToast("Analysis API is not configured. Set UCS503_ANALYSIS_API_BASE to enable repository scans.", true);
     return;
   }
-  
-  // Format shorthand "owner/repo" to full URL
+
+  let apiBase;
+  try {
+    const parsedBase = new URL(configuredBase.trim());
+    const localDevelopment = parsedBase.protocol === 'http:'
+      && ['localhost', '127.0.0.1'].includes(parsedBase.hostname);
+    if ((!localDevelopment && parsedBase.protocol !== 'https:')
+      || parsedBase.username || parsedBase.password || parsedBase.search || parsedBase.hash) {
+      throw new Error('Analysis API must use HTTPS, except for an explicitly configured localhost URL.');
+    }
+    apiBase = parsedBase.toString().replace(/\/+$/, '');
+  } catch (error) {
+    showToast(`Analysis API configuration is invalid: ${error.message}`, true);
+    return;
+  }
+
+  const repoInput = document.getElementById('repo-box');
+  let repoUrl = (repoInput ? repoInput.value : '').trim();
   if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repoUrl)) {
-    repoUrl = 'https://github.com/' + repoUrl;
-    if (repoInput) repoInput.value = repoUrl;
+    repoUrl = `https://github.com/${repoUrl}`;
+  }
+
+  let repository;
+  try {
+    const parsedRepository = new URL(repoUrl);
+    const segments = parsedRepository.pathname.split('/').filter(Boolean);
+    if (parsedRepository.protocol !== 'https:'
+      || parsedRepository.hostname.toLowerCase() !== 'github.com'
+      || parsedRepository.username || parsedRepository.password || parsedRepository.port
+      || parsedRepository.search || parsedRepository.hash || parsedRepository.pathname.includes('%')
+      || segments.length !== 2) {
+      throw new Error('Enter a public GitHub repository URL, such as octocat/Spoon-Knife.');
+    }
+    const repoName = segments[1].replace(/\.git$/i, '');
+    if (!segments[0] || !repoName) throw new Error('Enter a valid GitHub repository URL.');
+    repository = `https://github.com/${segments[0]}/${repoName}`;
+    if (repoInput) repoInput.value = repository;
+  } catch (error) {
+    showToast(error.message || 'Enter a valid GitHub repository URL.', true);
+    return;
   }
 
   const overlay = document.getElementById('loading-overlay');
   const overlayTitle = overlay ? overlay.querySelector('div:nth-child(2)') : null;
   const overlaySub = overlay ? overlay.querySelector('div:nth-child(3)') : null;
-  if (overlayTitle) overlayTitle.textContent = "SCANNING REPOSITORY...";
-  if (overlaySub) overlaySub.textContent = "Connecting to analysis engine...";
+  if (overlayTitle) overlayTitle.textContent = 'SCANNING REPOSITORY...';
+  if (overlaySub) overlaySub.textContent = 'Connecting to analysis engine...';
   if (overlay) overlay.style.display = 'flex';
 
-  // Extract owner and repo for fallback
-  const ghMatch = repoUrl.match(/github\.com\/([^\/]+)\/([^\/\s#?]+)/);
-  const owner = ghMatch ? ghMatch[1] : null;
-  const repo = ghMatch ? ghMatch[2].replace(/\.git$/, '') : null;
-  console.log("[SCAN] Parsed owner:", owner, "repo:", repo);
-
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 120000);
   let reportLoaded = false;
-
-  // 1. Try Backend API first if on localhost or if custom API is configured
-  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-  const customApi = localStorage.getItem('CUSTOM_SCAN_API');
-  const apiUrl = customApi ? (customApi + '/scan') : (isLocal ? 'http://localhost:8080/scan' : '/api/scan');
-  console.log("[SCAN] Attempting backend API:", apiUrl);
-
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
-
-    const res = await fetch(apiUrl, {
+    const response = await fetch(`${apiBase}/api/scan`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ repo_url: repoUrl }),
-      signal: controller.signal
+      body: JSON.stringify({ repo_url: repository }),
+      signal: controller.signal,
     });
+    if (!response.ok) {
+      const responseText = await response.text();
+      let message = responseText;
+      try {
+        const errorBody = JSON.parse(responseText);
+        message = errorBody.error || errorBody.message || message;
+      } catch {
+        // Keep the plain-text response for visible diagnostics.
+      }
+      throw new Error(message || `Analysis API request failed (${response.status}).`);
+    }
+
+    REPORT = await response.json();
+    reportLoaded = true;
+  } catch (error) {
+    const message = error.name === 'AbortError' ? 'Analysis scan timed out.' : error.message;
+    showToast(`Scan failed: ${message}`, true);
+  } finally {
     clearTimeout(timeoutId);
-    console.log("[SCAN] Backend API response status:", res.status);
-
-    if (res.ok) {
-      const newReport = await res.json();
-      REPORT = newReport;
-      reportLoaded = true;
-      console.log("[SCAN] Report successfully received from backend API");
-    }
-  } catch (err) {
-    console.log("[SCAN] Backend API unreachable or returned error:", err.message);
+    if (overlay) overlay.style.display = 'none';
   }
-
-  // 2. If Backend was unreachable (e.g. 405 on GitHub Pages static host), fall back to client-side GitHub scanner
-  if (!reportLoaded && owner && repo) {
-    try {
-      console.log("[SCAN] Launching in-browser GitHub API analysis...");
-      const clientReport = await scanClientSide(owner, repo);
-      REPORT = clientReport;
-      reportLoaded = true;
-      console.log("[SCAN] In-browser scan completed successfully");
-    } catch (clientErr) {
-      console.warn("[SCAN] Client-side scan error:", clientErr.message);
-      showToast("Scan failed: " + clientErr.message, true);
-    }
-  }
-
-  if (overlay) overlay.style.display = 'none';
 
   if (reportLoaded) {
     if (!REPORT.file_reports || REPORT.file_reports.length === 0) {
-      showToast("Scan completed, but no compatible source or config files found.", false);
+      showToast('Scan completed, but no compatible source or config files were found.', false);
     } else {
       showToast(`Scan complete: ${REPORT.files_analyzed} files analyzed!`, false);
     }
     buildData();
     syncPhase(0);
-  } else if (!owner || !repo) {
-    showToast("Please provide a valid GitHub repository URL, e.g. octocat/Spoon-Knife", true);
   }
 };
-
 const scanBtn = document.getElementById('scan-btn');
 if (scanBtn) {
   scanBtn.addEventListener('click', window.triggerRepoScan);

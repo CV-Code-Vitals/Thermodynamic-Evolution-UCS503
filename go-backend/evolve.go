@@ -16,8 +16,18 @@ import (
 	"github.com/saksham/self-healing-pipeline/agent"
 )
 
+const (
+	maxEvolutionDuration       = 14 * time.Minute
+	evolutionHeartbeatInterval = 30 * time.Second
+)
+
+type evolutionOutcome struct {
+	result *agent.AnnealingResult
+	err    error
+}
+
 type EvolveRequest struct {
-	RepoPath     string                `json:"repo_path"`
+	SnapshotID   string                `json:"snapshot_id"`
 	FilePath     string                `json:"file_path"`
 	FunctionName string                `json:"function_name"`
 	StartByte    int                   `json:"start_byte"`
@@ -26,7 +36,11 @@ type EvolveRequest struct {
 	Config       agent.AnnealingConfig `json:"config"`
 }
 
-func evolveHandler() gin.HandlerFunc {
+func evolveHandler(snapshotStores ...SnapshotWorkspaceProvider) gin.HandlerFunc {
+	var snapshots SnapshotWorkspaceProvider
+	if len(snapshotStores) > 0 {
+		snapshots = snapshotStores[0]
+	}
 	var llmAgent *agent.MutationAgent
 	if os.Getenv("MUTATION_API_KEY") != "" {
 		llmAgent = &agent.MutationAgent{
@@ -41,36 +55,34 @@ func evolveHandler() gin.HandlerFunc {
 	}
 
 	mutator := agent.NewAdaptiveMutator(llmAgent, 0)
-
-	// Configure the hardened sandbox evaluator (supports direct Docker or authenticated remote broker)
 	evaluator := agent.NewEvaluator(agent.DockerEvaluatorConfig{
 		Image: os.Getenv("SANDBOX_RUNNER_IMAGE"),
 	})
-
-	// Configure the AST thermodynamic energy evaluator (resolves Rust engine path dynamically)
 	energyEvaluator := &agent.LazyRustEngineEvaluator{
 		CustomPath: os.Getenv("ENGINE_PATH"),
 	}
-
 	annealer := &agent.Annealer{
 		Mutator:         mutator,
 		Evaluator:       evaluator,
 		EnergyEvaluator: energyEvaluator,
 	}
-
-	// Global concurrency admission controller for expensive evolution workflows
 	limiter := NewEvolutionAdmissionControllerFromEnv()
 
 	return func(c *gin.Context) {
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<10)
 		var req EvolveRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
 			return
 		}
 
-		// Security pre-validation of target paths
-		if strings.TrimSpace(req.RepoPath) == "" || strings.TrimSpace(req.FilePath) == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "repo_path and file_path are required"})
+		req.SnapshotID = strings.TrimSpace(req.SnapshotID)
+		if !snapshotIDPattern.MatchString(req.SnapshotID) || strings.TrimSpace(req.FilePath) == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "snapshot_id and file_path are required"})
+			return
+		}
+		if snapshots == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "source snapshot storage is not configured"})
 			return
 		}
 
@@ -78,15 +90,15 @@ func evolveHandler() gin.HandlerFunc {
 		cleanRel := filepath.Clean(filepath.FromSlash(req.FilePath))
 		isWinDrive := len(req.FilePath) >= 2 && req.FilePath[1] == ':' &&
 			((req.FilePath[0] >= 'a' && req.FilePath[0] <= 'z') || (req.FilePath[0] >= 'A' && req.FilePath[0] <= 'Z'))
-
 		if filepath.IsAbs(cleanRel) || strings.HasPrefix(cleanInput, "/") || strings.HasPrefix(cleanInput, "\\") ||
 			strings.HasPrefix(cleanRel, "..") || filepath.VolumeName(cleanRel) != "" || isWinDrive {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Path traversal in file_path is forbidden"})
 			return
 		}
 
-		// Context-aware concurrency admission control
-		release, err := limiter.Acquire(c.Request.Context())
+		ctx, cancel := context.WithTimeout(c.Request.Context(), maxEvolutionDuration)
+		defer cancel()
+		release, err := limiter.Acquire(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) || errors.Is(err, ErrLimiterCancelled) {
 				c.JSON(http.StatusRequestTimeout, gin.H{"error": "Request cancelled while waiting for evolution capacity"})
@@ -98,48 +110,102 @@ func evolveHandler() gin.HandlerFunc {
 			})
 			return
 		}
-		defer release() // Guarantees capacity is released on every exit path
+		defer release()
+
+		workspace, cleanup, err := snapshots.ExtractSnapshot(ctx, req.SnapshotID)
+		if err != nil {
+			log.Printf("evolution source snapshot extraction failed (snapshot_id=%s)", req.SnapshotID)
+			c.JSON(http.StatusBadGateway, gin.H{"error": "The staged source snapshot is unavailable"})
+			return
+		}
+		defer cleanup()
 
 		c.Header("Content-Type", "text/event-stream")
 		c.Header("Cache-Control", "no-cache")
 		c.Header("Connection", "keep-alive")
 		c.Header("X-Accel-Buffering", "no")
 
-		ctx := c.Request.Context()
-		ch := make(chan agent.StepTelemetry, 16)
-
+		telemetry := make(chan agent.StepTelemetry, 16)
+		outcomes := make(chan evolutionOutcome, 1)
 		go func() {
-			defer close(ch)
-			result, err := annealer.Evolve(ctx, req.RepoPath, req.FilePath, req.FunctionName, req.StartByte, req.EndByte, req.BaseEnergy, req.Config, ch)
-
-			if err != nil {
-				data, _ := json.Marshal(map[string]string{"error": err.Error()})
-				fmt.Fprintf(c.Writer, "event: error\ndata: %s\n\n", string(data))
-				c.Writer.Flush()
-				return
-			}
-
-			data, _ := json.Marshal(result)
-			fmt.Fprintf(c.Writer, "event: complete\ndata: %s\n\n", string(data))
-			c.Writer.Flush()
+			defer close(telemetry)
+			result, evolveErr := annealer.Evolve(
+				ctx,
+				workspace,
+				req.FilePath,
+				req.FunctionName,
+				req.StartByte,
+				req.EndByte,
+				req.BaseEnergy,
+				req.Config,
+				telemetry,
+			)
+			outcomes <- evolutionOutcome{result: result, err: evolveErr}
 		}()
 
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case telemetry, ok := <-ch:
-				if !ok {
-					return
-				}
-				data, err := json.Marshal(telemetry)
-				if err != nil {
-					log.Printf("Failed to marshal telemetry: %v", err)
-					continue
-				}
-				fmt.Fprintf(c.Writer, "event: step\ndata: %s\n\n", string(data))
-				c.Writer.Flush()
+		streamEvolutionEvents(ctx, c.Writer, telemetry, outcomes, evolutionHeartbeatInterval)
+	}
+}
+
+func streamEvolutionEvents(
+	ctx context.Context,
+	writer http.ResponseWriter,
+	telemetry <-chan agent.StepTelemetry,
+	outcomes <-chan evolutionOutcome,
+	heartbeatInterval time.Duration,
+) {
+	if heartbeatInterval <= 0 {
+		heartbeatInterval = evolutionHeartbeatInterval
+	}
+	ticker := time.NewTicker(heartbeatInterval)
+	defer ticker.Stop()
+
+	flush := func() {
+		if flusher, ok := writer.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+	writeEvent := func(name string, value any) bool {
+		data, err := json.Marshal(value)
+		if err != nil {
+			log.Printf("failed to encode Evolution %s event", name)
+			return false
+		}
+		if _, err := fmt.Fprintf(writer, "event: %s\ndata: %s\n\n", name, data); err != nil {
+			return false
+		}
+		flush()
+		return true
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				writeEvent("error", map[string]string{"error": "Evolution exceeded its runtime limit"})
 			}
+			return
+		case event, ok := <-telemetry:
+			if !ok {
+				telemetry = nil
+				continue
+			}
+			if !writeEvent("step", event) {
+				return
+			}
+		case outcome := <-outcomes:
+			if outcome.err != nil {
+				log.Printf("Evolution worker failed")
+				writeEvent("error", map[string]string{"error": "Evolution failed"})
+				return
+			}
+			writeEvent("complete", outcome.result)
+			return
+		case <-ticker.C:
+			if _, err := fmt.Fprint(writer, ": heartbeat\n\n"); err != nil {
+				return
+			}
+			flush()
 		}
 	}
 }

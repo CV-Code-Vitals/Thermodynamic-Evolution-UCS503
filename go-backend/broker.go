@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -14,6 +15,8 @@ import (
 	"github.com/saksham/self-healing-pipeline/agent"
 )
 
+const minSandboxServiceTokenBytes = 32
+
 // runSandboxBroker starts the dedicated, hardened sandbox execution daemon.
 // This daemon is the ONLY process on the host with Docker access.
 // It exposes a strictly authenticated, narrow API with no arbitrary container execution capabilities.
@@ -22,8 +25,8 @@ func runSandboxBroker() {
 	if token == "" {
 		log.Fatal("[FATAL] SANDBOX_SERVICE_TOKEN must be configured to run sandbox broker")
 	}
-	if len(token) < 16 {
-		log.Fatal("[FATAL] SANDBOX_SERVICE_TOKEN must be at least 16 characters for security")
+	if len(token) < minSandboxServiceTokenBytes {
+		log.Fatalf("[FATAL] SANDBOX_SERVICE_TOKEN must be at least %d bytes for security", minSandboxServiceTokenBytes)
 	}
 
 	port := envOr("PORT", "8082")
@@ -82,7 +85,7 @@ func clampLimits(limits agent.ResourceLimits) agent.ResourceLimits {
 	if limits.MaxMemoryMB <= 0 || limits.MaxMemoryMB > maxAllowedMemoryMB {
 		limits.MaxMemoryMB = def.MaxMemoryMB
 	}
-	if limits.MaxCPUs <= 0 || limits.MaxCPUs > maxAllowedCPUs {
+	if math.IsNaN(limits.MaxCPUs) || math.IsInf(limits.MaxCPUs, 0) || limits.MaxCPUs <= 0 || limits.MaxCPUs > maxAllowedCPUs {
 		limits.MaxCPUs = def.MaxCPUs
 	}
 	if limits.MaxPids <= 0 || limits.MaxPids > maxAllowedPids {

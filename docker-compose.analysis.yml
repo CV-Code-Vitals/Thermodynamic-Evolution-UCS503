@@ -10,11 +10,15 @@ services:
       GIN_MODE: release
       MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
       PORT: "8080"
+      SOURCE_BUCKET: ${SOURCE_BUCKET:?Set the private staged-source bucket}
       SANDBOX_SERVICE_URL: ${SANDBOX_SERVICE_URL:?Set the private HTTPS broker URL}
       SANDBOX_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Load SANDBOX_SERVICE_TOKEN from SSM}
       SANDBOX_TLS_CA_FILE: /run/ucs503-tls/sandbox-ca.crt
+      SANDBOX_INSTANCE_ID: ${SANDBOX_INSTANCE_ID:?Set the configured private sandbox instance ID}
+      SANDBOX_LIFECYCLE_TABLE: ${SANDBOX_LIFECYCLE_TABLE:-sandbox-lifecycle}
+      SANDBOX_READY_TIMEOUT_SECONDS: ${SANDBOX_READY_TIMEOUT_SECONDS:-180}
     volumes:
-      - analysis_uploads:/app/uploads
+      - ${ANALYSIS_UPLOADS_HOST_DIR:-/var/lib/ucs503-analysis/uploads}:/app/uploads
       - ${SANDBOX_TLS_CA_SOURCE:?Mount the broker CA certificate from the host}:/run/ucs503-tls/sandbox-ca.crt:ro
     logging:
       driver: json-file
@@ -27,6 +31,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 5s
-
-volumes:
-  analysis_uploads:

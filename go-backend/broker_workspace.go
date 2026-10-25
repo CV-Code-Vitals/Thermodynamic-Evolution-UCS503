@@ -279,7 +279,7 @@ func newSandboxBrokerHandler(token string, evaluator agent.CandidateEvaluator, w
 
 	authMiddleware := func(c *gin.Context) {
 		provided := c.GetHeader("X-Sandbox-Token")
-		if len(token) < 16 || len(provided) != len(token) || subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1 {
+		if len(token) < minSandboxServiceTokenBytes || len(provided) != len(token) || subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1 {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or missing sandbox token"})
 			return
 		}
@@ -289,7 +289,7 @@ func newSandboxBrokerHandler(token string, evaluator agent.CandidateEvaluator, w
 	r.GET("/health", func(c *gin.Context) {
 		provided := c.GetHeader("X-Sandbox-Token")
 		isLoopback := c.ClientIP() == "127.0.0.1" || c.ClientIP() == "::1"
-		if len(token) < 16 || (!isLoopback && (len(provided) != len(token) || subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1)) {
+		if len(token) < minSandboxServiceTokenBytes || (!isLoopback && (len(provided) != len(token) || subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1)) {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or missing sandbox token"})
 			return
 		}

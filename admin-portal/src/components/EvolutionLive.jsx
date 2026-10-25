@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Play, Square, CheckCircle, XCircle, AlertTriangle, ArrowRight, Thermometer, Activity, Code } from 'lucide-react';
 import './EvolutionLive.css';
+import { createEvolutionApi } from '../evolution-api.js';
 
-const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
+const apiBase = (import.meta.env.VITE_ANALYSIS_API_BASE || '').replace(/\/+$/, '');
+const evolutionApi = createEvolutionApi(apiBase);
 
-const EvolutionLive = ({ initialData, onBack }) => {
+const EvolutionLive = ({ token, initialData, onBack }) => {
   const [isEvolving, setIsEvolving] = useState(false);
   const [telemetry, setTelemetry] = useState([]);
   const [stats, setStats] = useState({
@@ -13,33 +15,48 @@ const EvolutionLive = ({ initialData, onBack }) => {
     deltaE: 0.0,
   });
   const [finalResult, setFinalResult] = useState(null);
-  
+  const [repoURL, setRepoURL] = useState(initialData?.repo_url || '');
+  const [filePath, setFilePath] = useState(initialData?.file_path || '');
+  const [functionName, setFunctionName] = useState(initialData?.function_name || '');
+  const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
+
   const abortControllerRef = useRef(null);
   const logEndRef = useRef(null);
 
-  const [codeLeft, setCodeLeft] = useState(initialData?.base_code || "// Original code snippet");
+  const codeLeft = initialData?.base_code || "// Original code snippet";
   const [codeRight, setCodeRight] = useState(initialData?.base_code || "// Baseline code");
 
-  // Auto-scroll logs
   useEffect(() => {
     if (logEndRef.current) {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [telemetry]);
 
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
+
   const startEvolution = async () => {
+    if (!apiBase) {
+      setError('Evolution analysis API is not configured for this deployment.');
+      return;
+    }
+    if (!repoURL.trim() || !filePath.trim()) {
+      setError('Enter a GitHub repository URL and target file before starting.');
+      return;
+    }
+
     setIsEvolving(true);
     setTelemetry([]);
     setFinalResult(null);
+    setError('');
+    setStatus('Connecting to the analysis service…');
     abortControllerRef.current = new AbortController();
 
     const payload = {
-      repo_path: initialData?.repo_path || "/tmp/repo",
-      file_path: initialData?.file_path || "main.go",
-      function_name: initialData?.function_name || "ProcessData",
-      start_byte: initialData?.start_byte || 0,
-      end_byte: initialData?.end_byte || 100,
-      base_energy: initialData?.base_energy || 50.0,
+      repo_url: repoURL.trim(),
+      file_path: filePath.trim(),
+      ...(functionName.trim() ? { function_name: functionName.trim() } : {}),
+      base_energy: initialData?.base_energy ?? 50.0,
       config: initialData?.config || {
         initial_temp: 100.0,
         cooling_rate: 0.85,
@@ -48,70 +65,40 @@ const EvolutionLive = ({ initialData, onBack }) => {
     };
 
     try {
-      const response = await fetch(`${apiBase}/evolve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: abortControllerRef.current.signal
-      });
-
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-        let currentEvent = '';
-        
-        for (const line of lines) {
-          if (line.startsWith('event: ')) {
-            currentEvent = line.replace('event: ', '').trim();
-          } else if (line.startsWith('data: ')) {
-            const dataStr = line.replace('data: ', '').trim();
-            if (!dataStr) continue;
-            
-            try {
-              const data = JSON.parse(dataStr);
-              
-              if (currentEvent === 'step') {
-                setTelemetry(prev => [...prev, data]);
-                setStats({
-                  temp: data.temp,
-                  currentEnergy: data.new_energy || data.old_energy,
-                  deltaE: data.delta_e || 0
-                });
-                if (data.accepted && data.code_patch) {
-                  setCodeRight(data.code_patch);
-                }
-              } else if (currentEvent === 'complete') {
-                setFinalResult(data);
-                setIsEvolving(false);
-                if (data.optimized_code) setCodeRight(data.optimized_code);
-              } else if (currentEvent === 'error') {
-                setTelemetry(prev => [...prev, { error: data.error, isError: true }]);
-                setIsEvolving(false);
-              }
-            } catch (e) {
-              console.error("Failed to parse SSE data", e, dataStr);
-            }
+      await evolutionApi.start({
+        token,
+        payload,
+        signal: abortControllerRef.current.signal,
+        onEvent: ({ type, data }) => {
+          if (type === 'step') {
+            setTelemetry((previous) => [...previous, data]);
+            setStatus(`Evolution in progress — step ${data.step ?? '…'}.`);
+            setStats((previous) => ({
+              temp: Number.isFinite(data.temp) ? data.temp : previous.temp,
+              currentEnergy: Number.isFinite(data.new_energy)
+                ? data.new_energy
+                : Number.isFinite(data.old_energy) ? data.old_energy : previous.currentEnergy,
+              deltaE: Number.isFinite(data.delta_e) ? data.delta_e : 0,
+            }));
+            if (data.accepted && data.code_patch) setCodeRight(data.code_patch);
+          } else if (type === 'complete') {
+            setFinalResult(data);
+            setStatus('Evolution completed.');
+            if (data.optimized_code) setCodeRight(data.optimized_code);
+          } else if (type === 'error') {
+            setTelemetry((previous) => [...previous, { error: data.error || 'Evolution failed.', isError: true }]);
           }
-        }
-      }
+        },
+      });
     } catch (err) {
       if (err.name === 'AbortError') {
-        setTelemetry(prev => [...prev, { error: 'Evolution aborted by user.', isError: true }]);
+        setStatus('Evolution aborted.');
       } else {
-        setTelemetry(prev => [...prev, { error: err.message, isError: true }]);
+        setError(err.message || 'Evolution failed. Please try again.');
+        setStatus('');
       }
+    } finally {
+      abortControllerRef.current = null;
       setIsEvolving(false);
     }
   };
@@ -127,7 +114,7 @@ const EvolutionLive = ({ initialData, onBack }) => {
       <div className="evolution-header">
         <div>
           <h2>Thermodynamic Evolution Live</h2>
-          <p className="subtitle">Target: <code>{initialData?.function_name || 'ProcessData'}</code></p>
+          <p className="subtitle">Authenticated repository optimization</p>
         </div>
         <div className="evolution-controls">
           {!isEvolving ? (
@@ -140,9 +127,52 @@ const EvolutionLive = ({ initialData, onBack }) => {
             </button>
           )}
           {onBack && (
-            <button className="cyber-button-alt" onClick={onBack}>BACK</button>
+            <button className="cyber-button-alt" onClick={onBack} disabled={isEvolving}>BACK</button>
           )}
         </div>
+      </div>
+
+      {!apiBase && (
+        <div className="evolution-error" role="alert">
+          Evolution analysis API is not configured for this deployment.
+        </div>
+      )}
+      {error && <div className="evolution-error" role="alert">{error}</div>}
+      {status && <div className="evolution-status" role="status" aria-live="polite">{status}</div>}
+
+      <div className="evolution-target panel">
+        <label>
+          GitHub repository URL
+          <input
+            type="url"
+            value={repoURL}
+            onChange={(event) => setRepoURL(event.target.value)}
+            placeholder="https://github.com/owner/repository"
+            disabled={isEvolving}
+            required
+          />
+        </label>
+        <label>
+          Target file
+          <input
+            type="text"
+            value={filePath}
+            onChange={(event) => setFilePath(event.target.value)}
+            placeholder="src/main.go"
+            disabled={isEvolving}
+            required
+          />
+        </label>
+        <label>
+          Function name <span>(optional)</span>
+          <input
+            type="text"
+            value={functionName}
+            onChange={(event) => setFunctionName(event.target.value)}
+            placeholder="ProcessData"
+            disabled={isEvolving}
+          />
+        </label>
       </div>
 
       <div className="evolution-dashboard">
@@ -183,7 +213,7 @@ const EvolutionLive = ({ initialData, onBack }) => {
           </div>
           {finalResult && (
             <div className="final-result-banner">
-              Evolution Complete. Total Steps: {finalResult.total_steps}. Total ΔE: {finalResult.energy_delta.toFixed(2)}.
+              Evolution Complete. Total Steps: {finalResult.total_steps ?? '—'}. Total ΔE: {Number(finalResult.energy_delta || 0).toFixed(2)}.
             </div>
           )}
         </div>

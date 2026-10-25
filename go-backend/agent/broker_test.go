@@ -4,11 +4,17 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"io"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -107,11 +113,102 @@ func TestRemoteBrokerEvaluator_MissingOrInvalidConfig(t *testing.T) {
 	}
 }
 
+func TestNewRemoteBrokerHTTPClient_RequiresDedicatedCA(t *testing.T) {
+	t.Setenv("SANDBOX_TLS_CA_FILE", "")
+
+	if _, err := newRemoteBrokerHTTPClient(); err == nil || !strings.Contains(err.Error(), "SANDBOX_TLS_CA_FILE") {
+		t.Fatalf("expected missing dedicated CA to fail, got %v", err)
+	}
+}
+
+func TestNewRemoteBrokerHTTPClient_TrustsOnlyConfiguredCA(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	certPath := filepath.Join(t.TempDir(), "broker-ca.pem")
+	certPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: server.Certificate().Raw,
+	})
+	if err := os.WriteFile(certPath, certPEM, 0o600); err != nil {
+		t.Fatalf("write test broker CA: %v", err)
+	}
+	t.Setenv("SANDBOX_TLS_CA_FILE", certPath)
+
+	client, err := newRemoteBrokerHTTPClient()
+	if err != nil {
+		t.Fatalf("create TLS client: %v", err)
+	}
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok || transport.TLSClientConfig == nil || transport.TLSClientConfig.RootCAs == nil {
+		t.Fatal("expected TLS client to use a dedicated root pool")
+	}
+	subjects := transport.TLSClientConfig.RootCAs.Subjects()
+	if len(subjects) != 1 || !bytes.Equal(subjects[0], server.Certificate().RawSubject) {
+		t.Fatalf("expected only the configured CA in the trust pool, got %d certificates", len(subjects))
+	}
+
+	response, err := client.Get(server.URL)
+	if err != nil {
+		t.Fatalf("request signed by configured CA failed: %v", err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected HTTP 200, got %d", response.StatusCode)
+	}
+}
+
+func TestRemoteBrokerEvaluator_RejectsUntrustedCA(t *testing.T) {
+	untrustedServer := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	defer untrustedServer.Close()
+
+	caKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatalf("generate test CA key: %v", err)
+	}
+	caTemplate := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "unrelated test CA"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	caDER, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, &caKey.PublicKey, caKey)
+	if err != nil {
+		t.Fatalf("create test CA certificate: %v", err)
+	}
+	certPath := filepath.Join(t.TempDir(), "broker-ca.pem")
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caDER})
+	if err := os.WriteFile(certPath, certPEM, 0o600); err != nil {
+		t.Fatalf("write test broker CA: %v", err)
+	}
+	t.Setenv("SANDBOX_TLS_CA_FILE", certPath)
+
+	evaluator := NewRemoteBrokerEvaluator(untrustedServer.URL, "workspace-token-1234567890-abcdef-ghij")
+	err = evaluator.CheckAvailable(context.Background())
+	if err == nil || !errors.Is(err, ErrSandboxUnavailable) {
+		t.Fatalf("expected untrusted broker CA to fail closed, got %v", err)
+	}
+}
+
+func TestRemoteBrokerEvaluator_RejectsShortServiceToken(t *testing.T) {
+	evaluator := NewRemoteBrokerEvaluator("https://sandbox-broker:8082", strings.Repeat("x", 31))
+
+	err := evaluator.CheckAvailable(context.Background())
+	if !errors.Is(err, ErrBrokerAuthenticationFailed) {
+		t.Fatalf("expected short service token to fail authentication configuration, got %v", err)
+	}
+}
+
 // TestRemoteBrokerEvaluator_BrokerUnavailable_FailsClosed verifies that when the sandbox broker
 // is down, unreachable, or returns a 5xx error, candidate evaluation fails closed.
 func TestRemoteBrokerEvaluator_BrokerUnavailable_FailsClosed(t *testing.T) {
 	// Point to an unreachable port
-	evaluator := NewRemoteBrokerEvaluator("https://127.0.0.1:54321", "test-token-123456")
+	evaluator := NewRemoteBrokerEvaluator("https://127.0.0.1:54321", "test-sandbox-token-1234567890-abcdef")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
@@ -152,7 +249,7 @@ func TestRemoteBrokerEvaluator_AuthenticationFailure(t *testing.T) {
 	defer server.Close()
 
 	// 1. Wrong token
-	badEvaluator := newTestRemoteBrokerEvaluator(t, server, "wrong-token-value-here")
+	badEvaluator := newTestRemoteBrokerEvaluator(t, server, "wrong-token-value-here-32-bytes-long")
 	ctx := context.Background()
 
 	err := badEvaluator.CheckAvailable(ctx)
@@ -198,7 +295,7 @@ func TestRemoteBrokerEvaluator_TimeoutPropagation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	evaluator := newTestRemoteBrokerEvaluator(t, server, "valid-token-1234567890")
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "valid-token-1234567890-abcdef-ghij")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
@@ -265,7 +362,7 @@ func TestRemoteBrokerEvaluator_SuccessfulEvaluation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	evaluator := newTestRemoteBrokerEvaluator(t, server, "auth-token-1234567890")
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "auth-token-1234567890-abcdef-ghij")
 
 	res, err := evaluator.EvaluateCandidate(context.Background(), EvaluationRequest{
 		WorkspaceID:   testBrokerWorkspaceID,
@@ -308,7 +405,7 @@ func TestRemoteBrokerEvaluator_DecodesEvaluationErrorWithoutFailingTransport(t *
 	}))
 	defer server.Close()
 
-	evaluator := newTestRemoteBrokerEvaluator(t, server, "auth-token-1234567890")
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "auth-token-1234567890-abcdef-ghij")
 	result, err := evaluator.EvaluateCandidate(context.Background(), EvaluationRequest{
 		WorkspaceID: testBrokerWorkspaceID,
 		FilePath:    "main.go",
@@ -340,7 +437,7 @@ func TestNewEvaluator_Resolution(t *testing.T) {
 
 	// 2. Set: returns *RemoteBrokerEvaluator
 	t.Setenv("SANDBOX_SERVICE_URL", "https://sandbox-broker:8082")
-	t.Setenv("SANDBOX_SERVICE_TOKEN", "super-secret-token")
+	t.Setenv("SANDBOX_SERVICE_TOKEN", "super-secret-token-with-32-bytes-abcdef")
 	eval2 := NewEvaluator(DockerEvaluatorConfig{})
 	remoteEval, ok := eval2.(*RemoteBrokerEvaluator)
 	if !ok {
@@ -349,8 +446,8 @@ func TestNewEvaluator_Resolution(t *testing.T) {
 	if remoteEval.brokerURL != "https://sandbox-broker:8082" {
 		t.Fatalf("expected brokerURL 'https://sandbox-broker:8082', got %q", remoteEval.brokerURL)
 	}
-	if remoteEval.token != "super-secret-token" {
-		t.Fatalf("expected token 'super-secret-token', got %q", remoteEval.token)
+	if remoteEval.token != "super-secret-token-with-32-bytes-abcdef" {
+		t.Fatalf("expected configured sandbox token, got %q", remoteEval.token)
 	}
 }
 
@@ -432,7 +529,7 @@ func TestRemoteBrokerEvaluator_PrepareWorkspace(t *testing.T) {
 			http.NotFound(w, r)
 			return
 		}
-		if r.Header.Get("X-Sandbox-Token") != "workspace-token-1234567890" {
+		if r.Header.Get("X-Sandbox-Token") != "workspace-token-1234567890-abcdef-ghij" {
 			http.Error(w, "missing token", http.StatusUnauthorized)
 			return
 		}
@@ -463,7 +560,7 @@ func TestRemoteBrokerEvaluator_PrepareWorkspace(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repo, "main.go"), []byte("package main"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	evaluator := newTestRemoteBrokerEvaluator(t, server, "workspace-token-1234567890")
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "workspace-token-1234567890-abcdef-ghij")
 	workspaceID, err := evaluator.PrepareWorkspace(context.Background(), repo)
 	if err != nil {
 		t.Fatalf("PrepareWorkspace() error = %v", err)
@@ -478,8 +575,9 @@ func TestRemoteBrokerEvaluator_PrepareWorkspace(t *testing.T) {
 
 func TestRemoteBrokerEvaluator_CleanupWorkspace(t *testing.T) {
 	var deletedPath string
+	deleteCalls := 0
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("X-Sandbox-Token") != "workspace-token-1234567890" {
+		if r.Header.Get("X-Sandbox-Token") != "workspace-token-1234567890-abcdef-ghij" {
 			http.Error(w, "missing token", http.StatusUnauthorized)
 			return
 		}
@@ -488,13 +586,24 @@ func TestRemoteBrokerEvaluator_CleanupWorkspace(t *testing.T) {
 			return
 		}
 		deletedPath = r.URL.Path
-		w.WriteHeader(http.StatusNoContent)
+		deleteCalls++
+		if deleteCalls == 1 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		http.NotFound(w, r)
 	}))
 	defer server.Close()
 
-	evaluator := newTestRemoteBrokerEvaluator(t, server, "workspace-token-1234567890")
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "workspace-token-1234567890-abcdef-ghij")
 	if err := evaluator.CleanupWorkspace(context.Background(), testBrokerWorkspaceID); err != nil {
 		t.Fatalf("CleanupWorkspace() error = %v", err)
+	}
+	if err := evaluator.CleanupWorkspace(context.Background(), testBrokerWorkspaceID); err != nil {
+		t.Fatalf("retrying CleanupWorkspace() after deletion should be safe: %v", err)
+	}
+	if deleteCalls != 2 {
+		t.Fatalf("cleanup requests = %d, want 2", deleteCalls)
 	}
 	if deletedPath != "/v1/workspaces/"+testBrokerWorkspaceID {
 		t.Fatalf("deleted path = %q", deletedPath)
@@ -502,17 +611,17 @@ func TestRemoteBrokerEvaluator_CleanupWorkspace(t *testing.T) {
 }
 
 func TestRemoteBrokerEvaluator_RequiresHTTPS(t *testing.T) {
-	evaluator := NewRemoteBrokerEvaluator("http://sandbox-broker:8082", "workspace-token-1234567890")
+	evaluator := NewRemoteBrokerEvaluator("http://sandbox-broker:8082", "workspace-token-1234567890-abcdef-ghij")
 	if err := evaluator.CheckAvailable(context.Background()); err == nil {
 		t.Fatal("CheckAvailable() accepted a plaintext broker URL")
 	}
 }
 
 func TestRemoteBrokerEvaluator_RequiresTLS12OrNewer(t *testing.T) {
-	client, err := newRemoteBrokerHTTPClient()
-	if err != nil {
-		t.Fatal(err)
-	}
+	server := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	defer server.Close()
+	evaluator := newTestRemoteBrokerEvaluator(t, server, "workspace-token-1234567890-abcdef-ghij")
+	client := evaluator.httpClient
 	defer client.CloseIdleConnections()
 	transport, ok := client.Transport.(*http.Transport)
 	if !ok {

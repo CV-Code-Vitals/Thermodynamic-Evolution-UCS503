@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -26,6 +27,30 @@ func TestVerifyArchiveBearer_AcceptsValidToken(t *testing.T) {
 
 	if !VerifyArchiveBearer(token, testSigningKey, testNow) {
 		t.Fatal("expected a valid, unexpired token to be accepted")
+	}
+}
+
+func TestVerifyArchiveBearer_AcceptsVersionedToken(t *testing.T) {
+	token := makeVersionedTestToken(t, testSigningKey, testNow.Add(-time.Minute), testNow.Add(time.Minute))
+
+	if !VerifyArchiveBearer(token, testSigningKey, testNow) {
+		t.Fatal("expected a valid versioned token to be accepted")
+	}
+}
+
+func TestVerifyArchiveBearer_RejectsVersionedTokenIssuedInFuture(t *testing.T) {
+	token := makeVersionedTestToken(t, testSigningKey, testNow.Add(time.Second), testNow.Add(time.Minute))
+
+	if VerifyArchiveBearer(token, testSigningKey, testNow) {
+		t.Fatal("expected a future-issued versioned token to be rejected")
+	}
+}
+
+func TestVerifyArchiveBearer_RejectsVersionedTokenWithInvalidTimes(t *testing.T) {
+	token := makeVersionedTestToken(t, testSigningKey, testNow.Add(-time.Minute), testNow.Add(-2*time.Minute))
+
+	if VerifyArchiveBearer(token, testSigningKey, testNow) {
+		t.Fatal("expected a versioned token expiring before issuance to be rejected")
 	}
 }
 
@@ -83,13 +108,14 @@ func TestAuthorizerHandler_ReturnsInternalTokenOnlyForValidBearer(t *testing.T) 
 	handler := NewAuthorizerHandler(secrets, func() time.Time { return testNow })
 
 	response, err := handler(context.Background(), AuthorizerRequest{
-		Headers: map[string]string{"authorization": "Bearer " + bearer},
+		Headers:   map[string]string{"authorization": "Bearer " + bearer},
+		MethodArn: testMethodARN,
 	})
 	if err != nil {
 		t.Fatalf("handler returned an error: %v", err)
 	}
-	if !response.IsAuthorized {
-		t.Fatal("expected valid bearer token to authorize")
+	if len(response.PolicyDocument.Statement) != 1 || response.PolicyDocument.Statement[0].Effect != "Allow" {
+		t.Fatalf("expected valid bearer token to receive an Allow policy, got %#v", response.PolicyDocument)
 	}
 	if len(response.Context) != 1 || response.Context["analysisApiToken"] != internalToken {
 		t.Fatalf("expected only the internal API token in context, got %#v", response.Context)
@@ -110,6 +136,36 @@ func TestAuthorizerHandler_ReturnsInternalTokenOnlyForValidBearer(t *testing.T) 
 	}
 }
 
+func TestAuthorizerDoesNotLogBearerOrContextSecrets(t *testing.T) {
+	bearer := makeTestToken(t, testSigningKey, testNow.Add(time.Minute))
+	const internalToken = "internal-token-must-not-appear-in-logs"
+	var output strings.Builder
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&output, nil)))
+	defer slog.SetDefault(previousLogger)
+
+	store := &fakeSecretStore{values: map[string]string{
+		tokenHMACKeyParameter:     testSigningKey,
+		analysisAPITokenParameter: internalToken,
+	}}
+	handler := NewAuthorizerHandler(store, func() time.Time { return testNow })
+	response, err := handler(context.Background(), AuthorizerRequest{
+		Headers:   map[string]string{"Authorization": "Bearer " + bearer},
+		MethodArn: testMethodARN,
+	})
+	if err != nil {
+		t.Fatalf("handler returned an error: %v", err)
+	}
+	if response.Context["analysisApiToken"] != internalToken {
+		t.Fatal("expected the integration token to be returned only in authorizer context")
+	}
+	for _, sensitiveValue := range []string{bearer, internalToken, testSigningKey, "Authorization"} {
+		if strings.Contains(output.String(), sensitiveValue) {
+			t.Fatalf("authorizer logs exposed %q: %s", sensitiveValue, output.String())
+		}
+	}
+}
+
 func TestAuthorizerHandler_RejectsInvalidBearerWithoutReadingInternalToken(t *testing.T) {
 	secrets := &fakeSecretStore{
 		values: map[string]string{
@@ -120,12 +176,14 @@ func TestAuthorizerHandler_RejectsInvalidBearerWithoutReadingInternalToken(t *te
 	handler := NewAuthorizerHandler(secrets, func() time.Time { return testNow })
 
 	response, err := handler(context.Background(), AuthorizerRequest{
-		Headers: map[string]string{"Authorization": "Bearer invalid"},
+		MethodArn: testMethodARN,
+		Headers:   map[string]string{"Authorization": "Bearer invalid"},
 	})
 	if err != nil {
 		t.Fatalf("handler returned an error: %v", err)
 	}
-	if response.IsAuthorized || len(response.Context) != 0 {
+	if len(response.PolicyDocument.Statement) != 1 ||
+		response.PolicyDocument.Statement[0].Effect != "Deny" || len(response.Context) != 0 {
 		t.Fatalf("expected unauthenticated response without context, got %#v", response)
 	}
 	if len(secrets.requested) != 1 || secrets.requested[0] != tokenHMACKeyParameter {
@@ -142,11 +200,13 @@ func TestAuthorizerHandler_RejectsAmbiguousAuthorizationHeaders(t *testing.T) {
 			"Authorization": "",
 			"authorization": "Bearer " + makeTestToken(t, testSigningKey, testNow.Add(time.Minute)),
 		},
+		MethodArn: testMethodARN,
 	})
 	if err != nil {
 		t.Fatalf("handler returned an error: %v", err)
 	}
-	if response.IsAuthorized || len(secrets.requested) != 0 {
+	if len(response.PolicyDocument.Statement) != 1 ||
+		response.PolicyDocument.Statement[0].Effect != "Deny" || len(secrets.requested) != 0 {
 		t.Fatalf("expected ambiguous headers to be rejected before secret reads, got response %#v and reads %#v", response, secrets.requested)
 	}
 }
@@ -156,7 +216,8 @@ func TestAuthorizerHandler_PropagatesSecretStoreErrors(t *testing.T) {
 	handler := NewAuthorizerHandler(secrets, func() time.Time { return testNow })
 
 	_, err := handler(context.Background(), AuthorizerRequest{
-		Headers: map[string]string{"Authorization": "Bearer " + makeTestToken(t, testSigningKey, testNow.Add(time.Minute))},
+		Headers:   map[string]string{"Authorization": "Bearer " + makeTestToken(t, testSigningKey, testNow.Add(time.Minute))},
+		MethodArn: testMethodARN,
 	})
 	if err == nil || !strings.Contains(err.Error(), "parameter store unavailable") {
 		t.Fatalf("expected parameter-store failure to be surfaced, got %v", err)
@@ -263,6 +324,24 @@ func makeTestToken(t *testing.T, signingKey string, expiresAt time.Time) string 
 	mac := hmac.New(sha256.New, []byte(signingKey))
 	if _, err := mac.Write(payload); err != nil {
 		t.Fatalf("write HMAC payload: %v", err)
+	}
+
+	return base64.RawURLEncoding.EncodeToString(payload) + "." +
+		base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func makeVersionedTestToken(t *testing.T, signingKey string, issuedAt, expiresAt time.Time) string {
+	t.Helper()
+
+	payload := make([]byte, 49)
+	payload[0] = 1
+	binary.BigEndian.PutUint64(payload[1:9], uint64(issuedAt.UnixNano()))
+	binary.BigEndian.PutUint64(payload[9:17], uint64(expiresAt.UnixNano()))
+	copy(payload[17:], strings.Repeat("n", len(payload)-17))
+
+	mac := hmac.New(sha256.New, []byte(signingKey))
+	if _, err := mac.Write(payload); err != nil {
+		t.Fatalf("write HMAC: %v", err)
 	}
 	return base64.RawURLEncoding.EncodeToString(payload) + "." +
 		base64.RawURLEncoding.EncodeToString(mac.Sum(nil))

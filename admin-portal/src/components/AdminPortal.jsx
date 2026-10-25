@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
-  Shield, Lock, UploadCloud, File, CheckCircle, Trash2,
+  Shield, Lock, UploadCloud, File, CheckCircle, Trash2, Activity,
   Terminal, Loader2, Database, Download
 } from 'lucide-react';
 import './AdminPortal.css';
 import { fetchArchiveDownload } from '../archive-download';
-import { createArchiveApi } from '../archive-api';
+import { createArchiveApi, getSessionRefreshDelay } from '../archive-api';
+import EvolutionLive from './EvolutionLive.jsx';
 
 const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 const archiveApi = createArchiveApi(apiBase);
@@ -27,11 +28,14 @@ const AdminPortal = () => {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [token, setToken] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [expiresInMs, setExpiresInMs] = useState(0);
+  const [canRefresh, setCanRefresh] = useState(true);
   const isAuthenticated = Boolean(token);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // ── Active view: dashboard, upload, archive, or deferred evolution ───────
+  // ── Active view: dashboard, upload, archive, or evolution ────────────────
   const [activeView, setActiveView] = useState('upload');
 
   // ── Dropzone / file state ─────────────────────────────────────────────────
@@ -77,6 +81,9 @@ const AdminPortal = () => {
     try {
       const result = await archiveApi.login(password);
       setToken(result.token);
+      setExpiresAt(result.expiresAt);
+      setExpiresInMs(result.expiresInMs);
+      setCanRefresh(true);
       setPassword('');
       setActiveView('upload');
     } catch (error) {
@@ -84,8 +91,11 @@ const AdminPortal = () => {
     }
   };
 
-  const handleLogout = () => {
+  const clearAdminSession = useCallback((message = '') => {
     setToken('');
+    setExpiresAt('');
+    setExpiresInMs(0);
+    setCanRefresh(true);
     setPassword('');
     setDeliverables([]);
     setSelectedFile(null);
@@ -94,7 +104,48 @@ const AdminPortal = () => {
     setPendingUploadUnavailable(false);
     setLastDeliverable(null);
     setActiveView('upload');
-  };
+    setAuthError(message);
+  }, []);
+
+  const handleLogout = () => clearAdminSession('');
+
+  useEffect(() => {
+    if (!token || !expiresAt) return undefined;
+
+    const expiration = Date.parse(expiresAt);
+    if (!Number.isFinite(expiration)) {
+      clearAdminSession('SESSION EXPIRED. PLEASE SIGN IN AGAIN.');
+      return undefined;
+    }
+
+    let active = true;
+    const expireSession = () => {
+      if (!active) return;
+      clearAdminSession('SESSION EXPIRED. PLEASE SIGN IN AGAIN.');
+    };
+
+    const timeout = setTimeout(async () => {
+      if (!canRefresh) {
+        expireSession();
+        return;
+      }
+      try {
+        const refreshed = await archiveApi.refresh(token);
+        if (!active) return;
+        if (Date.parse(refreshed.expiresAt) <= expiration) setCanRefresh(false);
+        setToken(refreshed.token);
+        setExpiresAt(refreshed.expiresAt);
+        setExpiresInMs(refreshed.expiresInMs);
+      } catch {
+        expireSession();
+      }
+    }, getSessionRefreshDelay(expiresInMs, canRefresh));
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [token, expiresAt, expiresInMs, canRefresh, clearAdminSession]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // Dropzone
@@ -416,7 +467,7 @@ const AdminPortal = () => {
             className={`tab-btn ${activeView === 'evolve' ? 'active' : ''}`}
             onClick={() => setActiveView('evolve')}
           >
-            <Database size={14} /> EVOLUTION (UNAVAILABLE)
+            <Activity size={14} /> EVOLUTION
           </button>
         </div>
 
@@ -652,10 +703,7 @@ const AdminPortal = () => {
         {/* EVOLUTION VIEW                                                */}
         {/* ══════════════════════════════════════════════════════════════ */}
         {activeView === 'evolve' && (
-          <div className="dashboard-container">
-            <h2>Evolution is not available in this release.</h2>
-            <p>The archive supports secure PDF and PowerPoint storage only.</p>
-          </div>
+          <EvolutionLive token={token} onBack={() => setActiveView('dashboard')} />
         )}
 
       </div>

@@ -40,6 +40,7 @@ jobs:
         working-directory: ./admin-portal
         env:
           VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+          VITE_ANALYSIS_API_BASE: ${{ vars.UCS503_ANALYSIS_API_BASE }}
         run: |
           npm run build
 
@@ -50,6 +51,29 @@ jobs:
           cp -R assets graph-visualizer _site/
           cp -R admin-portal/dist/. _site/admin-portal/
           touch _site/.nojekyll
+
+      - name: Configure public Graph Visualizer API
+        working-directory: .
+        env:
+          UCS503_ANALYSIS_API_BASE: ${{ vars.UCS503_ANALYSIS_API_BASE }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFile } from 'node:fs/promises';
+
+          const configuredBase = process.env.UCS503_ANALYSIS_API_BASE;
+          if (!configuredBase) {
+            throw new Error('Set the public UCS503_ANALYSIS_API_BASE repository variable before deploying Pages.');
+          }
+          const apiURL = new URL(configuredBase);
+          if (apiURL.protocol !== 'https:' || apiURL.username || apiURL.password || apiURL.search || apiURL.hash) {
+            throw new Error('UCS503_ANALYSIS_API_BASE must be a public HTTPS API base URL without credentials, query, or fragment.');
+          }
+          const publicBase = apiURL.toString().replace(/\/+$/, '');
+          await writeFile(
+            '_site/graph-visualizer/config.js',
+            `window.UCS503_ANALYSIS_API_BASE = ${JSON.stringify(publicBase)};\n`,
+          );
+          NODE
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
