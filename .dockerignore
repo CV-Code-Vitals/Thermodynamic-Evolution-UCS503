@@ -3,3 +3,12 @@
 !go-backend/**
 !thermodynamic-ast-engine/
 !thermodynamic-ast-engine/**
+go-backend/uploads
+go-backend/sandboxes
+go-backend/backend_server
+go-backend/thermo-api
+go-backend/*.exe
+go-backend/*.log
+thermodynamic-ast-engine/target
+**/.env*
+**/*.md

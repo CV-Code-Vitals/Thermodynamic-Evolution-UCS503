@@ -1,0 +1,5 @@
+{$API_DOMAIN} {
+	reverse_proxy ucs503-api:8080 {
+		flush_interval -1
+	}
+}

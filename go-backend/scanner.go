@@ -17,11 +17,12 @@ import (
 )
 
 type ScanRepoRequest struct {
-	RepoURL string `json:"repo_url"`
+	RepoURL         string `json:"repo_url"`
+	RetainWorkspace bool   `json:"retain_workspace"`
 }
 
 // scanRepoHandler handles POST /scan and POST /api/scan for live repository analysis.
-func scanRepoHandler(enginePath string, engineTimeout time.Duration) gin.HandlerFunc {
+func scanRepoHandler(enginePath string, engineTimeout time.Duration, workspaces *workspaceStore) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req ScanRepoRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -58,19 +59,31 @@ func scanRepoHandler(enginePath string, engineTimeout time.Duration) gin.Handler
 			})
 			return
 		}
+		if req.RetainWorkspace && (parsed.Scheme != "https" || parsed.Host != "github.com" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "") {
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid_repository", Detail: "Evolution scans require a public HTTPS GitHub repository URL."})
+			return
+		}
 
 		// Create temp directory for cloning
 		uploadsDir := "./uploads"
 		_ = os.MkdirAll(uploadsDir, 0o750)
 		targetDir := filepath.Join(uploadsDir, fmt.Sprintf("clone_%d_%s", time.Now().UnixMilli(), uuid.New().String()[:8]))
-
-		// Deferred cleanup of the cloned repository
+		workspaceID := ""
+		expiresAt := time.Now().Add(workspaceLifetime).UTC()
+		success := false
+		if req.RetainWorkspace {
+			workspaceID, targetDir, err = workspaces.create()
+			if err != nil {
+				c.JSON(http.StatusServiceUnavailable, ErrorResponse{Error: "workspace_unavailable", Detail: err.Error()})
+				return
+			}
+		}
 		defer func() {
-			go func() {
-				time.Sleep(1 * time.Second)
+			if workspaceID != "" {
+				workspaces.finishScan(workspaceID, success)
+			} else {
 				_ = os.RemoveAll(targetDir)
-				log.Printf("[INFO] Cleaned up cloned repo at %s", targetDir)
-			}()
+			}
 		}()
 
 		// Clone with shallow depth to save bandwidth and time
@@ -118,6 +131,30 @@ func scanRepoHandler(enginePath string, engineTimeout time.Duration) gin.Handler
 		log.Printf("[SCAN] Completed for %s: %d files, %d hotspots, entropy %.2f",
 			repoURL, report.FilesAnalyzed, report.TotalHotspots, report.GlobalEntropy)
 
-		c.JSON(http.StatusOK, report)
+		if workspaceID == "" {
+			c.JSON(http.StatusOK, report)
+			return
+		}
+		targets := make([]evolutionTarget, 0)
+		for _, file := range report.FileReports {
+			filePath := file.FilePath
+			if filepath.IsAbs(filePath) {
+				filePath, err = filepath.Rel(targetDir, filePath)
+				if err != nil {
+					continue
+				}
+			}
+			for _, hotspot := range file.Hotspots {
+				target, err := readWorkspaceTarget(targetDir, filePath, hotspot.FunctionName, hotspot.ByteRange[0])
+				if err != nil {
+					continue
+				}
+				target.BaseEnergy = hotspot.EntropyScore
+				targets = append(targets, *target)
+			}
+		}
+		success = true
+		c.JSON(http.StatusOK, gin.H{"report": report, "workspace_id": workspaceID, "targets": targets,
+			"expires_at": expiresAt})
 	}
 }

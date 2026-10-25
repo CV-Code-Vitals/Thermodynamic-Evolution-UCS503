@@ -172,7 +172,7 @@ func newLocalDependencies(passkey, signingKey, archivePath, uploadRoot string) (
 	}, nil
 }
 
-func newLambdaDependencies(ctx context.Context) (Dependencies, error) {
+func newAWSDependencies(ctx context.Context) (Dependencies, error) {
 	values, err := readLambdaConfig(os.Getenv)
 	if err != nil {
 		return Dependencies{}, err
@@ -201,7 +201,7 @@ func newLambdaDependencies(ctx context.Context) (Dependencies, error) {
 func startLambda() {
 	ctx, cancel := context.WithTimeout(context.Background(), startupTimeout)
 	defer cancel()
-	deps, err := newLambdaDependencies(ctx)
+	deps, err := newAWSDependencies(ctx)
 	if err != nil {
 		slog.Error("Lambda startup failed", "error_type", fmt.Sprintf("%T", err))
 		os.Exit(1)

@@ -23,6 +23,14 @@
   gap: 12px;
 }
 
+.evolution-downloads {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+
 .evolution-dashboard {
   display: grid;
   grid-template-columns: 1fr 2fr;
@@ -31,6 +39,7 @@
 }
 
 .panel {
+  min-width: 0;
   background: var(--bg-card, #18181b);
   border: 1px solid var(--border-color, #27272a);
   border-radius: 8px;
@@ -105,6 +114,8 @@
 }
 
 .code-pane pre {
+  max-height: 420px;
+  tab-size: 2;
   margin: 0;
   padding: 12px;
   overflow-x: auto;
@@ -194,4 +205,12 @@
 }
 .abort-button:hover {
   background: rgba(239, 68, 68, 0.2);
+}
+
+@media (max-width: 720px) {
+  .evolution-header, .diff-split { flex-direction: column; }
+  .evolution-controls { flex-wrap: wrap; }
+  .evolution-dashboard { grid-template-columns: 1fr; }
+  .diff-arrow { justify-content: center; transform: rotate(90deg); }
+  .code-pane { min-width: 0; }
 }

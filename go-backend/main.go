@@ -667,7 +667,8 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	r.POST("/analyze", tokenMiddleware(analysisToken), analyzeH)
 
 	// Live Git repository scanner (for Graph Visualizer)
-	scanH := scanRepoHandler(enginePath, engineTimeout)
+	workspaces := newWorkspaceStore()
+	scanH := scanRepoHandler(enginePath, engineTimeout, workspaces)
 	r.POST("/api/scan", tokenMiddleware(analysisToken), scanH)
 	r.POST("/scan", tokenMiddleware(analysisToken), scanH)
 
@@ -677,8 +678,9 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	r.POST("/audit", tokenMiddleware(analysisToken), auditH)
 
 	// Simulated Annealing endpoint
-	r.POST("/api/evolve", tokenMiddleware(analysisToken), evolveHandler())
-	r.POST("/evolve", tokenMiddleware(analysisToken), evolveHandler())
+	evolveH := evolveHandler(workspaces)
+	r.POST("/api/evolve", tokenMiddleware(analysisToken), evolveH)
+	r.POST("/evolve", tokenMiddleware(analysisToken), evolveH)
 
 	// Deliverables & Admin Portal endpoints (backed by PostgreSQL / JSON storage)
 	if deliverableStore != nil {

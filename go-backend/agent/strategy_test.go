@@ -181,6 +181,37 @@ func TestAdaptiveMutator_DeterministicSelection(t *testing.T) {
 	}
 }
 
+type selectionStrategy string
+
+func (s selectionStrategy) Name() string          { return string(s) }
+func (s selectionStrategy) CanMutate(string) bool { return true }
+func (s selectionStrategy) Mutate(_ context.Context, req MutationRequest) (*MutationProposal, error) {
+	return &MutationProposal{StrategyName: string(s), MutatedCode: req.CurrentCode + string(s)}, nil
+}
+
+func TestAdaptiveMutatorLearnsFromSuccessfulOutcomes(t *testing.T) {
+	mutator := NewAdaptiveMutator(nil, 42)
+	mutator.Strategies = []MutationStrategy{selectionStrategy("effective"), selectionStrategy("ineffective")}
+	effective := 0
+	for i := 0; i < 1000; i++ {
+		proposal, err := mutator.ProposeTargeted(context.Background(), MutationRequest{CurrentCode: "original"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if proposal.StrategyName == "effective" {
+			effective++
+			mutator.RecordOutcome(proposal.StrategyName, true, true)
+		}
+	}
+	if effective < 650 || effective == 1000 {
+		t.Fatalf("expected successful strategy to be favored while retaining exploration, selected %d/1000", effective)
+	}
+	stats := mutator.GetStrategyStats()["effective"]
+	if stats.ValidCandidates != effective || stats.Improvements != effective {
+		t.Fatalf("outcomes were not recorded accurately: %+v", stats)
+	}
+}
+
 // ── Test 6: Stale Mutation Proposal Rejection In Annealer ──────────────────────
 
 type staleMutator struct {
@@ -338,6 +369,9 @@ func TestAnnealer_TargetEnergyTermination(t *testing.T) {
 
 	if res.TerminationReason != "target_energy_reached" {
 		t.Errorf("expected termination_reason 'target_energy_reached', got '%s'", res.TerminationReason)
+	}
+	if res.TotalSteps != 1 {
+		t.Fatalf("expected one completed step before reaching target, got %d", res.TotalSteps)
 	}
 	if res.FinalEnergy > 15.0 {
 		t.Errorf("expected final energy <= 15.0, got %.2f", res.FinalEnergy)
@@ -1038,5 +1072,3 @@ func TestCIWorkflow_ThreeOutcomesSimulation(t *testing.T) {
 		t.Errorf("Outcome 4 (MISSING) was not rejected: passed=%v, code=%d", passed, code)
 	}
 }
-
-

@@ -5,7 +5,7 @@ FROM rust:alpine AS rust-builder
 WORKDIR /rust-app
 RUN apk add --no-cache musl-dev
 COPY thermodynamic-ast-engine/ ./
-RUN cargo build --release
+RUN cargo build --release --locked
 
 # -----------------------------------------------------------------------------
 # Stage 2: Build Go Backend
@@ -15,7 +15,8 @@ WORKDIR /go-app
 COPY go-backend/go.mod go-backend/go.sum ./
 RUN go mod download
 COPY go-backend/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o backend_server .
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build -o backend_server .
 
 # -----------------------------------------------------------------------------
 # Stage 3: Minimal Production Runtime

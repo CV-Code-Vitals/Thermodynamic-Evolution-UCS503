@@ -17,6 +17,7 @@ uploads/
 .env
 .env.*
 !.env.example
+!.env.ec2.example
 
 # OS generated files
 .DS_Store

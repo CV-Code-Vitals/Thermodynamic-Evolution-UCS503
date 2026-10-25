@@ -63,7 +63,7 @@ type UploadMetadata struct {
 type PresignedUpload struct {
 	UploadID  string            `json:"uploadId"`
 	URL       string            `json:"url"`
-	Fields    map[string]string `json:"fields"`
+	Fields    map[string]string `json:"fields,omitempty"`
 	ExpiresAt time.Time         `json:"expiresAt"`
 }
 

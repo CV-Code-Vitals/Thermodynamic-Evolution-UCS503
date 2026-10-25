@@ -40,7 +40,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           port: ${{ secrets.EC2_SSH_PORT || '22' }}
-          source: docker-compose.ec2.yml
+          source: docker-compose.ec2.yml,docker/Caddyfile
           target: ~/ucs503/
 
       - name: Deploy to EC2 via SSH
@@ -58,9 +58,11 @@ jobs:
           script: |
             set -e
             cd ~/ucs503
+            docker compose -f docker-compose.ec2.yml config --quiet
             printf '%s' "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
             docker compose -f docker-compose.ec2.yml pull
+            docker pull "ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${IMAGE_TAG}"
             docker compose -f docker-compose.ec2.yml up -d --remove-orphans
 
   deployment-not-configured:

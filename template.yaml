@@ -5,7 +5,7 @@ Description: Private Admin Portal archive API (API Gateway, Lambda, S3, and Dyna
 Parameters:
   FrontendOrigin:
     Type: String
-    Default: https://zylus08.github.io
+    Default: https://cv-code-vitals.github.io
     AllowedPattern: '^https://[A-Za-z0-9.-]+$'
     Description: Exact HTTPS origin of the GitHub Pages portal, with no path or trailing slash.
   AdminPasskeyParameterName:
