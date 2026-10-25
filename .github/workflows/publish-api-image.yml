@@ -10,6 +10,7 @@ on:
       - '.dockerignore'
       - 'docker-compose.ec2.yml'
       - 'docker-compose.verify.yml'
+      - '.env.ec2.example'
       - 'scripts/smoke-portal.mjs'
       - '.github/workflows/publish-api-image.yml'
   push:
@@ -23,6 +24,7 @@ on:
       - '.dockerignore'
       - 'docker-compose.ec2.yml'
       - 'docker-compose.verify.yml'
+      - '.env.ec2.example'
       - 'scripts/smoke-portal.mjs'
       - '.github/workflows/publish-api-image.yml'
 
@@ -52,7 +54,7 @@ jobs:
         with:
           context: ./api
           file: ./api/Dockerfile
-          push: ${{ github.event_name == 'push' }}
+          push: false
           load: true
           tags: |
             ghcr.io/cv-code-vitals/ucs503-api:latest
@@ -63,7 +65,7 @@ jobs:
         with:
           context: .
           file: ./go-backend/Dockerfile
-          push: ${{ github.event_name == 'push' }}
+          push: false
           load: true
           tags: |
             ghcr.io/cv-code-vitals/ucs503-analysis:latest
@@ -74,7 +76,7 @@ jobs:
         with:
           context: .
           file: ./docker/sandbox-runner/Dockerfile
-          push: ${{ github.event_name == 'push' }}
+          push: false
           load: true
           tags: |
             ghcr.io/cv-code-vitals/ucs503-sandbox-runner:latest
@@ -97,6 +99,16 @@ jobs:
           mkdir -p "$SANDBOX_HOST_DIR"
           docker compose -p ucs503-verification --env-file .env.ec2.example -f docker-compose.ec2.yml -f docker-compose.verify.yml up -d --wait ucs503-sandbox-broker ucs503-analysis ucs503-api
           node scripts/smoke-portal.mjs
+
+      - name: Publish verified images
+        if: github.event_name == 'push'
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          for image in ucs503-api ucs503-analysis ucs503-sandbox-runner; do
+            docker push "ghcr.io/cv-code-vitals/${image}:${IMAGE_TAG}"
+            docker push "ghcr.io/cv-code-vitals/${image}:latest"
+          done
 
       - name: Save container verification evidence
         if: always()
