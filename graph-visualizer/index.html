@@ -304,11 +304,11 @@
       <canvas id="graph-canvas"></canvas>
       <div id="timeline-bar">
         <button class="tl-play" id="tl-play">&#9654;</button>
-        <div class="phase-stepper" title="Adjust number of evolutionary phases">
-          <span class="phase-stepper-label">PHASES</span>
-          <button class="phase-stepper-btn" id="phase-dec" title="Decrease phase granularity">-</button>
+        <div class="phase-stepper" title="Adjust graph detail levels">
+          <span class="phase-stepper-label">LEVELS</span>
+          <button class="phase-stepper-btn" id="phase-dec" title="Decrease graph detail levels">-</button>
           <span class="phase-stepper-val" id="phase-count-display">5</span>
-          <button class="phase-stepper-btn" id="phase-inc" title="Increase phase granularity">+</button>
+          <button class="phase-stepper-btn" id="phase-inc" title="Increase graph detail levels">+</button>
         </div>
         <div class="as-track-wrap">
           <div class="as-track" id="as-track">
@@ -337,7 +337,7 @@
     <div id="sidebar">
       <div class="sb-section" id="sec-phase-card">
         <div class="sb-title" id="toggle-phase-sec" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;" title="Click to collapse / expand">
-          <span>Evolution Phase</span>
+          <span>Graph detail</span>
           <span class="sec-arrow" id="phase-arrow">&#9662;</span>
         </div>
         <div class="sec-body" id="phase-sec-body">
@@ -408,7 +408,7 @@ if (embeddedMode) {
     if (!report || !Array.isArray(report.file_reports)) return;
     REPORT = report;
     buildData();
-    syncPhase(0);
+    syncPhase(PHASES.length - 1);
     showToast(`Loaded ${report.files_analyzed || 0} scanned files`);
   });
 }
@@ -475,26 +475,28 @@ function buildData() {
   files.forEach(r => {
     const fn = r.file_path.split('/').pop();
     const n = {
-      id: 'f_' + fn, type: 'file', label: fn, fileShort: fn,
+      id: 'f_' + r.file_path, type: 'file', label: fn, fileShort: r.file_path,
       entropy: r.total_entropy, language: r.language,
       radius: nodeRadius(r.total_entropy, 'file'),
       x: 0, y: 0, vx: 0, vy: 0, targetX: 0, targetY: 0,
       opacity: 0, targetOpacity: 0, scale: 0, targetScale: 0,
       vulnType: null, description: null, lineNumber: null
     };
-    fileNodes[fn] = n;
+    fileNodes[r.file_path] = n;
     allNodesMap.set(n.id, n);
   });
 
   // Gather all hotspots
   const allHotspots = files.flatMap(r =>
-    (r.hotspots || []).map(h => ({ ...h, file_path: r.file_path, file_short: r.file_path.split('/').pop() }))
+    (r.hotspots || []).map(h => ({ ...h, file_path: r.file_path, file_short: r.file_path }))
   );
 
-  // De-duplicate hotspots by function name (take highest entropy)
+  const hotspotId = h => JSON.stringify([h.file_path, h.function_name, h.byte_range?.[0] ?? h.line_number ?? 0]);
+
+  // Preserve functions with the same name in different files or source locations.
   const uniqueFns = new Map();
   allHotspots.forEach(h => {
-    const key = h.function_name + '|' + h.file_short;
+    const key = hotspotId(h);
     if (!uniqueFns.has(key) || uniqueFns.get(key).entropy_score < h.entropy_score) {
       uniqueFns.set(key, h);
     }
@@ -503,7 +505,7 @@ function buildData() {
 
   // Create hotspot nodes
   dedupedHotspots.forEach(h => {
-    const id = 'h_' + h.function_name + '_' + h.file_short;
+    const id = 'h_' + hotspotId(h);
     if (!allNodesMap.has(id)) {
       allNodesMap.set(id, {
         id, type: 'hotspot', label: h.function_name, fileShort: h.file_short,
@@ -531,35 +533,16 @@ function buildData() {
   const maxPossiblePhases = Math.max(1, Math.min(12, totalEntities > 1 ? targetPhaseCount : 1));
   const numPhases = maxPossiblePhases;
 
-  // Curated titles for progressive thermodynamic evolution
-  const phaseThemes = [
-    { title: "Inception & Core Base", desc: "Foundational structure and core state" },
-    { title: "Internal State & Primitives", desc: "Data structures and synchronization elements" },
-    { title: "Subroutines & Logic", desc: "Internal computational and helper routines" },
-    { title: "Processing & Pipelines", desc: "Main transformation loops and data handlers" },
-    { title: "Concurrency & Workers", desc: "Goroutines, thread pools, and async dispatch" },
-    { title: "Network & I/O Channels", desc: "Network requests, file handlers, and socket I/O" },
-    { title: "Integration Services", desc: "Cross-module call graph linkages and coordinator services" },
-    { title: "Distributed Topology", desc: "High-scale message passing and distributed clusters" },
-    { title: "Thermodynamic Hotpaths", desc: "High-entropy algorithmic critical paths" },
-    { title: "Full Constellation", desc: "Complete architectural call graph and topology" }
-  ];
-
   PHASES = [];
   for (let i = 0; i < numPhases; i++) {
-    if (i === numPhases - 1) {
-      PHASES.push({
-        label: `Phase ${i + 1}: Complete Constellation`,
-        desc: `Full Architecture • All ${fileNames.length} files & ${dedupedHotspots.length} hotspots active`
-      });
-    } else {
-      const theme = phaseThemes[i] || { title: `Evolution Tier ${i + 1}`, desc: `Architectural expansion stage ${i + 1}` };
-      const pct = Math.round(((i + 1) / numPhases) * 100);
-      PHASES.push({
-        label: `Phase ${i + 1}: ${theme.title}`,
-        desc: `${theme.desc} • ${pct}% architecture unlocked`
-      });
-    }
+    const complete = i === numPhases - 1;
+    const pct = Math.round(((i + 1) / numPhases) * 100);
+    PHASES.push({
+      label: complete ? 'Complete repository scan' : `Graph detail ${i + 1} of ${numPhases}`,
+      desc: complete
+        ? `All ${fileNames.length} scanned files and ${dedupedHotspots.length} function nodes`
+        : `${pct}% of scan shown. Detail levels are visual filters, not repository history.`
+    });
   }
 
   // Update slider UI
@@ -610,7 +593,7 @@ function buildData() {
 
     // Add active hotspot nodes
     activeHotspots.forEach(h => {
-      const id = 'h_' + h.function_name + '_' + h.file_short;
+      const id = 'h_' + hotspotId(h);
       const n = allNodesMap.get(id);
       if (n) {
         pNodes.push(n);
@@ -622,11 +605,14 @@ function buildData() {
     const pNodeIds = new Set(pNodes.map(n => n.id));
     if (REPORT.call_graph && Array.isArray(REPORT.call_graph)) {
       REPORT.call_graph.forEach(c => {
-        const fn = c.file ? c.file.split('/').pop() : '';
-        const sId = 'h_' + c.caller + '_' + fn;
-        const tId = 'h_' + c.callee + '_' + fn;
-        if (pNodeIds.has(sId) && pNodeIds.has(tId)) {
-          pLinks.push({ sourceId: sId, targetId: tId, isCall: true });
+        const callers = activeHotspots.filter(h => h.function_name === c.caller && h.file_path === c.file);
+        const callees = activeHotspots.filter(h => h.function_name === c.callee && h.file_path === c.file);
+        if (callers.length === 1 && callees.length === 1) {
+          const sId = 'h_' + hotspotId(callers[0]);
+          const tId = 'h_' + hotspotId(callees[0]);
+          if (pNodeIds.has(sId) && pNodeIds.has(tId)) {
+            pLinks.push({ sourceId: sId, targetId: tId, isCall: true });
+          }
         }
       });
     }
@@ -1872,7 +1858,7 @@ if (phaseDecBtn) {
       if (phaseCountDisplay) phaseCountDisplay.textContent = targetPhaseCount;
       buildData();
       syncPhase(Math.min(currentPhase, PHASES.length - 1));
-      showToast(`Evolution divided into ${PHASES.length} phases`);
+      showToast(`Graph divided into ${PHASES.length} detail levels`);
     }
   };
 }
@@ -1883,7 +1869,7 @@ if (phaseIncBtn) {
       if (phaseCountDisplay) phaseCountDisplay.textContent = targetPhaseCount;
       buildData();
       syncPhase(Math.min(currentPhase, PHASES.length - 1));
-      showToast(`Evolution divided into ${PHASES.length} phases`);
+      showToast(`Graph divided into ${PHASES.length} detail levels`);
     }
   };
 }
