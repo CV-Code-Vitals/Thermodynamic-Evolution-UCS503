@@ -22,7 +22,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build -o backend_ser
 # Stage 3: Minimal Production Runtime
 # -----------------------------------------------------------------------------
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates git docker-cli
+RUN apk --no-cache add ca-certificates git docker-cli wget
 WORKDIR /app
 
 # Create unprivileged application user and group
