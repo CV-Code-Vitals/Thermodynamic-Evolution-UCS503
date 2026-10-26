@@ -13,8 +13,24 @@ on:
         type: boolean
         default: false
 
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy-analysis.yml'
+
 jobs:
+  registration:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Register the manual deployment workflow
+        run: echo "Workflow file updated; push events do not deploy."
+
   validate:
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
