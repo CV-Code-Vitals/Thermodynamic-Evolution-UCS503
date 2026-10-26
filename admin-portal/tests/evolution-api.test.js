@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readEvolutionStream } from '../src/evolution-api.js';
+import { readEvolutionStream, scanEvolutionRepository } from '../src/evolution-api.js';
 
 const streamResponse = (text) => new Response(new ReadableStream({
   start(controller) {
@@ -23,4 +23,13 @@ test('evolution reports HTTP, server event, malformed JSON, and truncated stream
   await assert.rejects(readEvolutionStream(streamResponse('event: step\ndata: {bad}\n\n'), () => {}), SyntaxError);
   await assert.rejects(readEvolutionStream(streamResponse('event: step\ndata: {"step":1}\n\n'), () => {}), /ended before completion/);
   await assert.rejects(readEvolutionStream(new Response('{}'), () => {}), /did not return an event stream/);
+});
+
+test('scan and evolution explain when the analysis service is offline', async (t) => {
+  const unavailable = () => Response.json({ error: 'analysis_unavailable' }, { status: 503 });
+  const message = 'The analysis service is unavailable. Ask the administrator to start it, then retry.';
+  t.mock.method(globalThis, 'fetch', async () => unavailable());
+  await assert.rejects(scanEvolutionRepository('/api', 'test-token', 'https://github.com/example/repo'), { message });
+  await assert.rejects(readEvolutionStream(unavailable(), () => {}), { message });
+  await assert.rejects(readEvolutionStream(streamResponse('event: error\ndata: {"error":"analysis_unavailable"}\n\n'), () => {}), { message });
 });

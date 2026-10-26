@@ -1,7 +1,11 @@
+const analysisErrorMessage = (payload, fallback) => payload.error === 'analysis_unavailable'
+  ? 'The analysis service is unavailable. Ask the administrator to start it, then retry.'
+  : payload.detail || payload.error || fallback;
+
 export const readEvolutionStream = async (response, onEvent) => {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || error.error || `Evolution failed (${response.status}).`);
+    throw new Error(analysisErrorMessage(error, `Evolution failed (${response.status}).`));
   }
   if (!response.headers.get('content-type')?.includes('text/event-stream') || !response.body) {
     throw new Error('The analysis service did not return an event stream.');
@@ -17,7 +21,7 @@ export const readEvolutionStream = async (response, onEvent) => {
     if (line === '') {
       if (data.length) {
         const payload = JSON.parse(data.join('\n'));
-        if (eventName === 'error') throw new Error(payload.error || 'Evolution failed.');
+        if (eventName === 'error') throw new Error(analysisErrorMessage(payload, 'Evolution failed.'));
         onEvent(eventName, payload);
         if (eventName === 'complete') terminal = true;
       }
@@ -56,7 +60,7 @@ export const scanEvolutionRepository = async (apiBase, token, repoURL, signal) =
   });
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.detail || payload.error || 'Repository scan failed.');
+    throw new Error(analysisErrorMessage(payload, 'Repository scan failed.'));
   }
   if (!payload.workspace_id || !Array.isArray(payload.targets)) {
     throw new Error('The analysis service did not return a usable workspace.');
