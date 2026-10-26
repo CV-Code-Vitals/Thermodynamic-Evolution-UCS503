@@ -1000,6 +1000,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           NetworkInterfaceId: !Ref SandboxPrivateNetworkInterface
+          DeleteOnTermination: false
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
@@ -1040,6 +1041,7 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           NetworkInterfaceId: !Ref AnalysisPrivateNetworkInterface
+          DeleteOnTermination: false
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:

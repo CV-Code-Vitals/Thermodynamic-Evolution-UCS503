@@ -52,6 +52,16 @@ test('creates two private instances with split roles', () => {
   }
 });
 
+test('preserves pre-created instance network interfaces on termination', () => {
+  for (const name of ['SandboxInstance', 'AnalysisInstance']) {
+    assert.match(
+      resource(name),
+      /NetworkInterfaces:\s*\r?\n\s+- DeviceIndex: '0'\s*\r?\n\s+NetworkInterfaceId: !Ref [A-Za-z]+PrivateNetworkInterface\s*\r?\n\s+DeleteOnTermination: false/,
+      `${name} must preserve its pre-created network interface when terminated`,
+    );
+  }
+});
+
 test('assigns distinct /64 IPv6 CIDRs after the Amazon-provided VPC block is associated', () => {
   assert.match(resource('AnalysisVpcIpv6'), /AmazonProvidedIpv6CidrBlock: true/);
   for (const name of ['AnalysisSubnet', 'SandboxSubnet']) {

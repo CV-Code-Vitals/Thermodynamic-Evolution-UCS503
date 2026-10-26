@@ -8,3 +8,9 @@ resolve_s3 = true
 s3_prefix = "ucs503-analysis-v1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
+profile = "default"
+parameter_overrides = "ResourcePrefix=\"ucs503-analysis-v1\" AnalysisAmiId=\"ami-0c9d8315a30aa942b\" SandboxAmiId=\"ami-09b33cd336d3206fa\" AnalysisInstanceType=\"t3.small\" SandboxInstanceType=\"t3.small\" AnalysisRootVolumeSizeGiB=\"30\" SandboxRootVolumeSizeGiB=\"20\" AnalysisDataVolumeSizeGiB=\"100\" AnalysisVpcCidr=\"10.80.0.0/16\" AnalysisSubnetCidr=\"10.80.1.0/24\" SandboxSubnetCidr=\"10.80.2.0/24\" AnalysisPrivateIp=\"10.80.1.10\" SandboxPrivateIp=\"10.80.2.10\" ApiStageName=\"v1\" FrontendOrigin=\"https://zylus08.github.io\" ApiTokenParameterName=\"/ucs503/analysis/api-token\" SigningKeyParameterName=\"/ucs503/admin/token-hmac-key\" SandboxTokenParameterName=\"/ucs503/analysis/sandbox-service-token\" SandboxTlsCertificateParameterName=\"/ucs503/analysis/sandbox-tls-cert\" SandboxTlsPrivateKeyParameterName=\"/ucs503/analysis/sandbox-tls-key\" SandboxCaParameterName=\"/ucs503/analysis/sandbox-ca\" S3ManagedPrefixListId=\"pl-REPLACE_WITH_S3_PREFIX_LIST_ID\" DynamoDbManagedPrefixListId=\"pl-REPLACE_WITH_DYNAMODB_PREFIX_LIST_ID\" SsmSessionLogRetentionDays=\"365\""
+image_repositories = []
+
+[default.global.parameters]
+region = "ap-south-1"
