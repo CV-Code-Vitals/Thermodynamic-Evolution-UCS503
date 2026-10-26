@@ -61,6 +61,7 @@ func DefaultResourceLimits() ResourceLimits {
 // EvaluationRequest contains the code and context needed to test a mutation safely.
 type EvaluationRequest struct {
 	RepoPath      string         `json:"repo_path"`
+	WorkspaceID   string         `json:"workspace_id,omitempty"`
 	FilePath      string         `json:"file_path"`
 	OriginalBytes []byte         `json:"original_bytes,omitempty"`
 	MutatedCode   string         `json:"mutated_code"`
@@ -85,6 +86,17 @@ type CandidateEvaluator interface {
 	CheckAvailable(ctx context.Context) error
 }
 
+type RemoteWorkspaceEvaluator interface {
+	CandidateEvaluator
+	PrepareWorkspace(ctx context.Context, repoPath string) (string, error)
+	CleanupWorkspace(ctx context.Context, workspaceID string) error
+}
+
+const (
+	MaxBrokerEvaluationRequestBytes  = 44 << 20
+	MaxBrokerEvaluationResponseBytes = 24 << 20
+)
+
 // DockerEvaluatorConfig holds settings for the Docker sandbox evaluator.
 type DockerEvaluatorConfig struct {
 	Image          string
@@ -95,10 +107,10 @@ type DockerEvaluatorConfig struct {
 
 // DockerEvaluator implements CandidateEvaluator using an ephemeral, unprivileged Docker container.
 type DockerEvaluator struct {
-	image          string
-	dockerBinary   string
-	limits         ResourceLimits
-	runnerChecker  func(ctx context.Context) error
+	image         string
+	dockerBinary  string
+	limits        ResourceLimits
+	runnerChecker func(ctx context.Context) error
 }
 
 // NewDockerEvaluator constructs a DockerEvaluator with sensible defaults.
@@ -447,21 +459,10 @@ func copyProjectFiles(srcDir, destDir string) error {
 			return nil
 		}
 
-		base := info.Name()
-
-		// Skip hidden directories and VCS
 		if info.IsDir() {
-			if strings.HasPrefix(base, ".") || base == "uploads" || base == "node_modules" || base == "target" {
+			if shouldSkipProjectDirectory(info.Name()) {
 				return filepath.SkipDir
 			}
-			return nil
-		}
-
-		// Skip hidden files, environment files, credentials, and executables
-		if strings.HasPrefix(base, ".") || strings.HasPrefix(base, ".env") ||
-			strings.HasSuffix(base, ".exe") || strings.HasSuffix(base, ".bin") ||
-			strings.HasSuffix(base, ".dll") || strings.HasSuffix(base, ".so") ||
-			strings.HasSuffix(base, ".zip") {
 			return nil
 		}
 
@@ -470,10 +471,7 @@ func copyProjectFiles(srcDir, destDir string) error {
 			return nil
 		}
 
-		// Only copy Go source files, module definitions, and text fixtures
-		ext := strings.ToLower(filepath.Ext(base))
-		isGoSource := ext == ".go" || ext == ".mod" || ext == ".sum" || ext == ".json" || ext == ".txt" || ext == ".yaml" || ext == ".yml"
-		if !isGoSource {
+		if !shouldCopyProjectFile(info) {
 			return nil
 		}
 

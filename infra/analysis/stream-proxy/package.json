@@ -1,0 +1,13 @@
+{
+  "name": "ucs503-analysis-stream-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-lambda": "^3.0.0",
+    "@aws-sdk/client-ssm": "^3.0.0"
+  }
+}

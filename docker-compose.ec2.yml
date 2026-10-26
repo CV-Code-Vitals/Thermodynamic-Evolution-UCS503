@@ -1,3 +1,5 @@
+# LEGACY: manual-only; do not use for the split EC2 deployment.
+# This single-host file retains obsolete API/RDS and shared-volume assumptions.
 services:
   ucs503-api:
     image: ghcr.io/cv-code-vitals/ucs503-api:${IMAGE_TAG:-latest}

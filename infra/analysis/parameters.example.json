@@ -1,0 +1,15 @@
+{
+  "ResourcePrefix": "ucs503-analysis-v1",
+  "AnalysisAmiId": "ami-REPLACE_WITH_APPROVED_ANALYSIS_AMI",
+  "SandboxAmiId": "ami-REPLACE_WITH_APPROVED_SANDBOX_AMI",
+  "AnalysisInstanceType": "t3.small",
+  "SandboxInstanceType": "t3.small",
+  "AnalysisDataVolumeSizeGiB": "100",
+  "AnalysisVpcCidr": "10.80.0.0/16",
+  "AnalysisSubnetCidr": "10.80.1.0/24",
+  "SandboxSubnetCidr": "10.80.2.0/24",
+  "AnalysisPrivateIp": "10.80.1.10",
+  "SandboxPrivateIp": "10.80.2.10",
+  "S3ManagedPrefixListId": "REPLACE_WITH_REGION_SPECIFIC_S3_PREFIX_LIST_ID",
+  "DynamoDbManagedPrefixListId": "REPLACE_WITH_REGION_SPECIFIC_DYNAMODB_PREFIX_LIST_ID"
+}

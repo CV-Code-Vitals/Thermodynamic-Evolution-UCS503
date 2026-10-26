@@ -1,0 +1,33 @@
+services:
+  ucs503-analysis:
+    image: ghcr.io/cv-code-vitals/ucs503-analysis:${IMAGE_TAG:?Set IMAGE_TAG to a commit SHA}
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      ANALYSIS_API_TOKEN: ${ANALYSIS_API_TOKEN:?Load ANALYSIS_API_TOKEN from SSM}
+      ENGINE_PATH: /app/thermodynamic-ast-engine
+      ENGINE_TIMEOUT_SEC: ${ENGINE_TIMEOUT_SEC:-300}
+      GIN_MODE: release
+      MAX_UPLOAD_MB: ${MAX_UPLOAD_MB:-50}
+      PORT: "8080"
+      SOURCE_BUCKET: ${SOURCE_BUCKET:?Set the private staged-source bucket}
+      SANDBOX_SERVICE_URL: ${SANDBOX_SERVICE_URL:?Set the private HTTPS broker URL}
+      SANDBOX_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Load SANDBOX_SERVICE_TOKEN from SSM}
+      SANDBOX_TLS_CA_FILE: /run/ucs503-tls/sandbox-ca.crt
+      SANDBOX_INSTANCE_ID: ${SANDBOX_INSTANCE_ID:?Set the configured private sandbox instance ID}
+      SANDBOX_LIFECYCLE_TABLE: ${SANDBOX_LIFECYCLE_TABLE:-sandbox-lifecycle}
+      SANDBOX_READY_TIMEOUT_SECONDS: ${SANDBOX_READY_TIMEOUT_SECONDS:-180}
+    volumes:
+      - ${ANALYSIS_UPLOADS_HOST_DIR:-/var/lib/ucs503-analysis/uploads}:/app/uploads
+      - ${SANDBOX_TLS_CA_SOURCE:?Mount the broker CA certificate from the host}:/run/ucs503-tls/sandbox-ca.crt:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

@@ -2,16 +2,20 @@ package main
 
 import (
 	"context"
-	"crypto/subtle"
+	"crypto/tls"
 	"log"
+	"math"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/saksham/self-healing-pipeline/agent"
 )
+
+const minSandboxServiceTokenBytes = 32
 
 // runSandboxBroker starts the dedicated, hardened sandbox execution daemon.
 // This daemon is the ONLY process on the host with Docker access.
@@ -21,98 +25,45 @@ func runSandboxBroker() {
 	if token == "" {
 		log.Fatal("[FATAL] SANDBOX_SERVICE_TOKEN must be configured to run sandbox broker")
 	}
-	if len(token) < 16 {
-		log.Fatal("[FATAL] SANDBOX_SERVICE_TOKEN must be at least 16 characters for security")
+	if len(token) < minSandboxServiceTokenBytes {
+		log.Fatalf("[FATAL] SANDBOX_SERVICE_TOKEN must be at least %d bytes for security", minSandboxServiceTokenBytes)
 	}
 
 	port := envOr("PORT", "8082")
-	runnerImage := os.Getenv("SANDBOX_RUNNER_IMAGE")
+	certFile := strings.TrimSpace(os.Getenv("SANDBOX_TLS_CERT_FILE"))
+	keyFile := strings.TrimSpace(os.Getenv("SANDBOX_TLS_KEY_FILE"))
+	if certFile == "" || keyFile == "" {
+		log.Fatal("[FATAL] SANDBOX_TLS_CERT_FILE and SANDBOX_TLS_KEY_FILE must be configured")
+	}
 
-	evaluator := agent.NewDockerEvaluator(agent.DockerEvaluatorConfig{
-		Image: runnerImage,
-	})
-
+	evaluator := agent.NewDockerEvaluator(agent.DockerEvaluatorConfig{Image: os.Getenv("SANDBOX_RUNNER_IMAGE")})
+	workspaceRoot := envOr("SANDBOX_BROKER_WORKSPACE_DIR", filepath.Join(os.TempDir(), "ucs503-sandbox-workspaces"))
+	workspaces, err := newBrokerWorkspaceManager(workspaceRoot, 30*time.Minute)
+	if err != nil {
+		log.Fatalf("[FATAL] initialize sandbox workspaces: %v", err)
+	}
 	limiter := NewEvolutionAdmissionControllerFromEnv()
 
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+	handler := newSandboxBrokerHandler(token, evaluator, workspaces, limiter)
+	cleanupCtx, stopCleanup := context.WithCancel(context.Background())
+	defer stopCleanup()
+	go workspaces.RunCleanup(cleanupCtx, time.Minute)
 
-	r := gin.New()
-	r.Use(gin.Recovery())
-
-	// Broker token authentication middleware (allows loopback probes or valid X-Sandbox-Token)
-	authMiddleware := func(c *gin.Context) {
-		provided := c.GetHeader("X-Sandbox-Token")
-		if len(provided) != len(token) || subtle.ConstantTimeCompare([]byte(provided), []byte(token)) != 1 {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "unauthorized: invalid or missing X-Sandbox-Token header",
-			})
-			return
-		}
-		c.Next()
+	server := &http.Server{
+		Addr:              ":" + port,
+		Handler:           handler,
+		TLSConfig:         &tls.Config{MinVersion: tls.VersionTLS12},
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       2 * time.Minute,
+		WriteTimeout:      2 * time.Minute,
+		IdleTimeout:       time.Minute,
+		MaxHeaderBytes:    1 << 20,
 	}
-
-	// Health check endpoint (allows token or internal loopback health probes)
-	r.GET("/health", func(c *gin.Context) {
-		clientIP := c.ClientIP()
-		isLoopback := clientIP == "127.0.0.1" || clientIP == "::1"
-		provided := c.GetHeader("X-Sandbox-Token")
-		hasValidToken := len(provided) == len(token) && subtle.ConstantTimeCompare([]byte(provided), []byte(token)) == 1
-
-		if !isLoopback && !hasValidToken {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": "unauthorized: invalid or missing X-Sandbox-Token header",
-			})
-			return
-		}
-
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-		defer cancel()
-
-		if err := evaluator.CheckAvailable(ctx); err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"status": "unavailable",
-				"error":  err.Error(),
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status": "ok",
-			"runner": runnerImage,
-		})
-	})
-
-	// Execution endpoint (evaluates untrusted candidate inside hardened sandbox)
-	r.POST("/v1/evaluate", authMiddleware, func(c *gin.Context) {
-		var req agent.EvaluationRequest
-		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid evaluation request body"})
-			return
-		}
-
-		// Enforce server-side resource bounds (defense-in-depth against client override)
-		req.Limits = clampLimits(req.Limits)
-
-		// Enforce admission control
-		release, err := limiter.Acquire(c.Request.Context())
-		if err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"error": "Sandbox execution engine at maximum capacity",
-				"code":  "server_busy",
-			})
-			return
-		}
-		defer release()
-
-		res, _ := evaluator.EvaluateCandidate(c.Request.Context(), req)
-		c.JSON(http.StatusOK, res)
-	})
-
-	addr := ":" + port
-	log.Printf("[INFO] UCS503 Sandbox Broker listening on %s (isolated Docker execution daemon)", addr)
-	if err := r.Run(addr); err != nil {
+	log.Printf("[INFO] UCS503 Sandbox Broker listening on %s with TLS", server.Addr)
+	if err := server.ListenAndServeTLS(certFile, keyFile); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("[FATAL] Sandbox Broker failed: %v", err)
 	}
 }
@@ -134,7 +85,7 @@ func clampLimits(limits agent.ResourceLimits) agent.ResourceLimits {
 	if limits.MaxMemoryMB <= 0 || limits.MaxMemoryMB > maxAllowedMemoryMB {
 		limits.MaxMemoryMB = def.MaxMemoryMB
 	}
-	if limits.MaxCPUs <= 0 || limits.MaxCPUs > maxAllowedCPUs {
+	if math.IsNaN(limits.MaxCPUs) || math.IsInf(limits.MaxCPUs, 0) || limits.MaxCPUs <= 0 || limits.MaxCPUs > maxAllowedCPUs {
 		limits.MaxCPUs = def.MaxCPUs
 	}
 	if limits.MaxPids <= 0 || limits.MaxPids > maxAllowedPids {
