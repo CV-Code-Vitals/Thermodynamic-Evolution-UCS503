@@ -17,7 +17,8 @@ const deploymentReadme = await read('README_DEPLOY.md');
 const analysisCompose = await read('docker-compose.analysis.yml');
 
 test('publishes immutable SHA image tags', () => {
-  assert.match(publishWorkflow, /on:\s*\n\s+push:/);
+  assert.match(publishWorkflow, /on:\s*\n\s+workflow_dispatch:\s*\n\s+push:/);
+  assert.match(publishWorkflow, /push:\s*\n\s+branches:\s*\n\s+- main/);
   assert.match(publishWorkflow, /docker\/setup-buildx-action@v3/);
   assert.match(publishWorkflow, /docker\/login-action@v3/);
   assert.match(publishWorkflow, /docker\/build-push-action@v6/);
