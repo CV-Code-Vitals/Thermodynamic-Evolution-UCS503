@@ -72,7 +72,18 @@ test('uses a current setup-go action in the Go CI workflow', () => {
 
 test('gates AWS upload and deploy behind manual opt-in and approval', () => {
   assert.match(deployWorkflow, /workflow_dispatch:/);
-  assert.doesNotMatch(deployWorkflow, /^\s+push:/m);
+  assert.match(
+    deployWorkflow,
+    /push:\s*\n\s+branches:\s*\n\s+- main\s*\n\s+paths:\s*\n\s+- '\.github\/workflows\/deploy-analysis\.yml'/,
+  );
+  assert.match(
+    deployWorkflow,
+    /registration:\s*\n\s+if:\s*\$\{\{\s*github\.event_name == 'push'\s*\}\}/,
+  );
+  assert.match(
+    deployWorkflow,
+    /validate:\s*\n\s+if:\s*\$\{\{\s*github\.event_name == 'workflow_dispatch'\s*\}\}/,
+  );
   assert.match(
     deployWorkflow,
     /enable_deployment:[\s\S]*?type:\s*boolean[\s\S]*?default:\s*false/,
