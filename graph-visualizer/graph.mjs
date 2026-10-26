@@ -83,7 +83,7 @@ function draw() {
     if (node.type === 'folder') { ctx.fillText('Select to open folder', node.x + 13, node.y + 57); }
     else if (node.type === 'file') {
       ctx.fillStyle = color(node);
-      ctx.fillText(`${node.file.language} · ${node.file.hotspots.length} functions · ${node.file.lines_scanned} lines`, node.x + 13, node.y + 57);
+      ctx.fillText(`${node.file.language} · ${node.file.hotspots.length} functions · ${node.file.lines_scanned} code lines`, node.x + 13, node.y + 57);
     }
     ctx.restore();
   }
@@ -112,7 +112,7 @@ function details(node) {
   element('p', file.path, panel);
   const mode = file.analysis_mode === 'text' ? 'Text inventory: language and line count. Function metrics are not available for this language yet.'
     : file.parse_errors ? 'Partial AST analysis: the parser found syntax errors. Some functions may be missing.' : 'Function analysis';
-  element('p', `${file.language} · ${file.lines_scanned} lines`, panel, 'badge');
+  element('p', `${file.language} · ${file.lines_scanned} code lines`, panel, 'badge');
   element('p', mode, panel);
   if (node.type === 'function') {
     const metrics = node.fn.metrics || {};
