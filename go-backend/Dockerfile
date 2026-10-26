@@ -16,7 +16,7 @@ COPY go-backend/go.mod go-backend/go.sum ./
 RUN go mod download
 COPY go-backend/ ./
 ARG TARGETARCH
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build -o backend_server .
+RUN --mount=type=cache,target=/root/.cache/go-build GOMEMLIMIT=1GiB CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build -p 1 -o backend_server .
 
 # -----------------------------------------------------------------------------
 # Stage 3: Minimal Production Runtime
