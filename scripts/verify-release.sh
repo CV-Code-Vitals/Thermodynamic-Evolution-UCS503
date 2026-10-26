@@ -5,6 +5,10 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 docker info >/dev/null
 (cd "$ROOT_DIR/thermodynamic-ast-engine" && cargo test --locked && cargo build --release --locked)
 docker build -t ucs503-sandbox-runner:latest -f "$ROOT_DIR/docker/sandbox-runner/Dockerfile" "$ROOT_DIR"
+(cd "$ROOT_DIR/analysis-authorizer" && go test ./... && go vet ./... && go build -o /dev/null .)
+(cd "$ROOT_DIR/source-stager" && go test ./... && go vet ./... && go build -o /dev/null .)
+(cd "$ROOT_DIR/infra/analysis/stream-proxy" && npm ci && npm test)
+(cd "$ROOT_DIR" && node --test scripts/compose-config.test.mjs tests/*.test.mjs)
 (cd "$ROOT_DIR/api" && go test ./... && go vet ./... && go build -o /dev/null .)
 export ENGINE_PATH="$ROOT_DIR/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine"
 export SANDBOX_RUNNER_IMAGE=ucs503-sandbox-runner:latest

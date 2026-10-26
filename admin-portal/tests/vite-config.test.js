@@ -49,3 +49,16 @@ test('local static build accepts the same-origin API proxy explicitly', () => {
   const config = configureProduction('/api', true);
   assert.equal(config.base, './');
 });
+
+test('production validates the optional separate analysis gateway', () => {
+  const original = process.env.VITE_ANALYSIS_API_BASE;
+  try {
+    process.env.VITE_ANALYSIS_API_BASE = 'http://analysis.example';
+    assert.throws(() => configureProduction('https://archive.example/api'), /VITE_ANALYSIS_API_BASE/);
+    process.env.VITE_ANALYSIS_API_BASE = 'https://analysis.example/prod';
+    assert.equal(configureProduction('https://archive.example/api').base, './');
+  } finally {
+    if (original === undefined) delete process.env.VITE_ANALYSIS_API_BASE;
+    else process.env.VITE_ANALYSIS_API_BASE = original;
+  }
+});

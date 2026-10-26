@@ -40,6 +40,7 @@ jobs:
         working-directory: ./admin-portal
         env:
           VITE_API_BASE: ${{ vars.VITE_API_BASE }}
+          VITE_ANALYSIS_API_BASE: ${{ vars.UCS503_ANALYSIS_API_BASE }}
         run: |
           npm run build
 

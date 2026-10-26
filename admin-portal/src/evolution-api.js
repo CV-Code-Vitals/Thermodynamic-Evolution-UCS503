@@ -51,8 +51,8 @@ export const readEvolutionStream = async (response, onEvent) => {
   }
 };
 
-export const scanEvolutionRepository = async (apiBase, token, repoURL, signal) => {
-  const response = await fetch(`${apiBase}/analysis/scan`, {
+export const scanEvolutionRepository = async (apiBase, token, repoURL, signal, analysisApiBase = '') => {
+  const response = await fetch(analysisApiBase ? `${analysisApiBase}/api/scan` : `${apiBase}/analysis/scan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({ repo_url: repoURL, retain_workspace: true }),

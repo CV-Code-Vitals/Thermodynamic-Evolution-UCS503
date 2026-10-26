@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"sync"
@@ -108,4 +109,78 @@ func (c *EvolutionAdmissionController) CurrentLoad() int {
 
 func (c *EvolutionAdmissionController) Capacity() int {
 	return c.capacity
+}
+
+var (
+	ErrPublicScanRateLimited  = errors.New("public scan rate limit exceeded")
+	ErrPublicScanBusy         = errors.New("public scan capacity is full")
+	ErrInvalidTrustedClientIP = errors.New("trusted client IP is invalid")
+)
+
+const maxTrackedPublicScanClients = 10_000
+
+type PublicScanController struct {
+	mu            sync.Mutex
+	lastRequest   map[string]time.Time
+	active        int
+	maxConcurrent int
+	rateInterval  time.Duration
+}
+
+func NewPublicScanController(rateInterval time.Duration, maxConcurrent int) *PublicScanController {
+	if rateInterval <= 0 {
+		rateInterval = time.Minute
+	}
+	if maxConcurrent <= 0 {
+		maxConcurrent = 1
+	}
+	return &PublicScanController{
+		lastRequest:   make(map[string]time.Time),
+		maxConcurrent: maxConcurrent,
+		rateInterval:  rateInterval,
+	}
+}
+
+func (c *PublicScanController) Acquire(ctx context.Context, clientIP string) (func(), error) {
+	if ctx == nil {
+		return nil, errors.New("public scan request context is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrLimiterCancelled, err)
+	}
+	if net.ParseIP(clientIP) == nil {
+		return nil, ErrInvalidTrustedClientIP
+	}
+
+	now := time.Now()
+	c.mu.Lock()
+	for ip, last := range c.lastRequest {
+		if now.Sub(last) >= c.rateInterval {
+			delete(c.lastRequest, ip)
+		}
+	}
+	if last, ok := c.lastRequest[clientIP]; ok && now.Sub(last) < c.rateInterval {
+		c.mu.Unlock()
+		return nil, ErrPublicScanRateLimited
+	}
+	if c.active >= c.maxConcurrent {
+		c.mu.Unlock()
+		return nil, ErrPublicScanBusy
+	}
+	if len(c.lastRequest) >= maxTrackedPublicScanClients {
+		c.mu.Unlock()
+		return nil, ErrPublicScanRateLimited
+	}
+	c.lastRequest[clientIP] = now
+	c.active++
+	c.mu.Unlock()
+
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			c.mu.Lock()
+			c.active--
+			c.mu.Unlock()
+		})
+	}, nil
 }

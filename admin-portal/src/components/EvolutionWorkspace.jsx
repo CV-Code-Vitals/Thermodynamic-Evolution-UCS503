@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import EvolutionLive from './EvolutionLive';
 import { scanEvolutionRepository } from '../evolution-api';
 
-export default function EvolutionWorkspace({ apiBase, token, initialScan = null, onScanComplete = () => {} }) {
+export default function EvolutionWorkspace({ apiBase, analysisApiBase = '', token, initialScan = null, onScanComplete = () => {} }) {
   const [repoURL, setRepoURL] = useState(initialScan?.repo_url || '');
   const [scan, setScan] = useState(initialScan);
   const [targetIndex, setTargetIndex] = useState('0');
@@ -22,7 +22,7 @@ export default function EvolutionWorkspace({ apiBase, token, initialScan = null,
     onScanComplete(null);
     setTargetIndex('0');
     try {
-      const result = await scanEvolutionRepository(apiBase, token, repoURL.trim(), abortRef.current.signal);
+      const result = await scanEvolutionRepository(apiBase, token, repoURL.trim(), abortRef.current.signal, analysisApiBase);
       setScan(result);
       onScanComplete(result);
     } catch (scanError) {
@@ -36,7 +36,7 @@ export default function EvolutionWorkspace({ apiBase, token, initialScan = null,
   };
 
   if (target) {
-    return <EvolutionLive apiBase={apiBase} token={token} initialData={target}
+    return <EvolutionLive apiBase={apiBase} analysisApiBase={analysisApiBase} token={token} initialData={target}
       onBack={() => setTarget(null)} />;
   }
   return (
@@ -56,7 +56,7 @@ export default function EvolutionWorkspace({ apiBase, token, initialScan = null,
       {error && <p className="error-text" role="alert">{error}</p>}
       {scan && (
         <div className="input-group">
-          <p>Analyzed {scan.report.files_analyzed} files. The scanned copy expires at {new Date(scan.expires_at).toLocaleTimeString()}.</p>
+          <p>Analyzed {scan.report.files_analyzed} files. {scan.expires_at ? `The scanned copy expires at ${new Date(scan.expires_at).toLocaleTimeString()}.` : 'Source fingerprints are checked again before optimization.'}</p>
           {scan.targets.length ? (
             <>
               <label className="input-label" htmlFor="evolution-function">Go function</label>

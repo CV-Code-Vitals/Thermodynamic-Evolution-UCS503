@@ -121,6 +121,9 @@ Resources:
                     kms:EncryptionContext:PARAMETER_ARN:
                       - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AdminPasskeyParameterName}
                       - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${TokenHMACKeyParameterName}
+                  ForAnyValue:StringEquals:
+                    kms:ResourceAliases:
+                      - alias/aws/ssm
 
   ArchiveBucket:
     Type: AWS::S3::Bucket

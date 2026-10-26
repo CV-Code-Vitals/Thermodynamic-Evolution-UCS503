@@ -33,8 +33,20 @@ function graphVisualizerPlugin() {
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_')
   const apiBase = process.env.VITE_API_BASE || env.VITE_API_BASE || ''
+  const analysisApiBase = process.env.VITE_ANALYSIS_API_BASE || env.VITE_ANALYSIS_API_BASE || ''
 
   if (mode === 'production') {
+    if (analysisApiBase) {
+      let analysisURL
+      try {
+        analysisURL = new URL(analysisApiBase)
+      } catch {
+        throw new Error('VITE_ANALYSIS_API_BASE must be an absolute HTTPS URL.')
+      }
+      if (analysisURL.protocol !== 'https:' || analysisURL.username || analysisURL.password || analysisURL.search || analysisURL.hash) {
+        throw new Error('VITE_ANALYSIS_API_BASE must be an absolute HTTPS URL without credentials, query, or fragment.')
+      }
+    }
     if (!apiBase) {
       throw new Error('VITE_API_BASE must be set to the deployed backend HTTPS URL before building for production.')
     }

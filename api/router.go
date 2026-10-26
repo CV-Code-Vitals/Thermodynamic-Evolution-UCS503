@@ -267,12 +267,17 @@ func newRouter(deps Dependencies) http.Handler {
 				writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 				return
 			}
+			expiresInMs := expiresAt.Sub(time.Now().UTC()).Milliseconds()
+			if expiresInMs < 0 {
+				expiresInMs = 0
+			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"status":    "authenticated",
-				"token":     token,
-				"expiresAt": expiresAt,
+				"status":      "authenticated",
+				"token":       token,
+				"expiresAt":   expiresAt,
+				"expiresInMs": expiresInMs,
 			})
 			return
 		}
@@ -314,6 +319,48 @@ func newRouter(deps Dependencies) http.Handler {
 	}
 	mux.HandleFunc("/login", loginHandler)
 	mux.HandleFunc("/api/login", loginHandler)
+	mux.HandleFunc("/api/refresh", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.Header().Set("Allow", http.MethodPost)
+			writeJSONError(w, http.StatusMethodNotAllowed, "method_not_allowed")
+			return
+		}
+		if !requireTrustedOrigin(w, r) {
+			return
+		}
+		body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1))
+		if err != nil || len(body) != 0 {
+			writeJSONError(w, http.StatusBadRequest, "invalid_request")
+			return
+		}
+
+		renewalAuth, ok := deps.Auth.(TokenRenewer)
+		authorization := r.Header.Values("Authorization")
+		if !ok || len(authorization) != 1 || !strings.HasPrefix(authorization[0], "Bearer ") {
+			writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		token := strings.TrimPrefix(authorization[0], "Bearer ")
+		if token == "" || strings.TrimSpace(token) != token || strings.ContainsAny(token, " \t\r\n") {
+			writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+
+		now := time.Now().UTC()
+		newToken, expiresAt, err := renewalAuth.Renew(token, now)
+		if err != nil {
+			writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"status":      "authenticated",
+			"token":       newToken,
+			"expiresAt":   expiresAt,
+			"expiresInMs": expiresAt.Sub(now).Milliseconds(),
+		})
+	})
 
 	if deps.Archives != nil {
 		registerArchiveServiceRoutes(mux, deps)

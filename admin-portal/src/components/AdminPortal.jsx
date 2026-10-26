@@ -7,12 +7,13 @@ import {
 } from 'lucide-react';
 import './AdminPortal.css';
 import { fetchArchiveDownload } from '../archive-download';
-import { createArchiveApi } from '../archive-api';
+import { createArchiveApi, getSessionRefreshDelay } from '../archive-api';
 import EvolutionWorkspace from './EvolutionWorkspace';
 import GraphVisualizer from './GraphVisualizer';
 
 const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 const archiveApi = createArchiveApi(apiBase);
+const analysisApiBase = (import.meta.env.VITE_ANALYSIS_API_BASE || '').replace(/\/+$/, '');
 const acceptedContentTypes = {
   '.pdf': 'application/pdf',
   '.ppt': 'application/vnd.ms-powerpoint',
@@ -30,6 +31,9 @@ const AdminPortal = () => {
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   const [token, setToken] = useState('');
+  const [expiresAt, setExpiresAt] = useState('');
+  const [expiresInMs, setExpiresInMs] = useState(0);
+  const [canRefresh, setCanRefresh] = useState(true);
   const isAuthenticated = Boolean(token);
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -91,14 +95,21 @@ const AdminPortal = () => {
     try {
       const result = await archiveApi.login(password);
       setToken(result.token);
+      setExpiresAt(result.expiresAt);
+      setExpiresInMs(result.expiresInMs);
+      setCanRefresh(true);
       setPassword('');
     } catch (error) {
       setAuthError(error.message || 'AUTHENTICATION SERVICE UNAVAILABLE. PLEASE TRY AGAIN.');
     }
   };
 
-  const handleLogout = () => {
+  const clearAdminSession = useCallback((message = '') => {
     setToken('');
+    setExpiresAt('');
+    setExpiresInMs(0);
+    setCanRefresh(true);
+    setAuthError(message);
     setPassword('');
     setDeliverables([]);
     setSelectedFile(null);
@@ -108,7 +119,48 @@ const AdminPortal = () => {
     setLastDeliverable(null);
     setLatestScan(null);
     setActiveView('dashboard');
-  };
+  }, [setActiveView]);
+
+  const handleLogout = () => clearAdminSession('');
+
+  useEffect(() => {
+    if (!token || !expiresAt) return undefined;
+
+    const expiration = Date.parse(expiresAt);
+    if (!Number.isFinite(expiration)) {
+      clearAdminSession('SESSION EXPIRED. PLEASE SIGN IN AGAIN.');
+      return undefined;
+    }
+
+    let active = true;
+    const expireSession = () => {
+      if (!active) return;
+      clearAdminSession('SESSION EXPIRED. PLEASE SIGN IN AGAIN.');
+    };
+
+    const timeout = setTimeout(async () => {
+      if (!canRefresh) {
+        expireSession();
+        return;
+      }
+      try {
+        const refreshed = await archiveApi.refresh(token);
+        if (!active) return;
+        if (Date.parse(refreshed.expiresAt) <= expiration) setCanRefresh(false);
+        setToken(refreshed.token);
+        setExpiresAt(refreshed.expiresAt);
+        setExpiresInMs(refreshed.expiresInMs);
+      } catch {
+        expireSession();
+      }
+    }, getSessionRefreshDelay(expiresInMs, canRefresh));
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [token, expiresAt, expiresInMs, canRefresh, clearAdminSession]);
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // Dropzone
@@ -692,7 +744,7 @@ const AdminPortal = () => {
         {/* EVOLUTION VIEW                                                */}
         {/* ══════════════════════════════════════════════════════════════ */}
         <section hidden={activeView !== 'evolve'}>
-          <EvolutionWorkspace apiBase={apiBase} token={token} initialScan={latestScan} onScanComplete={setLatestScan} />
+          <EvolutionWorkspace apiBase={apiBase} analysisApiBase={analysisApiBase} token={token} initialScan={latestScan} onScanComplete={setLatestScan} />
         </section>
 
         {activeView === 'graph' && (

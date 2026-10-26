@@ -1,3 +1,5 @@
+# LEGACY: manual-only; do not use for the split EC2 deployment.
+# This single-host file retains obsolete API/RDS and shared-volume assumptions.
 services:
   https:
     image: caddy:2-alpine
@@ -57,7 +59,8 @@ services:
       ENGINE_PATH: /app/thermodynamic-ast-engine
       GIN_MODE: release
       PORT: "8080"
-      SANDBOX_SERVICE_URL: http://ucs503-sandbox-broker:8082
+      SANDBOX_SERVICE_URL: https://ucs503-sandbox-broker:8082
+      SANDBOX_TLS_CA_FILE: /run/ucs503-tls/broker.crt
       SANDBOX_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Set SANDBOX_SERVICE_TOKEN in .env}
       EVOLVE_MAX_CONCURRENCY: ${EVOLVE_MAX_CONCURRENCY:-1}
     ports:
@@ -69,6 +72,7 @@ services:
         max-file: "3"
     volumes:
       - analysis_uploads:/app/uploads
+      - ${SANDBOX_TLS_DIR:?Set the broker TLS directory}:/run/ucs503-tls:ro
     networks:
       - public_net
       - sandbox_internal
@@ -91,6 +95,9 @@ services:
       SANDBOX_SERVICE_MODE: "true"
       SANDBOX_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Set SANDBOX_SERVICE_TOKEN in .env}
       SANDBOX_RUNNER_IMAGE: ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${IMAGE_TAG:?Set the tested commit SHA}
+      SANDBOX_TLS_CERT_FILE: /run/ucs503-tls/broker.crt
+      SANDBOX_TLS_KEY_FILE: /run/ucs503-tls/broker.key
+      SANDBOX_BROKER_WORKSPACE_DIR: ${SANDBOX_HOST_DIR:?Set an absolute host directory}/broker
       SANDBOX_WORKSPACE_DIR: ${SANDBOX_HOST_DIR:?Set an absolute host directory for sandbox workspaces}
       EVOLVE_MAX_CONCURRENCY: ${EVOLVE_MAX_CONCURRENCY:-1}
       PORT: "8082"
@@ -99,7 +106,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${SANDBOX_HOST_DIR:?Set an absolute host directory}:${SANDBOX_HOST_DIR:?Set an absolute host directory}
-      - analysis_uploads:/app/uploads:ro
+      - ${SANDBOX_TLS_DIR:?Set the broker TLS directory}:/run/ucs503-tls:ro
     networks:
       - sandbox_internal
     logging:
@@ -108,7 +115,7 @@ services:
         max-size: "50m"
         max-file: "3"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8082/health || exit 1"]
+      test: ["CMD-SHELL", "wget --ca-certificate=/run/ucs503-tls/broker.crt -qO- https://localhost:8082/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3

@@ -12,6 +12,7 @@ on:
       - 'docker-compose.verify.yml'
       - '.env.ec2.example'
       - 'scripts/smoke-portal.mjs'
+      - 'scripts/create-verification-tls.sh'
       - '.github/workflows/publish-api-image.yml'
   push:
     branches:
@@ -26,6 +27,7 @@ on:
       - 'docker-compose.verify.yml'
       - '.env.ec2.example'
       - 'scripts/smoke-portal.mjs'
+      - 'scripts/create-verification-tls.sh'
       - '.github/workflows/publish-api-image.yml'
 
 jobs:
@@ -57,7 +59,6 @@ jobs:
           push: false
           load: true
           tags: |
-            ghcr.io/cv-code-vitals/ucs503-api:latest
             ghcr.io/cv-code-vitals/ucs503-api:${{ github.sha }}
 
       - name: Build and push analysis backend image
@@ -68,7 +69,6 @@ jobs:
           push: false
           load: true
           tags: |
-            ghcr.io/cv-code-vitals/ucs503-analysis:latest
             ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}
 
       - name: Build and push sandbox runner image
@@ -79,7 +79,6 @@ jobs:
           push: false
           load: true
           tags: |
-            ghcr.io/cv-code-vitals/ucs503-sandbox-runner:latest
             ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${{ github.sha }}
 
       - uses: actions/setup-node@v4
@@ -90,6 +89,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
           SANDBOX_HOST_DIR: ${{ runner.temp }}/ucs503-sandboxes
+          SANDBOX_TLS_DIR: ${{ runner.temp }}/ucs503-tls
           PORTAL_TEST_PASSKEY: ci-disposable-verification-passkey
           PORTAL_PASSKEY: ci-disposable-verification-passkey
           PORTAL_API_BASE: http://127.0.0.1:18080/api
@@ -97,6 +97,7 @@ jobs:
           SMOKE_OUTPUT_DIR: ${{ runner.temp }}/evolution-proof
         run: |
           mkdir -p "$SANDBOX_HOST_DIR"
+          bash scripts/create-verification-tls.sh "$SANDBOX_TLS_DIR"
           docker compose -p ucs503-verification --env-file .env.ec2.example -f docker-compose.ec2.yml -f docker-compose.verify.yml up -d --wait ucs503-sandbox-broker ucs503-analysis ucs503-api
           node scripts/smoke-portal.mjs
 
@@ -105,9 +106,8 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          for image in ucs503-api ucs503-analysis ucs503-sandbox-runner; do
+          for image in ucs503-analysis ucs503-sandbox-runner; do
             docker push "ghcr.io/cv-code-vitals/${image}:${IMAGE_TAG}"
-            docker push "ghcr.io/cv-code-vitals/${image}:latest"
           done
 
       - name: Save container verification evidence
@@ -123,6 +123,7 @@ jobs:
         env:
           IMAGE_TAG: ${{ github.sha }}
           SANDBOX_HOST_DIR: ${{ runner.temp }}/ucs503-sandboxes
+          SANDBOX_TLS_DIR: ${{ runner.temp }}/ucs503-tls
           PORTAL_TEST_PASSKEY: ci-disposable-verification-passkey
         run: |
           docker compose -p ucs503-verification --env-file .env.ec2.example -f docker-compose.ec2.yml -f docker-compose.verify.yml logs --no-color

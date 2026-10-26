@@ -33,3 +33,16 @@ test('scan and evolution explain when the analysis service is offline', async (t
   await assert.rejects(readEvolutionStream(unavailable(), () => {}), { message });
   await assert.rejects(readEvolutionStream(streamResponse('event: error\ndata: {"error":"analysis_unavailable"}\n\n'), () => {}), { message });
 });
+
+test('cloud scans use the separate streaming gateway and retain selectable targets', async (t) => {
+  let request;
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    request = {url,options};
+    return Response.json({report:{files_analyzed:1},workspace_id:'snapshot-id',targets:[]});
+  });
+  const scan = await scanEvolutionRepository('https://archive.example/api', 'test-token', 'https://github.com/example/repo', undefined, 'https://analysis.example/prod');
+  assert.equal(request.url, 'https://analysis.example/prod/api/scan');
+  assert.equal(request.options.headers.Authorization,'Bearer test-token');
+  assert.deepEqual(JSON.parse(request.options.body), {repo_url:'https://github.com/example/repo',retain_workspace:true});
+  assert.equal(scan.repo_url,'https://github.com/example/repo');
+});

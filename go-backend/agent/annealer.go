@@ -96,7 +96,7 @@ func (a *Annealer) rng() *rand.Rand {
 // gates evaluation through the container sandbox boundary, calculates genuine
 // energy differentials using the Rust engine, and updates state according to
 // mathematically sound Metropolis simulated annealing rules.
-func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName string, startByte, endByte int, baseEnergy float64, cfg AnnealingConfig, ch chan<- StepTelemetry) (*AnnealingResult, error) {
+func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName string, startByte, endByte int, baseEnergy float64, cfg AnnealingConfig, ch chan<- StepTelemetry) (result *AnnealingResult, returnErr error) {
 	if a.Evaluator == nil {
 		return nil, fmt.Errorf("%w: annealer requires a configured CandidateEvaluator", ErrHostExecutionBlocked)
 	}
@@ -134,6 +134,24 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 	baselineEnergy := baselineMeas.Energy
 	if baselineEnergy <= 0.0 {
 		return nil, fmt.Errorf("%w: baseline energy %.4f is non-positive or invalid", ErrInvalidEnergy, baselineEnergy)
+	}
+
+	workspaceID := ""
+	if remoteEvaluator, ok := a.Evaluator.(RemoteWorkspaceEvaluator); ok {
+		workspaceID, err = remoteEvaluator.PrepareWorkspace(ctx, repoPath)
+		if err != nil {
+			return nil, fmt.Errorf("prepare remote sandbox workspace: %w", err)
+		}
+		if !validRemoteWorkspaceID(workspaceID) {
+			return nil, errors.New("remote sandbox returned an invalid workspace ID")
+		}
+		defer func() {
+			cleanupCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+			defer cancel()
+			if cleanupErr := remoteEvaluator.CleanupWorkspace(cleanupCtx, workspaceID); cleanupErr != nil {
+				returnErr = errors.Join(returnErr, fmt.Errorf("clean up remote sandbox workspace: %w", cleanupErr))
+			}
+		}()
 	}
 
 	currentCode := string(contentBytes[startByte:endByte])
@@ -296,6 +314,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		// 3. Evaluate candidate correctness in secure sandbox boundary
 		evalReq := EvaluationRequest{
 			RepoPath:      repoPath,
+			WorkspaceID:   workspaceID,
 			FilePath:      cleanedRel,
 			OriginalBytes: workingFileBytes,
 			MutatedCode:   mutatedCode,

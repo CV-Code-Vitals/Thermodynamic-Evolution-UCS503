@@ -1,0 +1,10 @@
+version = 0.1
+
+[default]
+[default.deploy.parameters]
+stack_name = "ucs503-analysis-v1"
+region = "ap-south-1"
+resolve_s3 = true
+s3_prefix = "ucs503-analysis-v1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"

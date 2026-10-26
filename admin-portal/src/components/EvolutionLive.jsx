@@ -3,7 +3,7 @@ import { Play, Square, CheckCircle, XCircle, AlertTriangle, ArrowRight, Thermome
 import './EvolutionLive.css';
 import { readEvolutionStream } from '../evolution-api';
 
-const EvolutionLive = ({ initialData, onBack, apiBase, token }) => {
+const EvolutionLive = ({ initialData, onBack, apiBase, analysisApiBase = '', token }) => {
   const [isEvolving, setIsEvolving] = useState(false);
   const [telemetry, setTelemetry] = useState([]);
   const [stats, setStats] = useState({
@@ -37,6 +37,7 @@ const EvolutionLive = ({ initialData, onBack, apiBase, token }) => {
 
     const payload = {
       workspace_id: initialData.workspace_id,
+      repo_url: initialData.repo_url,
       file_path: initialData.file_path,
       function_name: initialData.function_name,
       start_byte: initialData.start_byte,
@@ -45,7 +46,7 @@ const EvolutionLive = ({ initialData, onBack, apiBase, token }) => {
     };
 
     try {
-      const response = await fetch(`${apiBase}/analysis/evolve`, {
+      const response = await fetch(analysisApiBase ? `${analysisApiBase}/api/evolve` : `${apiBase}/analysis/evolve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),

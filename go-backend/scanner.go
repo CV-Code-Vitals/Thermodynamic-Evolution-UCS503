@@ -135,29 +135,35 @@ func scanRepoHandler(enginePath string, engineTimeout time.Duration, workspaces 
 			c.JSON(http.StatusOK, report)
 			return
 		}
-		targets := make([]evolutionTarget, 0)
-		for _, file := range report.FileReports {
-			if file.Language != "Go" {
-				continue
-			}
-			filePath := file.FilePath
-			if filepath.IsAbs(filePath) {
-				filePath, err = filepath.Rel(targetDir, filePath)
-				if err != nil {
-					continue
-				}
-			}
-			for _, hotspot := range file.Hotspots {
-				target, err := readWorkspaceTarget(targetDir, filePath, hotspot.FunctionName, hotspot.ByteRange[0])
-				if err != nil {
-					continue
-				}
-				target.BaseEnergy = hotspot.EntropyScore
-				targets = append(targets, *target)
-			}
-		}
+		targets := workspaceScanTargets(report, targetDir)
 		success = true
 		c.JSON(http.StatusOK, gin.H{"report": report, "workspace_id": workspaceID, "targets": targets,
 			"expires_at": expiresAt})
 	}
+}
+
+func workspaceScanTargets(report *ThermodynamicReport, targetDir string) []evolutionTarget {
+	targets := make([]evolutionTarget, 0)
+	for _, file := range report.FileReports {
+		if file.Language != "Go" {
+			continue
+		}
+		filePath := file.FilePath
+		if filepath.IsAbs(filePath) {
+			relative, err := filepath.Rel(targetDir, filePath)
+			filePath = relative
+			if err != nil {
+				continue
+			}
+		}
+		for _, hotspot := range file.Hotspots {
+			target, err := readWorkspaceTarget(targetDir, filePath, hotspot.FunctionName, hotspot.ByteRange[0])
+			if err != nil {
+				continue
+			}
+			target.BaseEnergy = hotspot.EntropyScore
+			targets = append(targets, *target)
+		}
+	}
+	return targets
 }
