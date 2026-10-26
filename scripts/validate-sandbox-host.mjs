@@ -33,8 +33,8 @@ export const validateSandboxHost = ({
   }
 
   const socket = stat(socketPath);
-  if (!socket.isSocket() || socket.uid !== Number(requiredID) || socket.gid !== Number(requiredID)) {
-    throw new Error(`Rootless Docker socket must be a socket owned by UID/GID 10002: ${socketPath}`);
+  if (!socket.isSocket() || socket.uid !== Number(requiredID)) {
+    throw new Error(`Rootless Docker socket must be a socket owned by UID 10002: ${socketPath}`);
   }
 
   if (!stat(workspacePath).isDirectory()) {

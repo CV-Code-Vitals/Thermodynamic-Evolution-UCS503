@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
 type fakeSandboxStore struct {
@@ -469,5 +472,53 @@ func TestSandboxLifecycleRecord_UsesSharedContract(t *testing.T) {
 	}
 	if record.Leases["opaque-id"] != 1_800_000_900 {
 		t.Fatal("lease expiry must be persisted for watchdog stale-lease recovery")
+	}
+}
+
+type validationDynamoLifecycleClient struct{}
+
+func (validationDynamoLifecycleClient) GetItem(context.Context, *dynamodb.GetItemInput, ...func(*dynamodb.Options)) (*dynamodb.GetItemOutput, error) {
+	return nil, nil
+}
+
+func (validationDynamoLifecycleClient) PutItem(context.Context, *dynamodb.PutItemInput, ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error) {
+	return nil, nil
+}
+
+func (validationDynamoLifecycleClient) UpdateItem(context.Context, *dynamodb.UpdateItemInput, ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
+	return nil, nil
+}
+
+func TestNewDynamoSandboxLifecycleStore_AcceptsValidTableNames(t *testing.T) {
+	for _, tableName := range []string{
+		"sandbox-lifecycle",
+		"ucs503-analysis-v1-123456789abc",
+		strings.Repeat("a", 255),
+	} {
+		t.Run(tableName, func(t *testing.T) {
+			store, err := NewDynamoSandboxLifecycleStore(validationDynamoLifecycleClient{}, tableName)
+			if err != nil {
+				t.Fatalf("NewDynamoSandboxLifecycleStore(%q) error = %v", tableName, err)
+			}
+			if store.tableName != tableName {
+				t.Fatalf("table name = %q, want %q", store.tableName, tableName)
+			}
+		})
+	}
+}
+
+func TestNewDynamoSandboxLifecycleStore_RejectsInvalidTableNames(t *testing.T) {
+	for _, tableName := range []string{
+		"ab",
+		strings.Repeat("a", 256),
+		"bad/name",
+		"has space",
+		"bad_表",
+	} {
+		t.Run(tableName, func(t *testing.T) {
+			if _, err := NewDynamoSandboxLifecycleStore(validationDynamoLifecycleClient{}, tableName); err == nil {
+				t.Fatalf("NewDynamoSandboxLifecycleStore(%q) error = nil, want invalid table name error", tableName)
+			}
+		})
 	}
 }

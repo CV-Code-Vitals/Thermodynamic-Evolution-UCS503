@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      attestations: write
+      id-token: write
       packages: write
 
     steps:
@@ -32,6 +34,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push analysis backend image
+        id: analysis_image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -40,9 +43,42 @@ jobs:
           tags: ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}
 
       - name: Build and push sandbox runner image
+        id: sandbox_runner_image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./docker/sandbox-runner/Dockerfile
           push: true
           tags: ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${{ github.sha }}
+
+      - name: Attest analysis image provenance
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/cv-code-vitals/ucs503-analysis
+          subject-digest: ${{ steps.analysis_image.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest sandbox runner image provenance
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/cv-code-vitals/ucs503-sandbox-runner
+          subject-digest: ${{ steps.sandbox_runner_image.outputs.digest }}
+          push-to-registry: true
+
+      - name: Install Sigstore Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign immutable image digests with GitHub OIDC
+        env:
+          ANALYSIS_DIGEST: ${{ steps.analysis_image.outputs.digest }}
+          SANDBOX_RUNNER_DIGEST: ${{ steps.sandbox_runner_image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          for digest in "$ANALYSIS_DIGEST" "$SANDBOX_RUNNER_DIGEST"; do
+            if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "Build did not return a valid immutable image digest" >&2
+              exit 1
+            fi
+          done
+          cosign sign --yes "ghcr.io/cv-code-vitals/ucs503-analysis@$ANALYSIS_DIGEST"
+          cosign sign --yes "ghcr.io/cv-code-vitals/ucs503-sandbox-runner@$SANDBOX_RUNNER_DIGEST"

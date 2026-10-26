@@ -45,10 +45,55 @@ test('creates two private instances with split roles', () => {
   assert.match(resource('AnalysisInstanceProfile'), /- !Ref AnalysisInstanceRole/);
   assert.match(resource('SandboxInstanceProfile'), /- !Ref SandboxInstanceRole/);
   assert.match(resource('AnalysisVpcIpv6'), /AmazonProvidedIpv6CidrBlock: true/);
-  assert.match(resource('EgressOnlyInternetGateway'), /Type: AWS::EC2::EgressOnlyInternetGateway/);
+  assert.doesNotMatch(template, /Type: AWS::EC2::EgressOnlyInternetGateway/);
   assert.match(resource('PrivateS3GatewayEndpoint'), /VpcEndpointType: Gateway/);
   for (const name of ['AnalysisSubnet', 'SandboxSubnet']) {
     assert.match(resource(name), /MapPublicIpOnLaunch: false/);
+  }
+});
+
+test('assigns distinct /64 IPv6 CIDRs after the Amazon-provided VPC block is associated', () => {
+  assert.match(resource('AnalysisVpcIpv6'), /AmazonProvidedIpv6CidrBlock: true/);
+  for (const name of ['AnalysisSubnet', 'SandboxSubnet']) {
+    assert.match(resource(name), /DependsOn:\s*AnalysisVpcIpv6/);
+    assert.match(resource(name), /Ipv6CidrBlock:\s*!Select/);
+    assert.match(resource(name), /!GetAtt AnalysisVpc\.Ipv6CidrBlocks/);
+    assert.match(resource(name), /- 256\s+- 64/);
+    assert.match(resource(name), /AssignIpv6AddressOnCreation: true/);
+  }
+  assert.match(resource('AnalysisSubnet'), /Ipv6CidrBlock:\s*!Select\s+- 0/);
+  assert.match(resource('SandboxSubnet'), /Ipv6CidrBlock:\s*!Select\s+- 1/);
+  assert.doesNotMatch(template, /Type: AWS::EC2::SubnetCidrBlock/);
+});
+
+test('generates collision-resistant bucket and lifecycle-table names', () => {
+  for (const name of ['SourceBucket', 'ArtifactBucket']) {
+    assert.doesNotMatch(resource(name), /BucketName:/);
+  }
+  assert.doesNotMatch(resource('AnalysisLifecycleTable'), /TableName:/);
+  assert.doesNotMatch(template, /^\s+SandboxLifecycleTableName:/m);
+  assert.match(template, /SourceBucketName:\s*\r?\n\s+Value: !Ref SourceBucket/);
+  assert.match(template, /ArtifactBucketName:\s*\r?\n\s+Value: !Ref ArtifactBucket/);
+  assert.match(template, /SandboxLifecycleTable:\s*\r?\n\s+Value: !Ref AnalysisLifecycleTable/);
+});
+
+test('suffixes explicit Lambda and log-group names with the stack ID', () => {
+  assert.ok(template.includes("!Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]"));
+  const resourcePrefixMaxLength = Number(/ResourcePrefix:[\s\S]*?MaxLength: (\d+)/.exec(template)?.[1]);
+  assert.ok(Number.isInteger(resourcePrefixMaxLength));
+  assert.ok(resourcePrefixMaxLength + '-analysis-authorizer-'.length + 12 <= 64);
+  for (const name of ['ProxyFunction', 'AuthorizerFunction', 'SourceStagerFunction', 'LifecycleWatchdogFunction']) {
+    assert.match(resource(name), /FunctionName: !Sub[\s\S]*?AWS::StackId/);
+  }
+  for (const name of [
+    'AnalysisSsmSessionLogGroup',
+    'ProxyLogGroup',
+    'AuthorizerLogGroup',
+    'SourceStagerLogGroup',
+    'LifecycleWatchdogLogGroup',
+    'AnalysisApiAccessLogGroup',
+  ]) {
+    assert.match(resource(name), /LogGroupName: !Sub[\s\S]*?AWS::StackId/);
   }
 });
 
@@ -61,14 +106,81 @@ test('blocks public and SSH ingress', () => {
   assert.doesNotMatch(resource('SandboxSecurityGroup'), /CidrIp: 0\.0\.0\.0\/0/);
 });
 
-test('uses dual-stack control-plane endpoints with the S3 gateway route', async () => {
+test('uses private-DNS control-plane endpoints with the S3 gateway route', async () => {
   const proxy = await read('infra/analysis/stream-proxy/index.mjs');
   const lifecycle = await read('go-backend/sandbox_lifecycle.go');
   assert.match(resource('ProxyFunction'), /Ipv6AllowedForDualStack: true/);
-  assert.match(proxy, /new LambdaClient\(\{ useDualstackEndpoint: true \}\)/);
-  assert.match(proxy, /new SSMClient\(\{ useDualstackEndpoint: true \}\)/);
-  assert.match(lifecycle, /WithUseDualStackEndpoint\(aws\.DualStackEndpointStateEnabled\)/);
+  assert.match(proxy, /new LambdaClient\(\{\}\)/);
+  assert.match(proxy, /new SSMClient\(\{\}\)/);
+  assert.doesNotMatch(proxy, /useDualstackEndpoint/);
+  assert.doesNotMatch(lifecycle, /WithUseDualStackEndpoint/);
   assert.match(resource('PrivateS3GatewayEndpoint'), /VpcEndpointType: Gateway/);
+});
+
+test('keeps private IPv6 subnets but removes public IPv6 egress in favor of AWS endpoints', () => {
+  for (const name of [
+    'ProxyIpv6HttpsEgress',
+    'AnalysisIpv6HttpsEgress',
+    'SandboxIpv6HttpsEgress',
+  ]) {
+    assert.doesNotMatch(template, new RegExp(`^  ${name}:`, 'm'));
+  }
+  assert.doesNotMatch(template, /Type: AWS::EC2::EgressOnlyInternetGateway/);
+  assert.doesNotMatch(template, /DestinationIpv6CidrBlock:\s*::\/0/);
+
+  for (const name of [
+    'AnalysisToS3EndpointEgress',
+    'SandboxToS3EndpointEgress',
+    'AnalysisToDynamoDbEndpointEgress',
+    'AnalysisToInterfaceEndpointsEgress',
+    'SandboxToInterfaceEndpointsEgress',
+    'ProxyToInterfaceEndpointsEgress',
+  ]) {
+    assert.ok(resource(name), `missing private endpoint egress rule ${name}`);
+  }
+  assert.match(resource('AnalysisToS3EndpointEgress'), /DestinationPrefixListId: !Ref S3ManagedPrefixListId/);
+  assert.match(resource('SandboxToS3EndpointEgress'), /DestinationPrefixListId: !Ref S3ManagedPrefixListId/);
+  assert.match(resource('AnalysisToDynamoDbEndpointEgress'), /DestinationPrefixListId: !Ref DynamoDbManagedPrefixListId/);
+  assert.match(template, /S3ManagedPrefixListId:\s*\r?\n\s+Type: String\s*\r?\n\s+AllowedPattern: '\^pl-\[0-9a-f\]\+\$'/);
+  assert.match(template, /DynamoDbManagedPrefixListId:\s*\r?\n\s+Type: String\s*\r?\n\s+AllowedPattern: '\^pl-\[0-9a-f\]\+\$'/);
+
+  for (const [name, service] of [
+    ['SsmEndpoint', 'ssm'],
+    ['SsmMessagesEndpoint', 'ssmmessages'],
+    ['Ec2MessagesEndpoint', 'ec2messages'],
+    ['Ec2ApiEndpoint', 'ec2'],
+    ['LambdaApiEndpoint', 'lambda'],
+  ]) {
+    assert.match(resource(name), /VpcEndpointType: Interface/);
+    assert.ok(
+      resource(name).includes(`com.amazonaws.\${AWS::Region}.${service}`),
+      `${name} should target the ${service} endpoint service`,
+    );
+    assert.match(resource(name), /PrivateDnsEnabled: true/);
+    assert.match(resource(name), /SecurityGroupIds:[\s\S]*?InterfaceEndpointSecurityGroup/);
+  }
+  assert.match(resource('PrivateDynamoDbGatewayEndpoint'), /ServiceName: !Sub 'com\.amazonaws\.\$\{AWS::Region\}\.dynamodb'/);
+});
+
+test('restricts VPC endpoint policies to the workload IAM roles', () => {
+  for (const name of [
+    'PrivateS3GatewayEndpoint',
+    'PrivateDynamoDbGatewayEndpoint',
+    'SsmEndpoint',
+    'SsmMessagesEndpoint',
+    'Ec2MessagesEndpoint',
+    'Ec2ApiEndpoint',
+    'LambdaApiEndpoint',
+  ]) {
+    const endpoint = resource(name);
+    assert.match(endpoint, /PolicyDocument:/);
+    assert.doesNotMatch(endpoint, /Principal:\s*['"]?\*['"]?/);
+    assert.match(endpoint, /Principal:[\s\S]*?AWS:[\s\S]*?!GetAtt/);
+  }
+  assert.match(resource('PrivateS3GatewayEndpoint'), /!GetAtt AnalysisInstanceRole\.Arn/);
+  assert.match(resource('PrivateS3GatewayEndpoint'), /!GetAtt SandboxInstanceRole\.Arn/);
+  assert.match(resource('PrivateDynamoDbGatewayEndpoint'), /!GetAtt AnalysisInstanceRole\.Arn/);
+  assert.match(resource('LambdaApiEndpoint'), /!GetAtt ProxyExecutionRole\.Arn/);
 });
 
 test('limits token permissions by role', () => {
@@ -89,13 +201,27 @@ test('limits token permissions by role', () => {
   assert.match(sandboxRole, /bundles\/analysis-deployments\/\*/);
   assert.match(watchdogRole, /ec2:StopInstances/);
   assert.doesNotMatch(watchdogRole, /ec2:StartInstances/);
+  for (const role of [analysisRole, watchdogRole]) {
+    assert.match(role, /Sid: DescribeInstancesInStackRegion/);
+    assert.match(role, /Action: ec2:DescribeInstances[\s\S]*?aws:RequestedRegion: !Ref AWS::Region/);
+    assert.doesNotMatch(role, /ec2:ResourceTag\/AnalysisStack/);
+  }
 });
 
 test('keeps analysis output snapshots for seven days', async () => {
   assert.match(resource('AnalysisDataVolume'), /VolumeType: gp3/);
   assert.match(resource('AnalysisDataVolume'), /Encrypted: true/);
+  assert.match(resource('AnalysisDataVolume'), /DeletionPolicy: Retain/);
+  assert.match(resource('AnalysisDataVolume'), /UpdateReplacePolicy: Retain/);
+  assert.match(resource('AnalysisDataSnapshotPolicy'), /Description: [0-9A-Za-z _-]+(?=\r?\n)/);
   assert.match(resource('AnalysisDataSnapshotPolicy'), /Count: 7/);
   assert.match(resource('AnalysisDataSnapshotPolicy'), /Interval: 24/);
+  assert.match(resource('AnalysisDataSnapshotPolicy'), /TargetTags:[\s\S]*?Key: AnalysisStack\s*\r?\n\s+Value: !Ref ResourcePrefix/);
+  assert.match(resource('SnapshotLifecycleRole'), /ec2:ResourceTag\/AnalysisStack: !Ref ResourcePrefix/);
+  for (const name of ['SandboxInstance', 'AnalysisInstance']) {
+    assert.match(resource(name), /NetworkInterfaces:[\s\S]*?NetworkInterfaceId: !Ref [A-Za-z]+PrivateNetworkInterface/);
+    assert.match(resource(name), /DeleteOnTermination: true/);
+  }
   assert.match(resource('AnalysisDataVolumeAttachment'), /VolumeId: !Ref AnalysisDataVolume/);
   assert.match(resource('AnalysisInstance'), /install -d -m 0750 \/var\/lib\/ucs503-analysis\/uploads/);
   assert.match(await read('docker-compose.analysis.yml'), /ANALYSIS_UPLOADS_HOST_DIR[\s\S]*?:\/app\/uploads/);
@@ -104,6 +230,14 @@ test('keeps analysis output snapshots for seven days', async () => {
 test('expires sources after one day and bundles after 30 days', () => {
   assert.match(resource('SourceBucket'), /Prefix: snapshots\/[\s\S]*?ExpirationInDays: 1/);
   assert.match(resource('ArtifactBucket'), /Prefix: bundles\/[\s\S]*?ExpirationInDays: 30/);
+});
+
+test('does not grant unnecessary bucket enumeration through the private endpoint', () => {
+  const endpoint = resource('PrivateS3GatewayEndpoint');
+  assert.doesNotMatch(endpoint, /Action: s3:ListBucket/);
+  assert.match(endpoint, /Action: s3:GetObject/);
+  assert.match(endpoint, /SourceBucket\.Arn/);
+  assert.match(endpoint, /ArtifactBucket\.Arn/);
 });
 
 test('runs the sandbox broker through the dedicated rootless Docker socket', async () => {

@@ -41,6 +41,7 @@ jobs:
     permissions:
       contents: read
       packages: read
+      attestations: read
       id-token: write
     steps:
       - name: Check out the selected release configuration
@@ -50,23 +51,23 @@ jobs:
 
       - name: Check deployment variables
         env:
+          ANALYSIS_STACK_NAME: ${{ vars.ANALYSIS_STACK_NAME }}
           ANALYSIS_DEPLOY_ROLE_ARN: ${{ vars.ANALYSIS_DEPLOY_ROLE_ARN }}
           ANALYSIS_DEPLOY_REGION: ${{ vars.ANALYSIS_DEPLOY_REGION }}
-          ANALYSIS_ARTIFACT_BUCKET: ${{ vars.ANALYSIS_ARTIFACT_BUCKET }}
-          ANALYSIS_INSTANCE_ID: ${{ vars.ANALYSIS_INSTANCE_ID }}
-          SANDBOX_INSTANCE_ID: ${{ vars.SANDBOX_INSTANCE_ID }}
         run: |
           for name in \
+            ANALYSIS_STACK_NAME \
             ANALYSIS_DEPLOY_ROLE_ARN \
-            ANALYSIS_DEPLOY_REGION \
-            ANALYSIS_ARTIFACT_BUCKET \
-            ANALYSIS_INSTANCE_ID \
-            SANDBOX_INSTANCE_ID; do
+            ANALYSIS_DEPLOY_REGION; do
             if [[ -z "${!name}" ]]; then
               echo "Required repository variable is not configured: $name" >&2
               exit 1
             fi
           done
+          if [[ ! "$ANALYSIS_DEPLOY_REGION" =~ ^[a-z]{2}(-[a-z0-9]+)+-[0-9]+$ ]]; then
+            echo "ANALYSIS_DEPLOY_REGION must be a safe AWS region identifier" >&2
+            exit 1
+          fi
 
       - name: Log in to GitHub Container Registry
         env:
@@ -76,15 +77,53 @@ jobs:
             --username "${{ github.actor }}" \
             --password-stdin
 
+      - name: Install Sigstore Cosign
+        uses: sigstore/cosign-installer@v3
+
       - name: Download only the selected SHA-tagged images
         id: image_ids
         env:
           IMAGE_SHA: ${{ needs.validate.outputs.image_sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           analysis_image="ghcr.io/cv-code-vitals/ucs503-analysis:$IMAGE_SHA"
           runner_image="ghcr.io/cv-code-vitals/ucs503-sandbox-runner:$IMAGE_SHA"
           docker pull "$analysis_image"
           docker pull "$runner_image"
+          resolve_repository_digest() {
+            local image="$1"
+            local repository="$2"
+            local candidate
+            while IFS= read -r candidate; do
+              if [[ "$candidate" =~ ^${repository}@sha256:[0-9a-f]{64}$ ]]; then
+                printf '%s' "$candidate"
+                return 0
+              fi
+            done < <(docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$image")
+            echo "Could not resolve the immutable digest for $repository" >&2
+            return 1
+          }
+          analysis_repository=ghcr.io/cv-code-vitals/ucs503-analysis
+          runner_repository=ghcr.io/cv-code-vitals/ucs503-sandbox-runner
+          analysis_image_digest="$(resolve_repository_digest "$analysis_image" "$analysis_repository")"
+          runner_image_digest="$(resolve_repository_digest "$runner_image" "$runner_repository")"
+          docker pull "$analysis_image_digest"
+          docker pull "$runner_image_digest"
+          certificate_identity='https://github.com/CV-Code-Vitals/Thermodynamic-Evolution-UCS503/.github/workflows/publish-api-image.yml@refs/heads/main'
+          certificate_issuer='https://token.actions.githubusercontent.com'
+          gh attestation verify "oci://$analysis_image_digest" \
+            --repo CV-Code-Vitals/Thermodynamic-Evolution-UCS503 \
+            --signer-workflow CV-Code-Vitals/Thermodynamic-Evolution-UCS503/.github/workflows/publish-api-image.yml \
+            --source-digest "$IMAGE_SHA"
+          gh attestation verify "oci://$runner_image_digest" \
+            --repo CV-Code-Vitals/Thermodynamic-Evolution-UCS503 \
+            --signer-workflow CV-Code-Vitals/Thermodynamic-Evolution-UCS503/.github/workflows/publish-api-image.yml \
+            --source-digest "$IMAGE_SHA"
+          cosign verify --certificate-identity "$certificate_identity" --certificate-oidc-issuer "$certificate_issuer" "$analysis_image_digest"
+          cosign verify --certificate-identity "$certificate_identity" --certificate-oidc-issuer "$certificate_issuer" "$runner_image_digest"
+          docker tag "$analysis_image_digest" "$analysis_image"
+          docker tag "$runner_image_digest" "$runner_image"
           analysis_image_id="$(docker image inspect --format '{{.Id}}' "$analysis_image")"
           runner_image_id="$(docker image inspect --format '{{.Id}}' "$runner_image")"
           if [[ ! "$analysis_image_id" =~ ^sha256:[0-9a-f]{64}$ ||
@@ -101,7 +140,14 @@ jobs:
           tar -czf analysis-deployment-bundle.tar.gz \
             analysis-images.tar \
             docker-compose.analysis.yml \
-            docker-compose.sandbox.yml
+            docker-compose.sandbox.yml \
+            scripts/validate-sandbox-host.mjs
+          bundle_sha256="$(sha256sum analysis-deployment-bundle.tar.gz | awk '{print $1}')"
+          if [[ ! "$bundle_sha256" =~ ^[0-9a-f]{64}$ ]]; then
+            echo "Could not calculate deployment bundle SHA-256" >&2
+            exit 1
+          fi
+          echo "bundle_sha256=$bundle_sha256" >> "$GITHUB_OUTPUT"
 
       - name: Configure short-lived AWS credentials with GitHub OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -109,22 +155,168 @@ jobs:
           role-to-assume: ${{ vars.ANALYSIS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.ANALYSIS_DEPLOY_REGION }}
 
+      - name: Resolve deployment resources from CloudFormation outputs
+        id: stack
+        env:
+          ANALYSIS_STACK_NAME: ${{ vars.ANALYSIS_STACK_NAME }}
+          AWS_REGION: ${{ vars.ANALYSIS_DEPLOY_REGION }}
+        run: |
+          set -euo pipefail
+          outputs="$(aws cloudformation describe-stacks \
+            --stack-name "$ANALYSIS_STACK_NAME" \
+            --region "$AWS_REGION" \
+            --query 'Stacks[0].Outputs' \
+            --output json)"
+
+          resolve_output() {
+            local output_name="$1"
+            local matches value
+            matches="$(jq --arg name "$output_name" \
+              '[.[] | select(.OutputKey == $name)] | length' <<< "$outputs")"
+            if [[ "$matches" != 1 ]]; then
+              echo "Expected exactly one CloudFormation output named $output_name" >&2
+              return 1
+            fi
+            value="$(jq -er --arg name "$output_name" \
+              '[.[] | select(.OutputKey == $name)][0].OutputValue |
+                select(type == "string" and length > 0)' <<< "$outputs")" || {
+              echo "CloudFormation output $output_name is empty or invalid" >&2
+              return 1
+            }
+            if [[ ! "$value" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+              echo "CloudFormation output $output_name contains unexpected characters" >&2
+              return 1
+            fi
+            printf '%s' "$value"
+          }
+
+          artifact_bucket_name="$(resolve_output ArtifactBucketName)"
+          analysis_instance_id="$(resolve_output AnalysisInstanceId)"
+          sandbox_instance_id="$(resolve_output SandboxInstanceId)"
+          sandbox_lifecycle_table="$(resolve_output SandboxLifecycleTable)"
+          if (( ${#artifact_bucket_name} < 3 || ${#artifact_bucket_name} > 63 )) ||
+             [[ ! "$artifact_bucket_name" =~ ^[a-z0-9][a-z0-9.-]*[a-z0-9]$ ||
+                "$artifact_bucket_name" == *..* ||
+                "$artifact_bucket_name" == *.-* ||
+                "$artifact_bucket_name" == *-.* ||
+                "$artifact_bucket_name" == xn--* ||
+                "$artifact_bucket_name" == sthree-* ||
+                "$artifact_bucket_name" == *-s3alias ||
+                "$artifact_bucket_name" == *--ol-s3 ||
+                "$artifact_bucket_name" == *.mrap ||
+                "$artifact_bucket_name" == *--x-s3 ||
+                "$artifact_bucket_name" == *--table-s3 ||
+                "$artifact_bucket_name" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "ArtifactBucketName is not a valid S3 bucket name" >&2
+            exit 1
+          fi
+          [[ "$analysis_instance_id" =~ ^i-[a-f0-9]{8}([a-f0-9]{9})?$ ]] || {
+            echo "AnalysisInstanceId is not a valid EC2 instance ID" >&2
+            exit 1
+          }
+          [[ "$sandbox_instance_id" =~ ^i-[a-f0-9]{8}([a-f0-9]{9})?$ ]] || {
+            echo "SandboxInstanceId is not a valid EC2 instance ID" >&2
+            exit 1
+          }
+          if (( ${#sandbox_lifecycle_table} < 3 || ${#sandbox_lifecycle_table} > 255 )) ||
+             [[ ! "$sandbox_lifecycle_table" =~ ^[A-Za-z0-9_.-]+$ ]]; then
+            echo "SandboxLifecycleTable is not a valid DynamoDB table name" >&2
+            exit 1
+          fi
+          {
+            echo "artifact_bucket_name=$artifact_bucket_name"
+            echo "analysis_instance_id=$analysis_instance_id"
+            echo "sandbox_instance_id=$sandbox_instance_id"
+            echo "sandbox_lifecycle_table=$sandbox_lifecycle_table"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Verify required external SSM secrets without reading their values
+        env:
+          ANALYSIS_STACK_NAME: ${{ vars.ANALYSIS_STACK_NAME }}
+          AWS_REGION: ${{ vars.ANALYSIS_DEPLOY_REGION }}
+        run: |
+          set -euo pipefail
+          parameters="$(aws cloudformation describe-stacks \
+            --stack-name "$ANALYSIS_STACK_NAME" \
+            --region "$AWS_REGION" \
+            --query 'Stacks[0].Parameters' \
+            --output json)"
+          secret_parameter_keys=(
+            ApiTokenParameterName
+            SigningKeyParameterName
+            SandboxTokenParameterName
+            SandboxTlsCertificateParameterName
+            SandboxTlsPrivateKeyParameterName
+            SandboxCaParameterName
+          )
+          secret_parameter_names=()
+          for parameter_key in "${secret_parameter_keys[@]}"; do
+            parameter_name="$(jq -er --arg key "$parameter_key" \
+              '[.[] | select(.ParameterKey == $key)][0].ParameterValue | select(type == "string" and length > 1)' \
+              <<< "$parameters")" || {
+                echo "Stack parameter $parameter_key is missing or invalid" >&2
+                exit 1
+              }
+            if [[ ! "$parameter_name" =~ ^/[A-Za-z0-9_./-]+$ ]]; then
+              echo "Stack parameter $parameter_key is not a safe SSM parameter name" >&2
+              exit 1
+            fi
+            secret_parameter_names+=("$parameter_name")
+          done
+          secret_metadata="$(aws ssm get-parameters \
+            --region "$AWS_REGION" \
+            --names "${secret_parameter_names[@]}" \
+            --query 'Parameters[].{Name:Name,Type:Type}' \
+            --output json)"
+          for parameter_name in "${secret_parameter_names[@]}"; do
+            if ! jq -e --arg name "$parameter_name" \
+              'any(.[]; .Name == $name and .Type == "SecureString")' \
+              <<< "$secret_metadata" >/dev/null; then
+              echo "Required SecureString parameter is missing or has the wrong type: $parameter_name" >&2
+              exit 1
+            fi
+          done
+
       - name: Upload private deployment bundle
         env:
           IMAGE_SHA: ${{ needs.validate.outputs.image_sha }}
-          ANALYSIS_ARTIFACT_BUCKET: ${{ vars.ANALYSIS_ARTIFACT_BUCKET }}
+          ARTIFACT_BUCKET_NAME: ${{ steps.stack.outputs.artifact_bucket_name }}
+          AWS_REGION: ${{ vars.ANALYSIS_DEPLOY_REGION }}
+          BUNDLE_SHA256: ${{ steps.image_ids.outputs.bundle_sha256 }}
         run: |
-          aws s3 cp analysis-deployment-bundle.tar.gz \
-            "s3://$ANALYSIS_ARTIFACT_BUCKET/bundles/analysis-deployments/$IMAGE_SHA/deployment-bundle.tar.gz" \
-            --sse AES256
+          set -euo pipefail
+          bundle_key="bundles/analysis-deployments/$IMAGE_SHA/deployment-bundle.tar.gz"
+          if existing_sha256="$(aws s3api head-object \
+            --bucket "$ARTIFACT_BUCKET_NAME" \
+            --key "$bundle_key" \
+            --region "$AWS_REGION" \
+            --query 'Metadata.bundle-sha256' \
+            --output text 2>head-object-error.txt)"; then
+            if [[ "$existing_sha256" != "$BUNDLE_SHA256" ]]; then
+              echo "Refusing to overwrite a different deployment bundle for $IMAGE_SHA" >&2
+              exit 1
+            fi
+            echo "Deployment bundle for $IMAGE_SHA already exists with the expected checksum"
+          elif grep -qE '(NotFound|404|NoSuchKey)' head-object-error.txt; then
+            aws s3 cp analysis-deployment-bundle.tar.gz \
+              "s3://$ARTIFACT_BUCKET_NAME/$bundle_key" \
+              --region "$AWS_REGION" \
+              --sse AES256 \
+              --metadata "bundle-sha256=$BUNDLE_SHA256"
+          else
+            cat head-object-error.txt >&2
+            exit 1
+          fi
 
       - name: Deploy both private hosts through SSM
         env:
           IMAGE_SHA: ${{ needs.validate.outputs.image_sha }}
-          ANALYSIS_ARTIFACT_BUCKET: ${{ vars.ANALYSIS_ARTIFACT_BUCKET }}
-          ANALYSIS_INSTANCE_ID: ${{ vars.ANALYSIS_INSTANCE_ID }}
-          SANDBOX_INSTANCE_ID: ${{ vars.SANDBOX_INSTANCE_ID }}
+          ARTIFACT_BUCKET_NAME: ${{ steps.stack.outputs.artifact_bucket_name }}
+          ANALYSIS_INSTANCE_ID: ${{ steps.stack.outputs.analysis_instance_id }}
+          SANDBOX_INSTANCE_ID: ${{ steps.stack.outputs.sandbox_instance_id }}
+          SANDBOX_LIFECYCLE_TABLE: ${{ steps.stack.outputs.sandbox_lifecycle_table }}
           AWS_REGION: ${{ vars.ANALYSIS_DEPLOY_REGION }}
+          BUNDLE_SHA256: ${{ steps.image_ids.outputs.bundle_sha256 }}
           ANALYSIS_IMAGE_ID: ${{ steps.image_ids.outputs.analysis_image_id }}
           SANDBOX_RUNNER_IMAGE_ID: ${{ steps.image_ids.outputs.runner_image_id }}
         run: |
@@ -147,22 +339,123 @@ jobs:
             return 1
           }
 
-          sandbox_started_by_workflow=false
-          cleanup_sandbox() {
-            local result=$?
-            trap - EXIT
-            if [[ "$sandbox_started_by_workflow" == true ]]; then
-              if ! aws ec2 stop-instances --instance-ids "$SANDBOX_INSTANCE_ID"; then
-                echo "Failed to restore the sandbox instance's initial stopped state" >&2
-                result=1
-              elif ! aws ec2 wait instance-stopped --instance-ids "$SANDBOX_INSTANCE_ID"; then
-                echo "Timed out waiting for the sandbox instance to stop" >&2
-                result=1
+          send_ssm_command() {
+            local instance_id="$1"
+            local remote_command="$2"
+            local encoded_command parameters command_id status output
+
+            encoded_command="$(printf '%s' "$remote_command" | node scripts/encode-ssm-command.mjs)"
+            parameters="$(jq -n --arg command "$encoded_command" '{commands: [$command]}')"
+            command_id="$(aws ssm send-command \
+              --instance-ids "$instance_id" \
+              --document-name AWS-RunShellScript \
+              --parameters "$parameters" \
+              --query 'Command.CommandId' \
+              --output text)"
+
+            for attempt in $(seq 1 90); do
+              status="$(aws ssm get-command-invocation \
+                --command-id "$command_id" \
+                --instance-id "$instance_id" \
+                --query Status \
+                --output text 2>/dev/null || echo Pending)"
+              case "$status" in
+                Success)
+                  output="$(aws ssm get-command-invocation \
+                    --command-id "$command_id" \
+                    --instance-id "$instance_id" \
+                    --query StandardOutputContent \
+                    --output text)"
+                  printf '%s' "$output"
+                  return 0
+                  ;;
+                Failed|Cancelled|TimedOut|Cancelling)
+                  echo "SSM command failed for $instance_id (status: $status)" >&2
+                  aws ssm get-command-invocation \
+                    --command-id "$command_id" \
+                    --instance-id "$instance_id" \
+                    --query StandardErrorContent \
+                    --output text >&2 || true
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+
+            echo "Timed out waiting for SSM command on $instance_id" >&2
+            return 1
+          }
+
+          capture_previous_release() {
+            local instance_id="$1"
+            local project_name="$2"
+            local service_name="$3"
+            local compose_file="$4"
+            local runner_image_reference="$5"
+            local remote_command
+
+            remote_command="set -eu
+            if [ '${project_name}' = 'ucs503-sandbox' ]; then
+              export DOCKER_HOST=unix:///run/user/10002/docker.sock
+            fi
+            project_container_ids=\$(docker ps -aq --filter 'label=com.docker.compose.project=${project_name}' | paste -sd, -)
+            service_container_ids=\$(docker ps -aq --filter 'label=com.docker.compose.project=${project_name}' --filter 'label=com.docker.compose.service=${service_name}')
+            if [ -z \"\$service_container_ids\" ]; then
+              printf 'absent|%s|unset|' \"\$project_container_ids\"
+              exit 0
+            fi
+            set -- \$service_container_ids
+            if [ \"\$#\" -ne 1 ]; then
+              echo 'Multiple service containers were found; refusing rollback capture' >&2
+              exit 1
+            fi
+            container_id=\"\$1\"
+            image_ref=\$(docker inspect --format '{{.Config.Image}}' \"\$container_id\")
+            expected_prefix='${runner_image_reference}'
+            case \"\$image_ref\" in
+              \"\$expected_prefix\":*) ;;
+              *)
+                echo 'Active service image is not a SHA-addressed release' >&2
+                exit 1
+                ;;
+            esac
+            previous_sha=\${image_ref##*:}
+            case \"\$previous_sha\" in
+              *[!0-9a-f]*|'')
+                echo 'Active service image tag is not a lowercase commit SHA' >&2
+                exit 1
+                ;;
+              *)
+                if [ \${#previous_sha} -ne 40 ]; then
+                  echo 'Active service image tag is not a 40-character commit SHA' >&2
+                  exit 1
+                fi
+                ;;
+            esac
+            if [ ! -f \"/opt/ucs503/releases/\$previous_sha/${compose_file}\" ]; then
+              echo 'Previous release bundle is not available on the host' >&2
+              exit 1
+            fi
+            previous_lifecycle_table_state=unset
+            previous_lifecycle_table_b64=
+            if [ '${project_name}' = 'ucs503-analysis' ]; then
+              lifecycle_environment=\$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' \"\$container_id\")
+              lifecycle_table_entry=\$(printf '%s\\n' \"\$lifecycle_environment\" | grep '^SANDBOX_LIFECYCLE_TABLE=' || true)
+              if [ -n \"\$lifecycle_table_entry\" ]; then
+                previous_lifecycle_table=\${lifecycle_table_entry#SANDBOX_LIFECYCLE_TABLE=}
+                case \"\$previous_lifecycle_table\" in
+                  *[!A-Za-z0-9_.-]*)
+                    echo 'Active lifecycle table name contains unsupported characters' >&2
+                    exit 1
+                    ;;
+                esac
+                previous_lifecycle_table_state=set
+                previous_lifecycle_table_b64=\$(printf '%s' \"\$previous_lifecycle_table\" | base64 | tr -d '\\n')
               fi
             fi
-            exit "$result"
+            printf '%s|%s|%s|%s' \"\$previous_sha\" \"\$project_container_ids\" \"\$previous_lifecycle_table_state\" \"\$previous_lifecycle_table_b64\""
+            send_ssm_command "$instance_id" "$remote_command"
           }
-          trap cleanup_sandbox EXIT
 
           deploy_instance() {
             local instance_id="$1"
@@ -172,19 +465,30 @@ jobs:
             local service_name="$5"
             local expected_image_id="$6"
             local expected_runner_image_id="$7"
-            local remote_command parameters command_id status attempt
+            local remote_command
 
             remote_command="set -eu
             bundle=/var/tmp/ucs503-deploy-${IMAGE_SHA}.tar.gz
+            expected_bundle_sha256='${BUNDLE_SHA256}'
             release=/opt/ucs503/releases/${IMAGE_SHA}
             if [ '${project_name}' = 'ucs503-sandbox' ]; then
               export DOCKER_HOST=unix:///run/user/10002/docker.sock
             fi
             mkdir -p \"\$release\"
-            aws s3 cp --region '${AWS_REGION}' \"s3://${ANALYSIS_ARTIFACT_BUCKET}/bundles/analysis-deployments/${IMAGE_SHA}/deployment-bundle.tar.gz\" \"\$bundle\"
+            aws s3 cp --region '${AWS_REGION}' \"s3://${ARTIFACT_BUCKET_NAME}/bundles/analysis-deployments/${IMAGE_SHA}/deployment-bundle.tar.gz\" \"\$bundle\"
+            if ! printf '%s  %s\\n' \"\$expected_bundle_sha256\" \"\$bundle\" | sha256sum -c -; then
+              echo 'Deployment bundle SHA-256 verification failed' >&2
+              exit 1
+            fi
             tar -xzf \"\$bundle\" -C \"\$release\"
             docker load -i \"\$release/analysis-images.tar\"
-            IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" up --pull never -d --remove-orphans
+            if [ '${project_name}' = 'ucs503-sandbox' ]; then
+              node \"\$release/scripts/validate-sandbox-host.mjs\"
+            fi
+            if [ '${project_name}' = 'ucs503-analysis' ]; then
+              export SANDBOX_LIFECYCLE_TABLE='${SANDBOX_LIFECYCLE_TABLE}'
+            fi
+            IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" up --pull never -d
             container_id=\$(IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps -q '${service_name}')
             if [ -z \"\$container_id\" ]; then
               echo 'Compose did not create the expected service container' >&2
@@ -223,46 +527,98 @@ jobs:
               docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health >/dev/null
             fi
             docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
+            send_ssm_command "$instance_id" "$remote_command"
+          }
 
-            parameters="$(jq -n --arg command "$remote_command" '{commands: [$command]}')"
-            command_id="$(aws ssm send-command \
-              --instance-ids "$instance_id" \
-              --document-name AWS-RunShellScript \
-              --parameters "$parameters" \
-              --query 'Command.CommandId' \
-              --output text)"
+          rollback_instance() {
+            local instance_id="$1"
+            local previous_sha="$2"
+            local compose_file="$3"
+            local env_file="$4"
+            local project_name="$5"
+            local service_name="$6"
+            local expected_image_reference="$7"
+            local baseline_container_ids="$8"
+            local previous_lifecycle_table_state="$9"
+            local previous_lifecycle_table_b64="${10}"
+            local remote_command
 
-            for attempt in $(seq 1 90); do
-              status="$(aws ssm get-command-invocation \
-                --command-id "$command_id" \
-                --instance-id "$instance_id" \
-                --query Status \
-                --output text 2>/dev/null || echo Pending)"
-              case "$status" in
-                Success)
-                  echo "SSM deployment succeeded for $instance_id"
-                  return 0
-                  ;;
-                Failed|Cancelled|TimedOut|Cancelling)
-                  echo "SSM deployment failed for $instance_id (status: $status)" >&2
-                  return 1
-                  ;;
-              esac
-              sleep 10
-            done
-
-            echo "Timed out waiting for SSM deployment on $instance_id" >&2
-            return 1
+            remote_command="set -eu
+            if [ '${project_name}' = 'ucs503-sandbox' ]; then
+              export DOCKER_HOST=unix:///run/user/10002/docker.sock
+            fi
+            if [ '${previous_sha}' = absent ]; then
+              baseline_container_ids='${baseline_container_ids}'
+              current_project_container_ids=\$(docker ps -aq --filter 'label=com.docker.compose.project=${project_name}')
+              for container_id in \$current_project_container_ids; do
+                case \",\$baseline_container_ids,\" in
+                  *,\"\$container_id\",*) ;;
+                  *) docker rm -f \"\$container_id\" ;;
+                esac
+              done
+              expected_baseline_container_ids=\$(printf '%s' \"\$baseline_container_ids\" | tr ',' '\\n' | sed '/^$/d' | sort)
+              actual_baseline_container_ids=\$(docker ps -aq --filter 'label=com.docker.compose.project=${project_name}' | sort)
+              if [ \"\$actual_baseline_container_ids\" != \"\$expected_baseline_container_ids\" ]; then
+                echo 'Project containers do not match the captured absent-service baseline' >&2
+                exit 1
+              fi
+              echo 'Restored the exact absent-service container baseline without deleting persistent data'
+              exit 0
+            fi
+            release=/opt/ucs503/releases/${previous_sha}
+            if [ '${project_name}' = 'ucs503-analysis' ] && [ '${previous_lifecycle_table_state}' = set ]; then
+              export SANDBOX_LIFECYCLE_TABLE=\"\$(printf '%s' '${previous_lifecycle_table_b64}' | base64 -d)\"
+            fi
+            if [ ! -f \"\$release/${compose_file}\" ]; then
+              echo 'Captured rollback Compose release is unavailable' >&2
+              exit 1
+            fi
+            IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" up --pull never -d
+            container_id=\$(IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps -q '${service_name}')
+            if [ -z \"\$container_id\" ]; then
+              echo 'Rollback did not create the expected service container' >&2
+              exit 1
+            fi
+            actual_image_id=\$(docker inspect --format '{{.Image}}' \"\$container_id\")
+            expected_image_id=\$(docker image inspect --format '{{.Id}}' '${expected_image_reference}:${previous_sha}')
+            if [ \"\$actual_image_id\" != \"\$expected_image_id\" ]; then
+              echo 'Rollback service image does not match the captured release' >&2
+              exit 1
+            fi
+            if [ '${project_name}' = 'ucs503-analysis' ]; then
+              health_status=
+              for attempt in \$(seq 1 30); do
+                health_status=\$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}missing{{end}}' \"\$container_id\")
+                if [ \"\$health_status\" = healthy ]; then
+                  break
+                fi
+                if [ \"\$health_status\" = unhealthy ] || [ \"\$health_status\" = missing ]; then
+                  echo 'Analysis rollback health check failed' >&2
+                  exit 1
+                fi
+                sleep 10
+              done
+              if [ \"\$health_status\" != healthy ]; then
+                echo 'Timed out waiting for healthy analysis rollback' >&2
+                exit 1
+              fi
+              docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health >/dev/null
+            elif [ \"\$(docker inspect --format '{{.State.Running}}' \"\$container_id\")\" != true ]; then
+              echo 'Sandbox broker rollback container is not running' >&2
+              exit 1
+            fi
+            docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
+            send_ssm_command "$instance_id" "$remote_command"
           }
 
           verify_analysis_sandbox_smoke() {
-            local remote_command parameters command_id status attempt
-
+            local analysis_release_sha="$1"
+            local remote_command
             remote_command="set -eu
-            release=/opt/ucs503/releases/${IMAGE_SHA}
+            release=/opt/ucs503/releases/${analysis_release_sha}
             container_id=\$(docker compose --project-name ucs503-analysis --env-file /etc/ucs503/analysis.env -f \"\$release/docker-compose.analysis.yml\" ps -q ucs503-analysis)
             if [ -z \"\$container_id\" ]; then
-              echo 'Analysis container is missing during the sandbox readiness smoke test' >&2
+              echo 'Analysis container is missing during the sandbox broker readiness check' >&2
               exit 1
             fi
             health_payload=\$(docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health)
@@ -273,46 +629,82 @@ jobs:
                 exit 1
                 ;;
             esac"
-
-            parameters="$(jq -n --arg command "$remote_command" '{commands: [$command]}')"
-            command_id="$(aws ssm send-command \
-              --instance-ids "$ANALYSIS_INSTANCE_ID" \
-              --document-name AWS-RunShellScript \
-              --parameters "$parameters" \
-              --query 'Command.CommandId' \
-              --output text)"
-
-            for attempt in $(seq 1 90); do
-              status="$(aws ssm get-command-invocation \
-                --command-id "$command_id" \
-                --instance-id "$ANALYSIS_INSTANCE_ID" \
-                --query Status \
-                --output text 2>/dev/null || echo Pending)"
-              case "$status" in
-                Success)
-                  echo "Analysis and sandbox broker readiness smoke test passed"
-                  return 0
-                  ;;
-                Failed|Cancelled|TimedOut|Cancelling)
-                  echo "Analysis and sandbox broker readiness smoke test failed (status: $status)" >&2
-                  return 1
-                  ;;
-              esac
-              sleep 10
-            done
-
-            echo "Timed out waiting for the analysis and sandbox broker readiness smoke test" >&2
-            return 1
+            send_ssm_command "$ANALYSIS_INSTANCE_ID" "$remote_command"
           }
 
-          deploy_instance \
-            "$ANALYSIS_INSTANCE_ID" \
-            docker-compose.analysis.yml \
-            /etc/ucs503/analysis.env \
-            ucs503-analysis \
-            ucs503-analysis \
-            "$ANALYSIS_IMAGE_ID" \
-            ""
+          sandbox_started_by_workflow=false
+          analysis_deployment_attempted=false
+          sandbox_deployment_attempted=false
+          previous_analysis_image_sha=
+          previous_sandbox_image_sha=
+          previous_analysis_lifecycle_table_state=unset
+          previous_analysis_lifecycle_table_b64=
+
+          rollback_both_hosts() {
+            local rollback_failed=false
+            echo "Deployment failed; attempting rollback on both hosts" >&2
+            if ! rollback_instance \
+              "$ANALYSIS_INSTANCE_ID" \
+              "$previous_analysis_image_sha" \
+              docker-compose.analysis.yml \
+              /etc/ucs503/analysis.env \
+              ucs503-analysis \
+              ucs503-analysis \
+              ghcr.io/cv-code-vitals/ucs503-analysis \
+              "$previous_analysis_container_ids" \
+              "$previous_analysis_lifecycle_table_state" \
+              "$previous_analysis_lifecycle_table_b64"; then
+              echo "Analysis host rollback failed" >&2
+              rollback_failed=true
+            fi
+            if ! rollback_instance \
+              "$SANDBOX_INSTANCE_ID" \
+              "$previous_sandbox_image_sha" \
+              docker-compose.sandbox.yml \
+              /etc/ucs503/sandbox.env \
+              ucs503-sandbox \
+              ucs503-sandbox-broker \
+              ghcr.io/cv-code-vitals/ucs503-analysis \
+              "$previous_sandbox_container_ids" \
+              unset \
+              ""; then
+              echo "Sandbox host rollback failed" >&2
+              rollback_failed=true
+            fi
+            if [[ "$rollback_failed" == false &&
+                  "$previous_analysis_image_sha" != absent &&
+                  "$previous_sandbox_image_sha" != absent ]]; then
+              if ! verify_analysis_sandbox_smoke "$previous_analysis_image_sha"; then
+                echo "Broker readiness verification after rollback failed" >&2
+                rollback_failed=true
+              fi
+            fi
+            [[ "$rollback_failed" == false ]]
+          }
+
+          cleanup_sandbox() {
+            local result=$?
+            trap - EXIT
+            if [[ "$result" -ne 0 &&
+                  ( "$analysis_deployment_attempted" == true ||
+                    "$sandbox_deployment_attempted" == true ) ]]; then
+              if ! rollback_both_hosts; then
+                echo "One or more rollback checks failed" >&2
+                result=1
+              fi
+            fi
+            if [[ "$sandbox_started_by_workflow" == true ]]; then
+              if ! aws ec2 stop-instances --instance-ids "$SANDBOX_INSTANCE_ID"; then
+                echo "Failed to restore the sandbox instance's initial stopped state" >&2
+                result=1
+              elif ! aws ec2 wait instance-stopped --instance-ids "$SANDBOX_INSTANCE_ID"; then
+                echo "Timed out waiting for the sandbox instance to stop" >&2
+                result=1
+              fi
+            fi
+            exit "$result"
+          }
+          trap cleanup_sandbox EXIT
 
           sandbox_state="$(aws ec2 describe-instances \
             --instance-ids "$SANDBOX_INSTANCE_ID" \
@@ -333,6 +725,40 @@ jobs:
           esac
           wait_for_sandbox_ssm "$SANDBOX_INSTANCE_ID"
 
+          previous_analysis_capture="$(capture_previous_release \
+            "$ANALYSIS_INSTANCE_ID" \
+            ucs503-analysis \
+            ucs503-analysis \
+            docker-compose.analysis.yml \
+            ghcr.io/cv-code-vitals/ucs503-analysis)"
+          IFS='|' read -r \
+            previous_analysis_image_sha \
+            previous_analysis_container_ids \
+            previous_analysis_lifecycle_table_state \
+            previous_analysis_lifecycle_table_b64 <<< "$previous_analysis_capture"
+          previous_sandbox_capture="$(capture_previous_release \
+            "$SANDBOX_INSTANCE_ID" \
+            ucs503-sandbox \
+            ucs503-sandbox-broker \
+            docker-compose.sandbox.yml \
+            ghcr.io/cv-code-vitals/ucs503-analysis)"
+          IFS='|' read -r \
+            previous_sandbox_image_sha \
+            previous_sandbox_container_ids \
+            _previous_sandbox_lifecycle_table_state \
+            _previous_sandbox_lifecycle_table_b64 <<< "$previous_sandbox_capture"
+
+          analysis_deployment_attempted=true
+          deploy_instance \
+            "$ANALYSIS_INSTANCE_ID" \
+            docker-compose.analysis.yml \
+            /etc/ucs503/analysis.env \
+            ucs503-analysis \
+            ucs503-analysis \
+            "$ANALYSIS_IMAGE_ID" \
+            ""
+
+          sandbox_deployment_attempted=true
           deploy_instance \
             "$SANDBOX_INSTANCE_ID" \
             docker-compose.sandbox.yml \
@@ -342,4 +768,4 @@ jobs:
             "$ANALYSIS_IMAGE_ID" \
             "$SANDBOX_RUNNER_IMAGE_ID"
 
-          verify_analysis_sandbox_smoke
+          verify_analysis_sandbox_smoke "$IMAGE_SHA"

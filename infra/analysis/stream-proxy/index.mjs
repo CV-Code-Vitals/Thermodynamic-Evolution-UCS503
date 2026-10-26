@@ -197,8 +197,8 @@ async function getScanToken(ssmClient) {
 }
 
 export function createProxyHandler(dependencies = {}) {
-  const lambdaClient = dependencies.lambdaClient ?? new LambdaClient({ useDualstackEndpoint: true });
-  const ssmClient = dependencies.ssmClient ?? new SSMClient({ useDualstackEndpoint: true });
+  const lambdaClient = dependencies.lambdaClient ?? new LambdaClient({});
+  const ssmClient = dependencies.ssmClient ?? new SSMClient({});
   const stager = dependencies.stager ?? ((repositoryURL) => invokeStager(lambdaClient, repositoryURL));
   const readScanToken = dependencies.getScanToken ?? (() => getScanToken(ssmClient));
   const fetchImpl = dependencies.fetchImpl ?? globalThis.fetch;

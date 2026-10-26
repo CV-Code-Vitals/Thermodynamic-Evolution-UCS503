@@ -327,6 +327,34 @@ SSH-based `deploy-to-ec2.yml` workflow cannot deploy the legacy single-host
 stack. `docker-compose.ec2.yml` and the old `ucs503-api` service are legacy;
 the new workflow does not deploy them or use the archive stack.
 
+CloudFormation generates the physical names for the source bucket, artifact
+bucket, and lifecycle table. After a separately approved deployment, resolve
+their values from the stack outputs rather than deriving names from
+`ResourcePrefix`:
+
+```powershell
+aws cloudformation describe-stacks `
+  --stack-name <analysis-stack-name> `
+  --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName' || OutputKey=='ArtifactBucketName' || OutputKey=='AnalysisInstanceId' || OutputKey=='SandboxInstanceId' || OutputKey=='SandboxLifecycleTable'].[OutputKey,OutputValue]" `
+  --output table
+```
+
+The image deployment workflow reads `ArtifactBucketName`,
+`AnalysisInstanceId`, `SandboxInstanceId`, and `SandboxLifecycleTable` from the
+stack and supplies the lifecycle table output to analysis Compose. For manual
+host-side Compose use, set `SANDBOX_LIFECYCLE_TABLE` to that output rather than
+guessing the generated name. The local Compose default remains
+`sandbox-lifecycle`, which is also the fixed lifecycle record ID. The
+explicitly named Lambda functions and CloudWatch log groups include
+stack-specific suffixes.
+
+Ordinary stack deletion retains both S3 buckets, the lifecycle table, the
+encrypted analysis data volume, and retained log groups; it does not erase
+their data. The EC2 network interfaces are configured to delete with their
+instances. Do not treat `sam delete` as data cleanup: retained resources may
+be removed only through the separately approved cleanup workflow after its
+required review and backup checks.
+
 ### Deployment approval and cost gate
 
 The image publisher builds only commit-SHA tags for the analysis and sandbox
@@ -341,38 +369,55 @@ or AWS resource is configured by this change.
 
 Repository owners must review the itemized estimate and approve the deployment
 before configuring these Actions variables: `ANALYSIS_DEPLOY_ENABLED`,
-`ANALYSIS_DEPLOY_ROLE_ARN`, `ANALYSIS_DEPLOY_REGION`,
-`ANALYSIS_ARTIFACT_BUCKET`, `ANALYSIS_INSTANCE_ID`, and
-`SANDBOX_INSTANCE_ID`. Keep account-specific values in repository variables,
-not source code. Configure `analysis-deployment` with required reviewers and
-restrict the AWS role's GitHub OIDC trust to this repository and that
-environment. Grant the workflow only object upload to the designated private
-bucket prefix; `ssm:SendCommand` and `ssm:GetCommandInvocation` for the two
-approved managed instances; and `ssm:DescribeInstanceInformation` for the SSM
-readiness check. The sandbox power-state safeguard additionally requires
-`ec2:DescribeInstances` and `ec2:StartInstances`/`ec2:StopInstances`; scope
-start/stop to only the approved sandbox instance ARN. The workflow never starts
-or stops the analysis instance. Ensure the bucket blocks public access, uses
-encryption, and expires deployment bundles under an owner-approved retention
-policy. The workflow uploads to `bundles/analysis-deployments/<sha>/` and the
-two EC2 roles need read-only access to that bundle prefix.
+`ANALYSIS_STACK_NAME`, `ANALYSIS_DEPLOY_ROLE_ARN`, and
+`ANALYSIS_DEPLOY_REGION`. Keep account-specific values in repository
+variables, not source code. The workflow reads `ArtifactBucketName`,
+`AnalysisInstanceId`, `SandboxInstanceId`, and `SandboxLifecycleTable` from the
+named CloudFormation stack, requiring each output exactly once and non-empty
+before it uploads or sends SSM commands. Grant the AWS role
+`cloudformation:DescribeStacks` for that stack, object upload to the designated
+private bucket prefix, `ssm:SendCommand` and `ssm:GetCommandInvocation` for
+the two approved managed instances, and `ssm:DescribeInstanceInformation` for
+the SSM readiness check. It also needs `ssm:GetParameters` for the six named
+external SecureStrings; it checks their names and types without requesting or
+printing their values. The sandbox power-state safeguard additionally
+requires `ec2:DescribeInstances` and
+`ec2:StartInstances`/`ec2:StopInstances`; scope start/stop to only the approved
+sandbox instance ARN. `DescribeInstances` has no resource-level IAM scope; its
+allow statement is deliberately limited to the deployment region and is used
+only with the resolved sandbox instance ID. The workflow never starts or stops the analysis
+instance. Ensure the bucket blocks public access, uses encryption, and expires
+deployment bundles under an owner-approved retention policy. The workflow
+uploads to `bundles/analysis-deployments/<sha>/`; an existing object is reused
+only when its recorded SHA-256 equals the newly built bundle, otherwise the job
+fails. The two EC2 roles need
+read-only access to that bundle prefix.
 Do not create SSH keys, GHCR credentials for EC2, or long-lived AWS keys.
 
-The GitHub runner pulls only the selected SHA-tagged images, records their
-immutable Docker image IDs, saves them with the selected revision's Compose
-files, and uploads that bundle through short-lived GitHub OIDC credentials.
-SSM asks each private host to download the bundle from S3, `docker load` the
-images, and run Compose with `--pull never`; hosts do not pull from GHCR or
-require inbound SSH. The workflow verifies the running analysis and broker
-image IDs, confirms the sandbox runner image ID is loaded, and requires the
-analysis container health check and `/health` request to pass. After both
-hosts are deployed, it also verifies that analysis reports
-`sandbox_available: true`. If the sandbox
-was stopped before deployment, the workflow starts it, waits for SSM readiness,
-and restores its stopped state on success or failure; an initially running
-sandbox remains running. Use the same dispatch flow with a previously
-published SHA to roll back. The workflow does not change API Gateway, archive
-services, or other AWS resources.
+The GitHub runner resolves each selected SHA tag to its immutable manifest
+digest, verifies GitHub provenance and keyless Sigstore signatures against
+this repository's image-publishing workflow, records the Docker image IDs,
+and saves the images with the selected revision's Compose files and
+`scripts/validate-sandbox-host.mjs`. It then calculates a SHA-256 for the
+bundle. SSM asks each private host to download the bundle from S3 and
+verify that checksum before extraction or `docker load`; hosts do not pull from
+GHCR or require inbound SSH. Only the sandbox host runs the bundled validator,
+before its Compose command. The analysis Compose invocation receives the
+stack's `SandboxLifecycleTable` output as
+`SANDBOX_LIFECYCLE_TABLE`; the local Compose example default remains
+`sandbox-lifecycle`.
+
+Before changing either service, the workflow independently records each
+host's active SHA release. If either deployment or the final
+`sandbox_available: true` smoke test fails, it attempts to restore both
+captured releases and verifies their service health plus analysis-to-broker
+readiness. Any failed rollback check keeps the workflow failed for operator
+follow-up. If the sandbox was stopped before deployment, the workflow starts
+it, waits for SSM readiness, and restores its stopped state on success or
+failure; an initially running sandbox remains running. Use the same dispatch
+flow with a previously published SHA to roll forward or deliberately deploy an
+older release. The workflow does not change API Gateway, archive services, or
+other AWS resources.
 
 Before any deployment, confirm the expected monthly total against the
 approved budget (target about US$20/month; no more than US$25/month without
@@ -442,3 +487,68 @@ through the approved SSM/host process. Record rotation date and SSM parameter
 version, never values. Roll out CA trust overlap before replacing the broker
 certificate; coordinate shared-token changes across both hosts and verify
 authenticated health/evaluation before restoring ingress.
+
+### Retained analysis resource cleanup
+
+The cleanup workflow is a separate, manual path for resources retained after
+the analysis CloudFormation stack has been deleted. Delete the analysis stack
+first; do not use cleanup while the stack exists: the read-only inventory
+refuses every state other than a missing stack or `DELETE_COMPLETE`. Before
+dispatching, configure the repository
+variables `ANALYSIS_STACK_NAME`, `ANALYSIS_RESOURCE_PREFIX`, and
+`ANALYSIS_CLEANUP_REGION`, plus separate
+`ANALYSIS_CLEANUP_READ_ROLE_ARN` and `ANALYSIS_CLEANUP_WRITE_ROLE_ARN` OIDC
+role variables. Set `ANALYSIS_CLEANUP_ENABLED` to the exact string `true` only
+for an approved cleanup window. Configure required reviewers for the
+protected `analysis-cleanup` GitHub Environment in repository settings; that
+protection is an operator prerequisite and is not created by this workflow.
+
+Dispatch **Cleanup retained analysis resources** with `enable_cleanup` left
+false for inventory-only review. The inventory job uses its read-only role and
+adds the resource list to the workflow run summary before the destructive job
+can request environment approval. Review the whole list and the uploaded
+`analysis-cleanup-plan` artifact. To proceed, dispatch again with
+`enable_cleanup` set to true and type the exact `ANALYSIS_RESOURCE_PREFIX` in
+`confirm_prefix`. Cleanup remains disabled unless that boolean, the repository
+enable variable, and exact prefix confirmation all match. The protected
+environment approval is an additional independent gate.
+
+The allowlist is restricted to S3 buckets, DynamoDB tables, EBS data volumes,
+and EBS snapshots carrying the exact `AnalysisStack=<resource prefix>` tag,
+plus only these six exact legacy log-group stems from the analysis template.
+The exact unsuffixed names remain eligible even when the deleted stack ID is
+unavailable. A suffixed name is eligible only when its 12-character lowercase
+hexadecimal suffix matches the exact deleted stack ID:
+
+- `/aws/ssm/sessions/<prefix>` or `/aws/ssm/sessions/<prefix>-<suffix>`
+- `/aws/lambda/<prefix>-analysis-proxy` or `/aws/lambda/<prefix>-analysis-proxy-<suffix>`
+- `/aws/lambda/<prefix>-analysis-authorizer` or `/aws/lambda/<prefix>-analysis-authorizer-<suffix>`
+- `/aws/lambda/<prefix>-source-stager` or `/aws/lambda/<prefix>-source-stager-<suffix>`
+- `/aws/lambda/<prefix>-sandbox-watchdog` or `/aws/lambda/<prefix>-sandbox-watchdog-<suffix>`
+- `/aws/apigateway/<prefix>-analysis` or `/aws/apigateway/<prefix>-analysis-<suffix>`
+
+The script rejects missing or changed ownership tags, changed inventory,
+unknown log groups, attached volumes, incomplete S3 version pagination, and
+failed AWS operations. It rechecks ownership immediately before each delete.
+Applying is irreversible: it deletes all S3 object versions and delete
+markers (including current objects) from each eligible bucket before deleting
+the bucket; drops the eligible DynamoDB tables and all their items; deletes
+unattached tagged EBS data volumes and tagged snapshots; and deletes the six
+eligible log groups. Check backups and retention obligations first. This path never
+terminates EC2 instances, deletes AMIs, or changes/deletes the archive stack.
+
+For future least-privilege OIDC configuration, scope the inventory role to
+`cloudformation:DescribeStacks` for the named analysis stack;
+`s3:ListAllMyBuckets` and `s3:GetBucketTagging`; DynamoDB
+`ListTables`, `DescribeTable`, and `ListTagsOfResource`; EC2
+`DescribeVolumes`/`DescribeSnapshots`; and CloudWatch Logs
+`DescribeLogGroups`. Scope the separate cleanup role's matching read
+permissions plus `s3:ListBucketVersions`, `s3:DeleteObjectVersion`, and
+`s3:DeleteBucket` only to tagged analysis buckets; `dynamodb:DeleteTable`
+only to tagged lifecycle tables; `ec2:DeleteVolume`/`ec2:DeleteSnapshot`
+only to the exact `AnalysisStack` tag; and `logs:DeleteLogGroup` only to the
+six allowlisted log-group name patterns. EC2 describe/list APIs that do not
+support resource scoping may require `Resource: "*"`. Restrict both OIDC
+trust policies to this repository and the intended workflow/job identities.
+Do not grant EC2 instance termination, AMI deletion, CloudFormation stack
+deletion, or archive-resource permissions.

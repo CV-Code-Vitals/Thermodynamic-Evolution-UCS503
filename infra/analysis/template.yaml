@@ -68,11 +68,6 @@ Parameters:
     Default: https://zylus08.github.io
     AllowedPattern: '^https://[A-Za-z0-9.-]+$'
     Description: Exact GitHub Pages origin allowed by browser CORS.
-  SandboxLifecycleTableName:
-    Type: String
-    Default: sandbox-lifecycle
-    AllowedPattern: '^sandbox-lifecycle$'
-    Description: Task 6 contract. Keep this exact table name.
   ApiTokenParameterName:
     Type: String
     Default: /ucs503/analysis/api-token
@@ -91,6 +86,14 @@ Parameters:
   SandboxCaParameterName:
     Type: String
     Default: /ucs503/analysis/sandbox-ca
+  S3ManagedPrefixListId:
+    Type: String
+    AllowedPattern: '^pl-[0-9a-f]+$'
+    Description: AWS-managed S3 prefix list ID for the deployment region.
+  DynamoDbManagedPrefixListId:
+    Type: String
+    AllowedPattern: '^pl-[0-9a-f]+$'
+    Description: AWS-managed DynamoDB prefix list ID for the deployment region.
   SsmSessionLogRetentionDays:
     Type: Number
     Default: 365
@@ -118,9 +121,16 @@ Resources:
 
   AnalysisSubnet:
     Type: AWS::EC2::Subnet
+    DependsOn: AnalysisVpcIpv6
     Properties:
       VpcId: !Ref AnalysisVpc
       CidrBlock: !Ref AnalysisSubnetCidr
+      Ipv6CidrBlock: !Select
+        - 0
+        - !Cidr
+          - !Select [0, !GetAtt AnalysisVpc.Ipv6CidrBlocks]
+          - 256
+          - 64
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: false
       AssignIpv6AddressOnCreation: true
@@ -132,9 +142,16 @@ Resources:
 
   SandboxSubnet:
     Type: AWS::EC2::Subnet
+    DependsOn: AnalysisVpcIpv6
     Properties:
       VpcId: !Ref AnalysisVpc
       CidrBlock: !Ref SandboxSubnetCidr
+      Ipv6CidrBlock: !Select
+        - 1
+        - !Cidr
+          - !Select [0, !GetAtt AnalysisVpc.Ipv6CidrBlocks]
+          - 256
+          - 64
       AvailabilityZone: !Select [0, !GetAZs '']
       MapPublicIpOnLaunch: false
       AssignIpv6AddressOnCreation: true
@@ -143,30 +160,6 @@ Resources:
           Value: !Sub '${ResourcePrefix}-sandbox-private'
         - Key: AnalysisStack
           Value: !Ref ResourcePrefix
-
-  AnalysisSubnetIpv6:
-    Type: AWS::EC2::SubnetCidrBlock
-    DependsOn: AnalysisVpcIpv6
-    Properties:
-      SubnetId: !Ref AnalysisSubnet
-      Ipv6CidrBlock: !Select
-        - 0
-        - !Cidr
-          - !Select [0, !GetAtt AnalysisVpc.Ipv6CidrBlocks]
-          - 256
-          - 64
-
-  SandboxSubnetIpv6:
-    Type: AWS::EC2::SubnetCidrBlock
-    DependsOn: AnalysisVpcIpv6
-    Properties:
-      SubnetId: !Ref SandboxSubnet
-      Ipv6CidrBlock: !Select
-        - 1
-        - !Cidr
-          - !Select [0, !GetAtt AnalysisVpc.Ipv6CidrBlocks]
-          - 256
-          - 64
 
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
@@ -188,27 +181,11 @@ Resources:
       SubnetId: !Ref SandboxSubnet
       RouteTableId: !Ref PrivateRouteTable
 
-  EgressOnlyInternetGateway:
-    Type: AWS::EC2::EgressOnlyInternetGateway
-    Properties:
-      VpcId: !Ref AnalysisVpc
-
-  Ipv6ControlPlaneRoute:
-    Type: AWS::EC2::Route
-    DependsOn:
-      - AnalysisSubnetRouteAssociation
-      - SandboxSubnetRouteAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable
-      DestinationIpv6CidrBlock: ::/0
-      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGateway
-
   SourceBucket:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub '${ResourcePrefix}-${AWS::AccountId}-${AWS::Region}-source'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -240,7 +217,6 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub '${ResourcePrefix}-${AWS::AccountId}-${AWS::Region}-artifacts'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -278,20 +254,242 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Sid: ListOnlyStackBuckets
-            Effect: Allow
-            Principal: '*'
-            Action: s3:ListBucket
-            Resource:
-              - !GetAtt SourceBucket.Arn
-              - !GetAtt ArtifactBucket.Arn
           - Sid: ReadOnlyStackObjects
             Effect: Allow
-            Principal: '*'
+            Principal:
+              AWS:
+                - !GetAtt AnalysisInstanceRole.Arn
+                - !GetAtt SandboxInstanceRole.Arn
             Action: s3:GetObject
             Resource:
               - !Sub '${SourceBucket.Arn}/*'
               - !Sub '${ArtifactBucket.Arn}/*'
+
+  PrivateDynamoDbGatewayEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Gateway
+      VpcId: !Ref AnalysisVpc
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.dynamodb'
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AnalysisLifecycleTableOnly
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt AnalysisInstanceRole.Arn
+            Action: dynamodb:*
+            Resource: !GetAtt AnalysisLifecycleTable.Arn
+
+  InterfaceEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Accept HTTPS only from the analysis workloads for private AWS API access.
+      VpcId: !Ref AnalysisVpc
+      SecurityGroupEgress: []
+      Tags:
+        - Key: Name
+          Value: !Sub '${ResourcePrefix}-interface-endpoints'
+        - Key: AnalysisStack
+          Value: !Ref ResourcePrefix
+
+  ProxyToInterfaceEndpointsEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref ProxySecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationSecurityGroupId: !Ref InterfaceEndpointSecurityGroup
+
+  AnalysisToInterfaceEndpointsEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AnalysisSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationSecurityGroupId: !Ref InterfaceEndpointSecurityGroup
+
+  SandboxToInterfaceEndpointsEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SandboxSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationSecurityGroupId: !Ref InterfaceEndpointSecurityGroup
+
+  ProxyToInterfaceEndpointsIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref InterfaceEndpointSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref ProxySecurityGroup
+
+  AnalysisToInterfaceEndpointsIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref InterfaceEndpointSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref AnalysisSecurityGroup
+
+  SandboxToInterfaceEndpointsIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref InterfaceEndpointSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !Ref SandboxSecurityGroup
+
+  SsmEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref AnalysisVpc
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssm'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref AnalysisSubnet
+      SecurityGroupIds:
+        - !Ref InterfaceEndpointSecurityGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: SsmFromStackRolesOnly
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt ProxyExecutionRole.Arn
+                - !GetAtt AnalysisInstanceRole.Arn
+                - !GetAtt SandboxInstanceRole.Arn
+            Action: ssm:*
+            Resource: '*'
+
+  SsmMessagesEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref AnalysisVpc
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ssmmessages'
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref AnalysisSubnet
+      SecurityGroupIds:
+        - !Ref InterfaceEndpointSecurityGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: SsmMessagesFromInstancesOnly
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt AnalysisInstanceRole.Arn
+                - !GetAtt SandboxInstanceRole.Arn
+            Action: ssmmessages:*
+            Resource: '*'
+
+  Ec2MessagesEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref AnalysisVpc
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2messages'
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref AnalysisSubnet
+      SecurityGroupIds:
+        - !Ref InterfaceEndpointSecurityGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Ec2MessagesFromInstancesOnly
+            Effect: Allow
+            Principal:
+              AWS:
+                - !GetAtt AnalysisInstanceRole.Arn
+                - !GetAtt SandboxInstanceRole.Arn
+            Action: ec2messages:*
+            Resource: '*'
+
+  Ec2ApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref AnalysisVpc
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ec2'
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref AnalysisSubnet
+      SecurityGroupIds:
+        - !Ref InterfaceEndpointSecurityGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: Ec2FromAnalysisInstanceOnly
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt AnalysisInstanceRole.Arn
+            Action:
+              - ec2:DescribeInstances
+              - ec2:StartInstances
+              - ec2:StopInstances
+            Resource: '*'
+
+  LambdaApiEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcEndpointType: Interface
+      VpcId: !Ref AnalysisVpc
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.lambda'
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref AnalysisSubnet
+      SecurityGroupIds:
+        - !Ref InterfaceEndpointSecurityGroup
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: InvokeSourceStagerFromProxyOnly
+            Effect: Allow
+            Principal:
+              AWS: !GetAtt ProxyExecutionRole.Arn
+            Action: lambda:InvokeFunction
+            Resource: !GetAtt SourceStagerFunction.Arn
+
+  AnalysisToS3EndpointEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AnalysisSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationPrefixListId: !Ref S3ManagedPrefixListId
+
+  SandboxToS3EndpointEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref SandboxSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationPrefixListId: !Ref S3ManagedPrefixListId
+
+  AnalysisToDynamoDbEndpointEgress:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref AnalysisSecurityGroup
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      DestinationPrefixListId: !Ref DynamoDbManagedPrefixListId
 
   SourceBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -374,15 +572,6 @@ Resources:
       ToPort: 8080
       DestinationSecurityGroupId: !Ref AnalysisSecurityGroup
 
-  ProxyIpv6HttpsEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref ProxySecurityGroup
-      IpProtocol: tcp
-      FromPort: 443
-      ToPort: 443
-      CidrIpv6: ::/0
-
   AnalysisFromProxyIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -401,15 +590,6 @@ Resources:
       ToPort: 8082
       DestinationSecurityGroupId: !Ref SandboxSecurityGroup
 
-  AnalysisIpv6HttpsEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref AnalysisSecurityGroup
-      IpProtocol: tcp
-      FromPort: 443
-      ToPort: 443
-      CidrIpv6: ::/0
-
   SandboxFromAnalysisIngress:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
@@ -419,21 +599,11 @@ Resources:
       ToPort: 8082
       SourceSecurityGroupId: !Ref AnalysisSecurityGroup
 
-  SandboxIpv6HttpsEgress:
-    Type: AWS::EC2::SecurityGroupEgress
-    Properties:
-      GroupId: !Ref SandboxSecurityGroup
-      IpProtocol: tcp
-      FromPort: 443
-      ToPort: 443
-      CidrIpv6: ::/0
-
   AnalysisLifecycleTable:
     Type: AWS::DynamoDB::Table
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      TableName: !Ref SandboxLifecycleTableName
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: id
@@ -452,7 +622,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      LogGroupName: !Sub '/aws/ssm/sessions/${ResourcePrefix}'
+      LogGroupName: !Sub ['/aws/ssm/sessions/${ResourcePrefix}-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: !Ref SsmSessionLogRetentionDays
 
   ProxyLogGroup:
@@ -460,7 +630,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${ResourcePrefix}-analysis-proxy'
+      LogGroupName: !Sub ['/aws/lambda/${ResourcePrefix}-analysis-proxy-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: 365
 
   AuthorizerLogGroup:
@@ -468,7 +638,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${ResourcePrefix}-analysis-authorizer'
+      LogGroupName: !Sub ['/aws/lambda/${ResourcePrefix}-analysis-authorizer-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: 365
 
   SourceStagerLogGroup:
@@ -476,7 +646,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${ResourcePrefix}-source-stager'
+      LogGroupName: !Sub ['/aws/lambda/${ResourcePrefix}-source-stager-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: 365
 
   LifecycleWatchdogLogGroup:
@@ -484,7 +654,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      LogGroupName: !Sub '/aws/lambda/${ResourcePrefix}-sandbox-watchdog'
+      LogGroupName: !Sub ['/aws/lambda/${ResourcePrefix}-sandbox-watchdog-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: 365
 
   ProxyExecutionRole:
@@ -668,13 +838,15 @@ Resources:
                   - ec2:StartInstances
                   - ec2:StopInstances
                 Resource: !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${SandboxInstance}'
-              - Sid: DescribeOnlyStackTaggedInstances
+              # DescribeInstances does not support resource-tag conditions. Limit
+              # the account-wide read to this stack's deployment region instead.
+              - Sid: DescribeInstancesInStackRegion
                 Effect: Allow
                 Action: ec2:DescribeInstances
                 Resource: '*'
                 Condition:
                   StringEquals:
-                    ec2:ResourceTag/AnalysisStack: !Ref ResourcePrefix
+                    aws:RequestedRegion: !Ref AWS::Region
               - Sid: WriteAnalysisSsmSessionLogs
                 Effect: Allow
                 Action:
@@ -761,13 +933,15 @@ Resources:
                 Effect: Allow
                 Action: ec2:StopInstances
                 Resource: !Sub 'arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/${SandboxInstance}'
-              - Sid: DescribeOnlyStackTaggedInstances
+              # DescribeInstances does not support resource-tag conditions. Limit
+              # the account-wide read to this stack's deployment region instead.
+              - Sid: DescribeInstancesInStackRegion
                 Effect: Allow
                 Action: ec2:DescribeInstances
                 Resource: '*'
                 Condition:
                   StringEquals:
-                    ec2:ResourceTag/AnalysisStack: !Ref ResourcePrefix
+                    aws:RequestedRegion: !Ref AWS::Region
               - Sid: WriteWatchdogLogs
                 Effect: Allow
                 Action:
@@ -826,7 +1000,6 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           NetworkInterfaceId: !Ref SandboxPrivateNetworkInterface
-          DeleteOnTermination: false
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
@@ -842,6 +1015,8 @@ Resources:
 
   AnalysisDataVolume:
     Type: AWS::EC2::Volume
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
     Properties:
       AvailabilityZone: !Select [0, !GetAZs '']
       Size: !Ref AnalysisDataVolumeSizeGiB
@@ -856,8 +1031,8 @@ Resources:
   AnalysisInstance:
     Type: AWS::EC2::Instance
     DependsOn:
-      - AnalysisSubnetIpv6
       - PrivateS3GatewayEndpoint
+      - PrivateDynamoDbGatewayEndpoint
     Properties:
       ImageId: !Ref AnalysisAmiId
       InstanceType: !Ref AnalysisInstanceType
@@ -865,7 +1040,6 @@ Resources:
       NetworkInterfaces:
         - DeviceIndex: '0'
           NetworkInterfaceId: !Ref AnalysisPrivateNetworkInterface
-          DeleteOnTermination: false
       BlockDeviceMappings:
         - DeviceName: /dev/xvda
           Ebs:
@@ -941,7 +1115,7 @@ Resources:
   AnalysisDataSnapshotPolicy:
     Type: AWS::DLM::LifecyclePolicy
     Properties:
-      Description: Daily encrypted snapshots of the persistent analysis data volume; retain seven.
+      Description: Daily encrypted snapshots of persistent analysis data volume retain seven
       ExecutionRoleArn: !GetAtt SnapshotLifecycleRole.Arn
       State: ENABLED
       PolicyDetails:
@@ -969,7 +1143,7 @@ Resources:
     DependsOn:
       - ProxyLogGroup
     Properties:
-      FunctionName: !Sub '${ResourcePrefix}-analysis-proxy'
+      FunctionName: !Sub ['${ResourcePrefix}-analysis-proxy-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       CodeUri: stream-proxy/
       Handler: index.handler
       Runtime: nodejs22.x
@@ -995,7 +1169,7 @@ Resources:
     DependsOn:
       - AuthorizerLogGroup
     Properties:
-      FunctionName: !Sub '${ResourcePrefix}-analysis-authorizer'
+      FunctionName: !Sub ['${ResourcePrefix}-analysis-authorizer-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       CodeUri: ../../analysis-authorizer/
       Handler: bootstrap
       Runtime: provided.al2023
@@ -1015,7 +1189,7 @@ Resources:
     DependsOn:
       - SourceStagerLogGroup
     Properties:
-      FunctionName: !Sub '${ResourcePrefix}-source-stager'
+      FunctionName: !Sub ['${ResourcePrefix}-source-stager-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       CodeUri: ../../source-stager/
       Handler: bootstrap
       Runtime: provided.al2023
@@ -1038,7 +1212,7 @@ Resources:
     DependsOn:
       - LifecycleWatchdogLogGroup
     Properties:
-      FunctionName: !Sub '${ResourcePrefix}-sandbox-watchdog'
+      FunctionName: !Sub ['${ResourcePrefix}-sandbox-watchdog-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       Runtime: nodejs22.x
       Handler: index.handler
       Role: !GetAtt LifecycleWatchdogRole.Arn
@@ -1438,7 +1612,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      LogGroupName: !Sub '/aws/apigateway/${ResourcePrefix}-analysis'
+      LogGroupName: !Sub ['/aws/apigateway/${ResourcePrefix}-analysis-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: 365
 
   AnalysisApiDeployment:

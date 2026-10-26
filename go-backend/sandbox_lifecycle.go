@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,13 +24,14 @@ import (
 
 const (
 	sandboxLifecycleRecordID  = "sandbox-lifecycle"
-	sandboxLifecycleTable     = "sandbox-lifecycle"
 	sandboxIdleDuration       = 10 * time.Minute
 	sandboxLeaseGrace         = time.Minute
 	sandboxStatePollInterval  = 100 * time.Millisecond
 	sandboxBrokerPollInterval = time.Second
 	sandboxDynamoRetryLimit   = 12
 )
+
+var sandboxLifecycleTableNamePattern = regexp.MustCompile(`^[A-Za-z0-9_.-]{3,255}$`)
 
 type SandboxState string
 
@@ -405,8 +407,8 @@ func NewDynamoSandboxLifecycleStore(client dynamoSandboxLifecycleAPI, tableName 
 	if client == nil {
 		return nil, errors.New("DynamoDB lifecycle client is required")
 	}
-	if strings.TrimSpace(tableName) != sandboxLifecycleTable {
-		return nil, fmt.Errorf("SANDBOX_LIFECYCLE_TABLE must be %q", sandboxLifecycleTable)
+	if !sandboxLifecycleTableNamePattern.MatchString(tableName) {
+		return nil, errors.New("SANDBOX_LIFECYCLE_TABLE must match [A-Za-z0-9_.-]{3,255}")
 	}
 	return &DynamoSandboxLifecycleStore{client: client, tableName: tableName}, nil
 }
@@ -911,7 +913,6 @@ func sandboxLifecycleFromEnv(ctx context.Context) (*SandboxLifecycle, error) {
 	}
 	awsConfig, err := config.LoadDefaultConfig(
 		ctx,
-		config.WithUseDualStackEndpoint(aws.DualStackEndpointStateEnabled),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("load AWS configuration for sandbox lifecycle: %w", err)
