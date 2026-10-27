@@ -2,6 +2,7 @@ import { repositoryFiles, buildGraphModel } from './model.mjs';
 import scanConfig from './config.mjs';
 import { scanPublicRepository } from './scan.mjs';
 import { scoreBand, energyBreakdown, summarizeRepository } from './measurements.mjs';
+import { mountAccountPanel } from './account.mjs';
 
 const $ = id => document.getElementById(id);
 const canvas = $('graph'), ctx = canvas.getContext('2d'), stage = $('stage');
@@ -258,6 +259,7 @@ const embedded = new URLSearchParams(location.search).get('embedded') === 'true'
 $('public-tools').hidden = embedded;
 $('public-nav').hidden = embedded;
 if (!embedded) {
+  void mountAccountPanel(scanConfig.apiBase);
   const root = new URL('../', location.href);
   if (root.pathname.endsWith('/admin-portal/')) {
     $('home-link').href = new URL('../', root);

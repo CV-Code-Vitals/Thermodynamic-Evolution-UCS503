@@ -91,6 +91,15 @@
     #public-tools #scan-status { margin: 12px 0 0; color: var(--gold); font: 12px/1.6 var(--font-mono); }
     #public-tools #scan-error { margin: 12px 0 0; color: #ff6565; font: 12px/1.6 var(--font-mono); }
     #scan-status:empty, #scan-error:empty { display: none; }
+    #account-panel { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-color); }
+    #account-panel[hidden], #account-panel [hidden] { display: none; }
+    .account-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    #account-identity { color: var(--gold); }
+    #public-tools #account-status { font: 13px/1.7 var(--font-main); color: #aaa; margin: 10px 0 0; }
+    #account-panel summary { color: var(--gold); cursor: pointer; margin: 14px 0; }
+    #saved-list { display: grid; gap: 8px; }
+    .saved-repository-row { display: flex; gap: 8px; }
+    .saved-repository-row button:first-child { flex: 1; text-align: left; overflow-wrap: anywhere; min-width: 0; }
     .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 16px 20px; }
     .toolbar input[type=search] { flex: 1; min-width: 180px; }
     .toolbar label { font: 11px var(--font-mono); color: #aaa; display: flex; gap: 6px; align-items: center; }
@@ -185,6 +194,11 @@
     </form>
     <p id="scan-status" role="status">Loading scanner…</p><p id="scan-error" role="alert"></p>
     <noscript><p>JavaScript must be enabled to scan repositories.</p></noscript>
+    <section id="account-panel" aria-label="Personal account and saved repositories" hidden>
+      <div class="account-actions"><span id="account-identity"></span><button id="github-signin" type="button" disabled>Sign in with GitHub</button><button id="save-repository" type="button" hidden>Save repository</button><button id="github-signout" type="button" hidden>Sign out</button></div>
+      <p id="account-status" role="status">Checking account availability…</p>
+      <details id="saved-repositories" hidden><summary>Saved repositories</summary><div id="saved-list"></div></details>
+    </section>
   </section>
   <section id="measurements" aria-label="Repository measurements" hidden>
     <div class="measurement-heading"><h2>Repository measurements</h2><button id="view-graph" type="button">View graph ↓</button></div>

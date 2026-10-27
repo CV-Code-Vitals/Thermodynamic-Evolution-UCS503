@@ -16,6 +16,23 @@ Parameters:
     Type: String
     MinLength: 1
     Description: Name of the standard-tier SSM SecureString containing the token signing key.
+  GitHubClientId:
+    Type: String
+    Default: ''
+    Description: Public OAuth app client ID. Leave empty to disable personal sign-in.
+  GitHubClientSecretParameterName:
+    Type: String
+    Default: ''
+    Description: SSM SecureString parameter name for the GitHub OAuth client secret.
+  GitHubFrontendUrl:
+    Type: String
+    Default: https://cv-code-vitals.github.io/Thermodynamic-Evolution-UCS503/graph-visualizer/
+    Description: Fixed HTTPS scanner URL receiving the one-time sign-in ticket.
+
+Conditions:
+  HasGitHubOAuth: !And
+    - !Not [!Equals [!Ref GitHubClientId, '']]
+    - !Not [!Equals [!Ref GitHubClientSecretParameterName, '']]
 
 Globals:
   Function:
@@ -99,6 +116,15 @@ Resources:
                 Resource:
                   - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AdminPasskeyParameterName}
                   - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${TokenHMACKeyParameterName}
+                  - !If [HasGitHubOAuth, !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GitHubClientSecretParameterName}', !Ref 'AWS::NoValue']
+              - Sid: PersonalAccountOperations
+                Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                Resource: !GetAtt AccountTable.Arn
               - Sid: InspectConfiguredSecretMetadata
                 Effect: Allow
                 Action:
@@ -121,6 +147,7 @@ Resources:
                     kms:EncryptionContext:PARAMETER_ARN:
                       - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AdminPasskeyParameterName}
                       - !Sub arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${TokenHMACKeyParameterName}
+                      - !If [HasGitHubOAuth, !Sub 'arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${GitHubClientSecretParameterName}', !Ref 'AWS::NoValue']
                   ForAnyValue:StringEquals:
                     kms:ResourceAliases:
                       - alias/aws/ssm
@@ -205,6 +232,22 @@ Resources:
         AttributeName: expiresAt
         Enabled: true
 
+  AccountTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expiresAt
+        Enabled: true
+
   ArchiveApiFunction:
     Type: AWS::Serverless::Function
     DependsOn:
@@ -223,6 +266,11 @@ Resources:
           ADMIN_PASSKEY_PARAMETER: !Ref AdminPasskeyParameterName
           TOKEN_HMAC_KEY_PARAMETER: !Ref TokenHMACKeyParameterName
           CORS_ALLOWED_ORIGINS: !Ref FrontendOrigin
+          ACCOUNTS_TABLE: !Ref AccountTable
+          GITHUB_CLIENT_ID: !Ref GitHubClientId
+          GITHUB_CLIENT_SECRET_PARAMETER: !Ref GitHubClientSecretParameterName
+          GITHUB_CALLBACK_URL: !Sub https://${ServerApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/api/auth/github/callback
+          GITHUB_FRONTEND_URL: !Ref GitHubFrontendUrl
       Events:
         ApiProxy:
           Type: HttpApi
@@ -238,6 +286,9 @@ Resources:
             Method: GET
 
 Outputs:
+  GitHubOAuthCallbackUrl:
+    Description: Register this callback URL with the GitHub OAuth app.
+    Value: !Sub https://${ServerApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/api/auth/github/callback
   ApiBaseUrl:
     Description: Set this public URL as the VITE_API_BASE GitHub Actions variable.
     Value: !Sub https://${ServerApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/api

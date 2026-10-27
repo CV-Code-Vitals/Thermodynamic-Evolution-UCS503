@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -164,11 +165,20 @@ func newLocalDependencies(passkey, signingKey, archivePath, uploadRoot string) (
 	}
 	objects := newLocalObjectStore(uploadRoot)
 	repository := newLocalArchiveRepository(archivePath)
+	accountPath := os.Getenv("USER_DATA_FILE")
+	if accountPath == "" {
+		accountPath = filepath.Join(filepath.Dir(archivePath), "accounts.json")
+	}
+	accounts, err := accountServiceFromEnvironment(&localAccountStore{path: accountPath}, os.Getenv("GITHUB_CLIENT_SECRET"))
+	if err != nil {
+		return Dependencies{}, err
+	}
 	return Dependencies{
 		Auth:       auth,
 		Archives:   newArchiveServiceWithLogger(repository, objects, slog.Default()),
 		LocalFiles: objects,
 		Logger:     slog.Default(),
+		Accounts:   accounts,
 	}, nil
 }
 
@@ -191,10 +201,28 @@ func newAWSDependencies(ctx context.Context) (Dependencies, error) {
 	repository := NewDynamoDBArchiveRepository(dynamoClient, values.table)
 	objects := NewS3ObjectStore(s3Client, s3.NewPresignClient(s3Client), values.bucket)
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	var accounts *githubAccountService
+	if os.Getenv("GITHUB_CLIENT_ID") != "" {
+		table := strings.TrimSpace(os.Getenv("ACCOUNTS_TABLE"))
+		if table == "" {
+			return Dependencies{}, errors.New("ACCOUNTS_TABLE is required for GitHub sign-in")
+		}
+		secret, err := loadSSMSecureString(ctx, ssmClient, os.Getenv("GITHUB_CLIENT_SECRET_PARAMETER"))
+		if err != nil {
+			return Dependencies{}, fmt.Errorf("load GitHub OAuth secret: %w", err)
+		}
+		accounts, err = accountServiceFromEnvironment(&dynamoAccountStore{client: dynamoClient, table: table}, secret)
+		if err != nil {
+			return Dependencies{}, err
+		}
+	} else if os.Getenv("GITHUB_CLIENT_SECRET_PARAMETER") != "" {
+		return Dependencies{}, errors.New("GITHUB_CLIENT_ID is required when GitHub authentication is configured")
+	}
 	return Dependencies{
 		Auth:     auth,
 		Archives: newArchiveServiceWithLogger(repository, objects, logger),
 		Logger:   logger,
+		Accounts: accounts,
 	}, nil
 }
 
