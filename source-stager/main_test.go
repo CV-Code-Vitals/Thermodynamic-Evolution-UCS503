@@ -145,6 +145,18 @@ func TestStageRepository_EnforcesArchiveLimits(t *testing.T) {
 	}
 }
 
+func TestValidateArchiveAllowsFileLargerThanLegacyLimit(t *testing.T) {
+	archive := makeZIP(t, []zipEntry{{
+		name:    "repo/data.npz",
+		content: strings.Repeat("x", 17<<20),
+	}})
+	stager := NewRepositoryStager(RepositoryStagerConfig{Limits: defaultSourceLimits()})
+
+	if err := stager.validateArchive(archive); err != nil {
+		t.Fatalf("validateArchive() rejected a file within the 32 MiB per-file limit: %v", err)
+	}
+}
+
 func TestStageRepository_RejectsUnsafeArchiveEntries(t *testing.T) {
 	archive := makeZIP(t, []zipEntry{{name: "../escape.txt", content: "blocked"}})
 	roundTripper := &sequenceRoundTripper{responses: []*http.Response{

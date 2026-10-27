@@ -1621,7 +1621,7 @@ Resources:
       LogGroupName: !Sub ['/aws/apigateway/${ResourcePrefix}-analysis-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: 365
 
-  AnalysisApiDeployment:
+  AnalysisApiDeploymentCorsV2:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
       - ScanApiMethod
@@ -1640,7 +1640,7 @@ Resources:
       - ApiGatewayAccount
     Properties:
       RestApiId: !Ref AnalysisApi
-      DeploymentId: !Ref AnalysisApiDeployment
+      DeploymentId: !Ref AnalysisApiDeploymentCorsV2
       StageName: !Ref ApiStageName
       AccessLogSetting:
         DestinationArn: !GetAtt AnalysisApiAccessLogGroup.Arn

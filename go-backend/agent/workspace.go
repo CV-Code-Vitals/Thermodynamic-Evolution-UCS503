@@ -17,7 +17,7 @@ const (
 	maxWorkspaceArchiveBytes   int64 = 50 << 20
 	maxWorkspaceExpandedBytes  int64 = 256 << 20
 	maxWorkspaceArchiveEntries       = 10_000
-	maxWorkspaceFileBytes      int64 = 16 << 20
+	maxWorkspaceFileBytes      int64 = 32 << 20
 )
 
 var errWorkspaceArchiveTooLarge = errors.New("workspace archive exceeds size limit")

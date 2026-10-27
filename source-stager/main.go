@@ -51,7 +51,7 @@ func defaultSourceLimits() SourceLimits {
 		MaxArchiveBytes:  50 << 20,
 		MaxExpandedBytes: 256 << 20,
 		MaxEntries:       10_000,
-		MaxFileBytes:     16 << 20,
+		MaxFileBytes:     32 << 20,
 	}
 }
 

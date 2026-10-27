@@ -124,6 +124,7 @@ jobs:
           sam validate --lint --template-file template.yaml
           sam validate --lint --template-file infra/analysis/template.yaml
           sam build --template-file template.yaml
+          sam build --template-file infra/analysis/template.yaml
 
       - name: Verify and configure Rust toolchain
         run: |
