@@ -24,6 +24,10 @@ Parameters:
     Type: String
     Default: ''
     Description: SSM SecureString parameter name for the GitHub OAuth client secret.
+  GitHubCallbackUrl:
+    Type: String
+    Default: ''
+    Description: HTTPS callback URL from the previous stack deployment's GitHubOAuthCallbackUrl output.
   GitHubFrontendUrl:
     Type: String
     Default: https://cv-code-vitals.github.io/Thermodynamic-Evolution-UCS503/graph-visualizer/
@@ -33,6 +37,7 @@ Conditions:
   HasGitHubOAuth: !And
     - !Not [!Equals [!Ref GitHubClientId, '']]
     - !Not [!Equals [!Ref GitHubClientSecretParameterName, '']]
+    - !Not [!Equals [!Ref GitHubCallbackUrl, '']]
 
 Globals:
   Function:
@@ -267,9 +272,9 @@ Resources:
           TOKEN_HMAC_KEY_PARAMETER: !Ref TokenHMACKeyParameterName
           CORS_ALLOWED_ORIGINS: !Ref FrontendOrigin
           ACCOUNTS_TABLE: !Ref AccountTable
-          GITHUB_CLIENT_ID: !Ref GitHubClientId
-          GITHUB_CLIENT_SECRET_PARAMETER: !Ref GitHubClientSecretParameterName
-          GITHUB_CALLBACK_URL: !Sub https://${ServerApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/api/auth/github/callback
+          GITHUB_CLIENT_ID: !If [HasGitHubOAuth, !Ref GitHubClientId, '']
+          GITHUB_CLIENT_SECRET_PARAMETER: !If [HasGitHubOAuth, !Ref GitHubClientSecretParameterName, '']
+          GITHUB_CALLBACK_URL: !If [HasGitHubOAuth, !Ref GitHubCallbackUrl, '']
           GITHUB_FRONTEND_URL: !Ref GitHubFrontendUrl
       Events:
         ApiProxy:

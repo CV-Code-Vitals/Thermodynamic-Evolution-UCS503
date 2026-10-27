@@ -38,6 +38,14 @@ test('scopes SecureString decryption to the SSM KMS key alias', () => {
   }
 });
 
+test('configures GitHub OAuth without a Lambda/API Gateway dependency cycle', () => {
+  assert.match(archiveTemplate, /GitHubCallbackUrl:\s*\r?\n\s+Type: String\s*\r?\n\s+Default: ''/);
+  assert.match(archiveTemplate, /- !Not \[!Equals \[!Ref GitHubCallbackUrl, ''\]\]/);
+  assert.match(archiveTemplate, /GITHUB_CALLBACK_URL: !If \[HasGitHubOAuth, !Ref GitHubCallbackUrl, ''\]/);
+  assert.match(archiveTemplate, /GitHubOAuthCallbackUrl:[\s\S]*?Value: !Sub https:\/\/\$\{ServerApi\}\.execute-api\./);
+  assert.doesNotMatch(archiveTemplate, /GITHUB_CALLBACK_URL: !Sub https:\/\/\$\{ServerApi\}/);
+});
+
 test('creates two private instances with split roles', () => {
   assert.equal((template.match(/Type: AWS::EC2::Instance/g) ?? []).length, 2);
   assert.match(resource('AnalysisInstance'), /IamInstanceProfile: !Ref AnalysisInstanceProfile/);
