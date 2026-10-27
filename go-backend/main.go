@@ -178,7 +178,7 @@ func extractZip(zipPath, destDir string) error {
 
 	const maxEntries = 10_000
 	const maxArchiveBytes int64 = 256 << 20
-	const maxEntryBytes int64 = 16 << 20
+	const maxEntryBytes int64 = 32 << 20
 	if len(r.File) > maxEntries {
 		return fmt.Errorf("zip contains too many entries")
 	}
