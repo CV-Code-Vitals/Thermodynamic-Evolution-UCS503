@@ -22,7 +22,7 @@ fi
 # 3. Compile Go backend
 echo "Compiling Go backend API..."
 cd go-backend
-go build -o thermo-api main.go evolve.go scanner.go deliverables.go
+go build -o thermo-api .
 cd ..
 
 echo "Build complete! Proceed with systemd restart to apply changes."

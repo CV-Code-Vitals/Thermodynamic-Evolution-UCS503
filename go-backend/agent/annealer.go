@@ -33,29 +33,31 @@ type AnnealingConfig struct {
 
 // StepTelemetry captures per-iteration telemetry for the live evolution stream.
 type StepTelemetry struct {
-	Step            int              `json:"step"`
-	Temp            float64          `json:"temp"`
-	OldEnergy       float64          `json:"old_energy"`
-	NewEnergy       float64          `json:"new_energy"`
-	DeltaE          float64          `json:"delta_e"`
-	BestEnergy      float64          `json:"best_energy"`
-	BaselineEnergy  float64          `json:"baseline_energy"`
-	CandidateEnergy float64          `json:"candidate_energy"`
-	AcceptanceProb  float64          `json:"acceptance_prob,omitempty"`
-	IsBestSoFar     bool             `json:"is_best_so_far"`
-	TestsPassed     bool             `json:"tests_passed"`
-	Accepted        bool             `json:"accepted"`
-	Reason          string           `json:"reason"`
-	CodePatch       string           `json:"code_patch,omitempty"`
-	SourceHash      string           `json:"source_hash,omitempty"`
-	Metrics         *FunctionMetrics `json:"metrics,omitempty"`
-	CandidateID     string           `json:"candidate_id,omitempty"`
-	Strategy        string           `json:"strategy,omitempty"`
+	Step                int              `json:"step"`
+	Temp                float64          `json:"temp"`
+	OldEnergy           float64          `json:"old_energy"`
+	NewEnergy           float64          `json:"new_energy"`
+	DeltaE              float64          `json:"delta_e"`
+	BestEnergy          float64          `json:"best_energy"`
+	BaselineEnergy      float64          `json:"baseline_energy"`
+	CandidateEnergy     float64          `json:"candidate_energy"`
+	AcceptanceProb      float64          `json:"acceptance_prob,omitempty"`
+	IsBestSoFar         bool             `json:"is_best_so_far"`
+	TestsPassed         bool             `json:"tests_passed"`
+	EvaluationAttempted bool             `json:"evaluation_attempted"`
+	Accepted            bool             `json:"accepted"`
+	Reason              string           `json:"reason"`
+	CodePatch           string           `json:"code_patch,omitempty"`
+	SourceHash          string           `json:"source_hash,omitempty"`
+	Metrics             *FunctionMetrics `json:"metrics,omitempty"`
+	CandidateID         string           `json:"candidate_id,omitempty"`
+	Strategy            string           `json:"strategy,omitempty"`
 }
 
 // AnnealingResult contains the final accepted code and metrics.
 type AnnealingResult struct {
 	OptimizedCode      string                   `json:"optimized_code"`
+	Patch              string                   `json:"patch,omitempty"`
 	BaselineEnergy     float64                  `json:"baseline_energy"`
 	FinalEnergy        float64                  `json:"final_energy"`
 	EnergyDelta        float64                  `json:"energy_delta"`
@@ -181,6 +183,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 	correctnessFailed := 0
 	duplicatesSkipped := 0
 	terminationReason := "max_steps_reached"
+	stepsCompleted := 0
 
 	// Duplicate detection set seeded with baseline
 	seenCandidateHashes := map[string]bool{initialSourceHash: true}
@@ -203,6 +206,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 			terminationReason = "target_energy_reached"
 			break
 		}
+		stepsCompleted = step
 
 		telemetry := StepTelemetry{
 			Step:           step,
@@ -220,8 +224,6 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		var strategyName string
 		var candidateID string
 
-		proposalsGenerated++
-
 		if isTargeted {
 			candidateID = fmt.Sprintf("cand-%d-%s", step, uuid.New().String()[:8])
 			req := MutationRequest{
@@ -238,6 +240,14 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 			}
 			proposal, propErr := targetedMutator.ProposeTargeted(ctx, req)
 			if propErr != nil {
+				if errors.Is(propErr, ErrNoApplicableStrategy) {
+					terminationReason = "no_applicable_mutations"
+					telemetry.Reason = terminationReason
+					if !sendTelemetry(ctx, ch, telemetry) {
+						return nil, ctx.Err()
+					}
+					break
+				}
 				telemetry.Reason = "mutation_failed: " + propErr.Error()
 				if !sendTelemetry(ctx, ch, telemetry) {
 					return nil, ctx.Err()
@@ -277,6 +287,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 
 		telemetry.CandidateID = candidateID
 		telemetry.Strategy = strategyName
+		proposalsGenerated++
 
 		// Check duplicate candidate before container execution
 		prospectiveBytes := make([]byte, 0, startByte+len(mutatedCode)+(len(workingFileBytes)-endByte))
@@ -312,6 +323,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 			Limits:        DefaultResourceLimits(),
 		}
 
+		telemetry.EvaluationAttempted = true
 		evalRes, err := a.Evaluator.EvaluateCandidate(ctx, evalReq)
 		if err != nil {
 			correctnessFailed++
@@ -343,6 +355,9 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 
 		correctnessPassed++
 		telemetry.TestsPassed = true
+		if adaptive, ok := a.Mutator.(*AdaptiveMutator); ok {
+			adaptive.RecordOutcome(strategyName, true, false)
+		}
 
 		// 4. Evaluate actual structural energy using the Rust AST engine
 		energyMeas, err := a.EnergyEvaluator.EvaluateEnergy(ctx, evalRes.UpdatedFileBytes, cleanedRel, funcName)
@@ -387,7 +402,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 
 				if isTargeted {
 					if adaptive, ok := a.Mutator.(*AdaptiveMutator); ok {
-						adaptive.RecordOutcome(strategyName, true, true)
+						adaptive.RecordOutcome(strategyName, false, true)
 					}
 				}
 			}
@@ -448,7 +463,7 @@ func (a *Annealer) Evolve(ctx context.Context, repoPath, filePath, funcName stri
 		BaselineEnergy:     baselineEnergy,
 		FinalEnergy:        bestEnergy,
 		EnergyDelta:        baselineEnergy - bestEnergy, // Positive value represents energy reduced (improvement)
-		TotalSteps:         cfg.MaxSteps,
+		TotalSteps:         stepsCompleted,
 		AcceptedMoves:      acceptedMoves,
 		BestImproved:       bestImproved,
 		TerminationReason:  terminationReason,

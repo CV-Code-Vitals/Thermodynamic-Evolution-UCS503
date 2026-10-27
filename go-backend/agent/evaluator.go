@@ -77,7 +77,7 @@ type EvaluationResult struct {
 	Output           string            `json:"output"`
 	Duration         time.Duration     `json:"duration"`
 	UpdatedFileBytes []byte            `json:"-"`
-	Error            error             `json:"error,omitempty"`
+	Error            error             `json:"-"`
 }
 
 // CandidateEvaluator defines the boundary through which all candidate code must be evaluated.

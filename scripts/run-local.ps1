@@ -15,6 +15,20 @@ if (-not $env:ADMIN_PASSKEY -or $env:ADMIN_PASSKEY -eq '') {
 # Paths
 $apiPath = Join-Path $repoRoot 'api'
 $fePath = Join-Path $repoRoot 'admin-portal'
+$analysisPath = Join-Path $repoRoot 'go-backend'
+$analysisPort = 8081
+if (-not $env:ANALYSIS_API_TOKEN) {
+    $env:ANALYSIS_API_TOKEN = node -e "process.stdout.write(require('crypto').randomBytes(32).toString('hex'))"
+}
+$env:ANALYSIS_SERVICE_URL = "http://127.0.0.1:$analysisPort"
+if (-not $env:SANDBOX_WORKSPACE_DIR) {
+    $env:SANDBOX_WORKSPACE_DIR = Join-Path $analysisPath 'uploads/sandboxes'
+}
+Push-Location (Join-Path $repoRoot 'thermodynamic-ast-engine')
+cargo build --release --locked
+$engineBuildExitCode = $LASTEXITCODE
+Pop-Location
+if ($engineBuildExitCode -ne 0) { exit $engineBuildExitCode }
 
 function Test-PortFree($port) {
     return -not (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
@@ -24,6 +38,16 @@ $apiPort = 8080
 while (-not (Test-PortFree $apiPort)) {
     $apiPort++
 }
+if ($apiPort -eq $analysisPort) {
+    $apiPort++
+    while (-not (Test-PortFree $apiPort)) { $apiPort++ }
+}
+if (-not (Test-PortFree $analysisPort)) {
+    Write-Host "Analysis port $analysisPort is occupied; stop that service before starting." -ForegroundColor Red
+    exit 1
+}
+$analysisCmd = "Set-Location -Path '$analysisPath'; `$env:PORT='$analysisPort'; go run ."
+Start-Process powershell -ArgumentList "-NoExit","-Command",$analysisCmd
 
 if (-not (Test-Path $apiPath)) {
     Write-Host "API path not found: $apiPath" -ForegroundColor Red

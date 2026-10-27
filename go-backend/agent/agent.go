@@ -41,6 +41,7 @@ type FunctionMetrics struct {
 // Hotspot represents a single entropy signal within a source file.
 type Hotspot struct {
 	FunctionName      string          `json:"function_name"`
+	Calls             []string        `json:"calls,omitempty"`
 	LineNumber        int             `json:"line_number"`
 	ByteRange         [2]int          `json:"byte_range"`
 	SourceSnippet     string          `json:"source_snippet"`
@@ -52,25 +53,41 @@ type Hotspot struct {
 
 // FileReport holds the per-file analysis summary.
 type FileReport struct {
-	FilePath           string    `json:"file_path"`
-	Language           string    `json:"language"`
-	LinesScanned       int       `json:"lines_scanned"`
-	TotalEntropy       float64   `json:"total_entropy"`
-	MeanHotspotEntropy float64   `json:"mean_hotspot_entropy"`
-	Hotspots           []Hotspot `json:"hotspots"`
+	FilePath           string            `json:"file_path"`
+	Language           string            `json:"language"`
+	LinesScanned       int               `json:"lines_scanned"`
+	AnalysisMode       string            `json:"analysis_mode,omitempty"`
+	ParseErrors        bool              `json:"parse_errors,omitempty"`
+	Imports            []ImportReference `json:"imports,omitempty"`
+	TotalEntropy       float64           `json:"total_entropy"`
+	MeanHotspotEntropy float64           `json:"mean_hotspot_entropy"`
+	Hotspots           []Hotspot         `json:"hotspots"`
+}
+
+type ImportReference struct {
+	Path string `json:"path"`
+	Kind string `json:"kind"`
+}
+
+type Relationship struct {
+	Kind            string `json:"kind"`
+	SourceFile      string `json:"source_file"`
+	TargetFile      string `json:"target_file"`
+	SourceStartByte *int   `json:"source_start_byte,omitempty"`
+	TargetStartByte *int   `json:"target_start_byte,omitempty"`
 }
 
 // ThermodynamicReport is the root document produced by the Rust engine.
 type ThermodynamicReport struct {
-	EngineVersion    string       `json:"engine_version"`
-	GeneratedAt      string       `json:"generated_at"`
-	ScannedDirectory string       `json:"scanned_directory"`
-	FilesAnalyzed    int          `json:"files_analyzed"`
-	TotalHotspots    int          `json:"total_hotspots"`
-	GlobalEntropy    float64      `json:"global_entropy"`
-	FileReports      []FileReport `json:"file_reports"`
+	EngineVersion    string         `json:"engine_version"`
+	GeneratedAt      string         `json:"generated_at"`
+	ScannedDirectory string         `json:"scanned_directory"`
+	FilesAnalyzed    int            `json:"files_analyzed"`
+	TotalHotspots    int            `json:"total_hotspots"`
+	GlobalEntropy    float64        `json:"global_entropy"`
+	FileReports      []FileReport   `json:"file_reports"`
+	Relationships    []Relationship `json:"relationships,omitempty"`
 }
-
 // usize_t is an alias for int to match Rust's usize JSON serialization.
 type usize_t = int
 

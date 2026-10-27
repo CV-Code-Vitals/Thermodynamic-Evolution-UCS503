@@ -235,6 +235,9 @@ func beginLocalUpload(t *testing.T, handler http.Handler, metadata UploadMetadat
 	if response.Code != http.StatusCreated {
 		t.Fatalf("begin upload returned %d: %s", response.Code, response.Body.String())
 	}
+	if bytes.Contains(response.Body.Bytes(), []byte(`"fields":null`)) {
+		t.Fatal("local upload returned null form fields, which the portal cannot submit")
+	}
 	var upload PresignedUpload
 	if err := json.Unmarshal(response.Body.Bytes(), &upload); err != nil {
 		t.Fatalf("decode upload authorization: %v", err)

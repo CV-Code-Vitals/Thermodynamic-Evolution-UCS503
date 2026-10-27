@@ -17,9 +17,13 @@ uploads/
 .env
 .env.*
 !.env.example
+!.env.ec2.example
 !.env.analysis.example
 !.env.sandbox.example
 
 # OS generated files
 .DS_Store
 GITHUB_SECRETS_COPY.txt
+
+*.key
+*.pem

@@ -17,15 +17,15 @@ const deploymentReadme = await read('README_DEPLOY.md');
 const analysisCompose = await read('docker-compose.analysis.yml');
 
 test('publishes immutable SHA image tags', () => {
-  assert.match(publishWorkflow, /on:\s*\n\s+workflow_dispatch:\s*\n\s+push:/);
+  assert.match(publishWorkflow, /^  workflow_dispatch:/m);
   assert.match(publishWorkflow, /push:\s*\n\s+branches:\s*\n\s+- main/);
-  assert.match(publishWorkflow, /docker\/setup-buildx-action@v3/);
-  assert.match(publishWorkflow, /docker\/login-action@v3/);
-  assert.match(publishWorkflow, /docker\/build-push-action@v6/);
+  assert.match(publishWorkflow, /docker\/setup-buildx-action@v4/);
+  assert.match(publishWorkflow, /docker\/login-action@v4/);
+  assert.match(publishWorkflow, /docker\/build-push-action@v7/);
   assert.match(publishWorkflow, /attestations:\s*write/);
   assert.match(publishWorkflow, /id-token:\s*write/);
   assert.match(publishWorkflow, /actions\/attest@v4/);
-  assert.match(publishWorkflow, /subject-digest:\s*\$\{\{\s*steps\.[a-z_]+\.outputs\.digest\s*\}\}/);
+  assert.match(publishWorkflow, /subject-digest:\s*\$\{\{\s*steps\.[a-z_]+\.outputs\.(?:analysis_digest|runner_digest)\s*\}\}/);
   assert.match(publishWorkflow, /push-to-registry:\s*true/);
   assert.match(publishWorkflow, /'go-backend\/\*\*'/);
   assert.match(publishWorkflow, /'thermodynamic-ast-engine\/\*\*'/);
@@ -40,12 +40,11 @@ test('publishes immutable SHA image tags', () => {
     /ucs503-sandbox-runner:\$\{\{\s*github\.sha\s*\}\}/,
   );
   assert.match(publishWorkflow, /id-token:\s*write/);
-  assert.match(publishWorkflow, /id:\s*analysis_image/);
-  assert.match(publishWorkflow, /id:\s*sandbox_runner_image/);
+  assert.match(publishWorkflow, /id:\s*publish/);
   assert.match(publishWorkflow, /sigstore\/cosign-installer@v3/);
   assert.match(publishWorkflow, /cosign sign --yes/);
-  assert.match(publishWorkflow, /steps\.analysis_image\.outputs\.digest/);
-  assert.match(publishWorkflow, /steps\.sandbox_runner_image\.outputs\.digest/);
+  assert.match(publishWorkflow, /steps\.publish\.outputs\.analysis_digest/);
+  assert.match(publishWorkflow, /steps\.publish\.outputs\.runner_digest/);
   assert.doesNotMatch(
     publishWorkflow,
     /ucs503-(?:analysis|sandbox-runner):latest\b/i,

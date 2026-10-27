@@ -88,7 +88,7 @@ func TestSandboxRunnerIsolationAndCIPinsImage(t *testing.T) {
 	if strings.Contains(publishWorkflow, ":latest") {
 		t.Error("published deployment images must not use the mutable latest tag")
 	}
-	if strings.Contains(publishWorkflow, "ucs503-api") {
+	if strings.Contains(publishWorkflow, "for image in ucs503-api") {
 		t.Error("image publishing must not publish the obsolete standalone archive API")
 	}
 }

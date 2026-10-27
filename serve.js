@@ -15,6 +15,7 @@ const mimeTypes = {
   '.html': 'text/html',
   '.css': 'text/css',
   '.js': 'application/javascript',
+  '.mjs': 'application/javascript',
   '.json': 'application/json',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
@@ -49,8 +50,11 @@ function sendFile(res, filePath) {
   const contentType = mimeTypes[ext] || 'application/octet-stream';
   const relativePath = path.relative(ROOT_DIR, filePath);
   const isLegacyPage = relativePath === 'index.html' || relativePath.startsWith(`graph-visualizer${path.sep}`);
-  const contentSecurityPolicy = isLegacyPage
-    ? "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 https://api.github.com https://raw.githubusercontent.com; base-uri 'self'; frame-ancestors 'none'"
+  const isEmbeddedGraph = relativePath.split(path.sep).join('/').includes('/dist/graph-visualizer/');
+  const contentSecurityPolicy = isEmbeddedGraph
+    ? "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'; connect-src 'self' https://api.github.com https://raw.githubusercontent.com; base-uri 'self'; frame-ancestors 'self'"
+    : isLegacyPage
+      ? "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:8080 http://127.0.0.1:8080 https://api.github.com https://raw.githubusercontent.com; base-uri 'self'; frame-ancestors 'none'"
     : "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; script-src 'self'; base-uri 'self'; frame-ancestors 'none'";
 
   fs.readFile(filePath, (err, content) => {
@@ -84,10 +88,20 @@ const server = http.createServer((req, res) => {
       },
     }, (proxyRes) => {
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.on('error', () => res.destroy());
       proxyRes.pipe(res, { end: true });
     });
 
+    res.on('close', () => {
+      if (!res.writableEnded) proxyReq.destroy();
+    });
+
     proxyReq.on('error', (err) => {
+      if (res.destroyed) return;
+      if (res.headersSent) {
+        res.destroy();
+        return;
+      }
       console.error(`[PROXY ERROR] Could not reach backend on port ${backendPort}:`, err.message);
       res.writeHead(502, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'bad_gateway', message: `Cannot connect to Go backend on port ${backendPort}` }));

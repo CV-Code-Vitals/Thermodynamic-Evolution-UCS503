@@ -23,6 +23,8 @@ type Dependencies struct {
 	Archives   ArchiveService
 	LocalFiles LocalFileStore
 	Logger     *slog.Logger
+	Analysis   http.Handler
+	Accounts   *githubAccountService
 }
 
 const archiveRouteTimeout = 25 * time.Second
@@ -221,6 +223,8 @@ func registerArchiveServiceRoutes(mux *http.ServeMux, deps Dependencies) {
 
 func newRouter(deps Dependencies) http.Handler {
 	mux := http.NewServeMux()
+	registerAnalysisRoutes(mux, deps)
+	registerAccountRoutes(mux, deps.Accounts)
 
 	statusHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

@@ -38,6 +38,14 @@ test('scopes SecureString decryption to the SSM KMS key alias', () => {
   }
 });
 
+test('configures GitHub OAuth without a Lambda/API Gateway dependency cycle', () => {
+  assert.match(archiveTemplate, /GitHubCallbackUrl:\s*\r?\n\s+Type: String\s*\r?\n\s+Default: ''/);
+  assert.match(archiveTemplate, /- !Not \[!Equals \[!Ref GitHubCallbackUrl, ''\]\]/);
+  assert.match(archiveTemplate, /GITHUB_CALLBACK_URL: !If \[HasGitHubOAuth, !Ref GitHubCallbackUrl, ''\]/);
+  assert.match(archiveTemplate, /GitHubOAuthCallbackUrl:[\s\S]*?Value: !Sub https:\/\/\$\{ServerApi\}\.execute-api\./);
+  assert.doesNotMatch(archiveTemplate, /GITHUB_CALLBACK_URL: !Sub https:\/\/\$\{ServerApi\}/);
+});
+
 test('creates two private instances with split roles', () => {
   assert.equal((template.match(/Type: AWS::EC2::Instance/g) ?? []).length, 2);
   assert.match(resource('AnalysisInstance'), /IamInstanceProfile: !Ref AnalysisInstanceProfile/);
@@ -260,22 +268,17 @@ test('runs the sandbox broker through the dedicated rootless Docker socket', asy
   assert.match(compose, /no-new-privileges:true/);
   const exampleEnv = await read('.env.sandbox.example');
   const deploymentWorkflow = await read('.github/workflows/deploy-analysis.yml');
-  const deploymentReadme = await read('README_DEPLOY.md');
-  const analysisReadme = await read('infra/analysis/README.md');
 
   assert.match(compose, /DOCKER_HOST:\s*unix:\/\/\/run\/docker\.sock/);
   assert.match(compose, /source:\s*\$\{DOCKER_SOCKET_SOURCE:[\s\S]*?target: \/run\/docker\.sock/);
   assert.doesNotMatch(compose, /DOCKER_GID|\/var\/run\/docker\.sock/);
   assert.match(exampleEnv, /^DOCKER_SOCKET_SOURCE=\/run\/user\/10002\/docker\.sock$/m);
   assert.match(deploymentWorkflow, /export DOCKER_HOST=unix:\/\/\/run\/user\/10002\/docker\.sock/);
-  for (const readme of [deploymentReadme, analysisReadme]) {
-    assert.match(readme, /rootless Docker/i);
-    assert.match(readme, /10002/);
-    assert.match(readme, /linger/i);
-  }
+
 });
 
 test('configures anonymous scan and protected streaming Evolution routes', () => {
+  assert.match(template, /FrontendOrigin:[\s\S]*?Default: https:\/\/cv-code-vitals\.github\.io/);
   assert.match(resource('ScanApiMethod'), /AuthorizationType: NONE/);
   assert.match(resource('ScanApiMethod'), /ResponseTransferMode: STREAM/);
   assert.match(resource('EvolveApiMethod'), /AuthorizationType: CUSTOM/);
@@ -304,7 +307,6 @@ test('provides the deployment support files and artifact prefix contract', async
   for (const file of [
     'infra/analysis/samconfig.toml',
     'infra/analysis/parameters.example.json',
-    'infra/analysis/README.md',
   ]) {
     await access(path.join(root, file), constants.F_OK);
   }

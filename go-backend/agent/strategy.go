@@ -11,7 +11,9 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"math"
 	"math/rand"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -254,7 +256,7 @@ func (s *LLMMutationStrategy) Mutate(ctx context.Context, req MutationRequest) (
 
 // ── Adaptive / Multi-Strategy Selector ────────────────────────────────────────
 
-// AdaptiveMutator combines multiple strategies with tracking and deterministic random selection.
+// AdaptiveMutator favors strategies with successful prior outcomes while retaining exploration.
 type AdaptiveMutator struct {
 	Strategies []MutationStrategy
 	RandSource *rand.Rand
@@ -319,6 +321,17 @@ func (a *AdaptiveMutator) ProposeTargeted(ctx context.Context, req MutationReque
 	if len(a.Strategies) == 0 {
 		return nil, ErrNoApplicableStrategy
 	}
+	originalCode := req.CurrentCode
+	bodyStart, bodyEnd := 0, 0
+	const packagePrefix = "package mutation\n"
+	fset := token.NewFileSet()
+	if file, err := parser.ParseFile(fset, "target.go", packagePrefix+originalCode, parser.ParseComments); err == nil && len(file.Decls) == 1 {
+		if function, ok := file.Decls[0].(*ast.FuncDecl); ok && function.Body != nil {
+			bodyStart = fset.Position(function.Body.Lbrace).Offset - len(packagePrefix) + 1
+			bodyEnd = fset.Position(function.Body.Rbrace).Offset - len(packagePrefix)
+			req.CurrentCode = originalCode[bodyStart:bodyEnd]
+		}
+	}
 
 	// Filter to strategies that can handle this snippet
 	applicable := make([]MutationStrategy, 0, len(a.Strategies))
@@ -333,13 +346,29 @@ func (a *AdaptiveMutator) ProposeTargeted(ctx context.Context, req MutationReque
 		applicable = a.Strategies
 	}
 
-	// Permute applicable strategies using deterministic RNG
-	indices := a.RandSource.Perm(len(applicable))
+	// Weighted sampling without replacement retains a chance to try every strategy.
+	indices := make([]int, len(applicable))
+	priorities := make([]float64, len(applicable))
+	for i, strategy := range applicable {
+		indices[i] = i
+		weight := 1.0
+		if stats := a.stats[strategy.Name()]; stats != nil {
+			weight += float64(stats.ValidCandidates+2*stats.Improvements) / float64(stats.ProposalsGenerated+1)
+		}
+		priorities[i] = -math.Log(1-a.RandSource.Float64()) / weight
+	}
+	sort.Slice(indices, func(i, j int) bool { return priorities[indices[i]] < priorities[indices[j]] })
 
 	for _, idx := range indices {
 		strat := applicable[idx]
 		proposal, err := strat.Mutate(ctx, req)
 		if err == nil && proposal != nil && proposal.MutatedCode != "" && proposal.MutatedCode != req.CurrentCode {
+			if bodyStart > 0 {
+				proposal.MutatedCode = originalCode[:bodyStart] + "\n" + proposal.MutatedCode + "\n" + originalCode[bodyEnd:]
+				if formatted, err := format.Source([]byte(packagePrefix + proposal.MutatedCode)); err == nil {
+					proposal.MutatedCode = strings.TrimSpace(strings.TrimPrefix(string(formatted), packagePrefix))
+				}
+			}
 			// Record statistics
 			st, ok := a.stats[strat.Name()]
 			if !ok {

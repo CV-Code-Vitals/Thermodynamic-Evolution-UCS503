@@ -1,15 +1,36 @@
-name: Publish Analysis and Sandbox Images
+name: Publish Backend Docker Images
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+  pull_request:
     paths:
+      - 'api/**'
       - 'go-backend/**'
       - 'thermodynamic-ast-engine/**'
       - 'docker/**'
       - '.dockerignore'
+      - 'docker-compose.ec2.yml'
+      - 'docker-compose.verify.yml'
+      - '.env.ec2.example'
+      - 'scripts/smoke-portal.mjs'
+      - 'graph-visualizer/scan.mjs'
+      - 'scripts/create-verification-tls.sh'
+      - '.github/workflows/publish-api-image.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'api/**'
+      - 'go-backend/**'
+      - 'thermodynamic-ast-engine/**'
+      - 'docker/**'
+      - '.dockerignore'
+      - 'docker-compose.ec2.yml'
+      - 'docker-compose.verify.yml'
+      - '.env.ec2.example'
+      - 'scripts/smoke-portal.mjs'
+      - 'graph-visualizer/scan.mjs'
+      - 'scripts/create-verification-tls.sh'
       - '.github/workflows/publish-api-image.yml'
 
 jobs:
@@ -17,69 +38,137 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write
       attestations: write
       id-token: write
-      packages: write
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4.4.1
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build and push API image
+        uses: docker/build-push-action@v7.4.0
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: false
+          load: true
+          tags: |
+            ghcr.io/cv-code-vitals/ucs503-api:${{ github.sha }}
+
       - name: Build and push analysis backend image
-        id: analysis_image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: ./go-backend/Dockerfile
-          push: true
-          tags: ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}
+          push: false
+          load: true
+          tags: |
+            ghcr.io/cv-code-vitals/ucs503-analysis:${{ github.sha }}
 
       - name: Build and push sandbox runner image
-        id: sandbox_runner_image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7.4.0
         with:
           context: .
           file: ./docker/sandbox-runner/Dockerfile
-          push: true
-          tags: ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${{ github.sha }}
+          push: false
+          load: true
+          tags: |
+            ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${{ github.sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify the containerized portal and sandbox broker
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          SANDBOX_HOST_DIR: ${{ runner.temp }}/ucs503-sandboxes
+          SANDBOX_TLS_DIR: ${{ runner.temp }}/ucs503-tls
+          PORTAL_TEST_PASSKEY: ci-disposable-verification-passkey
+          PORTAL_PASSKEY: ci-disposable-verification-passkey
+          PORTAL_API_BASE: http://127.0.0.1:18080/api
+          PORTAL_ORIGIN: http://127.0.0.1:18080
+          SMOKE_OUTPUT_DIR: ${{ runner.temp }}/evolution-proof
+        run: |
+          mkdir -p "$SANDBOX_HOST_DIR"
+          bash scripts/create-verification-tls.sh "$SANDBOX_TLS_DIR"
+          docker compose -p ucs503-verification --env-file .env.ec2.example -f docker-compose.ec2.yml -f docker-compose.verify.yml up -d --wait ucs503-sandbox-broker ucs503-analysis ucs503-api
+          node scripts/smoke-portal.mjs
+
+      - name: Publish verified images
+        id: publish
+        if: github.event_name != 'pull_request'
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          for image in ucs503-analysis ucs503-sandbox-runner; do
+            reference="ghcr.io/cv-code-vitals/${image}:${IMAGE_TAG}"
+            docker push "$reference"
+            digest="$(docker buildx imagetools inspect "$reference" --format '{{.Manifest.Digest}}')"
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 1
+            if [[ "$image" == ucs503-analysis ]]; then
+              echo "analysis_digest=$digest" >> "$GITHUB_OUTPUT"
+            else
+              echo "runner_digest=$digest" >> "$GITHUB_OUTPUT"
+            fi
+          done
 
       - name: Attest analysis image provenance
+        if: github.event_name != 'pull_request'
         uses: actions/attest@v4
         with:
           subject-name: ghcr.io/cv-code-vitals/ucs503-analysis
-          subject-digest: ${{ steps.analysis_image.outputs.digest }}
+          subject-digest: ${{ steps.publish.outputs.analysis_digest }}
           push-to-registry: true
 
       - name: Attest sandbox runner image provenance
+        if: github.event_name != 'pull_request'
         uses: actions/attest@v4
         with:
           subject-name: ghcr.io/cv-code-vitals/ucs503-sandbox-runner
-          subject-digest: ${{ steps.sandbox_runner_image.outputs.digest }}
+          subject-digest: ${{ steps.publish.outputs.runner_digest }}
           push-to-registry: true
 
       - name: Install Sigstore Cosign
+        if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@v3
 
       - name: Sign immutable image digests with GitHub OIDC
+        if: github.event_name != 'pull_request'
         env:
-          ANALYSIS_DIGEST: ${{ steps.analysis_image.outputs.digest }}
-          SANDBOX_RUNNER_DIGEST: ${{ steps.sandbox_runner_image.outputs.digest }}
+          ANALYSIS_DIGEST: ${{ steps.publish.outputs.analysis_digest }}
+          SANDBOX_RUNNER_DIGEST: ${{ steps.publish.outputs.runner_digest }}
         run: |
-          set -euo pipefail
-          for digest in "$ANALYSIS_DIGEST" "$SANDBOX_RUNNER_DIGEST"; do
-            if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-              echo "Build did not return a valid immutable image digest" >&2
-              exit 1
-            fi
-          done
           cosign sign --yes "ghcr.io/cv-code-vitals/ucs503-analysis@$ANALYSIS_DIGEST"
           cosign sign --yes "ghcr.io/cv-code-vitals/ucs503-sandbox-runner@$SANDBOX_RUNNER_DIGEST"
+
+      - name: Save container verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-evolution-proof
+          path: ${{ runner.temp }}/evolution-proof
+          if-no-files-found: ignore
+
+      - name: Clean up verification containers
+        if: always()
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          SANDBOX_HOST_DIR: ${{ runner.temp }}/ucs503-sandboxes
+          SANDBOX_TLS_DIR: ${{ runner.temp }}/ucs503-tls
+          PORTAL_TEST_PASSKEY: ci-disposable-verification-passkey
+        run: |
+          docker compose -p ucs503-verification --env-file .env.ec2.example -f docker-compose.ec2.yml -f docker-compose.verify.yml logs --no-color
+          docker compose -p ucs503-verification --env-file .env.ec2.example -f docker-compose.ec2.yml -f docker-compose.verify.yml down --volumes

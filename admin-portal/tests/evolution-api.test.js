@@ -1,95 +1,48 @@
-import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createEvolutionApi } from '../src/evolution-api.js';
+import assert from 'node:assert/strict';
+import { readEvolutionStream, scanEvolutionRepository } from '../src/evolution-api.js';
 
-function responseWithEvents(events) {
-  const encoder = new TextEncoder();
-  return new Response(encoder.encode(events), {
-    status: 200,
-    headers: { 'Content-Type': 'text/event-stream' },
-  });
-}
+const streamResponse = (text) => new Response(new ReadableStream({
+  start(controller) {
+    // Every byte is a separate network chunk, including multibyte characters.
+    for (const byte of new TextEncoder().encode(text)) controller.enqueue(Uint8Array.of(byte));
+    controller.close();
+  },
+}), { headers: { 'Content-Type': 'text/event-stream' } });
 
-const payload = {
-  repo_url: 'https://github.com/example/project',
-  file_path: 'main.go',
-  function_name: 'ProcessData',
-  config: { max_steps: 20 },
-};
-
-test('keeps archive and analysis API bases separate', async () => {
-  let requestedURL;
-  const api = createEvolutionApi('https://analysis.example.com', async (url) => {
-    requestedURL = url;
-    return responseWithEvents('event: complete\ndata: {}\n\n');
-  });
-
-  await api.start({ token: 'admin-session-token', payload });
-
-  assert.equal(requestedURL, 'https://analysis.example.com/api/evolve');
+test('evolution handles split event names, data, Unicode, CRLF, and multiple events', async () => {
+  const events = [];
+  await readEvolutionStream(streamResponse(': keepalive\r\nevent: step\r\ndata: {"step":1,"code_patch":"Δ"}\r\n\r\nevent: complete\r\ndata: {"final_energy":0}\r\n\r\n'),
+    (event, data) => events.push([event, data]));
+  assert.deepEqual(events, [['step', { step: 1, code_patch: 'Δ' }], ['complete', { final_energy: 0 }]]);
 });
 
-test('sends the in-memory bearer only to Evolution', async () => {
+test('evolution reports HTTP, server event, malformed JSON, and truncated stream errors', async () => {
+  await assert.rejects(readEvolutionStream(new Response('{"error":"unauthorized"}', { status: 401 }), () => {}), /unauthorized/);
+  await assert.rejects(readEvolutionStream(streamResponse('event: error\ndata: {"error":"Sandbox unavailable"}\n\n'), () => {}), /Sandbox unavailable/);
+  await assert.rejects(readEvolutionStream(streamResponse('event: step\ndata: {bad}\n\n'), () => {}), SyntaxError);
+  await assert.rejects(readEvolutionStream(streamResponse('event: step\ndata: {"step":1}\n\n'), () => {}), /ended before completion/);
+  await assert.rejects(readEvolutionStream(new Response('{}'), () => {}), /did not return an event stream/);
+});
+
+test('scan and evolution explain when the analysis service is offline', async (t) => {
+  const unavailable = () => Response.json({ error: 'analysis_unavailable' }, { status: 503 });
+  const message = 'The analysis service is unavailable. Ask the administrator to start it, then retry.';
+  t.mock.method(globalThis, 'fetch', async () => unavailable());
+  await assert.rejects(scanEvolutionRepository('/api', 'test-token', 'https://github.com/example/repo'), { message });
+  await assert.rejects(readEvolutionStream(unavailable(), () => {}), { message });
+  await assert.rejects(readEvolutionStream(streamResponse('event: error\ndata: {"error":"analysis_unavailable"}\n\n'), () => {}), { message });
+});
+
+test('cloud scans use the separate streaming gateway and retain selectable targets', async (t) => {
   let request;
-  const api = createEvolutionApi('https://analysis.example.com', async (url, options) => {
-    request = { url, options };
-    return responseWithEvents('event: complete\ndata: {}\n\n');
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    request = {url,options};
+    return Response.json({report:{files_analyzed:1},workspace_id:'snapshot-id',targets:[]});
   });
-
-  await api.start({ token: 'admin-session-token', payload });
-
-  assert.equal(request.options.headers.Authorization, 'Bearer admin-session-token');
-  assert.equal(request.options.headers['X-API-Token'], undefined);
-  assert.equal(request.options.headers['X-Internal-Token'], undefined);
-  assert.equal(JSON.parse(request.options.body).repo_url, payload.repo_url);
-  assert.equal(JSON.stringify(request.options.body).includes('admin-session-token'), false);
-});
-
-test('surfaces HTTP and SSE errors', async () => {
-  const httpApi = createEvolutionApi('https://analysis.example.com', async () =>
-    new Response(JSON.stringify({ error: 'not_authorized' }), { status: 403 }));
-
-  await assert.rejects(
-    httpApi.start({ token: 'admin-session-token', payload }),
-    /403.*not_authorized/,
-  );
-
-  const streamApi = createEvolutionApi('https://analysis.example.com', async () =>
-    responseWithEvents('event: error\ndata: {"error":"worker failed"}\n\n'));
-  const received = [];
-
-  await assert.rejects(
-    streamApi.start({
-      token: 'admin-session-token',
-      payload,
-      onEvent: (event) => received.push(event),
-    }),
-    /worker failed/,
-  );
-  assert.equal(received[0].type, 'error');
-  assert.equal(received[0].data.error, 'worker failed');
-});
-
-test('aborts the Evolution stream', async () => {
-  let streamController;
-  const api = createEvolutionApi('https://analysis.example.com', async (_url, options) => {
-    const body = new ReadableStream({
-      start(controller) {
-        streamController = controller;
-        controller.enqueue(new TextEncoder().encode('event: step\ndata: {"step":1}\n\n'));
-        options.signal.addEventListener('abort', () => {
-          controller.error(new DOMException('The operation was aborted.', 'AbortError'));
-        }, { once: true });
-      },
-    });
-    return new Response(body, { status: 200 });
-  });
-  const controller = new AbortController();
-  const running = api.start({ token: 'admin-session-token', payload, signal: controller.signal });
-
-  await new Promise((resolve) => setImmediate(resolve));
-  controller.abort();
-
-  await assert.rejects(running, { name: 'AbortError' });
-  assert.ok(streamController);
+  const scan = await scanEvolutionRepository('https://archive.example/api', 'test-token', 'https://github.com/example/repo', undefined, 'https://analysis.example/prod');
+  assert.equal(request.url, 'https://analysis.example/prod/api/scan');
+  assert.equal(request.options.headers.Authorization,'Bearer test-token');
+  assert.deepEqual(JSON.parse(request.options.body), {repo_url:'https://github.com/example/repo',retain_workspace:true});
+  assert.equal(scan.repo_url,'https://github.com/example/repo');
 });

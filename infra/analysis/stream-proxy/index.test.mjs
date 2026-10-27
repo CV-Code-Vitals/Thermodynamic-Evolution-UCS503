@@ -224,3 +224,17 @@ test('does not call analysis host when source staging fails', async () => {
   assert.equal(response.metadata.statusCode, 502);
   assert.equal(upstreamCalls, 0);
 });
+
+test('forwards the portal scan contract and source fingerprint through staging', async () => {
+  const bodies = [];
+  const proxy = createProxyHandler(dependencies({
+    fetchImpl: async (_, options) => {
+      bodies.push(JSON.parse(options.body));
+      return new Response('{}', {status:200});
+    },
+  }));
+  await invoke(proxy, event({body:{repo_url:'https://github.com/octocat/repo',retain_workspace:true}}));
+  await invoke(proxy, event({path:'/api/evolve',body:{repo_url:'https://github.com/octocat/repo',file_path:'main.go',source_hash:'a'.repeat(64)},authorizer:{analysisApiToken:'admin-token'}}));
+  assert.deepEqual(bodies[0], {snapshot_id:snapshotID,retain_workspace:true});
+  assert.deepEqual(bodies[1], {snapshot_id:snapshotID,file_path:'main.go',source_hash:'a'.repeat(64)});
+});

@@ -493,21 +493,16 @@ func main() {
 		startLambda()
 		return
 	}
-	if strings.EqualFold(strings.TrimSpace(os.Getenv("APP_ENV")), "production") {
-		log.Fatal("production API startup requires the Lambda runtime")
-	}
 	if err := validateCORSAllowedOrigins(os.Getenv("CORS_ALLOWED_ORIGINS")); err != nil {
 		log.Fatal(err)
 	}
-	requireConfiguredAdminPasskey()
-	deps, err := newLocalDependencies(
-		os.Getenv("ADMIN_PASSKEY"),
-		os.Getenv("TOKEN_HMAC_KEY"),
-		archivesFile,
-		uploadsDir,
-	)
+	deps, err := newHTTPDependencies(context.Background())
 	if err != nil {
-		log.Fatalf("local API startup failed: %T", err)
+		log.Fatalf("API startup failed: %v", err)
+	}
+	deps.Analysis, err = newAnalysisProxy(os.Getenv("ANALYSIS_SERVICE_URL"), os.Getenv("ANALYSIS_API_TOKEN"))
+	if err != nil {
+		log.Fatal(err)
 	}
 	handler := newRouter(deps)
 	port := "8080"
@@ -519,13 +514,23 @@ func main() {
 		}
 	}
 	addr := ":" + port
-	log.Printf("[SYS] Starting local archive API on %s", addr)
+	log.Printf("[SYS] Starting portal API on %s", addr)
 	server := &http.Server{
 		Addr: addr, Handler: handler,
 		ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 2 * time.Minute,
-		WriteTimeout: 2 * time.Minute, IdleTimeout: 60 * time.Second,
+		WriteTimeout: 10 * time.Minute, IdleTimeout: 60 * time.Second,
 	}
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("[FATAL] Server failed to start: %v", err)
 	}
+}
+
+func newHTTPDependencies(ctx context.Context) (Dependencies, error) {
+	if strings.EqualFold(strings.TrimSpace(os.Getenv("APP_ENV")), "production") {
+		if os.Getenv("API_RUNTIME") != "http" {
+			return Dependencies{}, fmt.Errorf("production HTTP startup requires API_RUNTIME=http and AWS archive configuration")
+		}
+		return newAWSDependencies(ctx)
+	}
+	return newLocalDependencies(os.Getenv("ADMIN_PASSKEY"), os.Getenv("TOKEN_HMAC_KEY"), archivesFile, uploadsDir)
 }

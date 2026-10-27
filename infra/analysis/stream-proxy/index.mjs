@@ -114,12 +114,13 @@ function sourceIpFromGateway(event) {
 }
 
 function buildUpstreamBody(route, payload, snapshotID) {
-  if (route === 'scan') return { snapshot_id: snapshotID };
+  if (route === 'scan') return { snapshot_id: snapshotID, ...(payload.retain_workspace === true ? { retain_workspace: true } : {}) };
   if (typeof payload.file_path !== 'string' || payload.file_path.trim() === '') {
     throw Object.assign(new Error('file_path is required'), { statusCode: 400 });
   }
   return {
     snapshot_id: snapshotID,
+    ...(typeof payload.source_hash === 'string' ? { source_hash: payload.source_hash } : {}),
     file_path: payload.file_path,
     ...(typeof payload.function_name === 'string' ? { function_name: payload.function_name } : {}),
     ...(Number.isInteger(payload.start_byte) ? { start_byte: payload.start_byte } : {}),

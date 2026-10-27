@@ -5,7 +5,7 @@ FROM rust:alpine AS rust-builder
 WORKDIR /rust-app
 RUN apk add --no-cache musl-dev
 COPY thermodynamic-ast-engine/ ./
-RUN cargo build --release
+RUN cargo build --release --locked
 
 # -----------------------------------------------------------------------------
 # Stage 2: Build Go Backend
@@ -15,13 +15,14 @@ WORKDIR /go-app
 COPY go-backend/go.mod go-backend/go.sum ./
 RUN go mod download
 COPY go-backend/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o backend_server .
+ARG TARGETARCH
+RUN --mount=type=cache,target=/root/.cache/go-build GOMEMLIMIT=1GiB CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build -p 1 -o backend_server .
 
 # -----------------------------------------------------------------------------
 # Stage 3: Minimal Production Runtime
 # -----------------------------------------------------------------------------
 FROM alpine:latest
-RUN apk --no-cache add ca-certificates git docker-cli
+RUN apk --no-cache add ca-certificates git docker-cli wget
 WORKDIR /app
 
 # Create unprivileged application user and group

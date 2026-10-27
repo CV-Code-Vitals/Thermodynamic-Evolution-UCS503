@@ -102,20 +102,6 @@ func resolveEnginePath() string {
 	return "./" + binaryName
 }
 
-func validateEngineBinary(path string) error {
-	info, err := os.Stat(path)
-	if err != nil {
-		return fmt.Errorf("stat engine binary %q: %w", path, err)
-	}
-	if !info.Mode().IsRegular() {
-		return fmt.Errorf("engine binary %q is not a regular file", path)
-	}
-	if runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0 {
-		return fmt.Errorf("engine binary %q is not executable", path)
-	}
-	return nil
-}
-
 // =============================================================================
 // § 2  Data model — mirrors the Rust engine's JSON output schema
 // =============================================================================
@@ -222,6 +208,7 @@ func extractZip(zipPath, destDir string) error {
 		if f.UncompressedSize64 > uint64(maxEntryBytes) {
 			return fmt.Errorf("zip entry %q exceeds size limit", f.Name)
 		}
+
 		if f.UncompressedSize64 > uint64(maxArchiveBytes-extractedBytes) {
 			return fmt.Errorf("zip exceeds total extraction limit")
 		}
@@ -237,6 +224,9 @@ func extractZip(zipPath, destDir string) error {
 			return fmt.Errorf("extract %q: %w", f.Name, err)
 		}
 		extractedBytes += written
+		if extractedBytes > maxArchiveBytes {
+			return fmt.Errorf("zip exceeds total extraction limit")
+		}
 	}
 
 	return nil
@@ -631,14 +621,7 @@ func setupEngine(enginePath string, engineTimeout time.Duration, maxUploadBytes 
 	return setupEngineWithSnapshots(enginePath, engineTimeout, maxUploadBytes, deliverableStore, nil)
 }
 
-func setupEngineWithSnapshots(
-	enginePath string,
-	engineTimeout time.Duration,
-	maxUploadBytes int64,
-	deliverableStore DeliverableStore,
-	snapshots SnapshotWorkspaceProvider,
-	lifecycle ...SandboxLifecycleController,
-) *gin.Engine {
+func setupEngineWithSnapshots(enginePath string, engineTimeout time.Duration, maxUploadBytes int64, deliverableStore DeliverableStore, snapshots SnapshotWorkspaceProvider, lifecycle ...SandboxLifecycleController) *gin.Engine {
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -697,7 +680,11 @@ func setupEngineWithSnapshots(
 	r.POST("/analyze", tokenMiddleware(analysisToken), analyzeH)
 
 	// Live Git repository scanner (for Graph Visualizer)
-	scanH := scanRepoHandler(enginePath, engineTimeout, snapshots, NewPublicScanController(time.Minute, 1))
+	workspaces := newWorkspaceStore()
+	scanH := scanRepoHandler(enginePath, engineTimeout, workspaces)
+	if snapshots != nil {
+		scanH = snapshotScanRepoHandler(enginePath, engineTimeout, snapshots, NewPublicScanController(time.Minute, 1))
+	}
 	r.POST("/api/scan", tokenMiddleware(analysisToken), scanH)
 	r.POST("/scan", tokenMiddleware(analysisToken), scanH)
 
@@ -707,7 +694,7 @@ func setupEngineWithSnapshots(
 	r.POST("/audit", tokenMiddleware(analysisToken), auditH)
 
 	// Simulated Annealing endpoint
-	evolveH := evolveHandler(snapshots)
+	evolveH := evolveHandler(workspaces, snapshots)
 	evolveMiddleware := []gin.HandlerFunc{tokenMiddleware(analysisToken)}
 	if len(lifecycle) > 0 && lifecycle[0] != nil {
 		evolveMiddleware = append(evolveMiddleware, sandboxLifecycleMiddleware(lifecycle[0]))
@@ -762,19 +749,17 @@ func main() {
 	maxUploadBytes := int64(maxUploadMB) << 20 // MiB -> bytes
 
 	if err := validateEngineBinary(enginePath); err != nil {
-		log.Fatalf("[FATAL] Invalid engine binary at %q; set ENGINE_PATH to a regular executable: %v", enginePath, err)
+		log.Fatalf("Invalid analysis engine: %v", err)
 	}
-	log.Printf("[INFO] Engine binary confirmed: %s", enginePath)
-
 	deliverableStore := initDeliverableStore()
 	snapshots := sourceSnapshotStoreFromEnv()
 	var lifecycle SandboxLifecycleController
-	if strings.TrimSpace(os.Getenv("SOURCE_BUCKET")) != "" {
-		configuredLifecycle, err := sandboxLifecycleFromEnv(context.Background())
+	if snapshots != nil {
+		var err error
+		lifecycle, err = sandboxLifecycleFromEnv(context.Background())
 		if err != nil {
 			log.Fatalf("configure sandbox lifecycle: %v", err)
 		}
-		lifecycle = configuredLifecycle
 	}
 	r := setupEngineWithSnapshots(enginePath, engineTimeout, maxUploadBytes, deliverableStore, snapshots, lifecycle)
 
@@ -787,6 +772,20 @@ func main() {
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("[FATAL] Server failed: %v", err)
 	}
+}
+
+func validateEngineBinary(path string) error {
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("stat engine binary %q: %w", path, err)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("engine binary %q is not a regular file", path)
+	}
+	if runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0 {
+		return fmt.Errorf("engine binary %q is not executable", path)
+	}
+	return nil
 }
 
 func sourceSnapshotStoreFromEnv() SnapshotWorkspaceProvider {

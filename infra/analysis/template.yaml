@@ -65,7 +65,7 @@ Parameters:
     AllowedPattern: '^[A-Za-z0-9_-]+$'
   FrontendOrigin:
     Type: String
-    Default: https://zylus08.github.io
+    Default: https://cv-code-vitals.github.io
     AllowedPattern: '^https://[A-Za-z0-9.-]+$'
     Description: Exact GitHub Pages origin allowed by browser CORS.
   ApiTokenParameterName:

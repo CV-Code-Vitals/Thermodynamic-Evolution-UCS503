@@ -1,104 +1,72 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Play, Square, CheckCircle, XCircle, AlertTriangle, ArrowRight, Thermometer, Activity, Code } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Square, CheckCircle, XCircle, AlertTriangle, ArrowRight, Thermometer, Activity, Code, Download } from 'lucide-react';
 import './EvolutionLive.css';
-import { createEvolutionApi } from '../evolution-api.js';
+import { readEvolutionStream } from '../evolution-api';
+import { evolutionMeasurements } from '../evolution-measurements';
+import EvolutionCharts from './EvolutionCharts';
+import { scoreBand } from '../../../graph-visualizer/measurements.mjs';
 
-const apiBase = (import.meta.env.VITE_ANALYSIS_API_BASE || '').replace(/\/+$/, '');
-const evolutionApi = createEvolutionApi(apiBase);
-
-const EvolutionLive = ({ token, initialData, onBack }) => {
+const EvolutionLive = ({ initialData, onBack, apiBase, analysisApiBase = '', token }) => {
   const [isEvolving, setIsEvolving] = useState(false);
   const [telemetry, setTelemetry] = useState([]);
-  const [stats, setStats] = useState({
-    temp: initialData?.config?.initial_temp || 100.0,
-    currentEnergy: initialData?.base_energy || 0.0,
-    deltaE: 0.0,
-  });
   const [finalResult, setFinalResult] = useState(null);
-  const [repoURL, setRepoURL] = useState(initialData?.repo_url || '');
-  const [filePath, setFilePath] = useState(initialData?.file_path || '');
-  const [functionName, setFunctionName] = useState(initialData?.function_name || '');
-  const [error, setError] = useState('');
-  const [status, setStatus] = useState('');
-
+  const measurements = evolutionMeasurements(initialData.base_energy, telemetry, finalResult);
+  
   const abortControllerRef = useRef(null);
-  const logEndRef = useRef(null);
+  const logContainerRef = useRef(null);
 
-  const codeLeft = initialData?.base_code || "// Original code snippet";
-  const [codeRight, setCodeRight] = useState(initialData?.base_code || "// Baseline code");
-
-  useEffect(() => {
-    if (logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [telemetry]);
+  const codeLeft = initialData.base_code;
+  const [codeRight, setCodeRight] = useState(initialData.base_code);
 
   useEffect(() => () => abortControllerRef.current?.abort(), []);
 
-  const startEvolution = async () => {
-    if (!apiBase) {
-      setError('Evolution analysis API is not configured for this deployment.');
-      return;
+  // Auto-scroll logs
+  useEffect(() => {
+    if (telemetry.length && logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
-    if (!repoURL.trim() || !filePath.trim()) {
-      setError('Enter a GitHub repository URL and target file before starting.');
-      return;
-    }
+  }, [telemetry]);
 
+  const startEvolution = async () => {
     setIsEvolving(true);
     setTelemetry([]);
     setFinalResult(null);
-    setError('');
-    setStatus('Connecting to the analysis service…');
+    setCodeRight(codeLeft);
     abortControllerRef.current = new AbortController();
 
     const payload = {
-      repo_url: repoURL.trim(),
-      file_path: filePath.trim(),
-      ...(functionName.trim() ? { function_name: functionName.trim() } : {}),
-      base_energy: initialData?.base_energy ?? 50.0,
-      config: initialData?.config || {
-        initial_temp: 100.0,
-        cooling_rate: 0.85,
-        max_steps: 20
-      }
+      workspace_id: initialData.workspace_id,
+      repo_url: initialData.repo_url,
+      file_path: initialData.file_path,
+      function_name: initialData.function_name,
+      start_byte: initialData.start_byte,
+      source_hash: initialData.source_hash,
+      config: { initial_temp: 100, cooling_rate: 0.85, max_steps: 20, enable_duplicate_detection: true }
     };
 
     try {
-      await evolutionApi.start({
-        token,
-        payload,
-        signal: abortControllerRef.current.signal,
-        onEvent: ({ type, data }) => {
-          if (type === 'step') {
-            setTelemetry((previous) => [...previous, data]);
-            setStatus(`Evolution in progress — step ${data.step ?? '…'}.`);
-            setStats((previous) => ({
-              temp: Number.isFinite(data.temp) ? data.temp : previous.temp,
-              currentEnergy: Number.isFinite(data.new_energy)
-                ? data.new_energy
-                : Number.isFinite(data.old_energy) ? data.old_energy : previous.currentEnergy,
-              deltaE: Number.isFinite(data.delta_e) ? data.delta_e : 0,
-            }));
-            if (data.accepted && data.code_patch) setCodeRight(data.code_patch);
-          } else if (type === 'complete') {
-            setFinalResult(data);
-            setStatus('Evolution completed.');
-            if (data.optimized_code) setCodeRight(data.optimized_code);
-          } else if (type === 'error') {
-            setTelemetry((previous) => [...previous, { error: data.error || 'Evolution failed.', isError: true }]);
-          }
-        },
+      const response = await fetch(analysisApiBase ? `${analysisApiBase}/api/evolve` : `${apiBase}/analysis/evolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+        signal: abortControllerRef.current.signal
+      });
+      await readEvolutionStream(response, (event, data) => {
+        if (event === 'step') {
+          setTelemetry(previous => [...previous, data]);
+          if (data.is_best_so_far && data.code_patch) setCodeRight(data.code_patch);
+        } else if (event === 'complete') {
+          setFinalResult(data);
+          setCodeRight(data.optimized_code);
+        }
       });
     } catch (err) {
       if (err.name === 'AbortError') {
-        setStatus('Evolution aborted.');
+        setTelemetry(prev => [...prev, { error: 'Evolution aborted by user.', isError: true }]);
       } else {
-        setError(err.message || 'Evolution failed. Please try again.');
-        setStatus('');
+        setTelemetry(prev => [...prev, { error: err.message, isError: true }]);
       }
     } finally {
-      abortControllerRef.current = null;
       setIsEvolving(false);
     }
   };
@@ -109,16 +77,36 @@ const EvolutionLive = ({ token, initialData, onBack }) => {
     }
   };
 
+  const downloadResult = (kind) => {
+    const contents = kind === 'patch' ? finalResult.patch : JSON.stringify({
+      repository: initialData.repo_url,
+      file_path: initialData.file_path,
+      function_name: initialData.function_name,
+      baseline_code: codeLeft,
+      ...finalResult,
+    }, null, 2);
+    const url = URL.createObjectURL(new Blob([contents], {
+      type: kind === 'patch' ? 'text/plain;charset=utf-8' : 'application/json',
+    }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `evolution-${initialData.function_name}.${kind === 'patch' ? 'patch' : 'json'}`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
+  };
+
   return (
     <div className="evolution-container">
       <div className="evolution-header">
         <div>
           <h2>Thermodynamic Evolution Live</h2>
-          <p className="subtitle">Authenticated repository optimization</p>
+          <p className="subtitle">Target: <code>{initialData.function_name}</code></p>
         </div>
         <div className="evolution-controls">
           {!isEvolving ? (
-            <button className="cyber-button" onClick={startEvolution}>
+            <button className="cyber-button" onClick={startEvolution} disabled={Boolean(finalResult)}>
               <Play size={16} /> START EVOLUTION
             </button>
           ) : (
@@ -127,75 +115,36 @@ const EvolutionLive = ({ token, initialData, onBack }) => {
             </button>
           )}
           {onBack && (
-            <button className="cyber-button-alt" onClick={onBack} disabled={isEvolving}>BACK</button>
+            <button className="cyber-button-alt" onClick={onBack} disabled={isEvolving}>SCAN ANOTHER REPOSITORY</button>
           )}
         </div>
-      </div>
-
-      {!apiBase && (
-        <div className="evolution-error" role="alert">
-          Evolution analysis API is not configured for this deployment.
-        </div>
-      )}
-      {error && <div className="evolution-error" role="alert">{error}</div>}
-      {status && <div className="evolution-status" role="status" aria-live="polite">{status}</div>}
-
-      <div className="evolution-target panel">
-        <label>
-          GitHub repository URL
-          <input
-            type="url"
-            value={repoURL}
-            onChange={(event) => setRepoURL(event.target.value)}
-            placeholder="https://github.com/owner/repository"
-            disabled={isEvolving}
-            required
-          />
-        </label>
-        <label>
-          Target file
-          <input
-            type="text"
-            value={filePath}
-            onChange={(event) => setFilePath(event.target.value)}
-            placeholder="src/main.go"
-            disabled={isEvolving}
-            required
-          />
-        </label>
-        <label>
-          Function name <span>(optional)</span>
-          <input
-            type="text"
-            value={functionName}
-            onChange={(event) => setFunctionName(event.target.value)}
-            placeholder="ProcessData"
-            disabled={isEvolving}
-          />
-        </label>
       </div>
 
       <div className="evolution-dashboard">
         {/* Thermodynamics Monitor */}
         <div className="thermo-monitor panel">
-          <h3><Thermometer size={18} /> System Thermodynamics</h3>
+          <h3><Thermometer size={18} /> Structural complexity</h3>
           <div className="stats-grid">
             <div className="stat-card">
-              <span className="stat-label">Temperature (T)</span>
-              <span className="stat-value">{stats.temp.toFixed(2)}</span>
+              <span className="stat-label">Annealing temperature (T)</span>
+              <span className="stat-value">{measurements.temperature.toFixed(2)}</span>
             </div>
             <div className="stat-card">
-              <span className="stat-label">Current Energy (E)</span>
-              <span className="stat-value">{stats.currentEnergy.toFixed(2)}</span>
+              <span className="stat-label">Current search energy</span>
+              <span className="stat-value">{measurements.current.toFixed(2)}</span>
             </div>
             <div className="stat-card">
-              <span className="stat-label">Energy Delta (ΔE)</span>
-              <span className={`stat-value ${stats.deltaE < 0 ? 'good' : stats.deltaE > 0 ? 'bad' : ''}`}>
-                {stats.deltaE > 0 ? '+' : ''}{stats.deltaE.toFixed(2)}
-              </span>
+              <span className="stat-label">Baseline energy</span>
+              <span className="stat-value">{measurements.baseline.toFixed(2)}</span>
             </div>
+            <div className="stat-card"><span className="stat-label">Best tested energy</span><span className="stat-value">{measurements.best.toFixed(2)}</span></div>
+            <div className="stat-card"><span className="stat-label">Structural improvement</span><span className="stat-value">{measurements.improvement.toFixed(2)}%</span></div>
+            <div className="stat-card"><span className="stat-label">Best code heat</span><span className="stat-value" style={{color:scoreBand(measurements.best).color}}>{scoreBand(measurements.best).label}</span></div>
           </div>
+          <p className="measurement-explanation">Code heat uses the same thresholds as the scanner. These scores do not measure runtime speed.</p>
+          <p className="evaluation-counts" role="status">Candidate checks: {measurements.passed} passed · {measurements.failed} failed · {measurements.skipped} steps without tests</p>
         </div>
+        <EvolutionCharts measurements={measurements} />
 
         {/* Unified Diff Viewer */}
         <div className="diff-viewer panel">
@@ -212,8 +161,20 @@ const EvolutionLive = ({ token, initialData, onBack }) => {
             </div>
           </div>
           {finalResult && (
-            <div className="final-result-banner">
-              Evolution Complete. Total Steps: {finalResult.total_steps ?? '—'}. Total ΔE: {Number(finalResult.energy_delta || 0).toFixed(2)}.
+            <div className="final-result-banner" role="status">
+              <p>{finalResult.best_improved
+                ? `Evolution complete. Structural score reduced by ${finalResult.energy_delta.toFixed(2)}.`
+                : 'Run complete. No lower-scoring candidate passed evaluation; the original code was retained.'}</p>
+              <p>{finalResult.total_steps} steps completed. {finalResult.correctness_passed} candidates passed tests.</p>
+              <div className="evolution-downloads">
+                {finalResult.patch && <button className="cyber-button" onClick={() => downloadResult('patch')}>
+                  <Download size={16} /> DOWNLOAD PATCH
+                </button>}
+                <button className="cyber-button-alt" onClick={() => downloadResult('report')}>
+                  <Download size={16} /> DOWNLOAD REPORT
+                </button>
+              </div>
+              {finalResult.patch && <p>Review the patch, then apply it to the scanned revision with <code>git apply</code>. Downloaded results remain available after the scanned copy expires.</p>}
             </div>
           )}
         </div>
@@ -221,7 +182,7 @@ const EvolutionLive = ({ token, initialData, onBack }) => {
         {/* Telemetry Log */}
         <div className="telemetry-log panel">
           <h3><Activity size={18} /> Telemetry Event Log</h3>
-          <div className="log-container">
+          <div className="log-container" ref={logContainerRef}>
             {telemetry.length === 0 && <div className="log-empty">Waiting for telemetry...</div>}
             {telemetry.map((t, idx) => (
               <div key={idx} className={`log-entry ${t.isError ? 'log-error' : t.accepted ? 'log-accepted' : 'log-rejected'}`}>
@@ -231,17 +192,18 @@ const EvolutionLive = ({ token, initialData, onBack }) => {
                   <>
                     <span className="step-num">Step {t.step}</span>
                     <span className="test-status">
-                      {t.tests_passed ? <CheckCircle size={14} className="icon-green"/> : <XCircle size={14} className="icon-red"/>}
+                      {t.evaluation_attempted
+                        ? t.tests_passed ? <CheckCircle size={14} className="icon-green"/> : <XCircle size={14} className="icon-red"/>
+                        : <span aria-label="Tests not run">—</span>}
                     </span>
                     <span className="accept-status">
-                      {t.accepted ? 'ACCEPTED' : 'REJECTED'}
+                      {t.accepted ? 'ACCEPTED' : t.evaluation_attempted ? 'REJECTED' : 'SKIPPED'}
                     </span>
                     <span className="reason-text">({t.reason}) ΔE: {t.delta_e?.toFixed(2)}</span>
                   </>
                 )}
               </div>
             ))}
-            <div ref={logEndRef} />
           </div>
         </div>
       </div>

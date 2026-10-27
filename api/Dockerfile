@@ -13,10 +13,11 @@ RUN go mod download
 
 # Copy the rest of the application source code
 COPY . .
+ARG TARGETARCH
 
 # Build a statically linked Go application
 # CGO_ENABLED=0 ensures the binary runs cleanly on Alpine
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o api_server .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build -o api_server .
 
 # ---------------------------------------------------------
 # Stage 2: Create a minimal production image

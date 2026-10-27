@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import {
-  Shield, Lock, UploadCloud, File, CheckCircle, Trash2, Activity,
-  Terminal, Loader2, Database, Download
+  Shield, Lock, UploadCloud, File, CheckCircle, Trash2,
+  Terminal, Loader2, Database, Download, LayoutDashboard,
+  Network, GitBranch, ArrowRight
 } from 'lucide-react';
 import './AdminPortal.css';
 import { fetchArchiveDownload } from '../archive-download';
 import { createArchiveApi, getSessionRefreshDelay } from '../archive-api';
-import EvolutionLive from './EvolutionLive.jsx';
+import EvolutionWorkspace from './EvolutionWorkspace';
+import GraphVisualizer from './GraphVisualizer';
 
 const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 const archiveApi = createArchiveApi(apiBase);
+const analysisApiBase = (import.meta.env.VITE_ANALYSIS_API_BASE || '').replace(/\/+$/, '');
 const acceptedContentTypes = {
   '.pdf': 'application/pdf',
   '.ppt': 'application/vnd.ms-powerpoint',
@@ -35,8 +38,19 @@ const AdminPortal = () => {
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  // ── Active view: dashboard, upload, archive, or evolution ────────────────
-  const [activeView, setActiveView] = useState('upload');
+  // ── Active view: dashboard, upload, archive, or deferred evolution ───────
+  const [activeView, setActiveViewState] = useState(() => {
+    const requestedView = window.location.hash.slice(1);
+    return ['dashboard', 'evolve', 'graph', 'upload', 'archive'].includes(requestedView)
+      ? requestedView : 'dashboard';
+  });
+  const setActiveView = useCallback((view) => {
+    setActiveViewState(view);
+    const nextURL = new URL(window.location.href);
+    nextURL.hash = view;
+    window.history.replaceState(window.history.state, '', nextURL);
+  }, []);
+  const [latestScan, setLatestScan] = useState(null);
 
   // ── Dropzone / file state ─────────────────────────────────────────────────
   const [selectedFile, setSelectedFile] = useState(null);
@@ -85,7 +99,6 @@ const AdminPortal = () => {
       setExpiresInMs(result.expiresInMs);
       setCanRefresh(true);
       setPassword('');
-      setActiveView('upload');
     } catch (error) {
       setAuthError(error.message || 'AUTHENTICATION SERVICE UNAVAILABLE. PLEASE TRY AGAIN.');
     }
@@ -96,6 +109,7 @@ const AdminPortal = () => {
     setExpiresAt('');
     setExpiresInMs(0);
     setCanRefresh(true);
+    setAuthError(message);
     setPassword('');
     setDeliverables([]);
     setSelectedFile(null);
@@ -103,9 +117,9 @@ const AdminPortal = () => {
     setPendingUploadId('');
     setPendingUploadUnavailable(false);
     setLastDeliverable(null);
-    setActiveView('upload');
-    setAuthError(message);
-  }, []);
+    setLatestScan(null);
+    setActiveView('dashboard');
+  }, [setActiveView]);
 
   const handleLogout = () => clearAdminSession('');
 
@@ -146,6 +160,7 @@ const AdminPortal = () => {
       clearTimeout(timeout);
     };
   }, [token, expiresAt, expiresInMs, canRefresh, clearAdminSession]);
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // Dropzone
@@ -331,7 +346,7 @@ const AdminPortal = () => {
       <div className="admin-portal-wrapper">
         <div className="portal-container">
           <div className="portal-header">
-            <div className="header-title"><Shield size={20} /> SYS.SECURE // INSTRUCTOR ACCESS</div>
+            <div className="header-title"><Shield size={20} /> UCS503 // SECURE ACCESS</div>
             <div className="status-indicator">
               <div className="status-dot"></div>
               ENCRYPTED CONNECTION
@@ -340,8 +355,9 @@ const AdminPortal = () => {
 
           <div className="auth-container">
             <Lock size={48} className="auth-icon" />
-            <h1 className="auth-title">Authentication Required</h1>
-            <p className="auth-subtitle">ENTER CREDENTIALS TO ACCESS ARCHIVE SYSTEM</p>
+            <h1 className="auth-title">Administrator access</h1>
+            <p className="auth-subtitle">SIGN IN TO OPTIMIZE FUNCTIONS AND MANAGE DELIVERABLES</p>
+            <a className="public-scanner-link" href="../graph-visualizer/">Scan repositories and explore graphs without signing in →</a>
 
             <form className="auth-form" onSubmit={handleLogin}>
               <div className="input-group">
@@ -431,11 +447,11 @@ const AdminPortal = () => {
 
   return (
     <div className="admin-portal-wrapper">
-      <div className="portal-container">
+      <div className={`portal-container ${activeView === 'graph' ? 'portal-container-wide' : ''}`}>
 
         {/* ── Header with tab navigation ──────────────────────────────── */}
         <div className="portal-header">
-          <div className="header-title"><Terminal size={20} /> SYS.ARCHIVE // INSTRUCTOR CONSOLE</div>
+          <div className="header-title"><Terminal size={20} /> UCS503 // PROJECT WORKSPACE</div>
           <div className="status-indicator">
             <div className="status-dot"></div>
             AUTHORIZED : ADMIN
@@ -449,7 +465,19 @@ const AdminPortal = () => {
             className={`tab-btn ${activeView === 'dashboard' ? 'active' : ''}`}
             onClick={() => setActiveView('dashboard')}
           >
-            <Terminal size={14} /> DASHBOARD
+            <LayoutDashboard size={14} /> OVERVIEW
+          </button>
+          <button
+            className={`tab-btn ${activeView === 'evolve' ? 'active' : ''}`}
+            onClick={() => setActiveView('evolve')}
+          >
+            <GitBranch size={14} /> SCAN & OPTIMIZE
+          </button>
+          <button
+            className={`tab-btn ${activeView === 'graph' ? 'active' : ''}`}
+            onClick={() => setActiveView('graph')}
+          >
+            <Network size={14} /> GRAPH
           </button>
           <button
             className={`tab-btn ${activeView === 'upload' ? 'active' : ''}`}
@@ -463,39 +491,53 @@ const AdminPortal = () => {
           >
             <Database size={14} /> VIEW ARCHIVE
           </button>
-          <button
-            className={`tab-btn ${activeView === 'evolve' ? 'active' : ''}`}
-            onClick={() => setActiveView('evolve')}
-          >
-            <Activity size={14} /> EVOLUTION
-          </button>
         </div>
 
         {activeView === 'dashboard' && (
           <div className="dashboard-container">
             <div className="dashboard-heading">
               <div>
-                <span className="archive-title">SYSTEM DASHBOARD</span>
-                <h1>Welcome to the Archive</h1>
-                <p>Manage project deliverables from one secure workspace.</p>
+                <span className="archive-title">THERMODYNAMIC EVOLUTION · UCS503</span>
+                <h1>Project workspace</h1>
+                <p>Scan repositories and explore graphs publicly. Use this administrator workspace to optimize Go functions and manage deliverables.</p>
               </div>
-              <div className="online-badge"><span className="status-dot" /> SYSTEM ONLINE</div>
+              <div className="online-badge"><span className="status-dot" /> AUTHENTICATED</div>
             </div>
             <div className="dashboard-hero">
-              <div className="hero-icon"><Terminal size={28} /></div>
+              <div className="hero-icon"><GitBranch size={28} /></div>
               <div>
-                <span className="hero-kicker">ARCHIVE READY</span>
-                <h2>Upload new files or browse<br /><strong>your stored deliverables.</strong></h2>
+                <span className="hero-kicker">REPOSITORY ANALYSIS</span>
+                <h2>{latestScan ? 'Latest repository scan is ready.' : 'Start with a repository scan.'}</h2>
+                <p>{latestScan
+                  ? `${latestScan.report.files_analyzed} files analyzed · ${latestScan.report.total_hotspots} hotspots found`
+                  : 'The same scan powers the graph and the Go function optimizer.'}</p>
               </div>
             </div>
+            <div className="workspace-metrics">
+              <div className="workspace-metric"><span>ANALYZED FILES</span><strong>{latestScan?.report.files_analyzed ?? '—'}</strong></div>
+              <div className="workspace-metric"><span>HOTSPOTS</span><strong>{latestScan?.report.total_hotspots ?? '—'}</strong></div>
+              <div className="workspace-metric"><span>ANALYSIS ENGINE</span><strong>{latestScan?.report.engine_version ?? 'Ready'}</strong></div>
+            </div>
+            {latestScan && (
+              <p className="archive-note workspace-scan-origin">
+                Scanned repository: <span>{latestScan.report.scanned_directory}</span>
+              </p>
+            )}
             <div className="dashboard-actions">
+              <button className="cyber-button" onClick={() => setActiveView('evolve')}>
+                <GitBranch size={18} /> SCAN & OPTIMIZE <ArrowRight size={16} />
+              </button>
+              <button className="cyber-button" onClick={() => setActiveView('graph')}>
+                <Network size={18} /> OPEN GRAPH
+              </button>
               <button className="cyber-button" onClick={() => setActiveView('upload')}>
-                <UploadCloud size={18} /> UPLOAD FILE
+                <UploadCloud size={18} /> UPLOAD DELIVERABLE
               </button>
               <button className="cyber-button" onClick={() => setActiveView('archive')}>
                 <Database size={18} /> VIEW ARCHIVE
               </button>
             </div>
+            <p className="workspace-limit-note">Optimization runs require the server sandbox to be available. Public scanning and graph exploration are also available without an administrator session.</p>
           </div>
         )}
 
@@ -702,8 +744,28 @@ const AdminPortal = () => {
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* EVOLUTION VIEW                                                */}
         {/* ══════════════════════════════════════════════════════════════ */}
-        {activeView === 'evolve' && (
-          <EvolutionLive token={token} onBack={() => setActiveView('dashboard')} />
+        <section hidden={activeView !== 'evolve'}>
+          <EvolutionWorkspace apiBase={apiBase} analysisApiBase={analysisApiBase} token={token} initialScan={latestScan} onScanComplete={setLatestScan} />
+        </section>
+
+        {activeView === 'graph' && (
+          <div className="graph-workspace">
+            <div className="graph-workspace-heading">
+              <div>
+                <span className="archive-title">REPOSITORY STRUCTURE</span>
+                <h1>Graph explorer</h1>
+                <p>{latestScan
+                  ? `Showing ${latestScan.report.files_analyzed} files from the latest authenticated scan.`
+                  : 'Scan a repository first to load its report into the graph.'}</p>
+              </div>
+              <button className="cyber-button-sm" onClick={() => setActiveView('evolve')}>
+                {latestScan ? 'CHANGE SCAN' : 'SCAN REPOSITORY'} <ArrowRight size={14} />
+              </button>
+            </div>
+            {latestScan
+              ? <GraphVisualizer report={latestScan.report} />
+              : <div className="graph-empty"><Network size={36} /><span>NO SCAN LOADED</span></div>}
+          </div>
         )}
 
       </div>
