@@ -174,8 +174,6 @@ test('keeps private IPv6 subnets but removes public IPv6 egress in favor of AWS 
 
 test('restricts VPC endpoint policies to the workload IAM roles', () => {
   for (const name of [
-    'PrivateS3GatewayEndpoint',
-    'PrivateDynamoDbGatewayEndpoint',
     'SsmEndpoint',
     'SsmMessagesEndpoint',
     'Ec2MessagesEndpoint',
@@ -186,6 +184,11 @@ test('restricts VPC endpoint policies to the workload IAM roles', () => {
     assert.match(endpoint, /PolicyDocument:/);
     assert.doesNotMatch(endpoint, /Principal:\s*['"]?\*['"]?/);
     assert.match(endpoint, /Principal:[\s\S]*?AWS:[\s\S]*?!GetAtt/);
+  }
+  for (const name of ['PrivateS3GatewayEndpoint', 'PrivateDynamoDbGatewayEndpoint']) {
+    const endpoint = resource(name);
+    assert.match(endpoint, /Principal: '\*'/);
+    assert.match(endpoint, /aws:PrincipalArn:/);
   }
   assert.match(resource('PrivateS3GatewayEndpoint'), /!GetAtt AnalysisInstanceRole\.Arn/);
   assert.match(resource('PrivateS3GatewayEndpoint'), /!GetAtt SandboxInstanceRole\.Arn/);
@@ -302,7 +305,7 @@ test('provides the deployment support files and artifact prefix contract', async
   ]) {
     await access(path.join(root, file), constants.F_OK);
   }
-  assert.match(workflow, /bundles\/analysis-deployments\/\$IMAGE_SHA\/deployment-bundle\.tar\.gz/);
+  assert.match(workflow, /bundles\/analysis-deployments\/\$IMAGE_SHA\/\$BUNDLE_SHA256\/deployment-bundle\.tar\.gz/);
   assert.match(resource('AnalysisInstanceRole'), /bundles\/\*/);
   assert.match(resource('SandboxInstanceRole'), /bundles\/analysis-deployments\/\*/);
 });
