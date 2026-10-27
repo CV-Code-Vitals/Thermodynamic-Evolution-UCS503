@@ -4,15 +4,156 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Public repository scanner & graph</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
-    :root{color-scheme:dark;font:14px system-ui,sans-serif;color:#e5e7eb;background:#0c1017}*{box-sizing:border-box}body{margin:0;height:100vh;display:flex;flex-direction:column}button,input,select{font:inherit}button,input,select{color:inherit;background:#151c28;border:1px solid #344156;border-radius:7px;padding:9px 11px}button{cursor:pointer}button:hover,button:focus-visible{border-color:#ffd700}input:focus-visible,select:focus-visible{outline:2px solid #ffd700}header{padding:16px 20px;border-bottom:1px solid #293244;display:flex;align-items:center;gap:12px;flex-wrap:wrap}h1{font-size:17px;margin:0}#summary{color:#a4b0c3;font-size:12px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid #293244}.toolbar input[type=search]{flex:1;min-width:180px}.toolbar label{font-size:12px;display:flex;gap:6px;align-items:center}.toolbar select{max-width:190px}main{display:flex;flex:1;min-height:0}aside{width:300px;flex-shrink:0;border-right:1px solid #293244;overflow:auto;padding:16px}#stage{position:relative;flex:1;min-width:0;overflow:hidden;background:radial-gradient(ellipse at center,#141d2b,#0c1017)}canvas{display:block;touch-action:none;outline-offset:-3px;cursor:grab}canvas:active{cursor:grabbing}#empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:#a4b0c3;padding:30px;pointer-events:none}#empty[hidden]{display:none}#controls{position:absolute;right:14px;bottom:14px;display:flex;gap:6px}#hint{padding:9px 20px;border-top:1px solid #293244;color:#94a3b8;font-size:12px}#files{display:grid;gap:6px}#files button{text-align:left;overflow-wrap:anywhere;width:100%;font-size:12px;line-height:1.5}#files button[aria-pressed=true]{border-color:#ffd700;background:#2b2918}#details{border-bottom:1px solid #293244;padding-bottom:16px;margin-bottom:14px;overflow-wrap:anywhere}#details:empty{display:none}#details h2{font-size:15px;margin:8px 0}#details p{font-size:12px;line-height:1.6;color:#b2bfd1}#details pre{white-space:pre-wrap;font-size:11px;background:#080c12;padding:12px;border-radius:5px}#details button{margin:3px 0;width:100%;text-align:left;font-size:12px}#details dl{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:12px}#details dt{color:#a4b0c3}#details dd{margin:0}.muted{color:#94a3b8;font-size:12px}.badge{color:#6ee7b7}#overview{margin-left:auto}#file-count{font-size:12px;margin:0 0 12px;color:#a4b0c3}@media(max-width:760px){aside{width:210px;padding:10px}.toolbar,header{padding:10px}.toolbar label{width:100%}#hint{padding:8px 10px}#controls{right:8px;bottom:8px}}@media(max-width:480px){aside{width:160px}.toolbar select{max-width:135px}#summary{width:100%}}
-  </style>
-  <style>
-    #public-tools{padding:16px 20px;border-bottom:1px solid #293244;background:#101722}#public-tools[hidden],#public-nav[hidden]{display:none}#public-tools p{margin:0 0 12px;color:#b2bfd1;font-size:13px}#scan-form{display:flex;gap:10px;align-items:center;flex-wrap:wrap}#scan-form label{width:100%;font-weight:600}#repository-url{flex:1;min-width:220px}#scan-button{background:#ffd700;color:#111827;font-weight:700;border-color:#ffd700}button:disabled{opacity:.6;cursor:wait}#public-tools #scan-status{margin:10px 0 0;color:#6ee7b7}#public-tools #scan-error{margin:10px 0 0;color:#fda4af}#public-nav{display:flex;gap:14px}#public-nav a{color:#b9c8e0;text-underline-offset:3px}#public-nav a:focus-visible{outline:2px solid #ffd700}@media(max-width:760px){#public-tools{padding:12px}#scan-form button{min-height:42px}#repository-url{width:100%}}
+    :root {
+      color-scheme: dark;
+      --bg-main: #050505;
+      --bg-card: #111111;
+      --gold: #ffd700;
+      --gold-dim: #cca800;
+      --gold-glow: rgba(255, 215, 0, .15);
+      --text-primary: #e0e0e0;
+      --text-muted: #888888;
+      --border-color: #333333;
+      --font-main: 'Rajdhani', sans-serif;
+      --font-mono: 'Share Tech Mono', monospace;
+      font: 500 16px var(--font-main);
+      color: var(--text-primary);
+      background: var(--bg-main);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      height: 100vh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background-image: linear-gradient(rgba(255,215,0,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,215,0,.018) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    button, input, select {
+      font: inherit;
+      color: inherit;
+      background: rgba(0,0,0,.5);
+      border: 1px solid var(--border-color);
+      border-radius: 0;
+      padding: 10px 12px;
+    }
+    button { cursor: pointer; transition: border-color .2s, color .2s, background .2s; }
+    button:hover { border-color: var(--gold); color: var(--gold); background: var(--gold-glow); }
+    button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 3px;
+    }
+    input:focus-visible, select:focus-visible { outline-offset: 0; box-shadow: 0 0 15px var(--gold-glow); }
+    button:disabled { opacity: .5; cursor: wait; }
+    input[type=checkbox] { accent-color: var(--gold); }
+    header {
+      padding: 18px 24px;
+      min-height: 74px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      background: linear-gradient(180deg, rgba(255,215,0,.05), transparent), var(--bg-main);
+    }
+    h1 { font: 700 13px 'Orbitron', sans-serif; color: var(--gold); letter-spacing: 2px; margin: 0; }
+    #public-nav { display: flex; gap: 6px; }
+    #public-nav a {
+      font: 11px var(--font-mono);
+      letter-spacing: 1px;
+      color: #aaa;
+      border: 1px solid var(--border-color);
+      padding: 9px 12px;
+      text-decoration: none;
+    }
+    #public-nav a:hover { color: var(--gold); border-color: var(--gold-dim); background: var(--gold-glow); }
+    #summary { color: #aaa; font: 11px/1.6 var(--font-mono); }
+    #overview { margin-left: auto; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
+    #public-tools {
+      margin: 20px 20px 0;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      background: linear-gradient(180deg, rgba(255,215,0,.035), transparent), var(--bg-card);
+    }
+    #public-tools[hidden], #public-nav[hidden] { display: none; }
+    #public-tools p { margin: 0 0 14px; color: #aaa; font-size: 17px; line-height: 1.5; }
+    #scan-form { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    #scan-form label { width: 100%; font: 12px var(--font-mono); text-transform: uppercase; color: var(--gold-dim); letter-spacing: 2px; }
+    #repository-url { flex: 1; min-width: 220px; font-size: 18px; padding: 12px; }
+    #scan-button, #cancel-scan { padding: 13px 20px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; }
+    #scan-button { background: transparent; color: var(--gold); border-color: var(--gold); }
+    #scan-button:hover:not(:disabled) { background: var(--gold); color: var(--bg-main); box-shadow: 0 0 20px var(--gold-glow); }
+    #public-tools #scan-status { margin: 12px 0 0; color: var(--gold); font: 12px/1.6 var(--font-mono); }
+    #public-tools #scan-error { margin: 12px 0 0; color: #ff6565; font: 12px/1.6 var(--font-mono); }
+    #scan-status:empty, #scan-error:empty { display: none; }
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 16px 20px; }
+    .toolbar input[type=search] { flex: 1; min-width: 180px; }
+    .toolbar label { font: 11px var(--font-mono); color: #aaa; display: flex; gap: 6px; align-items: center; }
+    .toolbar select { max-width: 190px; font: 11px var(--font-mono); }
+    main { display: flex; flex: 1; min-height: 260px; margin: 0 20px 16px; border: 1px solid var(--border-color); overflow: hidden; }
+    aside { width: 300px; flex-shrink: 0; border-right: 1px solid var(--border-color); overflow: auto; padding: 16px; background: var(--bg-card); }
+    #stage {
+      position: relative; flex: 1; min-width: 0; overflow: hidden; background-color: var(--bg-main);
+      background-image: linear-gradient(rgba(255,215,0,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,215,0,.025) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+    canvas { display: block; touch-action: none; outline-offset: -3px; cursor: grab; }
+    canvas:active { cursor: grabbing; }
+    #empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: var(--text-muted); padding: 30px; pointer-events: none; }
+    #empty[hidden] { display: none; }
+    #controls { position: absolute; right: 14px; bottom: 14px; display: flex; gap: 6px; }
+    #controls button { background: var(--bg-card); color: var(--gold); border-color: var(--gold-dim); }
+    #hint { padding: 0 20px 14px; color: var(--text-muted); font: 11px/1.6 var(--font-mono); }
+    #files { display: grid; gap: 6px; }
+    #files button { text-align: left; overflow-wrap: anywhere; width: 100%; font: 11px/1.7 var(--font-mono); }
+    #files button[aria-pressed=true] { border-color: var(--gold); background: var(--gold-glow); color: var(--gold); }
+    #file-count { font: 11px var(--font-mono); text-transform: uppercase; letter-spacing: 1px; margin: 0 0 14px; color: var(--text-muted); }
+    #details { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px; overflow-wrap: anywhere; }
+    #details:empty { display: none; }
+    #details h2 { color: var(--gold); font-size: 20px; margin: 4px 0 10px; }
+    #details p { font-size: 14px; line-height: 1.6; color: #aaa; margin: 8px 0; }
+    #details pre { white-space: pre-wrap; font: 11px/1.6 var(--font-mono); background: var(--bg-main); border: 1px solid var(--border-color); padding: 12px; }
+    #details button { margin: 3px 0; width: 100%; text-align: left; font-size: 14px; }
+    #details dl { display: grid; grid-template-columns: 1fr auto; gap: 10px; font-size: 14px; }
+    #details dt { color: var(--text-muted); }
+    #details dd { margin: 0; }
+    #details .badge { color: var(--gold-dim); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-main); }
+    ::-webkit-scrollbar-thumb { background: var(--border-color); }
+    ::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+    @media(max-width:760px) {
+      body { height: auto; min-height: 100dvh; }
+      header { padding: 16px; gap: 12px; }
+      h1 { font-size: 11px; }
+      #public-tools { margin: 12px 12px 0; padding: 16px; }
+      #repository-url { width: 100%; min-width: 0; flex-basis: 100%; }
+      #scan-form button { min-height: 44px; }
+      .toolbar { padding: 12px; }
+      .toolbar label { min-height: 28px; }
+      main { margin: 0 12px 12px; height: 60vh; min-height: 360px; flex: none; }
+      aside { width: 210px; padding: 12px; }
+      #hint { padding: 0 12px 12px; }
+      #controls { right: 8px; bottom: 8px; }
+    }
+    @media(max-width:480px) {
+      h1 { flex-basis: 100%; }
+      #public-nav { order: 1; }
+      aside { width: 155px; padding: 10px; }
+      .toolbar select { max-width: 160px; }
+      #summary { order: 3; width: 100%; }
+      #overview { order: 2; margin-left: auto; }
+    }
   </style>
 </head>
 <body>
-  <header><h1>File & function map</h1><nav id="public-nav" aria-label="Site navigation"><a id="home-link" href="../">Home</a><a id="admin-link" href="../admin-portal/#dashboard">Admin sign in</a></nav><span id="summary" role="status">Waiting for a repository scan</span><button id="overview" type="button">All files</button></header>
+  <header><h1>UCS503 // SCAN &amp; GRAPH</h1><nav id="public-nav" aria-label="Site navigation"><a id="home-link" href="../">[ HOME ]</a><a id="admin-link" href="../admin-portal/#dashboard">[ ADMIN SIGN IN ]</a></nav><span id="summary" role="status">Waiting for a repository scan</span><button id="overview" type="button">All files</button></header>
   <section id="public-tools" aria-label="Public repository scanner">
     <p>Scan a public GitHub repository and explore its files and functions. No sign in required.</p>
     <form id="scan-form">
@@ -35,7 +176,7 @@
     <aside aria-label="Repository files and details"><section id="details" aria-live="polite"></section><p id="file-count">No scanned files</p><nav id="files" aria-label="Files"></nav></aside>
     <section id="stage" aria-label="Repository map"><canvas id="graph" tabindex="0" aria-label="Interactive file and function map. Use file buttons for keyboard navigation, plus and minus to zoom, F to fit."></canvas><p id="empty">Scan a repository to load its files and functions.</p><div id="controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="fit">Fit</button><button id="zoom-in" aria-label="Zoom in">+</button></div></section>
   </main>
-  <footer id="hint">Select a folder or file to explore. Drag to pan · Scroll to zoom · Fit shows the whole map. Purple: local imports · Gray: file membership · Amber: static local calls.</footer>
+  <footer id="hint">Select a folder or file to explore. Drag to pan · Scroll to zoom · Fit shows the whole map. Gold: local imports · Gray: file membership · Amber: static local calls.</footer>
   <script type="module" src="./graph.mjs"></script>
 </body>
 </html>

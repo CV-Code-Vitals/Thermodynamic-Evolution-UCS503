@@ -7,8 +7,8 @@ const canvas = $('graph'), ctx = canvas.getContext('2d'), stage = $('stage');
 let files = [], relationships = [], model = buildGraphModel([]), focusPath = '', folderPath = '', selected = null;
 let camera = { x: 0, y: 0, zoom: 1 }, width = 1, height = 1, pending = false, pointer = null;
 const number = value => Number(value || 0).toFixed(2);
-const color = node => node.type === 'folder' ? '#60a5fa' : node.type === 'file' ? (node.file.analysis_mode === 'text' ? '#94a3b8' : '#a5b4fc')
-  : node.score >= 10 ? '#fb7185' : node.score >= 5 ? '#fbbf24' : '#5eead4';
+const color = node => node.type === 'folder' ? '#ffd700' : node.type === 'file' ? (node.file.analysis_mode === 'text' ? '#888888' : '#cca800')
+  : node.score >= 10 ? '#ef4444' : node.score >= 5 ? '#f59e0b' : '#e0c65a';
 
 function scheduleDraw() {
   if (pending) return;
@@ -45,7 +45,7 @@ function draw() {
   for (const { source, target, kind } of model.links) {
     const highlighted = !selected || selected.id === source.id || selected.id === target.id;
     ctx.globalAlpha = highlighted ? 0.75 : 0.12;
-    ctx.strokeStyle = kind === 'imports' ? '#a78bfa' : kind === 'calls' ? '#fbbf24' : '#3b4b66';
+    ctx.strokeStyle = kind === 'imports' ? '#ffd700' : kind === 'calls' ? '#f59e0b' : '#444444';
     ctx.beginPath();
     if (source.id === target.id) {
       const x = source.x + source.width, y = source.y + source.height / 2;
@@ -69,18 +69,18 @@ function draw() {
   for (const node of model.nodes) {
     const sx = node.x * camera.zoom + camera.x, sy = node.y * camera.zoom + camera.y;
     if (sx > width || sy > height || sx + node.width * camera.zoom < 0 || sy + node.height * camera.zoom < 0) continue;
-    ctx.fillStyle = selected?.id === node.id ? '#263348' : '#151f2f';
-    ctx.strokeStyle = selected?.id === node.id ? '#ffd700' : '#35445e';
+    ctx.fillStyle = selected?.id === node.id ? '#24200a' : '#111111';
+    ctx.strokeStyle = selected?.id === node.id ? '#ffd700' : '#333333';
     ctx.lineWidth = (selected?.id === node.id ? 2 : 1) / camera.zoom;
-    ctx.beginPath(); ctx.roundRect(node.x, node.y, node.width, node.height, 8); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.rect(node.x, node.y, node.width, node.height); ctx.fill(); ctx.stroke();
     ctx.fillStyle = color(node); ctx.fillRect(node.x, node.y + 9, 3, node.height - 18);
     if (camera.zoom < 0.16) continue;
     ctx.save(); ctx.beginPath(); ctx.rect(node.x + 12, node.y, node.width - 24, node.height); ctx.clip();
     ctx.textBaseline = 'top';
-    ctx.font = `${node.type !== 'function' ? '600' : '500'} 13px system-ui`;
-    ctx.fillStyle = '#e5e7eb';
+    ctx.font = `${node.type !== 'function' ? '600' : '500'} 15px Rajdhani, sans-serif`;
+    ctx.fillStyle = '#e0e0e0';
     ctx.fillText(node.type === 'folder' ? `${node.label}/` : node.type === 'file' ? node.file.path.split('/').pop() : node.label, node.x + 13, node.y + 12);
-    ctx.font = '11px system-ui'; ctx.fillStyle = '#a4b0c3';
+    ctx.font = '11px "Share Tech Mono", monospace'; ctx.fillStyle = '#999999';
     ctx.fillText(node.type === 'folder' ? `${node.files.length} files · ${node.functionCount} functions` : node.type === 'file' ? node.file.path : `Line ${node.fn.line_number} · score ${number(node.score)}`, node.x + 13, node.y + 33);
     if (node.type === 'folder') { ctx.fillText('Select to open folder', node.x + 13, node.y + 57); }
     else if (node.type === 'file') {
@@ -265,5 +265,6 @@ $('zoom-out').onclick = () => zoomAt(0.8);
 $('fit').onclick = fit;
 $('overview').onclick = () => { focusPath = ''; folderPath = ''; selected = null; rebuild(); };
 let searchTimer;
+document.fonts.ready.then(scheduleDraw);
 $('search').oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(rebuild, 120); };
 $('language').onchange = $('sort').onchange = $('functions').onchange = $('imports').onchange = $('folders').onchange = rebuild;
