@@ -294,6 +294,7 @@ jobs:
           done
 
       - name: Upload private deployment bundle
+        id: bundle
         env:
           IMAGE_SHA: ${{ needs.validate.outputs.image_sha }}
           ARTIFACT_BUCKET_NAME: ${{ steps.stack.outputs.artifact_bucket_name }}
@@ -301,7 +302,10 @@ jobs:
           BUNDLE_SHA256: ${{ steps.image_ids.outputs.bundle_sha256 }}
         run: |
           set -euo pipefail
-          bundle_key="bundles/analysis-deployments/$IMAGE_SHA/deployment-bundle.tar.gz"
+          # Docker archive metadata can vary between otherwise identical runs.
+          # Address bundles by their verified content checksum so retries never
+          # overwrite a prior bundle selected by the same image SHA.
+          bundle_key="bundles/analysis-deployments/$IMAGE_SHA/$BUNDLE_SHA256/deployment-bundle.tar.gz"
           if existing_sha256="$(aws s3api head-object \
             --bucket "$ARTIFACT_BUCKET_NAME" \
             --key "$bundle_key" \
@@ -323,6 +327,7 @@ jobs:
             cat head-object-error.txt >&2
             exit 1
           fi
+          echo "bundle_key=$bundle_key" >> "$GITHUB_OUTPUT"
 
       - name: Deploy both private hosts through SSM
         env:
@@ -333,6 +338,7 @@ jobs:
           SANDBOX_LIFECYCLE_TABLE: ${{ steps.stack.outputs.sandbox_lifecycle_table }}
           AWS_REGION: ${{ vars.ANALYSIS_DEPLOY_REGION }}
           BUNDLE_SHA256: ${{ steps.image_ids.outputs.bundle_sha256 }}
+          BUNDLE_KEY: ${{ steps.bundle.outputs.bundle_key }}
           ANALYSIS_IMAGE_ID: ${{ steps.image_ids.outputs.analysis_image_id }}
           SANDBOX_RUNNER_IMAGE_ID: ${{ steps.image_ids.outputs.runner_image_id }}
         run: |
@@ -491,7 +497,7 @@ jobs:
               export DOCKER_HOST=unix:///run/user/10002/docker.sock
             fi
             mkdir -p \"\$release\"
-            aws s3 cp --region '${AWS_REGION}' \"s3://${ARTIFACT_BUCKET_NAME}/bundles/analysis-deployments/${IMAGE_SHA}/deployment-bundle.tar.gz\" \"\$bundle\"
+            aws s3 cp --region '${AWS_REGION}' \"s3://${ARTIFACT_BUCKET_NAME}/${BUNDLE_KEY}\" \"\$bundle\"
             if ! printf '%s  %s\\n' \"\$expected_bundle_sha256\" \"\$bundle\" | sha256sum -c -; then
               echo 'Deployment bundle SHA-256 verification failed' >&2
               exit 1

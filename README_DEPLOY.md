@@ -388,9 +388,10 @@ allow statement is deliberately limited to the deployment region and is used
 only with the resolved sandbox instance ID. The workflow never starts or stops the analysis
 instance. Ensure the bucket blocks public access, uses encryption, and expires
 deployment bundles under an owner-approved retention policy. The workflow
-uploads to `bundles/analysis-deployments/<sha>/`; an existing object is reused
-only when its recorded SHA-256 equals the newly built bundle, otherwise the job
-fails. The two EC2 roles need
+uploads to `bundles/analysis-deployments/<sha>/<bundle-sha256>/`; an existing
+object is reused only when its recorded SHA-256 equals the newly built bundle.
+Using the bundle checksum in the key keeps retries safe when Docker archive
+metadata changes between runs. The two EC2 roles need
 read-only access to that bundle prefix.
 Do not create SSH keys, GHCR credentials for EC2, or long-lived AWS keys.
 

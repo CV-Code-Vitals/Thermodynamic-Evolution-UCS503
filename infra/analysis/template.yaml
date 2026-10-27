@@ -256,10 +256,12 @@ Resources:
         Statement:
           - Sid: ReadOnlyStackObjects
             Effect: Allow
-            Principal:
-              AWS:
-                - !GetAtt AnalysisInstanceRole.Arn
-                - !GetAtt SandboxInstanceRole.Arn
+            Principal: '*'
+            Condition:
+              StringEquals:
+                aws:PrincipalArn:
+                  - !GetAtt AnalysisInstanceRole.Arn
+                  - !GetAtt SandboxInstanceRole.Arn
             Action: s3:GetObject
             Resource:
               - !Sub '${SourceBucket.Arn}/*'
@@ -278,8 +280,10 @@ Resources:
         Statement:
           - Sid: AnalysisLifecycleTableOnly
             Effect: Allow
-            Principal:
-              AWS: !GetAtt AnalysisInstanceRole.Arn
+            Principal: '*'
+            Condition:
+              StringEquals:
+                aws:PrincipalArn: !GetAtt AnalysisInstanceRole.Arn
             Action: dynamodb:*
             Resource: !GetAtt AnalysisLifecycleTable.Arn
 

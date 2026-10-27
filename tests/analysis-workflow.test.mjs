@@ -105,7 +105,8 @@ test('gates AWS upload and deploy behind manual opt-in and approval', () => {
   assert.match(deployWorkflow, /publish-api-image\.yml@refs\/heads\/main/);
   assert.match(deployWorkflow, /analysis_repository=ghcr\.io\/cv-code-vitals\/ucs503-analysis/);
   assert.match(deployWorkflow, /runner_repository=ghcr\.io\/cv-code-vitals\/ucs503-sandbox-runner/);
-  assert.match(deployWorkflow, /bundles\/analysis-deployments\/\$IMAGE_SHA\/deployment-bundle\.tar\.gz/);
+  assert.match(deployWorkflow, /bundles\/analysis-deployments\/\$IMAGE_SHA\/\$BUNDLE_SHA256\/deployment-bundle\.tar\.gz/);
+  assert.match(deployWorkflow, /BUNDLE_KEY: \$\{\{ steps\.bundle\.outputs\.bundle_key \}\}/);
   assert.match(deployWorkflow, /aws s3 cp/);
   assert.match(deployWorkflow, /--sse AES256/);
   assert.match(deployWorkflow, /--pull never/);
