@@ -27,8 +27,7 @@
     * { box-sizing: border-box; }
     body {
       margin: 0;
-      height: 100vh;
-      height: 100dvh;
+      min-height: 100dvh;
       display: flex;
       flex-direction: column;
       background-image: linear-gradient(rgba(255,215,0,.018) 1px, transparent 1px),
@@ -96,7 +95,7 @@
     .toolbar input[type=search] { flex: 1; min-width: 180px; }
     .toolbar label { font: 11px var(--font-mono); color: #aaa; display: flex; gap: 6px; align-items: center; }
     .toolbar select { max-width: 190px; font: 11px var(--font-mono); }
-    main { display: flex; flex: 1; min-height: 260px; margin: 0 20px 16px; border: 1px solid var(--border-color); overflow: hidden; }
+    main { display: flex; flex: none; height: 65vh; min-height: 430px; margin: 0 20px 16px; border: 1px solid var(--border-color); overflow: hidden; }
     aside { width: 300px; flex-shrink: 0; border-right: 1px solid var(--border-color); overflow: auto; padding: 16px; background: var(--bg-card); }
     #stage {
       position: relative; flex: 1; min-width: 0; overflow: hidden; background-color: var(--bg-main);
@@ -125,6 +124,22 @@
     #details dt { color: var(--text-muted); }
     #details dd { margin: 0; }
     #details .badge { color: var(--gold-dim); }
+    #measurements { margin: 20px 20px 0; }
+    #measurements[hidden], #hotspot-empty[hidden] { display: none; }
+    #measurements h2 { font: 600 18px var(--font-main); color: var(--gold); margin: 0 0 12px; }
+    #measurement-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .measurement-card { display: grid; gap: 9px; padding: 16px; border: 1px solid var(--border-color); background: var(--bg-card); }
+    .measurement-card span { color: #aaa; font-size: 14px; }
+    .measurement-card strong { color: var(--gold); font: 24px var(--font-mono); }
+    .measurement-card small, #coverage, .measurement-note { color: #aaa; font-size: 14px; line-height: 1.6; }
+    #measurements details { background: var(--bg-card); border: 1px solid var(--border-color); padding: 14px; }
+    #measurements summary { cursor: pointer; color: var(--gold); }
+    .table-scroll { overflow-x: auto; }
+    #measurements table { border-collapse: collapse; width: 100%; text-align: left; font-size: 14px; }
+    #measurements th, #measurements td { padding: 10px; border-bottom: 1px solid var(--border-color); }
+    #measurements th { color: #aaa; font-weight: 500; }
+    #measurements td:nth-child(2) { overflow-wrap: anywhere; min-width: 160px; }
+    #measurements td button { padding: 5px 8px; text-align: left; color: var(--gold); }
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: var(--bg-main); }
     ::-webkit-scrollbar-thumb { background: var(--border-color); }
@@ -134,6 +149,8 @@
       header { padding: 16px; gap: 12px; }
       h1 { font-size: 11px; }
       #public-tools { margin: 12px 12px 0; padding: 16px; }
+      #measurements { margin: 16px 12px 0; }
+      #measurement-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       #repository-url { width: 100%; min-width: 0; flex-basis: 100%; }
       #scan-form button { min-height: 44px; }
       .toolbar { padding: 12px; }
@@ -164,6 +181,19 @@
       <button id="cancel-scan" type="button" hidden>Cancel scan</button>
     </form>
     <p id="scan-status" role="status"></p><p id="scan-error" role="alert"></p>
+  </section>
+  <section id="measurements" aria-label="Repository measurements" hidden>
+    <h2>Repository measurements</h2>
+    <p class="measurement-note">The project's entropy score measures structural energy. Code heat summarizes complexity; annealing temperature is shown during optimization.</p>
+    <div id="measurement-cards"></div>
+    <p id="coverage"></p>
+    <details><summary>Highest-energy functions &amp; score calculation</summary>
+      <p class="measurement-note">Whole-report measurements stay unchanged as you filter the graph. Total energy grows with repository size. Compare average and peak scores alongside it.</p>
+      <div class="table-scroll"><table><caption>Top 10 functions by measured structural energy</caption><thead><tr><th>Function</th><th>Location</th><th>Energy</th><th>Code heat</th><th>Main driver</th></tr></thead><tbody id="hotspot-rows"></tbody></table></div>
+      <p id="hotspot-empty">No measured functions in this report.</p>
+      <p class="measurement-note">E = 0.45 × branches + 0.25 × nesting + 0.15 × log₂(AST nodes) + 0.15 × concurrency primitives. Branches include the base path. Zero AST nodes contribute zero. Scores use project heuristics and do not measure runtime speed or electricity.</p>
+    </details>
+    <p class="measurement-note">Code heat: Cool &lt; 5 · Elevated 5–&lt;10 · High 10–&lt;15 · Critical ≥ 15. Card markers use the highest measured function in each file or folder. Gray means unmeasured.</p>
   </section>
   <div class="toolbar">
     <input id="search" type="search" aria-label="Search files or functions" placeholder="Search files or functions…">

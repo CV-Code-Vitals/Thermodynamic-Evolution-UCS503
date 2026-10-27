@@ -70,6 +70,7 @@
   justify-content: space-between;
   align-items: center;
   border: 1px solid var(--border-color, #27272a);
+  gap: 12px;
 }
 
 .stat-label {
@@ -84,6 +85,22 @@
 
 .stat-value.good { color: #10b981; }
 .stat-value.bad { color: #ef4444; }
+
+.evolution-trends { align-self: start; }
+.measurement-explanation { color: #aaa; font: 15px/1.6 var(--font-main, sans-serif); }
+.evaluation-counts { color: #ffd700; font-size: 12px; line-height: 1.7; }
+.trend-grid { display: grid; gap: 16px; }
+.trend-chart { border: 1px solid #333; padding: 12px; background: #050505; min-width: 0; }
+.trend-chart h4 { color: #e0e0e0; margin: 0 0 8px; font-size: 13px; }
+.trend-chart svg { width: 100%; height: auto; display: block; }
+.trend-chart text { fill: #aaa; font: 12px monospace; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11px; }
+.evolution-trends summary { cursor: pointer; color: #ffd700; margin-top: 16px; }
+.measurement-table { overflow-x: auto; }
+.measurement-table table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; }
+.measurement-table th, .measurement-table td { padding: 10px; border-bottom: 1px solid #333; }
+
+.evolution-container .panel, .evolution-container .stat-card { border-radius: 0; background: #111; }
 
 .diff-viewer {
   grid-column: 1 / -1;
@@ -208,6 +225,7 @@
 }
 
 @media (max-width: 720px) {
+  .trend-chart text { font-size: 22px; }
   .evolution-header, .diff-split { flex-direction: column; }
   .evolution-controls { flex-wrap: wrap; }
   .evolution-dashboard { grid-template-columns: 1fr; }

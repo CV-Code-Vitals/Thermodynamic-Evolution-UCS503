@@ -1,14 +1,19 @@
 import { repositoryFiles, buildGraphModel } from './model.mjs';
 import scanConfig from './config.mjs';
 import { scanPublicRepository } from './scan.mjs';
+import { scoreBand, energyBreakdown, summarizeRepository } from './measurements.mjs';
 
 const $ = id => document.getElementById(id);
 const canvas = $('graph'), ctx = canvas.getContext('2d'), stage = $('stage');
 let files = [], relationships = [], model = buildGraphModel([]), focusPath = '', folderPath = '', selected = null;
 let camera = { x: 0, y: 0, zoom: 1 }, width = 1, height = 1, pending = false, pointer = null;
 const number = value => Number(value || 0).toFixed(2);
-const color = node => node.type === 'folder' ? '#ffd700' : node.type === 'file' ? (node.file.analysis_mode === 'text' ? '#888888' : '#cca800')
-  : node.score >= 10 ? '#ef4444' : node.score >= 5 ? '#f59e0b' : '#e0c65a';
+const nodeColors = new WeakMap();
+const color = node => {
+  if (!nodeColors.has(node)) nodeColors.set(node, scoreBand(node.type === 'function' ? node.score
+    : summarizeRepository(node.type === 'folder' ? node.files : [node.file]).peak).color);
+  return nodeColors.get(node);
+};
 
 function scheduleDraw() {
   if (pending) return;
@@ -86,7 +91,8 @@ function draw() {
     if (node.type === 'folder') { ctx.fillText('Select to open folder', node.x + 13, node.y + 57); }
     else if (node.type === 'file') {
       ctx.fillStyle = color(node);
-      ctx.fillText(`${node.file.language} · ${node.file.hotspots.length} functions · ${node.file.lines_scanned} code lines`, node.x + 13, node.y + 57);
+      ctx.fillText(node.file.analysis_mode === 'text' ? `${node.file.language} · Function metrics unavailable`
+        : `${node.file.language} · ${node.file.hotspots.length} functions · ${node.file.lines_scanned} code lines`, node.x + 13, node.y + 57);
     }
     ctx.restore();
   }
@@ -132,18 +138,29 @@ function details(node) {
     : file.parse_errors ? 'Partial AST analysis: the parser found syntax errors. Some functions may be missing.' : 'Function analysis';
   element('p', `${file.language} · ${file.lines_scanned} code lines`, panel, 'badge');
   element('p', mode, panel);
+  const resolved = relationships.filter(edge => edge.kind === (node.type === 'function' ? 'calls' : 'imports'));
+  const outgoing = resolved.filter(edge => edge.source_file === file.path && (node.type !== 'function' || edge.source_start_byte === node.fn.byte_range?.[0])).length;
+  const incoming = resolved.filter(edge => edge.target_file === file.path && (node.type !== 'function' || edge.target_start_byte === node.fn.byte_range?.[0])).length;
+  element('p', `Resolved ${node.type === 'function' ? 'calls' : 'imports'}: ${incoming} incoming · ${outgoing} outgoing`, panel);
   if (node.type === 'function') {
     const metrics = node.fn.metrics || {};
     const list = element('dl', undefined, panel);
     for (const [label, value] of [['Structural score', number(node.score)], ['Line', node.fn.line_number],
-      ['Branches + base path', metrics.cyclomatic_complexity], ['Nesting depth', metrics.max_nesting_depth], ['AST nodes', metrics.ast_node_count]]) {
+      ['Code heat', scoreBand(node.score).label], ['Branches + base path', metrics.cyclomatic_complexity], ['Nesting depth', metrics.max_nesting_depth], ['AST nodes', metrics.ast_node_count], ['Concurrency primitives', metrics.concurrency_primitives]]) {
       element('dt', label, list); element('dd', String(value ?? '—'), list);
+    }
+    element('h3', 'Score contributions', panel);
+    const breakdown = element('dl', undefined, panel);
+    for (const part of energyBreakdown(metrics)) {
+      element('dt', `${part.label} × ${part.weight}${part.logarithmic ? ' (log₂)' : ''}`, breakdown);
+      element('dd', part.contribution === null ? 'Unavailable' : number(part.contribution), breakdown);
     }
     element('pre', node.fn.source_snippet || '', panel);
     element('p', node.fn.description || '', panel);
   } else {
     if (file.imports?.length) element('pre', file.imports.map(item => item.path).join('\n'), panel);
-    element('p', `${file.hotspots.length} functions · score ${number(file.total_entropy)}`, panel);
+    element('p', file.analysis_mode === 'text' ? 'Function metrics unavailable'
+      : `${file.hotspots.length} functions · total energy ${number(file.total_entropy)}`, panel);
     for (const fn of file.hotspots) {
       const button = element('button', `${fn.function_name} · ${number(fn.entropy_score)} · L${fn.line_number}`, panel);
       button.type = 'button';
@@ -164,6 +181,40 @@ function details(node) {
     const button = element('button', `${action}: ${label}`, panel); button.type = 'button';
     button.onclick = () => centerNode(other);
   }
+}
+function measurements() {
+  const summary = summarizeRepository(files);
+  $('measurements').hidden = false;
+  $('measurement-cards').replaceChildren();
+  for (const [label, value, note] of [
+    ['Total structural energy', summary.total, 'Sum across measured functions'],
+    ['Average function energy', summary.average, `${summary.functions.length} measured functions`],
+    ['Peak function energy', summary.peak, `${summary.highCount} functions at high or critical heat`],
+    ['Code heat', scoreBand(summary.average).label, 'Based on average function energy'],
+  ]) {
+    const card = element('div', undefined, $('measurement-cards'), 'measurement-card');
+    element('span', label, card);
+    const output = element('strong', typeof value === 'number' ? number(value) : value ?? 'Unavailable', card);
+    if (label === 'Code heat') output.style.color = scoreBand(summary.average).color;
+    element('small', note, card);
+  }
+  $('coverage').textContent = `Analysis coverage: ${summary.astFiles} of ${summary.fileCount} reported files have AST analysis · ${summary.textFiles} text-only · ${summary.partialFiles} with parsing problems. Text-only files have no function score. Counts exclude files skipped by the scanner. Resolved relationships: ${relationships.filter(edge => edge.kind === 'imports').length} imports · ${relationships.filter(edge => edge.kind === 'calls').length} calls.`;
+  const rows = $('hotspot-rows'); rows.replaceChildren();
+  for (const {file, fn, score} of summary.functions.slice(0, 10)) {
+    const row = element('tr', undefined, rows);
+    const cell = element('td', undefined, row);
+    const button = element('button', fn.function_name, cell); button.type = 'button';
+    button.onclick = () => {
+      $('search').value = ''; $('language').value = ''; focusPath = file.path; folderPath = ''; rebuild();
+      const target = model.nodes.find(node => node.id === fn.id); if (target) centerNode(target);
+      $('stage').scrollIntoView({block:'center', behavior:'smooth'});
+    };
+    element('td', `${file.path}:${fn.line_number}`, row);
+    element('td', number(score), row);
+    const heat = element('td', scoreBand(score).label, row); heat.style.color = scoreBand(score).color;
+    element('td', fn.vulnerability_type || 'Structural complexity', row);
+  }
+  $('hotspot-empty').hidden = summary.functions.length > 0;
 }
 function rebuild() {
   const options = {folderPath, groupFolders: $('folders').checked, relationships, showImports: $('imports').checked, query: $('search').value, language: $('language').value, focusPath, showFunctions: $('functions').checked, sort: $('sort').value};
@@ -195,7 +246,7 @@ function loadReport(report) {
   for (const name of languages) {
     const option = element('option', `${name} (${files.filter(file => file.language === name).length})`, $('language')); option.value = name;
   }
-  rebuild();
+  measurements(); rebuild();
 }
 window.addEventListener('message', event => {
   if (event.origin !== location.origin || event.source !== parent || event.data?.type !== 'ucs503:report') return;

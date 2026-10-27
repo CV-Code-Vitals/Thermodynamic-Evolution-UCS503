@@ -2,19 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Square, CheckCircle, XCircle, AlertTriangle, ArrowRight, Thermometer, Activity, Code, Download } from 'lucide-react';
 import './EvolutionLive.css';
 import { readEvolutionStream } from '../evolution-api';
+import { evolutionMeasurements } from '../evolution-measurements';
+import EvolutionCharts from './EvolutionCharts';
+import { scoreBand } from '../../../graph-visualizer/measurements.mjs';
 
 const EvolutionLive = ({ initialData, onBack, apiBase, analysisApiBase = '', token }) => {
   const [isEvolving, setIsEvolving] = useState(false);
   const [telemetry, setTelemetry] = useState([]);
-  const [stats, setStats] = useState({
-    temp: 100,
-    currentEnergy: initialData.base_energy,
-    deltaE: 0.0,
-  });
   const [finalResult, setFinalResult] = useState(null);
+  const measurements = evolutionMeasurements(initialData.base_energy, telemetry, finalResult);
   
   const abortControllerRef = useRef(null);
-  const logEndRef = useRef(null);
+  const logContainerRef = useRef(null);
 
   const codeLeft = initialData.base_code;
   const [codeRight, setCodeRight] = useState(initialData.base_code);
@@ -23,8 +22,8 @@ const EvolutionLive = ({ initialData, onBack, apiBase, analysisApiBase = '', tok
 
   // Auto-scroll logs
   useEffect(() => {
-    if (telemetry.length && logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (telemetry.length && logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
     }
   }, [telemetry]);
 
@@ -55,12 +54,10 @@ const EvolutionLive = ({ initialData, onBack, apiBase, analysisApiBase = '', tok
       await readEvolutionStream(response, (event, data) => {
         if (event === 'step') {
           setTelemetry(previous => [...previous, data]);
-          setStats({ temp: data.temp, currentEnergy: data.accepted ? data.new_energy : data.old_energy, deltaE: data.delta_e });
           if (data.is_best_so_far && data.code_patch) setCodeRight(data.code_patch);
         } else if (event === 'complete') {
           setFinalResult(data);
           setCodeRight(data.optimized_code);
-          setStats(previous => ({ ...previous, currentEnergy: data.final_energy, deltaE: -data.energy_delta }));
         }
       });
     } catch (err) {
@@ -129,21 +126,25 @@ const EvolutionLive = ({ initialData, onBack, apiBase, analysisApiBase = '', tok
           <h3><Thermometer size={18} /> Structural complexity</h3>
           <div className="stats-grid">
             <div className="stat-card">
-              <span className="stat-label">Temperature (T)</span>
-              <span className="stat-value">{stats.temp.toFixed(2)}</span>
+              <span className="stat-label">Annealing temperature (T)</span>
+              <span className="stat-value">{measurements.temperature.toFixed(2)}</span>
             </div>
             <div className="stat-card">
-              <span className="stat-label">Current Energy (E)</span>
-              <span className="stat-value">{stats.currentEnergy.toFixed(2)}</span>
+              <span className="stat-label">Current search energy</span>
+              <span className="stat-value">{measurements.current.toFixed(2)}</span>
             </div>
             <div className="stat-card">
-              <span className="stat-label">Energy Delta (ΔE)</span>
-              <span className={`stat-value ${stats.deltaE < 0 ? 'good' : stats.deltaE > 0 ? 'bad' : ''}`}>
-                {stats.deltaE > 0 ? '+' : ''}{stats.deltaE.toFixed(2)}
-              </span>
+              <span className="stat-label">Baseline energy</span>
+              <span className="stat-value">{measurements.baseline.toFixed(2)}</span>
             </div>
+            <div className="stat-card"><span className="stat-label">Best tested energy</span><span className="stat-value">{measurements.best.toFixed(2)}</span></div>
+            <div className="stat-card"><span className="stat-label">Structural improvement</span><span className="stat-value">{measurements.improvement.toFixed(2)}%</span></div>
+            <div className="stat-card"><span className="stat-label">Best code heat</span><span className="stat-value" style={{color:scoreBand(measurements.best).color}}>{scoreBand(measurements.best).label}</span></div>
           </div>
+          <p className="measurement-explanation">Code heat uses the same thresholds as the scanner. These scores do not measure runtime speed.</p>
+          <p className="evaluation-counts" role="status">Candidate checks: {measurements.passed} passed · {measurements.failed} failed · {measurements.skipped} steps without tests</p>
         </div>
+        <EvolutionCharts measurements={measurements} />
 
         {/* Unified Diff Viewer */}
         <div className="diff-viewer panel">
@@ -181,7 +182,7 @@ const EvolutionLive = ({ initialData, onBack, apiBase, analysisApiBase = '', tok
         {/* Telemetry Log */}
         <div className="telemetry-log panel">
           <h3><Activity size={18} /> Telemetry Event Log</h3>
-          <div className="log-container">
+          <div className="log-container" ref={logContainerRef}>
             {telemetry.length === 0 && <div className="log-empty">Waiting for telemetry...</div>}
             {telemetry.map((t, idx) => (
               <div key={idx} className={`log-entry ${t.isError ? 'log-error' : t.accepted ? 'log-accepted' : 'log-rejected'}`}>
@@ -203,7 +204,6 @@ const EvolutionLive = ({ initialData, onBack, apiBase, analysisApiBase = '', tok
                 )}
               </div>
             ))}
-            <div ref={logEndRef} />
           </div>
         </div>
       </div>
