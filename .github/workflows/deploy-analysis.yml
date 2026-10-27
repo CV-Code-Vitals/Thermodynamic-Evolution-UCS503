@@ -546,16 +546,18 @@ jobs:
               exit 1
             fi
             actual_image_id=\$(docker inspect --format '{{.Image}}' \"\$container_id\")
-            expected_image_id='${expected_image_id}'
+            # Docker image IDs differ between classic and containerd image
+            # stores. Compare the container with the tag just loaded from the
+            # checksum-verified bundle on this same daemon.
+            expected_image_id=\$(docker image inspect --format '{{.Id}}' 'ghcr.io/cv-code-vitals/ucs503-analysis:${IMAGE_SHA}')
             if [ \"\$actual_image_id\" != \"\$expected_image_id\" ]; then
               echo 'Running service image ID does not match the selected release' >&2
               exit 1
             fi
             if [ '${project_name}' = 'ucs503-sandbox' ]; then
               actual_runner_image_id=\$(docker image inspect --format '{{.Id}}' 'ghcr.io/cv-code-vitals/ucs503-sandbox-runner:${IMAGE_SHA}')
-              expected_runner_image_id='${expected_runner_image_id}'
-              if [ \"\$actual_runner_image_id\" != \"\$expected_runner_image_id\" ]; then
-                echo 'Loaded sandbox runner image ID does not match the selected release' >&2
+              if [ -z \"\$actual_runner_image_id\" ]; then
+                echo 'Sandbox runner image is missing from the selected release' >&2
                 exit 1
               fi
             else
