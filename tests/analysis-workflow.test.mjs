@@ -489,6 +489,9 @@ test('verifies deployed image identities and analysis health', () => {
   assert.match(deployWorkflow, /analysis_image_id=.*docker image inspect --format/i);
   assert.match(deployWorkflow, /runner_image_id=.*docker image inspect --format/i);
   assert.match(deployWorkflow, /docker inspect --format '\{\{\.Image\}\}'/);
+  const deployment = deployWorkflow.slice(deployWorkflow.indexOf('deploy_instance() {'), deployWorkflow.indexOf('rollback_instance() {'));
+  assert.match(deployment, /docker load -i[\s\S]*expected_image_id=.*docker image inspect --format/);
+  assert.doesNotMatch(deployment, /expected_image_id='\$\{expected_image_id\}'/);
   assert.match(deployWorkflow, /actual_image_id.*expected_image_id|expected_image_id.*actual_image_id/);
   assert.match(deployWorkflow, /SANDBOX_RUNNER_IMAGE/);
   assert.match(deployWorkflow, /Health\.Status|\.State\.Health\.Status/);
