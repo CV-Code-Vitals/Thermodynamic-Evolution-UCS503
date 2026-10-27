@@ -270,7 +270,7 @@ test('makes deployment bundle upload idempotent and refuses a conflicting SHA re
     deployWorkflow.indexOf('name: Deploy both private hosts through SSM'),
   );
   assert.match(upload, /aws s3api head-object/);
-  assert.match(upload, /Metadata\.bundle-sha256/);
+  assert.match(upload, /Metadata\."bundle-sha256"/);
   assert.match(upload, /Refusing to overwrite a different deployment bundle/);
   assert.match(upload, /--metadata "bundle-sha256=\$BUNDLE_SHA256"/);
   assert.match(upload, /NotFound\|404\|NoSuchKey/);
