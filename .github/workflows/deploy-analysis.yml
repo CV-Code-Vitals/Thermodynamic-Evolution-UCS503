@@ -539,8 +539,8 @@ jobs:
             if [ '${project_name}' = 'ucs503-analysis' ]; then
               export SANDBOX_LIFECYCLE_TABLE='${SANDBOX_LIFECYCLE_TABLE}'
             fi
-            IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" up --pull never -d
-            container_id=\$(IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps -q '${service_name}')
+            AWS_REGION='${AWS_REGION}' IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" up --pull never -d
+            container_id=\$(AWS_REGION='${AWS_REGION}' IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps -q '${service_name}')
             if [ -z \"\$container_id\" ]; then
               echo 'Compose did not create the expected service container' >&2
               exit 1
@@ -579,7 +579,7 @@ jobs:
               fi
               docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health >/dev/null
             fi
-            IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
+            AWS_REGION='${AWS_REGION}' IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
             download_bundle "$instance_id"
             send_ssm_command "$instance_id" "$remote_command"
           }
@@ -627,8 +627,8 @@ jobs:
               echo 'Captured rollback Compose release is unavailable' >&2
               exit 1
             fi
-            IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" up --pull never -d
-            container_id=\$(IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps -q '${service_name}')
+            AWS_REGION='${AWS_REGION}' IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" up --pull never -d
+            container_id=\$(AWS_REGION='${AWS_REGION}' IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps -q '${service_name}')
             if [ -z \"\$container_id\" ]; then
               echo 'Rollback did not create the expected service container' >&2
               exit 1
@@ -661,7 +661,7 @@ jobs:
               echo 'Sandbox broker rollback container is not running' >&2
               exit 1
             fi
-            IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
+            AWS_REGION='${AWS_REGION}' IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
             send_ssm_command "$instance_id" "$remote_command"
           }
 
@@ -670,7 +670,7 @@ jobs:
             local remote_command
             remote_command="set -eu
             release=/opt/ucs503/releases/${analysis_release_sha}
-            container_id=\$(IMAGE_TAG=${analysis_release_sha} docker compose --project-name ucs503-analysis --env-file /etc/ucs503/analysis.env -f \"\$release/docker-compose.analysis.yml\" ps -q ucs503-analysis)
+            container_id=\$(AWS_REGION='${AWS_REGION}' IMAGE_TAG=${analysis_release_sha} docker compose --project-name ucs503-analysis --env-file /etc/ucs503/analysis.env -f \"\$release/docker-compose.analysis.yml\" ps -q ucs503-analysis)
             if [ -z \"\$container_id\" ]; then
               echo 'Analysis container is missing during the sandbox broker readiness check' >&2
               exit 1
