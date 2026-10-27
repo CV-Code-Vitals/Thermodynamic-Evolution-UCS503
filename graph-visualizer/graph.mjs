@@ -42,6 +42,7 @@ function draw() {
   ctx.translate(camera.x, camera.y);
   ctx.scale(camera.zoom, camera.zoom);
   const connected = new Set(selected ? [selected.id] : []);
+  const arrowheads = [];
   const active = link => !selected || link.source.id === selected.id || link.target.id === selected.id;
   if (selected) for (const link of model.links) if (active(link)) {
     connected.add(link.source.id); connected.add(link.target.id);
@@ -60,13 +61,8 @@ function draw() {
       ctx.strokeStyle = '#050505'; ctx.lineWidth += 4 / camera.zoom; ctx.stroke(); ctx.lineWidth -= 4 / camera.zoom;
     }
     ctx.strokeStyle = ink; ctx.stroke(); ctx.setLineDash([]);
-    const end = points.at(-1), before = points.at(-2);
-    const angle = Math.atan2(end[1] - before[1], end[0] - before[0]);
-    const size = Math.min(12, (kind === 'contains' ? 7 : 10) / camera.zoom);
-    ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(...end);
-    ctx.lineTo(end[0] - Math.cos(angle) * size + Math.sin(angle) * size * .45, end[1] - Math.sin(angle) * size - Math.cos(angle) * size * .45);
-    ctx.lineTo(end[0] - Math.cos(angle) * size - Math.sin(angle) * size * .45, end[1] - Math.sin(angle) * size + Math.cos(angle) * size * .45);
-    ctx.closePath(); ctx.fill();
+    arrowheads.push({points, kind, ink, opacity:ctx.globalAlpha});
+    ctx.fillStyle = ink;
     ctx.beginPath(); ctx.arc(...points[0], 2.3 / camera.zoom, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
@@ -93,6 +89,20 @@ function draw() {
       ctx.fillText(`${node.file.language} · ${node.file.hotspots.length} functions · ${node.file.lines_scanned} code lines`, node.x + 13, node.y + 57);
     }
     ctx.restore();
+  }
+  // Draw markers last so card fills and borders cannot cover their tips.
+  for (const {points, kind, ink, opacity} of arrowheads) {
+    const end = points.at(-1), before = points.at(-2);
+    const angle = Math.atan2(end[1] - before[1], end[0] - before[0]);
+    const gap = Math.min(4 / camera.zoom, Math.hypot(end[0] - before[0], end[1] - before[1]) / 3);
+    const x = end[0] - Math.cos(angle) * gap, y = end[1] - Math.sin(angle) * gap;
+    const size = Math.min(16, (kind === 'contains' ? 9 : 12) / camera.zoom);
+    ctx.globalAlpha = opacity;
+    ctx.fillStyle = ink; ctx.strokeStyle = '#050505'; ctx.lineWidth = 2 / camera.zoom;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    ctx.lineTo(x - Math.cos(angle) * size + Math.sin(angle) * size * .5, y - Math.sin(angle) * size - Math.cos(angle) * size * .5);
+    ctx.lineTo(x - Math.cos(angle) * size - Math.sin(angle) * size * .5, y - Math.sin(angle) * size + Math.cos(angle) * size * .5);
+    ctx.closePath(); ctx.stroke(); ctx.fill();
   }
   ctx.globalAlpha = 1;
 }
