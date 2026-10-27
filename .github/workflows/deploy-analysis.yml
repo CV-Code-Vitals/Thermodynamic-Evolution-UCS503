@@ -306,7 +306,7 @@ jobs:
             --bucket "$ARTIFACT_BUCKET_NAME" \
             --key "$bundle_key" \
             --region "$AWS_REGION" \
-            --query 'Metadata.bundle-sha256' \
+            --query 'Metadata."bundle-sha256"' \
             --output text 2>head-object-error.txt)"; then
             if [[ "$existing_sha256" != "$BUNDLE_SHA256" ]]; then
               echo "Refusing to overwrite a different deployment bundle for $IMAGE_SHA" >&2
