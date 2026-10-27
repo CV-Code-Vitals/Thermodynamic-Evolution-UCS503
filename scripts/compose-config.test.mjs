@@ -41,6 +41,7 @@ test("analysis compose is isolated from the sandbox broker and Docker socket", (
   assert.deepEqual(serviceNames(compose), ["ucs503-analysis"]);
   assert.match(service, /image:\s*ghcr\.io\/cv-code-vitals\/ucs503-analysis:\$\{IMAGE_TAG:/);
   assert.match(service, /network_mode:\s*host/);
+  assert.match(service, /AWS_REGION:\s*\$\{AWS_REGION:\?Set AWS_REGION in the analysis environment\}/);
   assert.match(service, /ANALYSIS_API_TOKEN:/);
   assert.match(service, /SANDBOX_SERVICE_URL:/);
   assert.match(service, /SANDBOX_SERVICE_TOKEN:/);
@@ -73,6 +74,7 @@ test("example environment files describe required runtime values without actual 
   const sandboxEnv = readRepoFile(".env.sandbox.example");
 
   assert.match(analysisEnv, /^IMAGE_TAG=replace-with-40-character-commit-sha$/m);
+  assert.match(analysisEnv, /^AWS_REGION=ap-south-1$/m);
   assert.match(analysisEnv, /^ANALYSIS_API_TOKEN=replace-with-ssm-value$/m);
   assert.match(analysisEnv, /^SANDBOX_SERVICE_TOKEN=replace-with-ssm-value$/m);
   assert.match(analysisEnv, /^SANDBOX_TLS_CA_SOURCE=/m);

@@ -31,6 +31,8 @@ test('publishes immutable SHA image tags', () => {
   assert.match(publishWorkflow, /'thermodynamic-ast-engine\/\*\*'/);
   assert.match(publishWorkflow, /'docker\/\*\*'/);
   assert.match(publishWorkflow, /'\.dockerignore'/);
+  assert.match(publishWorkflow, /'docker-compose\.analysis\.yml'/);
+  assert.match(publishWorkflow, /'\.env\.analysis\.example'/);
   assert.match(
     publishWorkflow,
     /ucs503-analysis:\$\{\{\s*github\.sha\s*\}\}/,
@@ -582,4 +584,11 @@ test('documents cleanup prerequisites, destructive effects, allowlist, and futur
   assert.match(deploymentReadme, /tagged snapshots/i);
   assert.match(deploymentReadme, /least-privilege.*OIDC|OIDC.*least-privilege/i);
   assert.match(deploymentReadme, /analysis-cleanup.*protected GitHub Environment|protected `analysis-cleanup`/i);
+});
+
+test('passes the validated AWS region into every analysis Compose operation', () => {
+  assert.equal(
+    [...deployWorkflow.matchAll(/AWS_REGION='\$\{AWS_REGION\}' IMAGE_TAG=/g)].length,
+    7,
+  );
 });

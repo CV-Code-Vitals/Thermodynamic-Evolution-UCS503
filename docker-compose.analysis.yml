@@ -4,6 +4,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
+      AWS_REGION: ${AWS_REGION:?Set AWS_REGION in the analysis environment}
       ANALYSIS_API_TOKEN: ${ANALYSIS_API_TOKEN:?Load ANALYSIS_API_TOKEN from SSM}
       ENGINE_PATH: /app/thermodynamic-ast-engine
       ENGINE_TIMEOUT_SEC: ${ENGINE_TIMEOUT_SEC:-300}
