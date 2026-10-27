@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,6 +23,7 @@ const githubSessionLifetime = time.Hour
 var accountTokenPattern = regexp.MustCompile(`^[a-f0-9]{64}$`)
 var browserChallengePattern = regexp.MustCompile(`^[A-Za-z0-9_-]{43}$`)
 var githubLoginPattern = regexp.MustCompile(`^[A-Za-z0-9-]{1,39}$`)
+var githubErrorPattern = regexp.MustCompile(`^[a-z_]{1,64}$`)
 var savedPathPattern = regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`)
 
 type githubAccountService struct {
@@ -217,6 +219,7 @@ func (a *githubAccountService) callback(w http.ResponseWriter, r *http.Request) 
 	}
 	user, err := a.exchangeGitHubCode(r.Context(), code, record.Verifier)
 	if err != nil {
+		slog.Error("GitHub sign-in failed", "reason", err.Error())
 		http.Redirect(w, r, a.frontendURL+"#auth_error=github_signin_failed", http.StatusFound)
 		return
 	}
@@ -247,15 +250,20 @@ func (a *githubAccountService) exchangeGitHubCode(ctx context.Context, code, ver
 	request.Header.Set("Accept", "application/json")
 	response, err := a.client.Do(request)
 	if err != nil {
-		return GitHubUser{}, err
+		return GitHubUser{}, errors.New("GitHub token endpoint unavailable")
 	}
 	defer response.Body.Close()
 	var token struct {
 		AccessToken string `json:"access_token"`
 		TokenType   string `json:"token_type"`
+		Error       string `json:"error"`
 	}
-	if response.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&token) != nil || token.AccessToken == "" || !strings.EqualFold(token.TokenType, "bearer") {
-		return GitHubUser{}, errors.New("GitHub token exchange failed")
+	decodeErr := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&token)
+	if response.StatusCode != http.StatusOK || decodeErr != nil || token.AccessToken == "" || !strings.EqualFold(token.TokenType, "bearer") {
+		if githubErrorPattern.MatchString(token.Error) {
+			return GitHubUser{}, errors.New("GitHub rejected the token exchange: " + token.Error)
+		}
+		return GitHubUser{}, errors.New("GitHub rejected the token exchange with HTTP " + strconv.Itoa(response.StatusCode))
 	}
 	request, err = http.NewRequestWithContext(ctx, http.MethodGet, a.userURL, nil)
 	if err != nil {
@@ -265,7 +273,7 @@ func (a *githubAccountService) exchangeGitHubCode(ctx context.Context, code, ver
 	request.Header.Set("Accept", "application/vnd.github+json")
 	response, err = a.client.Do(request)
 	if err != nil {
-		return GitHubUser{}, err
+		return GitHubUser{}, errors.New("GitHub user endpoint unavailable")
 	}
 	defer response.Body.Close()
 	var profile struct {
@@ -273,7 +281,7 @@ func (a *githubAccountService) exchangeGitHubCode(ctx context.Context, code, ver
 		Login string `json:"login"`
 	}
 	if response.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&profile) != nil || profile.ID <= 0 || !githubLoginPattern.MatchString(profile.Login) {
-		return GitHubUser{}, errors.New("GitHub identity lookup failed")
+		return GitHubUser{}, errors.New("GitHub identity lookup failed with HTTP " + strconv.Itoa(response.StatusCode))
 	}
 	// The GitHub access token is discarded after identity verification.
 	return GitHubUser{ID: strconv.FormatInt(profile.ID, 10), Login: profile.Login}, nil
