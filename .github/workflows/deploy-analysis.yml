@@ -153,8 +153,20 @@ jobs:
             --output analysis-images.tar \
             "$analysis_image" \
             "$runner_image"
+          if [[ "$(uname -m)" != x86_64 ]]; then
+            echo "The hosted runner must be x86_64 to package the AWS CLI fallback" >&2
+            exit 1
+          fi
+          aws_binary="$(readlink -f "$(command -v aws)")"
+          aws_cli_directory="$(dirname "$(dirname "$(dirname "$(dirname "$aws_binary")")")")"
+          if [[ ! -x "$aws_cli_directory/v2/current/bin/aws" ]]; then
+            echo "Could not locate the runner's bundled AWS CLI" >&2
+            exit 1
+          fi
+          cp -a "$aws_cli_directory" aws-cli
           tar -czf analysis-deployment-bundle.tar.gz \
             analysis-images.tar \
+            aws-cli \
             docker-compose.analysis.yml \
             docker-compose.sandbox.yml \
             scripts/validate-sandbox-host.mjs
@@ -497,7 +509,16 @@ jobs:
               export DOCKER_HOST=unix:///run/user/10002/docker.sock
             fi
             mkdir -p \"\$release\"
-            aws s3 cp --region '${AWS_REGION}' \"s3://${ARTIFACT_BUCKET_NAME}/${BUNDLE_KEY}\" \"\$bundle\"
+            if command -v aws >/dev/null 2>&1; then
+              aws_cli=\$(command -v aws)
+            else
+              aws_cli=\"\$release/aws-cli/v2/current/bin/aws\"
+            fi
+            if [ ! -x \"\$aws_cli\" ]; then
+              echo 'No usable AWS CLI was found on the host or in the deployment bundle' >&2
+              exit 1
+            fi
+            \"\$aws_cli\" s3 cp --region '${AWS_REGION}' \"s3://${ARTIFACT_BUCKET_NAME}/${BUNDLE_KEY}\" \"\$bundle\"
             if ! printf '%s  %s\\n' \"\$expected_bundle_sha256\" \"\$bundle\" | sha256sum -c -; then
               echo 'Deployment bundle SHA-256 verification failed' >&2
               exit 1

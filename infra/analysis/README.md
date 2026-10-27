@@ -103,8 +103,9 @@ aws ec2 describe-managed-prefix-lists `
 Before a separately authorized deployment, prepare and review:
 
 1. Supported analysis and sandbox AMIs with the SSM Agent, Docker Engine,
-   Docker Compose plugin, AWS CLI, Node.js 22 for the read-only host validator,
-   and host bootstrap configuration. The
+   Docker Compose plugin, Node.js 22 for the read-only host validator, and host
+   bootstrap configuration. The deployment bundle includes an x86_64 AWS CLI
+   fallback for private hosts that do not already provide one. The
    analysis host must not have access to a Docker socket. Prepare the sandbox
    host with rootless Docker for UID/GID `10002`, enable systemd linger for
    that dedicated user, and verify the daemon socket is
