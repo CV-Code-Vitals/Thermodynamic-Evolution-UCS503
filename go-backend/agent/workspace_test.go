@@ -84,12 +84,12 @@ func TestCreateWorkspaceArchive_RejectsOversizeFile(t *testing.T) {
 	if err := os.WriteFile(path, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Truncate(path, (16<<20)+1); err != nil {
+	if err := os.Truncate(path, (32<<20)+1); err != nil {
 		t.Fatal(err)
 	}
 
 	if _, err := CreateWorkspaceArchive(repo, 50<<20); err == nil {
-		t.Fatal("CreateWorkspaceArchive() accepted a file larger than 16 MiB")
+		t.Fatal("CreateWorkspaceArchive() accepted a file larger than 32 MiB")
 	}
 }
 
@@ -130,8 +130,8 @@ func TestDefaultWorkspaceArchiveLimits(t *testing.T) {
 	if limits.MaxEntries != 10_000 {
 		t.Errorf("MaxEntries = %d, want %d", limits.MaxEntries, 10_000)
 	}
-	if limits.MaxFileBytes != 16<<20 {
-		t.Errorf("MaxFileBytes = %d, want %d", limits.MaxFileBytes, 16<<20)
+	if limits.MaxFileBytes != 32<<20 {
+		t.Errorf("MaxFileBytes = %d, want %d", limits.MaxFileBytes, 32<<20)
 	}
 }
 
@@ -159,6 +159,25 @@ func TestExtractWorkspaceArchive_RejectsSymlinkEntries(t *testing.T) {
 
 	if err := ExtractWorkspaceArchive(archive, destination, DefaultWorkspaceArchiveLimits()); err == nil {
 		t.Fatal("ExtractWorkspaceArchive() accepted a symlink entry")
+	}
+}
+
+func TestExtractWorkspaceArchive_AllowsFileLargerThanLegacyLimit(t *testing.T) {
+	archive := makeWorkspaceTestArchive(t, []workspaceTestEntry{{
+		name:     "data.npz",
+		contents: strings.Repeat("x", 17<<20),
+	}})
+	destination := filepath.Join(t.TempDir(), "workspace")
+
+	if err := ExtractWorkspaceArchive(archive, destination, DefaultWorkspaceArchiveLimits()); err != nil {
+		t.Fatalf("ExtractWorkspaceArchive() rejected a file within the 32 MiB per-file limit: %v", err)
+	}
+	info, err := os.Stat(filepath.Join(destination, "data.npz"))
+	if err != nil {
+		t.Fatalf("Stat(extracted file): %v", err)
+	}
+	if info.Size() != 17<<20 {
+		t.Fatalf("extracted file size = %d, want %d", info.Size(), 17<<20)
 	}
 }
 
