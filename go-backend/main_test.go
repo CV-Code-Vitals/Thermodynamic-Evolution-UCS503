@@ -83,6 +83,28 @@ func TestExtractZip_HappyPath(t *testing.T) {
 	checkFile("sub/world.go", "package main\n")
 }
 
+func TestExtractZip_AcceptsFilesLargerThanSixteenMiB(t *testing.T) {
+	tmp := t.TempDir()
+	zipPath := filepath.Join(tmp, "large-entry.zip")
+	wantSize := int64(17 << 20)
+	makeTestZip(t, zipPath, map[string]string{
+		"large.bin": strings.Repeat("x", int(wantSize)),
+	})
+
+	destDir := filepath.Join(tmp, "out")
+	if err := extractZip(zipPath, destDir); err != nil {
+		t.Fatalf("extractZip rejected a 17 MiB file: %v", err)
+	}
+
+	info, err := os.Stat(filepath.Join(destDir, "large.bin"))
+	if err != nil {
+		t.Fatalf("stat extracted file: %v", err)
+	}
+	if info.Size() != wantSize {
+		t.Fatalf("extracted size = %d, want %d", info.Size(), wantSize)
+	}
+}
+
 func TestValidateEngineBinary_RejectsMissingPath(t *testing.T) {
 	err := validateEngineBinary(filepath.Join(t.TempDir(), "missing-engine"))
 	if err == nil {
