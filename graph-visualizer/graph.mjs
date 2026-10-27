@@ -1,4 +1,6 @@
 import { repositoryFiles, buildGraphModel } from './model.mjs';
+import scanConfig from './config.mjs';
+import { scanPublicRepository } from './scan.mjs';
 
 const $ = id => document.getElementById(id);
 const canvas = $('graph'), ctx = canvas.getContext('2d'), stage = $('stage');
@@ -153,7 +155,7 @@ function rebuild() {
   $('summary').textContent = `${model.fileCount} of ${files.length} files · ${model.functionCount} functions · ${model.links.filter(edge => edge.kind === 'imports').length} imports${focusPath ? ' · file focus' : folderPath ? ` · ${folderPath}/` : ''}`;
   $('file-count').textContent = `${model.filtered.length} matching files`;
   $('empty').hidden = model.nodes.length > 0;
-  $('empty').textContent = files.length ? 'No files match these filters.' : 'Scan a repository in the Scan & Optimize tab to load its files.';
+  $('empty').textContent = files.length ? 'No files match these filters.' : 'Scan a repository to load its files and functions.';
   $('files').replaceChildren();
   const fragment = document.createDocumentFragment();
   for (const file of model.filtered) {
@@ -182,9 +184,38 @@ window.addEventListener('message', event => {
   if (!Array.isArray(event.data.report?.file_reports)) return;
   loadReport(event.data.report);
 });
-if (new URLSearchParams(location.search).get('embedded') !== 'true') {
+const embedded = new URLSearchParams(location.search).get('embedded') === 'true';
+$('public-tools').hidden = embedded;
+$('public-nav').hidden = embedded;
+if (!embedded) {
   const root = new URL('../', location.href);
-  location.replace(new URL(root.pathname.endsWith('/admin-portal/') ? '#graph' : 'admin-portal/#graph', root));
+  if (root.pathname.endsWith('/admin-portal/')) {
+    $('home-link').href = new URL('../', root);
+    $('admin-link').href = new URL('#dashboard', root);
+  }
+  let controller;
+  $('scan-form').onsubmit = async event => {
+    event.preventDefault();
+    controller = new AbortController();
+    $('scan-button').disabled = true;
+    $('cancel-scan').hidden = false;
+    $('scan-error').textContent = '';
+    $('scan-status').textContent = 'Scanning repository…';
+    try {
+      const report = await scanPublicRepository(scanConfig, $('repository-url').value, controller.signal);
+      $('search').value = '';
+      loadReport(report);
+      $('scan-status').textContent = `Scan complete: ${files.length} files. Select a file or folder below to explore.`;
+    } catch (error) {
+      $('scan-status').textContent = error.name === 'AbortError' ? 'Scan cancelled.' : '';
+      if (error.name !== 'AbortError') $('scan-error').textContent = error.message || 'Repository scan failed. Please try again.';
+    } finally {
+      $('scan-button').disabled = false;
+      $('cancel-scan').hidden = true;
+    }
+  };
+  $('cancel-scan').onclick = () => controller?.abort();
+  window.addEventListener('pagehide', () => controller?.abort());
 }
 new ResizeObserver(() => {
   width = stage.clientWidth; height = stage.clientHeight;

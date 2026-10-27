@@ -50,6 +50,7 @@ jobs:
           cp index.html _site/
           cp -R assets graph-visualizer _site/
           cp -R admin-portal/dist/. _site/admin-portal/
+          cp -R admin-portal/dist/graph-visualizer/. _site/graph-visualizer/
           touch _site/.nojekyll
 
       - name: Configure GitHub Pages

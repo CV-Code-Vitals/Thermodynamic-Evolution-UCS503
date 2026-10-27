@@ -76,7 +76,7 @@ func TestPublicScanController_RateLimitsClient(t *testing.T) {
 
 func TestPublicScanController_RejectsConcurrentScan(t *testing.T) {
 	provider := &fakeSnapshotWorkspaceProvider{path: t.TempDir()}
-	entered := make(chan struct{})
+	entered := make(chan struct{}, 1)
 	release := make(chan struct{})
 	handler := scanRepoHandlerWithRunner(
 		"engine",

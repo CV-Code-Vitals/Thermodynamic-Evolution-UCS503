@@ -782,3 +782,16 @@
   color: var(--bg-main);
   box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
 }
+.public-scanner-link {
+    color: #ffd700;
+    margin-bottom: 1.5rem;
+    max-width: 36rem;
+    text-align: center;
+    line-height: 1.6;
+    text-underline-offset: 4px;
+}
+
+.public-scanner-link:focus-visible {
+    outline: 2px solid #ffd700;
+    outline-offset: 4px;
+}

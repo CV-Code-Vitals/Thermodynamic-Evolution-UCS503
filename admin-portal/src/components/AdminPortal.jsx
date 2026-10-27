@@ -355,8 +355,9 @@ const AdminPortal = () => {
 
           <div className="auth-container">
             <Lock size={48} className="auth-icon" />
-            <h1 className="auth-title">Project workspace</h1>
-            <p className="auth-subtitle">SIGN IN TO ACCESS REPOSITORY ANALYSIS AND DELIVERABLES</p>
+            <h1 className="auth-title">Administrator access</h1>
+            <p className="auth-subtitle">SIGN IN TO OPTIMIZE FUNCTIONS AND MANAGE DELIVERABLES</p>
+            <a className="public-scanner-link" href="../graph-visualizer/">Scan repositories and explore graphs without signing in →</a>
 
             <form className="auth-form" onSubmit={handleLogin}>
               <div className="input-group">
@@ -498,7 +499,7 @@ const AdminPortal = () => {
               <div>
                 <span className="archive-title">THERMODYNAMIC EVOLUTION · UCS503</span>
                 <h1>Project workspace</h1>
-                <p>Scan a repository, inspect its structure, optimize Go functions, and manage deliverables after one sign in.</p>
+                <p>Scan repositories and explore graphs publicly. Use this administrator workspace to optimize Go functions and manage deliverables.</p>
               </div>
               <div className="online-badge"><span className="status-dot" /> AUTHENTICATED</div>
             </div>
@@ -536,7 +537,7 @@ const AdminPortal = () => {
                 <Database size={18} /> VIEW ARCHIVE
               </button>
             </div>
-            <p className="workspace-limit-note">Optimization runs require the server sandbox to be available. The graph uses the authenticated scan shown here.</p>
+            <p className="workspace-limit-note">Optimization runs require the server sandbox to be available. Public scanning and graph exploration are also available without an administrator session.</p>
           </div>
         )}
 

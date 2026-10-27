@@ -3,13 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Repository file & function map</title>
+  <title>Public repository scanner & graph</title>
   <style>
     :root{color-scheme:dark;font:14px system-ui,sans-serif;color:#e5e7eb;background:#0c1017}*{box-sizing:border-box}body{margin:0;height:100vh;display:flex;flex-direction:column}button,input,select{font:inherit}button,input,select{color:inherit;background:#151c28;border:1px solid #344156;border-radius:7px;padding:9px 11px}button{cursor:pointer}button:hover,button:focus-visible{border-color:#ffd700}input:focus-visible,select:focus-visible{outline:2px solid #ffd700}header{padding:16px 20px;border-bottom:1px solid #293244;display:flex;align-items:center;gap:12px;flex-wrap:wrap}h1{font-size:17px;margin:0}#summary{color:#a4b0c3;font-size:12px}.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid #293244}.toolbar input[type=search]{flex:1;min-width:180px}.toolbar label{font-size:12px;display:flex;gap:6px;align-items:center}.toolbar select{max-width:190px}main{display:flex;flex:1;min-height:0}aside{width:300px;flex-shrink:0;border-right:1px solid #293244;overflow:auto;padding:16px}#stage{position:relative;flex:1;min-width:0;overflow:hidden;background:radial-gradient(ellipse at center,#141d2b,#0c1017)}canvas{display:block;touch-action:none;outline-offset:-3px;cursor:grab}canvas:active{cursor:grabbing}#empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;color:#a4b0c3;padding:30px;pointer-events:none}#empty[hidden]{display:none}#controls{position:absolute;right:14px;bottom:14px;display:flex;gap:6px}#hint{padding:9px 20px;border-top:1px solid #293244;color:#94a3b8;font-size:12px}#files{display:grid;gap:6px}#files button{text-align:left;overflow-wrap:anywhere;width:100%;font-size:12px;line-height:1.5}#files button[aria-pressed=true]{border-color:#ffd700;background:#2b2918}#details{border-bottom:1px solid #293244;padding-bottom:16px;margin-bottom:14px;overflow-wrap:anywhere}#details:empty{display:none}#details h2{font-size:15px;margin:8px 0}#details p{font-size:12px;line-height:1.6;color:#b2bfd1}#details pre{white-space:pre-wrap;font-size:11px;background:#080c12;padding:12px;border-radius:5px}#details button{margin:3px 0;width:100%;text-align:left;font-size:12px}#details dl{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:12px}#details dt{color:#a4b0c3}#details dd{margin:0}.muted{color:#94a3b8;font-size:12px}.badge{color:#6ee7b7}#overview{margin-left:auto}#file-count{font-size:12px;margin:0 0 12px;color:#a4b0c3}@media(max-width:760px){aside{width:210px;padding:10px}.toolbar,header{padding:10px}.toolbar label{width:100%}#hint{padding:8px 10px}#controls{right:8px;bottom:8px}}@media(max-width:480px){aside{width:160px}.toolbar select{max-width:135px}#summary{width:100%}}
   </style>
+  <style>
+    #public-tools{padding:16px 20px;border-bottom:1px solid #293244;background:#101722}#public-tools[hidden],#public-nav[hidden]{display:none}#public-tools p{margin:0 0 12px;color:#b2bfd1;font-size:13px}#scan-form{display:flex;gap:10px;align-items:center;flex-wrap:wrap}#scan-form label{width:100%;font-weight:600}#repository-url{flex:1;min-width:220px}#scan-button{background:#ffd700;color:#111827;font-weight:700;border-color:#ffd700}button:disabled{opacity:.6;cursor:wait}#public-tools #scan-status{margin:10px 0 0;color:#6ee7b7}#public-tools #scan-error{margin:10px 0 0;color:#fda4af}#public-nav{display:flex;gap:14px}#public-nav a{color:#b9c8e0;text-underline-offset:3px}#public-nav a:focus-visible{outline:2px solid #ffd700}@media(max-width:760px){#public-tools{padding:12px}#scan-form button{min-height:42px}#repository-url{width:100%}}
+  </style>
 </head>
 <body>
-  <header><h1>File & function map</h1><span id="summary" role="status">Waiting for a repository scan</span><button id="overview" type="button">All files</button></header>
+  <header><h1>File & function map</h1><nav id="public-nav" aria-label="Site navigation"><a id="home-link" href="../">Home</a><a id="admin-link" href="../admin-portal/#dashboard">Admin sign in</a></nav><span id="summary" role="status">Waiting for a repository scan</span><button id="overview" type="button">All files</button></header>
+  <section id="public-tools" aria-label="Public repository scanner">
+    <p>Scan a public GitHub repository and explore its files and functions. No sign in required.</p>
+    <form id="scan-form">
+      <label for="repository-url">GitHub repository URL</label>
+      <input id="repository-url" name="repository" type="url" required placeholder="https://github.com/owner/repository" autocomplete="url">
+      <button id="scan-button" type="submit">Scan repository</button>
+      <button id="cancel-scan" type="button" hidden>Cancel scan</button>
+    </form>
+    <p id="scan-status" role="status"></p><p id="scan-error" role="alert"></p>
+  </section>
   <div class="toolbar">
     <input id="search" type="search" aria-label="Search files or functions" placeholder="Search files or functions…">
     <select id="language" aria-label="Filter language"><option value="">All languages</option></select>
@@ -20,7 +33,7 @@
   </div>
   <main>
     <aside aria-label="Repository files and details"><section id="details" aria-live="polite"></section><p id="file-count">No scanned files</p><nav id="files" aria-label="Files"></nav></aside>
-    <section id="stage" aria-label="Repository map"><canvas id="graph" tabindex="0" aria-label="Interactive file and function map. Use file buttons for keyboard navigation, plus and minus to zoom, F to fit."></canvas><p id="empty">Scan a repository in the Scan & Optimize tab to load its files.</p><div id="controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="fit">Fit</button><button id="zoom-in" aria-label="Zoom in">+</button></div></section>
+    <section id="stage" aria-label="Repository map"><canvas id="graph" tabindex="0" aria-label="Interactive file and function map. Use file buttons for keyboard navigation, plus and minus to zoom, F to fit."></canvas><p id="empty">Scan a repository to load its files and functions.</p><div id="controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="fit">Fit</button><button id="zoom-in" aria-label="Zoom in">+</button></div></section>
   </main>
   <footer id="hint">Select a folder or file to explore. Drag to pan · Scroll to zoom · Fit shows the whole map. Purple: local imports · Gray: file membership · Amber: static local calls.</footer>
   <script type="module" src="./graph.mjs"></script>

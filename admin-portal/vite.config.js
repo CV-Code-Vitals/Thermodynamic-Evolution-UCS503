@@ -5,10 +5,13 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const projectRoot = dirname(fileURLToPath(import.meta.url))
-const graphAssets = ['index.html', 'graph.mjs', 'model.mjs']
+const graphAssets = ['index.html', 'graph.mjs', 'model.mjs', 'scan.mjs', 'config.mjs']
 const graphAssetPath = (name) => resolve(projectRoot, '../graph-visualizer', name)
 
-function graphVisualizerPlugin() {
+function graphVisualizerPlugin(config) {
+  const source = (name) => name === 'config.mjs'
+    ? `export default ${JSON.stringify(config)};\n`
+    : readFileSync(graphAssetPath(name), 'utf8')
   return {
     name: 'graph-visualizer',
     configureServer(server) {
@@ -19,12 +22,12 @@ function graphVisualizerPlugin() {
         response.statusCode = 200
         response.setHeader('Cache-Control', 'no-store')
         response.setHeader('Content-Type', name.endsWith('.html') ? 'text/html; charset=utf-8' : 'application/javascript')
-        response.end(request.method === 'HEAD' ? undefined : readFileSync(graphAssetPath(name)))
+        response.end(request.method === 'HEAD' ? undefined : source(name))
       })
     },
     generateBundle() {
       for (const name of graphAssets) {
-        this.emitFile({ type: 'asset', fileName: `graph-visualizer/${name}`, source: readFileSync(graphAssetPath(name), 'utf8') })
+        this.emitFile({ type: 'asset', fileName: `graph-visualizer/${name}`, source: source(name) })
       }
     },
   }
@@ -67,7 +70,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react(), graphVisualizerPlugin()],
+    plugins: [react(), graphVisualizerPlugin({ apiBase: apiBase || '/api', analysisApiBase })],
     // Relative asset URLs keep this app portable: it can be served at
     // /admin-portal/ on GitHub Pages or from the local static server.
     base: mode === 'development' ? '/' : './',

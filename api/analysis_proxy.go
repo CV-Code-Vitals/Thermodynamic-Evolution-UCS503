@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"regexp"
 	"strings"
 )
 
@@ -39,12 +40,16 @@ func newAnalysisProxy(address, token string) (http.Handler, error) {
 }
 
 func registerAnalysisRoutes(mux *http.ServeMux, deps Dependencies) {
+	publicScans := make(chan struct{}, 1)
+	repositoryPath := regexp.MustCompile(`^/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$`)
 	mux.HandleFunc("/api/analysis/", func(w http.ResponseWriter, r *http.Request) {
-		if !routeAuthorized(r, deps.Auth) {
+		path := strings.TrimPrefix(r.URL.Path, "/api/analysis/")
+		publicScan := path == "scan" && r.Method == http.MethodPost
+		authorized := routeAuthorized(r, deps.Auth)
+		if !publicScan && !authorized {
 			writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-		path := strings.TrimPrefix(r.URL.Path, "/api/analysis/")
 		if !((path == "health" && r.Method == http.MethodGet) ||
 			((path == "scan" || path == "evolve") && r.Method == http.MethodPost)) {
 			writeJSONError(w, http.StatusNotFound, "analysis_route_not_found")
@@ -70,7 +75,35 @@ func registerAnalysisRoutes(mux *http.ServeMux, deps Dependencies) {
 				return
 			}
 			if path == "scan" {
-				payload["retain_workspace"] = json.RawMessage("true")
+				var repository string
+				if json.Unmarshal(payload["repo_url"], &repository) != nil {
+					writeJSONError(w, http.StatusBadRequest, "invalid_repository")
+					return
+				}
+				parsed, err := url.Parse(repository)
+				if err != nil || parsed.Scheme != "https" || !strings.EqualFold(parsed.Host, "github.com") ||
+					parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" ||
+					!repositoryPath.MatchString(parsed.Path) || parsed.EscapedPath() != parsed.Path {
+					writeJSONError(w, http.StatusBadRequest, "invalid_repository")
+					return
+				}
+				for _, part := range strings.Split(strings.Trim(parsed.Path, "/"), "/") {
+					if part == "." || part == ".." {
+						writeJSONError(w, http.StatusBadRequest, "invalid_repository")
+						return
+					}
+				}
+				retain, _ := json.Marshal(authorized)
+				payload = map[string]json.RawMessage{"repo_url": payload["repo_url"], "retain_workspace": retain}
+				if !authorized {
+					select {
+					case publicScans <- struct{}{}:
+						defer func() { <-publicScans }()
+					default:
+						writeJSONError(w, http.StatusTooManyRequests, "scan_capacity_reached")
+						return
+					}
+				}
 			} else {
 				var workspace string
 				_, hasServerPath := payload["repo_path"]

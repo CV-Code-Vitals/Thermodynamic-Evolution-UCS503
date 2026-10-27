@@ -13,6 +13,7 @@ on:
       - 'docker-compose.verify.yml'
       - '.env.ec2.example'
       - 'scripts/smoke-portal.mjs'
+      - 'graph-visualizer/scan.mjs'
       - 'scripts/create-verification-tls.sh'
       - '.github/workflows/publish-api-image.yml'
   push:
@@ -28,6 +29,7 @@ on:
       - 'docker-compose.verify.yml'
       - '.env.ec2.example'
       - 'scripts/smoke-portal.mjs'
+      - 'graph-visualizer/scan.mjs'
       - 'scripts/create-verification-tls.sh'
       - '.github/workflows/publish-api-image.yml'
 

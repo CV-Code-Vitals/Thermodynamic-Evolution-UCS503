@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createArchiveApi } from '../admin-portal/src/archive-api.js';
 import { readEvolutionStream, scanEvolutionRepository } from '../admin-portal/src/evolution-api.js';
+import { scanPublicRepository } from '../graph-visualizer/scan.mjs';
 
 const base = process.env.PORTAL_API_BASE?.replace(/\/$/, '');
 const passkey = process.env.PORTAL_PASSKEY;
@@ -23,7 +24,14 @@ const preflight = await fetch(`${base}/analysis/scan`, {
 assert.ok(preflight.ok, `Portal origin rejected: ${preflight.status}`);
 assert.equal(preflight.headers.get('access-control-allow-origin'), origin);
 const unauthorized = await fetch(`${base}/analysis/health`);
-assert.equal(unauthorized.status, 401, 'Analysis must reject anonymous users.');
+assert.equal(unauthorized.status, 401, 'Private analysis routes must reject anonymous users.');
+const unauthorizedEvolution = await fetch(`${base}/analysis/evolve`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+assert.equal(unauthorizedEvolution.status, 401, 'Optimization must reject anonymous users.');
+const repository = process.env.SMOKE_REPOSITORY_URL || 'https://github.com/CV-Code-Vitals/Thermodynamic-Evolution-UCS503';
+const publicReport = await scanPublicRepository({ apiBase: base }, repository, AbortSignal.timeout(180000));
+assert.ok(publicReport.files_analyzed > 0 && publicReport.file_reports.length > 0);
+assert.equal(publicReport.workspace_id, undefined, 'Public scans must not retain an optimization workspace.');
+console.log(`PASS: anonymous scan returned ${publicReport.files_analyzed} files; optimization remains private`);
 
 const api = createArchiveApi(base);
 const { token } = await api.login(passkey);
@@ -54,7 +62,6 @@ try {
 }
 console.log('PASS: archive upload, finalization, listing, byte-exact download, and deletion');
 
-const repository = process.env.SMOKE_REPOSITORY_URL || 'https://github.com/CV-Code-Vitals/Thermodynamic-Evolution-UCS503';
 const scan = await scanEvolutionRepository(base, token, repository, AbortSignal.timeout(180000));
 const functionName = process.env.SMOKE_FUNCTION || 'EvaluateRiskEngine';
 const target = scan.targets.find(item => item.function_name === functionName);
