@@ -434,8 +434,10 @@ Both hosts must be registered as Systems Manager managed nodes, have the
 required SSM agent and Docker Compose runtime, and reach SSM and the private
 artifact bucket without a public IP. Use SSM Run Command or Session Manager
 for diagnostics; do not open SSH or add SSH secrets. The deployment workflow
-stores each selected release under `/opt/ucs503/releases/<commit-sha>` and
-keeps the analysis Compose volume under the fixed project name
+stores each selected release under `/opt/ucs503/releases/<commit-sha>`. It
+includes an x86_64 AWS CLI fallback, so the private hosts do not need an
+internet-reachable package repository just to download the bundle. It keeps
+the analysis Compose volume under the fixed project name
 `ucs503-analysis`.
 
 After deployment, check the SSM command result for both instances, run

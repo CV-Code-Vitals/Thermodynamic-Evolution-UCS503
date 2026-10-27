@@ -107,6 +107,9 @@ test('gates AWS upload and deploy behind manual opt-in and approval', () => {
   assert.match(deployWorkflow, /runner_repository=ghcr\.io\/cv-code-vitals\/ucs503-sandbox-runner/);
   assert.match(deployWorkflow, /bundles\/analysis-deployments\/\$IMAGE_SHA\/\$BUNDLE_SHA256\/deployment-bundle\.tar\.gz/);
   assert.match(deployWorkflow, /BUNDLE_KEY: \$\{\{ steps\.bundle\.outputs\.bundle_key \}\}/);
+  assert.match(deployWorkflow, /cp -a "\$aws_cli_directory" aws-cli/);
+  assert.match(deployWorkflow, /aws-cli\/v2\/current\/bin\/aws/);
+  assert.match(deployWorkflow, /No usable AWS CLI was found on the host or in the deployment bundle/);
   assert.match(deployWorkflow, /aws s3 cp/);
   assert.match(deployWorkflow, /--sse AES256/);
   assert.match(deployWorkflow, /--pull never/);
@@ -130,7 +133,8 @@ test('uses OIDC and SSM without SSH secrets or private-host GHCR pulls', () => {
   const remoteDeployment = deployWorkflow.slice(
     deployWorkflow.indexOf('remote_command="'),
   );
-  assert.match(remoteDeployment, /aws s3 cp --region '\$\{AWS_REGION\}'/);
+  assert.match(remoteDeployment, /command -v aws/);
+  assert.match(remoteDeployment, /aws_cli[\s\S]*?s3 cp --region '\$\{AWS_REGION\}'/);
   assert.doesNotMatch(remoteDeployment, /docker pull\b/);
   assert.match(remoteDeployment, /docker load -i/);
   assert.match(deploymentReadme, /hosts do not pull from\s+GHCR/i);
