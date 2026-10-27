@@ -13,7 +13,7 @@ function makeOptions(overrides = {}) {
     user: 'ucs503-sandbox',
     stat: (path) => {
       if (path === socketPath) {
-        return { isSocket: () => true, uid: 10002, gid: 10002 };
+        return { isSocket: () => true, uid: 10002, gid: 231072 };
       }
       if (path === workspacePath) {
         return { isDirectory: () => true };
@@ -36,7 +36,7 @@ function makeOptions(overrides = {}) {
   return options;
 }
 
-test('accepts a correctly provisioned rootless sandbox host', () => {
+test('accepts a rootless socket with its mapped host GID', () => {
   assert.equal(validateSandboxHost(makeOptions()).rootless, true);
 });
 
@@ -51,17 +51,17 @@ test('rejects a sandbox account with the wrong UID or GID', () => {
   assert.throws(() => validateSandboxHost(options), /UID\/GID 10002/);
 });
 
-test('rejects an incorrectly owned rootless socket', () => {
+test('rejects a rootless socket not owned by the sandbox UID', () => {
   const options = makeOptions({
     stat: () => ({ isSocket: () => true, uid: 0, gid: 0 }),
   });
 
-  assert.throws(() => validateSandboxHost(options), /owned by UID\/GID 10002/);
+  assert.throws(() => validateSandboxHost(options), /owned by UID 10002/);
 });
 
 test('rejects a socket path that is not a Unix socket', () => {
   const options = makeOptions({
-    stat: () => ({ isSocket: () => false, uid: 10002, gid: 10002 }),
+    stat: () => ({ isSocket: () => false, uid: 10002, gid: 231072 }),
   });
 
   assert.throws(() => validateSandboxHost(options), /must be a socket/i);

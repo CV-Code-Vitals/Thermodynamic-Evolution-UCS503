@@ -10,5 +10,6 @@
   "SandboxSubnetCidr": "10.80.2.0/24",
   "AnalysisPrivateIp": "10.80.1.10",
   "SandboxPrivateIp": "10.80.2.10",
-  "SandboxLifecycleTableName": "sandbox-lifecycle"
+  "S3ManagedPrefixListId": "REPLACE_WITH_REGION_SPECIFIC_S3_PREFIX_LIST_ID",
+  "DynamoDbManagedPrefixListId": "REPLACE_WITH_REGION_SPECIFIC_DYNAMODB_PREFIX_LIST_ID"
 }

@@ -1,0 +1,85 @@
+name: Cleanup retained analysis resources
+
+on:
+  workflow_dispatch:
+    inputs:
+      enable_cleanup:
+        description: Enable the destructive cleanup job after reviewing inventory
+        required: true
+        type: boolean
+        default: false
+      confirm_prefix:
+        description: Type the exact analysis resource prefix to authorize cleanup
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ANALYSIS_STACK_NAME: ${{ vars.ANALYSIS_STACK_NAME }}
+      ANALYSIS_RESOURCE_PREFIX: ${{ vars.ANALYSIS_RESOURCE_PREFIX }}
+      AWS_REGION: ${{ vars.ANALYSIS_CLEANUP_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain read-only inventory credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.ANALYSIS_CLEANUP_READ_ROLE_ARN }}
+          aws-region: ${{ vars.ANALYSIS_CLEANUP_REGION }}
+      - name: Create and display read-only cleanup inventory
+        run: |
+          node scripts/analysis-cleanup.mjs plan \
+            --stack-name "$ANALYSIS_STACK_NAME" \
+            --prefix "$ANALYSIS_RESOURCE_PREFIX" \
+            --region "$AWS_REGION" \
+            > analysis-cleanup-plan.json \
+            2> analysis-cleanup-inventory.txt
+          cat analysis-cleanup-inventory.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload exact cleanup plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-cleanup-plan
+          path: analysis-cleanup-plan.json
+          if-no-files-found: error
+          retention-days: 1
+
+  cleanup:
+    needs: inventory
+    if: ${{ inputs.enable_cleanup && vars.ANALYSIS_CLEANUP_ENABLED == 'true' && inputs.confirm_prefix == vars.ANALYSIS_RESOURCE_PREFIX }}
+    runs-on: ubuntu-latest
+    environment:
+      name: analysis-cleanup
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      ANALYSIS_RESOURCE_PREFIX: ${{ vars.ANALYSIS_RESOURCE_PREFIX }}
+      AWS_REGION: ${{ vars.ANALYSIS_CLEANUP_REGION }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Obtain restricted cleanup credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.ANALYSIS_CLEANUP_WRITE_ROLE_ARN }}
+          aws-region: ${{ vars.ANALYSIS_CLEANUP_REGION }}
+      - name: Download exact plan from inventory job
+        uses: actions/download-artifact@v4
+        with:
+          name: analysis-cleanup-plan
+          path: analysis-cleanup-plan
+      - name: Revalidate and apply cleanup plan
+        run: |
+          node scripts/analysis-cleanup.mjs apply \
+            --plan analysis-cleanup-plan/analysis-cleanup-plan.json \
+            --confirm-prefix "$CONFIRM_PREFIX" \
+            --region "$AWS_REGION"
+        env:
+          CONFIRM_PREFIX: ${{ inputs.confirm_prefix }}

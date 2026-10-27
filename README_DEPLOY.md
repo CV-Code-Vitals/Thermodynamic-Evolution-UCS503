@@ -51,6 +51,120 @@ control.
 The separate `go-backend/` analysis service is not the Admin Portal API and is
 not part of this serverless archive deployment.
 
+## Separate analysis and sandbox hosts
+
+The deployment Compose files are split by trust boundary:
+
+- `docker-compose.analysis.yml` runs only the Go analysis API and Rust engine.
+  It has no Docker socket and stores uploads in an analysis-host-local Docker
+  volume.
+- `docker-compose.sandbox.yml` runs only the authenticated sandbox broker.
+  It runs in the host network namespace without a published Compose port,
+  mounts only the dedicated UID's rootless Docker socket, and uses a host-local
+  temporary workspace. The workspace path is mounted at the same absolute
+  path in the container so the rootless daemon can bind-mount each candidate
+  workspace.
+- `docker-compose.ec2.yml` is a legacy, manual-only single-host configuration.
+  It retains obsolete archive API/database and shared-volume assumptions; do
+  not use it for the split deployment.
+
+Both new Compose files require `IMAGE_TAG` to be a commit SHA and do not fall
+back to `latest`. The `.env.analysis.example` and `.env.sandbox.example` files
+contain placeholders only. The Compose files do not retrieve secrets from SSM;
+an approved deployment process must materialize runtime values from SSM into
+protected host-side environment files and certificate files. Never put real
+tokens or private keys in the examples, repository, image, or browser bundle.
+
+Before starting the sandbox broker, prepare a dedicated host user named
+`ucs503-sandbox` with UID/GID `10002`, install rootless Docker for that user,
+enable systemd lingering (`loginctl enable-linger ucs503-sandbox`), and enable
+the user's Docker service. Verify its socket is
+`/run/user/10002/docker.sock`; set `DOCKER_SOCKET_SOURCE` to that host path.
+The broker runs as UID `10002` and uses the mounted socket at
+`/run/docker.sock`. Never mount the rootful `/var/run/docker.sock` into the
+broker. The rootless daemon and workspace must share the same host path
+namespace. The workspace directory must be writable by UID `10002`, and its
+path must match `SANDBOX_BROKER_WORKSPACE_DIR`.
+The mounted broker private key must be readable by UID `10002` and not by
+unrelated host users; mount the certificate and CA certificate read-only.
+Before starting the broker, run `sudo node scripts/validate-sandbox-host.mjs`
+from a repository checkout on the sandbox host (Node.js 22 required). This
+read-only check verifies the account, lingering, socket ownership, workspace
+access, and rootless daemon.
+
+Both services use host networking to avoid public Compose port mappings. This
+does not replace network isolation: deploy them only on private instances with
+security groups that allow analysis ingress solely from the selected private
+API integration and broker TCP `8082` solely from the analysis instance. The
+sandbox instance must have no public IP or inbound SSH. Use SSM for
+administration. The broker certificate must cover the private host name used
+by `SANDBOX_SERVICE_URL`; the analysis host must trust its issuing CA via the
+mounted `SANDBOX_TLS_CA_SOURCE` file. The analysis client uses only that CA
+trust bundle for the broker; it does not fall back to public/system roots.
+The broker must present a certificate whose chain and hostname validate
+against the configured CA.
+
+### Broker authentication and secret rotation
+
+The analysis service sends `X-Sandbox-Token` only over the private broker
+connection after TLS certificate validation. The broker compares it in
+constant time. Generate at least 32 random bytes for this shared secret, store
+it as the `/ucs503/analysis/sandbox-service-token` SSM SecureString, and
+materialize it only into protected host-side runtime configuration for the
+analysis and sandbox services. Never put it in URLs, browser code, logs,
+Compose files, or container images.
+
+Rotate the broker token during a maintenance window because the broker accepts
+one configured token at a time: block broker ingress, update the SecureString
+and both hosts' protected runtime configuration, restart both services, verify
+the authenticated health check and a sandbox evaluation, then restore broker
+ingress. For a suspected compromise, block ingress immediately and perform
+this procedure before reopening it. After deployment, schedule this rotation
+at least every 90 days and immediately after any suspected exposure. Systems
+Manager Parameter Store retains parameter versions; record the version and
+rotation date, never the value. Automated rotation is not provisioned and
+requires a separately approved deployment change.
+
+For broker CA rotation, first deploy a trust bundle containing both the
+current and replacement CA to the analysis host, then replace the broker
+certificate and verify TLS and authenticated evaluation. Remove the old CA
+from the bundle after verification. Never make the client temporarily trust
+system/public roots to bridge a CA change.
+
+The Lambda authorizer reads the HMAC key and internal analysis API token from
+SSM on each authorization request. The API Gateway integration may use the
+`analysisApiToken` authorizer context value only to set the backend's internal
+authentication header. Configure access logs with operational metadata only;
+never log authorization headers, request/response bodies, or any
+`$context.authorizer.*` value, and do not enable payload/data tracing. Add a
+template test for these exclusions before creating the analysis API Gateway.
+
+Replacing `/ucs503/admin/token-hmac-key` immediately invalidates outstanding
+admin bearer tokens; users must sign in again. Coordinate that change with the
+existing archive API because it uses the same signing key. Replacing
+`/ucs503/analysis/api-token` must be coordinated with the analysis service's
+runtime configuration; block the admin routes, update SSM and the protected
+host-side value, restart the analysis service, verify a protected request,
+then restore the routes. Record rotation date and parameter version, but never
+record secret values. The infrastructure deployment must grant each role read
+access only to the parameters it needs and include a documented emergency
+revocation procedure.
+
+Validate the configuration without starting containers:
+
+```sh
+docker compose --env-file .env.analysis.example -f docker-compose.analysis.yml config
+docker compose --env-file .env.sandbox.example -f docker-compose.sandbox.yml config
+node --test scripts/compose-config.test.mjs
+```
+
+These checks validate Compose syntax and policy only; they do not provision
+instances, retrieve secrets, configure security groups, or deploy images.
+CI runs these checks alongside Go tests and vetting. It builds the mandatory
+live Docker runner under the triggering commit SHA and fails if the integration
+test skips; the image publishing workflow publishes only commit-SHA tags for
+the analysis and sandbox runner images.
+
 ## Archive behavior and limits
 
 - Accepts PDF, legacy PowerPoint (`.ppt`), and PowerPoint Open XML (`.pptx`)
@@ -205,6 +319,236 @@ Pricing references:
   artifact bucket if it is no longer needed. This is destructive and cannot
   be undone without backups.
 
-The legacy EC2 deployment workflow is manual-only and requires both a
-deliberate workflow input and the `EC2_DEPLOY_ENABLED` repository variable.
-Leave that variable unset/false; it is unrelated to this serverless plan.
+## Split analysis deployment operations
+
+The split analysis deployment is separate from the Admin Portal archive and
+its existing GitHub Pages workflow, which remains unchanged. The removed
+SSH-based `deploy-to-ec2.yml` workflow cannot deploy the legacy single-host
+stack. `docker-compose.ec2.yml` and the old `ucs503-api` service are legacy;
+the new workflow does not deploy them or use the archive stack.
+
+CloudFormation generates the physical names for the source bucket, artifact
+bucket, and lifecycle table. After a separately approved deployment, resolve
+their values from the stack outputs rather than deriving names from
+`ResourcePrefix`:
+
+```powershell
+aws cloudformation describe-stacks `
+  --stack-name <analysis-stack-name> `
+  --query "Stacks[0].Outputs[?OutputKey=='SourceBucketName' || OutputKey=='ArtifactBucketName' || OutputKey=='AnalysisInstanceId' || OutputKey=='SandboxInstanceId' || OutputKey=='SandboxLifecycleTable'].[OutputKey,OutputValue]" `
+  --output table
+```
+
+The image deployment workflow reads `ArtifactBucketName`,
+`AnalysisInstanceId`, `SandboxInstanceId`, and `SandboxLifecycleTable` from the
+stack and supplies the lifecycle table output to analysis Compose. For manual
+host-side Compose use, set `SANDBOX_LIFECYCLE_TABLE` to that output rather than
+guessing the generated name. The local Compose default remains
+`sandbox-lifecycle`, which is also the fixed lifecycle record ID. The
+explicitly named Lambda functions and CloudWatch log groups include
+stack-specific suffixes.
+
+Ordinary stack deletion retains both S3 buckets, the lifecycle table, the
+encrypted analysis data volume, and retained log groups; it does not erase
+their data. The EC2 network interfaces are configured to delete with their
+instances. Do not treat `sam delete` as data cleanup: retained resources may
+be removed only through the separately approved cleanup workflow after its
+required review and backup checks.
+
+### Deployment approval and cost gate
+
+The image publisher builds only commit-SHA tags for the analysis and sandbox
+runner images. To deploy or roll back, dispatch `.github/workflows/deploy-analysis.yml`
+with the full 40-character SHA and leave `enable_deployment` false unless the
+deployment is separately approved. The deployment job runs only when both that
+input is true and the repository variable `ANALYSIS_DEPLOY_ENABLED` is exactly
+`true`. It then waits for approval from the protected `analysis-deployment`
+GitHub Environment before downloading images, assuming an AWS role, uploading,
+or invoking SSM. No repository variable, environment rule, secret, AWS role,
+or AWS resource is configured by this change.
+
+Repository owners must review the itemized estimate and approve the deployment
+before configuring these Actions variables: `ANALYSIS_DEPLOY_ENABLED`,
+`ANALYSIS_STACK_NAME`, `ANALYSIS_DEPLOY_ROLE_ARN`, and
+`ANALYSIS_DEPLOY_REGION`. Keep account-specific values in repository
+variables, not source code. The workflow reads `ArtifactBucketName`,
+`AnalysisInstanceId`, `SandboxInstanceId`, and `SandboxLifecycleTable` from the
+named CloudFormation stack, requiring each output exactly once and non-empty
+before it uploads or sends SSM commands. Grant the AWS role
+`cloudformation:DescribeStacks` for that stack, object upload to the designated
+private bucket prefix, `ssm:SendCommand` and `ssm:GetCommandInvocation` for
+the two approved managed instances, and `ssm:DescribeInstanceInformation` for
+the SSM readiness check. It also needs `ssm:GetParameters` for the six named
+external SecureStrings; it checks their names and types without requesting or
+printing their values. The sandbox power-state safeguard additionally
+requires `ec2:DescribeInstances` and
+`ec2:StartInstances`/`ec2:StopInstances`; scope start/stop to only the approved
+sandbox instance ARN. `DescribeInstances` has no resource-level IAM scope; its
+allow statement is deliberately limited to the deployment region and is used
+only with the resolved sandbox instance ID. The workflow never starts or stops the analysis
+instance. Ensure the bucket blocks public access, uses encryption, and expires
+deployment bundles under an owner-approved retention policy. The workflow
+uploads to `bundles/analysis-deployments/<sha>/`; an existing object is reused
+only when its recorded SHA-256 equals the newly built bundle, otherwise the job
+fails. The two EC2 roles need
+read-only access to that bundle prefix.
+Do not create SSH keys, GHCR credentials for EC2, or long-lived AWS keys.
+
+The GitHub runner resolves each selected SHA tag to its immutable manifest
+digest, verifies GitHub provenance and keyless Sigstore signatures against
+this repository's image-publishing workflow, records the Docker image IDs,
+and saves the images with the selected revision's Compose files and
+`scripts/validate-sandbox-host.mjs`. It then calculates a SHA-256 for the
+bundle. SSM asks each private host to download the bundle from S3 and
+verify that checksum before extraction or `docker load`; hosts do not pull from
+GHCR or require inbound SSH. Only the sandbox host runs the bundled validator,
+before its Compose command. The analysis Compose invocation receives the
+stack's `SandboxLifecycleTable` output as
+`SANDBOX_LIFECYCLE_TABLE`; the local Compose example default remains
+`sandbox-lifecycle`.
+
+Before changing either service, the workflow independently records each
+host's active SHA release. If either deployment or the final
+`sandbox_available: true` smoke test fails, it attempts to restore both
+captured releases and verifies their service health plus analysis-to-broker
+readiness. Any failed rollback check keeps the workflow failed for operator
+follow-up. If the sandbox was stopped before deployment, the workflow starts
+it, waits for SSM readiness, and restores its stopped state on success or
+failure; an initially running sandbox remains running. Use the same dispatch
+flow with a previously published SHA to roll forward or deliberately deploy an
+older release. The workflow does not change API Gateway, archive services, or
+other AWS resources.
+
+Before any deployment, confirm the expected monthly total against the
+approved budget (target about US$20/month; no more than US$25/month without
+additional explicit approval). Budget notifications are alerts, not spending
+caps. Review EC2 hours, EBS, S3 requests/storage/transfer, CloudWatch logs,
+SSM, and snapshot/backup charges after each release and monthly. Do not
+enable the deployment variable until the cost and target instances are
+approved.
+
+### SSM operations, health, and monitoring
+
+Both hosts must be registered as Systems Manager managed nodes, have the
+required SSM agent and Docker Compose runtime, and reach SSM and the private
+artifact bucket without a public IP. Use SSM Run Command or Session Manager
+for diagnostics; do not open SSH or add SSH secrets. The deployment workflow
+stores each selected release under `/opt/ucs503/releases/<commit-sha>` and
+keeps the analysis Compose volume under the fixed project name
+`ucs503-analysis`.
+
+After deployment, check the SSM command result for both instances, run
+`docker compose ps` on each host, and check the analysis health endpoint at
+`http://127.0.0.1:8080/health`. Exercise an authenticated analysis request and
+a sandbox evaluation over the private TLS connection before closing the
+change. Configure monitoring before production use: alarm on EC2 status
+checks, failed SSM commands, API Gateway/Lambda errors, throttles and latency,
+disk exhaustion, failed analysis health checks, and sandbox start/readiness
+failures or stale work leases. Set an explicit CloudWatch log retention period
+and alert recipients; never include bearer tokens, service tokens, private
+keys, request bodies, or authorizer context in logs. The Compose files rotate
+local container logs, but do not create CloudWatch alarms, centralized log
+retention, or host metrics collection. Confirm the exact alarm/log cost.
+
+### Output backup, restore, and recovery
+
+Analysis uploads bind to `/var/lib/ucs503-analysis/uploads` on a separate,
+encrypted gp3 data volume attached to the analysis instance. The infrastructure
+template configures daily EBS snapshots and seven-snapshot retention through
+Data Lifecycle Manager. Snapshot charges must be included in the itemized
+estimate. The template does not automate restore or verify snapshots; test a
+restore before production and retain the previous host/disk until expected
+outputs are confirmed.
+
+For an approved manual restore, provision a replacement analysis host and an
+encrypted data volume in the same Availability Zone, restore the selected EBS
+snapshot to that volume, attach and mount it at `/var/lib/ucs503-analysis`,
+and verify ownership for the container UID/GID `10002`. Start the service only
+after confirming `/var/lib/ucs503-analysis/uploads` contains the expected
+outputs. Record snapshot IDs and test dates, never credentials. Do not claim
+one-hour recovery until a replacement-host restore has been timed.
+
+For sandbox lease recovery, do not stop the host while an evaluation or
+workspace lease is active. Inspect analysis and broker logs through SSM after
+a crash; allow the lifecycle controller/watchdog to reconcile stale leases,
+confirm no runner container remains active, then restart the broker or allow
+the idle-stop controller to stop the sandbox. Escalate rather than manually
+clearing a lease whose owner or job state is uncertain. Verify the broker's
+authenticated health and a test evaluation after recovery. Lease recovery
+alarms and automated reconciliation must be enabled and tested as part of
+host operations; this workflow does not change their AWS settings.
+
+### Token and certificate rotation
+
+Use the existing **Broker authentication and secret rotation** procedures
+above for `SANDBOX_SERVICE_TOKEN`, the broker CA bundle/certificate,
+`ANALYSIS_API_TOKEN`, and the archive signing key. Fetch or update values only
+through the approved SSM/host process. Record rotation date and SSM parameter
+version, never values. Roll out CA trust overlap before replacing the broker
+certificate; coordinate shared-token changes across both hosts and verify
+authenticated health/evaluation before restoring ingress.
+
+### Retained analysis resource cleanup
+
+The cleanup workflow is a separate, manual path for resources retained after
+the analysis CloudFormation stack has been deleted. Delete the analysis stack
+first; do not use cleanup while the stack exists: the read-only inventory
+refuses every state other than a missing stack or `DELETE_COMPLETE`. Before
+dispatching, configure the repository
+variables `ANALYSIS_STACK_NAME`, `ANALYSIS_RESOURCE_PREFIX`, and
+`ANALYSIS_CLEANUP_REGION`, plus separate
+`ANALYSIS_CLEANUP_READ_ROLE_ARN` and `ANALYSIS_CLEANUP_WRITE_ROLE_ARN` OIDC
+role variables. Set `ANALYSIS_CLEANUP_ENABLED` to the exact string `true` only
+for an approved cleanup window. Configure required reviewers for the
+protected `analysis-cleanup` GitHub Environment in repository settings; that
+protection is an operator prerequisite and is not created by this workflow.
+
+Dispatch **Cleanup retained analysis resources** with `enable_cleanup` left
+false for inventory-only review. The inventory job uses its read-only role and
+adds the resource list to the workflow run summary before the destructive job
+can request environment approval. Review the whole list and the uploaded
+`analysis-cleanup-plan` artifact. To proceed, dispatch again with
+`enable_cleanup` set to true and type the exact `ANALYSIS_RESOURCE_PREFIX` in
+`confirm_prefix`. Cleanup remains disabled unless that boolean, the repository
+enable variable, and exact prefix confirmation all match. The protected
+environment approval is an additional independent gate.
+
+The allowlist is restricted to S3 buckets, DynamoDB tables, EBS data volumes,
+and EBS snapshots carrying the exact `AnalysisStack=<resource prefix>` tag,
+plus only these six exact legacy log-group stems from the analysis template.
+The exact unsuffixed names remain eligible even when the deleted stack ID is
+unavailable. A suffixed name is eligible only when its 12-character lowercase
+hexadecimal suffix matches the exact deleted stack ID:
+
+- `/aws/ssm/sessions/<prefix>` or `/aws/ssm/sessions/<prefix>-<suffix>`
+- `/aws/lambda/<prefix>-analysis-proxy` or `/aws/lambda/<prefix>-analysis-proxy-<suffix>`
+- `/aws/lambda/<prefix>-analysis-authorizer` or `/aws/lambda/<prefix>-analysis-authorizer-<suffix>`
+- `/aws/lambda/<prefix>-source-stager` or `/aws/lambda/<prefix>-source-stager-<suffix>`
+- `/aws/lambda/<prefix>-sandbox-watchdog` or `/aws/lambda/<prefix>-sandbox-watchdog-<suffix>`
+- `/aws/apigateway/<prefix>-analysis` or `/aws/apigateway/<prefix>-analysis-<suffix>`
+
+The script rejects missing or changed ownership tags, changed inventory,
+unknown log groups, attached volumes, incomplete S3 version pagination, and
+failed AWS operations. It rechecks ownership immediately before each delete.
+Applying is irreversible: it deletes all S3 object versions and delete
+markers (including current objects) from each eligible bucket before deleting
+the bucket; drops the eligible DynamoDB tables and all their items; deletes
+unattached tagged EBS data volumes and tagged snapshots; and deletes the six
+eligible log groups. Check backups and retention obligations first. This path never
+terminates EC2 instances, deletes AMIs, or changes/deletes the archive stack.
+
+For future least-privilege OIDC configuration, scope the inventory role to
+`cloudformation:DescribeStacks` for the named analysis stack;
+`s3:ListAllMyBuckets` and `s3:GetBucketTagging`; DynamoDB
+`ListTables`, `DescribeTable`, and `ListTagsOfResource`; EC2
+`DescribeVolumes`/`DescribeSnapshots`; and CloudWatch Logs
+`DescribeLogGroups`. Scope the separate cleanup role's matching read
+permissions plus `s3:ListBucketVersions`, `s3:DeleteObjectVersion`, and
+`s3:DeleteBucket` only to tagged analysis buckets; `dynamodb:DeleteTable`
+only to tagged lifecycle tables; `ec2:DeleteVolume`/`ec2:DeleteSnapshot`
+only to the exact `AnalysisStack` tag; and `logs:DeleteLogGroup` only to the
+six allowlisted log-group name patterns. EC2 describe/list APIs that do not
+support resource scoping may require `Resource: "*"`. Restrict both OIDC
+trust policies to this repository and the intended workflow/job identities.
+Do not grant EC2 instance termination, AMI deletion, CloudFormation stack
+deletion, or archive-resource permissions.

@@ -1,6 +1,7 @@
 name: Publish Backend Docker Images
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - 'api/**'
@@ -36,6 +37,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      attestations: write
+      id-token: write
 
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +47,7 @@ jobs:
         uses: docker/setup-buildx-action@v4.4.1
 
       - name: Log in to GitHub Container Registry
-        if: github.event_name == 'push'
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v4.7.0
         with:
           registry: ghcr.io
@@ -102,13 +105,52 @@ jobs:
           node scripts/smoke-portal.mjs
 
       - name: Publish verified images
-        if: github.event_name == 'push'
+        id: publish
+        if: github.event_name != 'pull_request'
         env:
           IMAGE_TAG: ${{ github.sha }}
         run: |
+          set -euo pipefail
           for image in ucs503-analysis ucs503-sandbox-runner; do
-            docker push "ghcr.io/cv-code-vitals/${image}:${IMAGE_TAG}"
+            reference="ghcr.io/cv-code-vitals/${image}:${IMAGE_TAG}"
+            docker push "$reference"
+            digest="$(docker buildx imagetools inspect "$reference" --format '{{.Manifest.Digest}}')"
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 1
+            if [[ "$image" == ucs503-analysis ]]; then
+              echo "analysis_digest=$digest" >> "$GITHUB_OUTPUT"
+            else
+              echo "runner_digest=$digest" >> "$GITHUB_OUTPUT"
+            fi
           done
+
+      - name: Attest analysis image provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/cv-code-vitals/ucs503-analysis
+          subject-digest: ${{ steps.publish.outputs.analysis_digest }}
+          push-to-registry: true
+
+      - name: Attest sandbox runner image provenance
+        if: github.event_name != 'pull_request'
+        uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/cv-code-vitals/ucs503-sandbox-runner
+          subject-digest: ${{ steps.publish.outputs.runner_digest }}
+          push-to-registry: true
+
+      - name: Install Sigstore Cosign
+        if: github.event_name != 'pull_request'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign immutable image digests with GitHub OIDC
+        if: github.event_name != 'pull_request'
+        env:
+          ANALYSIS_DIGEST: ${{ steps.publish.outputs.analysis_digest }}
+          SANDBOX_RUNNER_DIGEST: ${{ steps.publish.outputs.runner_digest }}
+        run: |
+          cosign sign --yes "ghcr.io/cv-code-vitals/ucs503-analysis@$ANALYSIS_DIGEST"
+          cosign sign --yes "ghcr.io/cv-code-vitals/ucs503-sandbox-runner@$SANDBOX_RUNNER_DIGEST"
 
       - name: Save container verification evidence
         if: always()
