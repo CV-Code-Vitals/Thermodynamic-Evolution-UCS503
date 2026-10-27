@@ -376,8 +376,9 @@ variables, not source code. The workflow reads `ArtifactBucketName`,
 named CloudFormation stack, requiring each output exactly once and non-empty
 before it uploads or sends SSM commands. Grant the AWS role
 `cloudformation:DescribeStacks` for that stack, object upload to the designated
-private bucket prefix, `ssm:SendCommand` and `ssm:GetCommandInvocation` for
-the two approved managed instances, and `ssm:DescribeInstanceInformation` for
+private bucket prefix, `ssm:SendCommand` for the two approved managed instances
+and the `AWS-RunShellScript` and `AWS-RunRemoteScript` documents,
+`ssm:GetCommandInvocation`, and `ssm:DescribeInstanceInformation` for
 the SSM readiness check. It also needs `ssm:GetParameters` for the six named
 external SecureStrings; it checks their names and types without requesting or
 printing their values. The sandbox power-state safeguard additionally
@@ -434,9 +435,9 @@ Both hosts must be registered as Systems Manager managed nodes, have the
 required SSM agent and Docker Compose runtime, and reach SSM and the private
 artifact bucket without a public IP. Use SSM Run Command or Session Manager
 for diagnostics; do not open SSH or add SSH secrets. The deployment workflow
-stores each selected release under `/opt/ucs503/releases/<commit-sha>`. It
-includes an x86_64 AWS CLI fallback, so the private hosts do not need an
-internet-reachable package repository just to download the bundle. It keeps
+stores each selected release under `/opt/ucs503/releases/<commit-sha>`. The
+SSM agent downloads the bundle directly, so the hosts do not need the AWS CLI.
+It keeps
 the analysis Compose volume under the fixed project name
 `ucs503-analysis`.
 

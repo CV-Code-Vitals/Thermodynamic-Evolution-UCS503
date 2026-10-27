@@ -153,20 +153,8 @@ jobs:
             --output analysis-images.tar \
             "$analysis_image" \
             "$runner_image"
-          if [[ "$(uname -m)" != x86_64 ]]; then
-            echo "The hosted runner must be x86_64 to package the AWS CLI fallback" >&2
-            exit 1
-          fi
-          aws_binary="$(readlink -f "$(command -v aws)")"
-          aws_cli_directory="$(dirname "$(dirname "$(dirname "$(dirname "$aws_binary")")")")"
-          if [[ ! -x "$aws_cli_directory/v2/current/bin/aws" ]]; then
-            echo "Could not locate the runner's bundled AWS CLI" >&2
-            exit 1
-          fi
-          cp -a "$aws_cli_directory" aws-cli
           tar -czf analysis-deployment-bundle.tar.gz \
             analysis-images.tar \
-            aws-cli \
             docker-compose.analysis.yml \
             docker-compose.sandbox.yml \
             scripts/validate-sandbox-host.mjs
@@ -420,6 +408,36 @@ jobs:
             return 1
           }
 
+          download_bundle() {
+            local instance_id="$1"
+            local directory="/var/tmp/ucs503-bundles/$BUNDLE_SHA256"
+            local source_info parameters command_id status
+            send_ssm_command "$instance_id" "mkdir -p '$directory'" >/dev/null
+            source_info="$(jq -nc --arg path "https://s3.${AWS_REGION}.amazonaws.com/${ARTIFACT_BUCKET_NAME}/${BUNDLE_KEY}" '{path: $path}')"
+            parameters="$(jq -nc --arg source "$source_info" --arg dir "$directory" \
+              '{sourceType:["S3"],sourceInfo:[$source],workingDirectory:[$dir],commandLine:["true"]}')"
+            command_id="$(aws ssm send-command --instance-ids "$instance_id" \
+              --document-name AWS-RunRemoteScript --parameters "$parameters" \
+              --query 'Command.CommandId' --output text)"
+            for attempt in $(seq 1 90); do
+              status="$(aws ssm get-command-invocation --command-id "$command_id" \
+                --instance-id "$instance_id" --plugin-name downloadContent \
+                --query Status --output text 2>/dev/null || echo Pending)"
+              case "$status" in
+                Success) return 0 ;;
+                Failed|Cancelled|TimedOut|Cancelling)
+                  echo "SSM bundle download failed for $instance_id (status: $status)" >&2
+                  aws ssm get-command-invocation --command-id "$command_id" \
+                    --instance-id "$instance_id" --plugin-name downloadContent \
+                    --query StandardErrorContent --output text >&2 || true
+                  return 1 ;;
+              esac
+              sleep 10
+            done
+            echo "Timed out waiting for SSM bundle download on $instance_id" >&2
+            return 1
+          }
+
           capture_previous_release() {
             local instance_id="$1"
             local project_name="$2"
@@ -502,23 +520,13 @@ jobs:
             local remote_command
 
             remote_command="set -eu
-            bundle=/var/tmp/ucs503-deploy-${IMAGE_SHA}.tar.gz
+            bundle=/var/tmp/ucs503-bundles/${BUNDLE_SHA256}/deployment-bundle.tar.gz
             expected_bundle_sha256='${BUNDLE_SHA256}'
             release=/opt/ucs503/releases/${IMAGE_SHA}
             if [ '${project_name}' = 'ucs503-sandbox' ]; then
               export DOCKER_HOST=unix:///run/user/10002/docker.sock
             fi
             mkdir -p \"\$release\"
-            if command -v aws >/dev/null 2>&1; then
-              aws_cli=\$(command -v aws)
-            else
-              aws_cli=\"\$release/aws-cli/v2/current/bin/aws\"
-            fi
-            if [ ! -x \"\$aws_cli\" ]; then
-              echo 'No usable AWS CLI was found on the host or in the deployment bundle' >&2
-              exit 1
-            fi
-            \"\$aws_cli\" s3 cp --region '${AWS_REGION}' \"s3://${ARTIFACT_BUCKET_NAME}/${BUNDLE_KEY}\" \"\$bundle\"
             if ! printf '%s  %s\\n' \"\$expected_bundle_sha256\" \"\$bundle\" | sha256sum -c -; then
               echo 'Deployment bundle SHA-256 verification failed' >&2
               exit 1
@@ -569,7 +577,8 @@ jobs:
               fi
               docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health >/dev/null
             fi
-            docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
+            IMAGE_TAG=${IMAGE_SHA} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
+            download_bundle "$instance_id"
             send_ssm_command "$instance_id" "$remote_command"
           }
 
@@ -650,7 +659,7 @@ jobs:
               echo 'Sandbox broker rollback container is not running' >&2
               exit 1
             fi
-            docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
+            IMAGE_TAG=${previous_sha} docker compose --project-name ${project_name} --env-file ${env_file} -f \"\$release/${compose_file}\" ps"
             send_ssm_command "$instance_id" "$remote_command"
           }
 
@@ -659,7 +668,7 @@ jobs:
             local remote_command
             remote_command="set -eu
             release=/opt/ucs503/releases/${analysis_release_sha}
-            container_id=\$(docker compose --project-name ucs503-analysis --env-file /etc/ucs503/analysis.env -f \"\$release/docker-compose.analysis.yml\" ps -q ucs503-analysis)
+            container_id=\$(IMAGE_TAG=${analysis_release_sha} docker compose --project-name ucs503-analysis --env-file /etc/ucs503/analysis.env -f \"\$release/docker-compose.analysis.yml\" ps -q ucs503-analysis)
             if [ -z \"\$container_id\" ]; then
               echo 'Analysis container is missing during the sandbox broker readiness check' >&2
               exit 1

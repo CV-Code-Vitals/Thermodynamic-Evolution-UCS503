@@ -107,9 +107,8 @@ test('gates AWS upload and deploy behind manual opt-in and approval', () => {
   assert.match(deployWorkflow, /runner_repository=ghcr\.io\/cv-code-vitals\/ucs503-sandbox-runner/);
   assert.match(deployWorkflow, /bundles\/analysis-deployments\/\$IMAGE_SHA\/\$BUNDLE_SHA256\/deployment-bundle\.tar\.gz/);
   assert.match(deployWorkflow, /BUNDLE_KEY: \$\{\{ steps\.bundle\.outputs\.bundle_key \}\}/);
-  assert.match(deployWorkflow, /cp -a "\$aws_cli_directory" aws-cli/);
-  assert.match(deployWorkflow, /aws-cli\/v2\/current\/bin\/aws/);
-  assert.match(deployWorkflow, /No usable AWS CLI was found on the host or in the deployment bundle/);
+  assert.match(deployWorkflow, /--document-name AWS-RunRemoteScript/);
+  assert.match(deployWorkflow, /--plugin-name downloadContent/);
   assert.match(deployWorkflow, /aws s3 cp/);
   assert.match(deployWorkflow, /--sse AES256/);
   assert.match(deployWorkflow, /--pull never/);
@@ -133,8 +132,8 @@ test('uses OIDC and SSM without SSH secrets or private-host GHCR pulls', () => {
   const remoteDeployment = deployWorkflow.slice(
     deployWorkflow.indexOf('remote_command="'),
   );
-  assert.match(remoteDeployment, /command -v aws/);
-  assert.match(remoteDeployment, /aws_cli[\s\S]*?s3 cp --region '\$\{AWS_REGION\}'/);
+  assert.match(remoteDeployment, /download_bundle "\$instance_id"/);
+  assert.doesNotMatch(remoteDeployment, /command -v aws/);
   assert.doesNotMatch(remoteDeployment, /docker pull\b/);
   assert.match(remoteDeployment, /docker load -i/);
   assert.match(deploymentReadme, /hosts do not pull from\s+GHCR/i);
@@ -292,10 +291,14 @@ test('preflights only the sandbox and verifies the bundle before extraction', ()
   const extraction = deployWorkflow.indexOf('tar -xzf');
   const imageLoad = deployWorkflow.indexOf('docker load -i');
   const remoteChecksum = deployWorkflow.indexOf('sha256sum -c');
-  const bundleDownload = deployWorkflow.indexOf('bundle=/var/tmp/ucs503-deploy-');
+  const bundleDownload = deployWorkflow.indexOf('bundle=/var/tmp/ucs503-bundles/');
   const preflight = deployWorkflow.indexOf('node ', bundleDownload);
   assert.ok(remoteChecksum >= 0 && remoteChecksum < extraction);
   assert.ok(remoteChecksum < imageLoad);
+  const deployment = deployWorkflow.slice(deployWorkflow.indexOf('deploy_instance() {'), deployWorkflow.indexOf('rollback_instance() {'));
+  assert.ok(deployment.indexOf('download_bundle "$instance_id"') < deployment.indexOf('send_ssm_command "$instance_id" "$remote_command"'));
+  assert.match(deployment, /bundle=\/var\/tmp\/ucs503-bundles\/\$\{BUNDLE_SHA256\}\/deployment-bundle\.tar\.gz/);
+  assert.match(deployment, /IMAGE_TAG=\$\{IMAGE_SHA\} docker compose[^\n]* ps/);
   assert.ok(preflight >= 0 && preflight < deployWorkflow.indexOf('docker compose --project-name ${project_name}', preflight));
   assert.match(
     deployWorkflow,
@@ -491,6 +494,7 @@ test('verifies deployed image identities and analysis health', () => {
   assert.match(deployWorkflow, /Health\.Status|\.State\.Health\.Status/);
   assert.match(deployWorkflow, /127\.0\.0\.1:8080\/health/);
   assert.match(deployWorkflow, /sandbox_available/);
+  assert.match(deployWorkflow, /IMAGE_TAG=\$\{analysis_release_sha\} docker compose[^\n]*ps -q ucs503-analysis/);
   assert.match(deployWorkflow, /sandbox broker readiness smoke test/i);
   assert.match(deployWorkflow, /sandbox_available.*status/);
   const sandboxDeployment = deployWorkflow.lastIndexOf('"$SANDBOX_RUNNER_IMAGE_ID"');
