@@ -185,6 +185,7 @@ function details(node) {
 function measurements() {
   const summary = summarizeRepository(files);
   $('measurements').hidden = false;
+  $('view-measurements').hidden = false;
   $('measurement-cards').replaceChildren();
   for (const [label, value, note] of [
     ['Total structural energy', summary.total, 'Sum across measured functions'],
@@ -275,6 +276,8 @@ if (!embedded) {
       $('search').value = '';
       loadReport(report);
       $('scan-status').textContent = `Scan complete: ${files.length} files. Select a file or folder below to explore.`;
+      $('graph-tools').scrollIntoView({block:'start'});
+      canvas.focus({preventScroll:true});
     } catch (error) {
       $('scan-status').textContent = error.name === 'AbortError' ? 'Scan cancelled.' : '';
       if (error.name !== 'AbortError') $('scan-error').textContent = error.message || 'Repository scan failed. Please try again.';
@@ -332,6 +335,8 @@ canvas.addEventListener('keydown', event => {
 $('zoom-in').onclick = () => zoomAt(1.25);
 $('zoom-out').onclick = () => zoomAt(0.8);
 $('fit').onclick = fit;
+$('view-graph').onclick = () => { $('graph-tools').scrollIntoView({block:'start'}); canvas.focus({preventScroll:true}); };
+$('view-measurements').onclick = () => $('measurements').scrollIntoView({block:'start'});
 $('overview').onclick = () => { focusPath = ''; folderPath = ''; selected = null; rebuild(); };
 let searchTimer;
 document.fonts.ready.then(scheduleDraw);

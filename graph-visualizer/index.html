@@ -127,6 +127,9 @@
     #measurements { margin: 20px 20px 0; }
     #measurements[hidden], #hotspot-empty[hidden] { display: none; }
     #measurements h2 { font: 600 18px var(--font-main); color: var(--gold); margin: 0 0 12px; }
+    .measurement-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    #view-graph, #view-measurements { color: var(--gold); border-color: var(--gold-dim); }
+    #view-measurements[hidden] { display: none; }
     #measurement-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
     .measurement-card { display: grid; gap: 9px; padding: 16px; border: 1px solid var(--border-color); background: var(--bg-card); }
     .measurement-card span { color: #aaa; font-size: 14px; }
@@ -183,7 +186,7 @@
     <p id="scan-status" role="status"></p><p id="scan-error" role="alert"></p>
   </section>
   <section id="measurements" aria-label="Repository measurements" hidden>
-    <h2>Repository measurements</h2>
+    <div class="measurement-heading"><h2>Repository measurements</h2><button id="view-graph" type="button">View graph ↓</button></div>
     <p class="measurement-note">The project's entropy score measures structural energy. Code heat summarizes complexity; annealing temperature is shown during optimization.</p>
     <div id="measurement-cards"></div>
     <p id="coverage"></p>
@@ -195,7 +198,8 @@
     </details>
     <p class="measurement-note">Code heat: Cool &lt; 5 · Elevated 5–&lt;10 · High 10–&lt;15 · Critical ≥ 15. Card markers use the highest measured function in each file or folder. Gray means unmeasured.</p>
   </section>
-  <div class="toolbar">
+  <div class="toolbar" id="graph-tools">
+    <button id="view-measurements" type="button" hidden>View measurements ↑</button>
     <input id="search" type="search" aria-label="Search files or functions" placeholder="Search files or functions…">
     <select id="language" aria-label="Filter language"><option value="">All languages</option></select>
     <select id="sort" aria-label="Sort files"><option value="path">Sort by path</option><option value="score">Highest score first</option></select>
