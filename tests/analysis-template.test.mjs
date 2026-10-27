@@ -255,6 +255,9 @@ test('does not grant unnecessary bucket enumeration through the private endpoint
 
 test('runs the sandbox broker through the dedicated rootless Docker socket', async () => {
   const compose = await read('docker-compose.sandbox.yml');
+  assert.match(compose, /user:\s*["']0:0["']/);
+  assert.match(compose, /cap_drop:\s*\r?\n\s*- ALL/);
+  assert.match(compose, /no-new-privileges:true/);
   const exampleEnv = await read('.env.sandbox.example');
   const deploymentWorkflow = await read('.github/workflows/deploy-analysis.yml');
   const deploymentReadme = await read('README_DEPLOY.md');

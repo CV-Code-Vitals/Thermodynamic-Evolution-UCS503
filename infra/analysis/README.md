@@ -110,7 +110,9 @@ Before a separately authorized deployment, prepare and review:
    host with rootless Docker for UID/GID `10002`, enable systemd linger for
    that dedicated user, and verify the daemon socket is
    `/run/user/10002/docker.sock`; the broker mounts that socket inside its
-   container at `/run/docker.sock`. The daemon and broker must see the same
+   container at `/run/docker.sock`. The broker runs as UID 0 inside the
+   rootless user namespace, mapping to the unprivileged sandbox host user;
+   its capabilities remain dropped. The daemon and broker must see the same
    absolute sandbox workspace path. Run
    `sudo node scripts/validate-sandbox-host.mjs` on the sandbox host to check
    the UID/GID, lingering, socket, workspace access, and rootless daemon.

@@ -675,14 +675,19 @@ jobs:
               echo 'Analysis container is missing during the sandbox broker readiness check' >&2
               exit 1
             fi
-            health_payload=\$(docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health)
-            case \"\$health_payload\" in
-              *'\"status\":\"ok\"'*'\"sandbox_available\":true'*|*'\"sandbox_available\":true'*'\"status\":\"ok\"'*) ;;
-              *)
-                echo 'Analysis and sandbox broker readiness smoke test failed' >&2
-                exit 1
-                ;;
-            esac"
+            health_payload=
+            for attempt in \$(seq 1 24); do
+              health_payload=\$(docker exec \"\$container_id\" wget -qO- http://127.0.0.1:8080/health 2>/dev/null || true)
+              case \"\$health_payload\" in
+                *'\"status\":\"ok\"'*'\"sandbox_available\":true'*|*'\"sandbox_available\":true'*'\"status\":\"ok\"'*)
+                  echo 'Analysis and sandbox broker readiness verified'
+                  exit 0 ;;
+              esac
+              sleep 5
+            done
+            echo 'Analysis and sandbox broker readiness smoke test failed after 120 seconds' >&2
+            printf 'Last health response: %s\\n' \"\$health_payload\" >&2
+            exit 1"
             send_ssm_command "$ANALYSIS_INSTANCE_ID" "$remote_command"
           }
 
