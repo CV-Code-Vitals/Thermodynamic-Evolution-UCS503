@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const projectRoot = dirname(fileURLToPath(import.meta.url))
-const graphAssets = ['index.html', 'graph.mjs', 'model.mjs', 'scan.mjs', 'config.mjs']
+const graphAssets = ['index.html', 'graph.mjs', 'model.mjs', 'routes.mjs', 'scan.mjs', 'config.mjs']
 const graphAssetPath = (name) => resolve(projectRoot, '../graph-visualizer', name)
 
 function graphVisualizerPlugin(config) {

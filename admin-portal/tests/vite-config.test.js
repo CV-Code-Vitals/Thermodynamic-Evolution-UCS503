@@ -72,7 +72,7 @@ test('built public graph assets use the same configured API addresses as the por
     const files = new Map();
     graph.generateBundle.call({ emitFile: asset => files.set(asset.fileName, asset.source) });
     assert.equal(files.get('graph-visualizer/config.mjs'), 'export default {"apiBase":"https://archive.example/api","analysisApiBase":"https://analysis.example/prod"};\n');
-    for (const name of ['index.html', 'graph.mjs', 'model.mjs', 'scan.mjs']) {
+    for (const name of ['index.html', 'graph.mjs', 'model.mjs', 'routes.mjs', 'scan.mjs']) {
       assert.ok(files.get(`graph-visualizer/${name}`).length > 0, `Missing public asset: ${name}`);
     }
   } finally {

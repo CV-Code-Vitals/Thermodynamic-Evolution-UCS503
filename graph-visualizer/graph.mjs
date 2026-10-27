@@ -41,36 +41,41 @@ function draw() {
   ctx.clearRect(0, 0, width, height);
   ctx.translate(camera.x, camera.y);
   ctx.scale(camera.zoom, camera.zoom);
-  ctx.lineWidth = 1.2 / camera.zoom;
-  for (const { source, target, kind } of model.links) {
-    const highlighted = !selected || selected.id === source.id || selected.id === target.id;
-    ctx.globalAlpha = highlighted ? 0.75 : 0.12;
-    ctx.strokeStyle = kind === 'imports' ? '#ffd700' : kind === 'calls' ? '#f59e0b' : '#444444';
-    ctx.beginPath();
-    if (source.id === target.id) {
-      const x = source.x + source.width, y = source.y + source.height / 2;
-      ctx.moveTo(x, y - 12); ctx.bezierCurveTo(x + 50, y - 45, x + 50, y + 45, x, y + 12);
-    } else if (kind === 'contains') {
-      const sx = source.x + source.width / 2, sy = source.y + source.height;
-      const tx = target.x + target.width / 2, ty = target.y;
-      ctx.moveTo(sx, sy); ctx.bezierCurveTo(sx, sy + 24, tx, ty - 24, tx, ty);
-    } else {
-      const right = target.x >= source.x + source.width;
-      const sx = source.x + (right ? source.width : 0), sy = source.y + source.height / 2;
-      const tx = target.x + (right ? 0 : target.width), ty = target.y + target.height / 2;
-      const bend = Math.max(28, Math.abs(tx - sx) / 2);
-      ctx.moveTo(sx, sy); ctx.bezierCurveTo(sx + (right ? bend : -bend), sy, tx + (right ? -bend : bend), ty, tx, ty);
-      ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(tx + (right ? -7 : 7), ty - 4); ctx.lineTo(tx, ty); ctx.lineTo(tx + (right ? -7 : 7), ty + 4);
+  const connected = new Set(selected ? [selected.id] : []);
+  const active = link => !selected || link.source.id === selected.id || link.target.id === selected.id;
+  if (selected) for (const link of model.links) if (active(link)) {
+    connected.add(link.source.id); connected.add(link.target.id);
+  }
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+  for (const foreground of selected ? [false, true] : [true]) for (const link of model.links) {
+    if (active(link) !== foreground) continue;
+    const {kind, points} = link;
+    const ink = kind === 'imports' ? '#ffd700' : kind === 'calls' ? '#f59e0b' : '#999999';
+    ctx.globalAlpha = foreground ? (kind === 'contains' && !selected ? .6 : 1) : .1;
+    ctx.lineWidth = (selected && foreground ? 2.6 : kind === 'contains' ? 1.3 : 1.8) / camera.zoom;
+    ctx.setLineDash(kind === 'calls' ? [6 / camera.zoom, 4 / camera.zoom] : []);
+    ctx.beginPath(); ctx.moveTo(...points[0]);
+    for (const point of points.slice(1)) ctx.lineTo(...point);
+    if (selected && foreground) {
+      ctx.strokeStyle = '#050505'; ctx.lineWidth += 4 / camera.zoom; ctx.stroke(); ctx.lineWidth -= 4 / camera.zoom;
     }
-    ctx.stroke();
+    ctx.strokeStyle = ink; ctx.stroke(); ctx.setLineDash([]);
+    const end = points.at(-1), before = points.at(-2);
+    const angle = Math.atan2(end[1] - before[1], end[0] - before[0]);
+    const size = Math.min(12, (kind === 'contains' ? 7 : 10) / camera.zoom);
+    ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(...end);
+    ctx.lineTo(end[0] - Math.cos(angle) * size + Math.sin(angle) * size * .45, end[1] - Math.sin(angle) * size - Math.cos(angle) * size * .45);
+    ctx.lineTo(end[0] - Math.cos(angle) * size - Math.sin(angle) * size * .45, end[1] - Math.sin(angle) * size + Math.cos(angle) * size * .45);
+    ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.arc(...points[0], 2.3 / camera.zoom, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
   for (const node of model.nodes) {
     const sx = node.x * camera.zoom + camera.x, sy = node.y * camera.zoom + camera.y;
     if (sx > width || sy > height || sx + node.width * camera.zoom < 0 || sy + node.height * camera.zoom < 0) continue;
+    ctx.globalAlpha = selected && !connected.has(node.id) ? .4 : 1;
     ctx.fillStyle = selected?.id === node.id ? '#24200a' : '#111111';
-    ctx.strokeStyle = selected?.id === node.id ? '#ffd700' : '#333333';
+    ctx.strokeStyle = selected?.id === node.id ? '#ffd700' : connected.has(node.id) ? '#cca800' : '#333333';
     ctx.lineWidth = (selected?.id === node.id ? 2 : 1) / camera.zoom;
     ctx.beginPath(); ctx.rect(node.x, node.y, node.width, node.height); ctx.fill(); ctx.stroke();
     ctx.fillStyle = color(node); ctx.fillRect(node.x, node.y + 9, 3, node.height - 18);
@@ -89,6 +94,7 @@ function draw() {
     }
     ctx.restore();
   }
+  ctx.globalAlpha = 1;
 }
 function element(tag, text, parent, className) {
   const el = document.createElement(tag);
@@ -126,14 +132,6 @@ function details(node) {
     element('pre', node.fn.source_snippet || '', panel);
     element('p', node.fn.description || '', panel);
   } else {
-    const imports = relationships.filter(edge => edge.kind === 'imports' && edge.source_file === file.path);
-    if (imports.length) {
-      element('p', 'Imports resolved to local files', panel);
-      for (const edge of imports) {
-        const button = element('button', edge.target_file, panel); button.type = 'button';
-        button.onclick = () => { focusPath = edge.target_file; folderPath = ''; rebuild(); selected = model.nodes.find(item => item.type === 'file' && item.file.path === focusPath); details(selected); scheduleDraw(); };
-      }
-    }
     if (file.imports?.length) element('pre', file.imports.map(item => item.path).join('\n'), panel);
     element('p', `${file.hotspots.length} functions · score ${number(file.total_entropy)}`, panel);
     for (const fn of file.hotspots) {
@@ -145,6 +143,16 @@ function details(node) {
         if (target) centerNode(target);
       };
     }
+  }
+  const connections = model.links.filter(link => link.kind !== 'contains' && (link.source.id === node.id || link.target.id === node.id));
+  if (connections.length) element('h3', 'Connections', panel);
+  for (const link of connections) {
+    const outgoing = link.source.id === node.id;
+    const other = outgoing ? link.target : link.source;
+    const action = link.kind === 'imports' ? (outgoing ? 'Imports' : 'Imported by') : (outgoing ? 'Calls' : 'Called by');
+    const label = other.type === 'function' ? `${other.label} · ${other.file.path}` : other.label;
+    const button = element('button', `${action}: ${label}`, panel); button.type = 'button';
+    button.onclick = () => centerNode(other);
   }
 }
 function rebuild() {

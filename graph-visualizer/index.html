@@ -117,6 +117,7 @@
     #details { border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px; overflow-wrap: anywhere; }
     #details:empty { display: none; }
     #details h2 { color: var(--gold); font-size: 20px; margin: 4px 0 10px; }
+    #details h3 { color: var(--gold-dim); font: 12px var(--font-mono); text-transform: uppercase; margin: 18px 0 10px; }
     #details p { font-size: 14px; line-height: 1.6; color: #aaa; margin: 8px 0; }
     #details pre { white-space: pre-wrap; font: 11px/1.6 var(--font-mono); background: var(--bg-main); border: 1px solid var(--border-color); padding: 12px; }
     #details button { margin: 3px 0; width: 100%; text-align: left; font-size: 14px; }
@@ -176,7 +177,7 @@
     <aside aria-label="Repository files and details"><section id="details" aria-live="polite"></section><p id="file-count">No scanned files</p><nav id="files" aria-label="Files"></nav></aside>
     <section id="stage" aria-label="Repository map"><canvas id="graph" tabindex="0" aria-label="Interactive file and function map. Use file buttons for keyboard navigation, plus and minus to zoom, F to fit."></canvas><p id="empty">Scan a repository to load its files and functions.</p><div id="controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="fit">Fit</button><button id="zoom-in" aria-label="Zoom in">+</button></div></section>
   </main>
-  <footer id="hint">Select a folder or file to explore. Drag to pan · Scroll to zoom · Fit shows the whole map. Gold: local imports · Gray: file membership · Amber: static local calls.</footer>
+  <footer id="hint">Select a card to highlight its connections. Arrows point to the destination. Gold: imports · Dashed amber: calls · Gray: file membership. Drag to pan · Scroll to zoom · Fit shows the whole map.</footer>
   <script type="module" src="./graph.mjs"></script>
 </body>
 </html>

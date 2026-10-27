@@ -1,3 +1,14 @@
+import { routeGraphEdges } from './routes.mjs';
+
+function connect(graph) {
+  graph.links = routeGraphEdges(graph.nodes, graph.links);
+  for (const link of graph.links) for (const [x, y] of link.points) {
+    graph.width = Math.max(graph.width, x + 30);
+    graph.height = Math.max(graph.height, y + 30);
+  }
+  return graph;
+}
+
 export function repositoryFiles(report) {
   const root = String(report?.scanned_directory || '').replaceAll('\\', '/').replace(/\/$/, '');
   return (report?.file_reports || []).filter(file => typeof file.file_path === 'string').map(file => {
@@ -28,7 +39,7 @@ export function buildGraphModel(files, { query = '', language = '', focusPath = 
       id:`folder:${label}`, type:'folder', label, files:contents,
       functionCount:contents.reduce((sum, file) => sum + file.hotspots.length, 0),
       score:contents.reduce((sum, file) => sum + (file.total_entropy || 0), 0),
-      x:30 + (index % columns) * 300, y:30 + Math.floor(index / columns) * 120, width:264, height:84,
+      x:30 + (index % columns) * 340, y:30 + Math.floor(index / columns) * 150, width:264, height:84,
     }));
     const byPath = new Map(nodes.map(node => [node.label, node]));
     const byFile = new Map(filtered.map(file => [file.path, byPath.get(directory(file))]));
@@ -41,9 +52,9 @@ export function buildGraphModel(files, { query = '', language = '', focusPath = 
       if (edges.has(key)) edges.get(key).count++;
       else edges.set(key, {source, target, kind:'imports', count:1});
     }
-    return {nodes, links:[...edges.values()], filtered, fileCount:filtered.length,
+    return connect({nodes, links:[...edges.values()], filtered, fileCount:filtered.length,
       functionCount:filtered.reduce((sum, file) => sum + file.hotspots.length, 0),
-      width:Math.max(320, columns * 300), height:Math.max(200, Math.ceil(nodes.length / columns) * 120 + 30)};
+      width:Math.max(320, columns * 340), height:Math.max(200, Math.ceil(nodes.length / columns) * 150 + 30)});
   }
   const neighbors = new Set([focusPath]);
   if (focusPath && showImports) {
@@ -56,25 +67,25 @@ export function buildGraphModel(files, { query = '', language = '', focusPath = 
   const visible = focusPath ? filtered.filter(file => neighbors.has(file.path)) : filtered;
   const expanded = showFunctions || Boolean(focusPath);
   const columns = Math.max(1, Math.ceil(Math.sqrt(visible.length * (expanded ? 0.6 : 1.4))));
-  const groupWidth = expanded ? 520 : 300;
+  const groupWidth = expanded ? 600 : 340;
   const nodes = [], links = [];
   let y = 30;
   for (let offset = 0; offset < visible.length; offset += columns) {
-    let rowHeight = 120;
+    let rowHeight = 150;
     visible.slice(offset, offset + columns).forEach((file, column) => {
       const x = 30 + column * groupWidth;
       const expandFile = showFunctions || file.path === focusPath;
       const parent = { id: `file:${file.path}`, type: 'file', label: file.path, file,
-        score: file.total_entropy || 0, x, y, width: expandFile ? 480 : 264, height: 84 };
+        score: file.total_entropy || 0, x, y, width: expandFile ? 500 : 264, height: 84 };
       nodes.push(parent);
       if (expandFile) {
         file.hotspots.forEach((fn, index) => {
           const child = { id: fn.id, type: 'function', label: fn.function_name, file, fn,
-            score: fn.entropy_score || 0, x: x + (index % 2) * 248, y: y + 126 + Math.floor(index / 2) * 82, width: 232, height: 62 };
+            score: fn.entropy_score || 0, x: x + (index % 2) * 268, y: y + 150 + Math.floor(index / 2) * 106, width: 232, height: 62 };
           nodes.push(child);
           links.push({ source: parent, target: child, kind: 'contains' });
         });
-        rowHeight = Math.max(rowHeight, 152 + Math.ceil(file.hotspots.length / 2) * 82);
+        rowHeight = Math.max(rowHeight, 184 + Math.ceil(file.hotspots.length / 2) * 106);
       }
     });
     y += rowHeight;
@@ -91,9 +102,9 @@ export function buildGraphModel(files, { query = '', language = '', focusPath = 
       if (source && target) links.push({source, target, kind:'calls'});
     }
   }
-  return { nodes, links, filtered, fileCount: visible.length,
+  return connect({ nodes, links, filtered, fileCount: visible.length,
     functionCount: visible.reduce((sum, file) => sum + file.hotspots.length, 0),
     width: nodes.reduce((size, node) => Math.max(size, node.x + node.width + 30), 320),
     height: Math.max(200, y),
-  };
+  });
 }
