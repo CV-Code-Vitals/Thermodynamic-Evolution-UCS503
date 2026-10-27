@@ -104,8 +104,8 @@ Before a separately authorized deployment, prepare and review:
 
 1. Supported analysis and sandbox AMIs with the SSM Agent, Docker Engine,
    Docker Compose plugin, Node.js 22 for the read-only host validator, and host
-   bootstrap configuration. The deployment bundle includes an x86_64 AWS CLI
-   fallback for private hosts that do not already provide one. The
+   bootstrap configuration. The SSM agent downloads deployment bundles directly.
+   The
    analysis host must not have access to a Docker socket. Prepare the sandbox
    host with rootless Docker for UID/GID `10002`, enable systemd linger for
    that dedicated user, and verify the daemon socket is
@@ -120,7 +120,8 @@ Before a separately authorized deployment, prepare and review:
    role to this repository and environment. Grant it
    `cloudformation:DescribeStacks` for the analysis stack,
    `s3:PutObject` to the deployment bundle prefix,
-   `ssm:SendCommand`/`ssm:GetCommandInvocation` for the two managed nodes, and
+   `ssm:SendCommand` for the two managed nodes and the `AWS-RunShellScript` and
+   `AWS-RunRemoteScript` documents, `ssm:GetCommandInvocation`, and
    `ssm:DescribeInstanceInformation` for the sandbox readiness check, plus
    `ssm:GetParameters` for the six configured external SecureStrings. The
    preflight reads names and parameter types only, never secret values. The
