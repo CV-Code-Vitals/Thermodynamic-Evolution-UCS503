@@ -1,0 +1,88 @@
+{
+  "milestone": "Milestone 3.4",
+  "freeze_timestamp": "2026-11-04T02:26:00+05:30",
+  "purpose": "Immutable Provenance and Evaluation Asset Freeze",
+  "base_commit": "52ff0f1822ff8c25bf64d2e860124b9dc9b7351b",
+  "branch_head_commit": "64bb13942a17d493bf39e3f4bd5e3b4f0825d8d0",
+  "active_branch": "research/milestone-3.4-semantic-analysis",
+  "toolchains": {
+    "go": "go1.25.6 windows/amd64",
+    "rustc": "rustc 1.97.1",
+    "cargo": "cargo 1.97.1",
+    "os": "Windows NT 10.0.26200.0"
+  },
+  "historical_suites": [
+    {
+      "suite_id": "suite_v2",
+      "manifest": "benchmarks/ground_truth_manifest_v2.json",
+      "manifest_sha256": "79fcea5048600c9a5f80583fb5d8f66aa42cf79f45cb5b2f243359e40feaec04",
+      "fixture_count": 96,
+      "defects": 64,
+      "negative_controls": 32,
+      "immutable": true
+    },
+    {
+      "suite_id": "suite_v3",
+      "manifest": "benchmarks/ground_truth_manifest_v3.json",
+      "manifest_sha256": "c1ccbd657eb090d6daf948fccedc47428f31eb2ffaa8b275054823f684b56689",
+      "fixture_count": 144,
+      "defects": 96,
+      "negative_controls": 48,
+      "immutable": true
+    }
+  ],
+  "milestone3_3_external_snapshots": {
+    "manifest": "benchmarks/external_v1/repository_manifest.json",
+    "manifest_sha256": "6d1568b7fada7a1929ba49f82a3ce813f94b51dc40b24977ff0a28cf6189c592",
+    "repository_count": 5,
+    "total_loc": 1601,
+    "ground_truth_defects": 14,
+    "negative_controls": 15,
+    "repositories": [
+      {
+        "name": "http_router",
+        "path": "benchmarks/external_v1/http_router",
+        "tree_sha256": "53bd717a0ce27a1ac6d42ee3267d66f0e6079b6aedd2f9cc13eccd9d875e0b59",
+        "file_count": 6,
+        "loc": 312
+      },
+      {
+        "name": "sql_service",
+        "path": "benchmarks/external_v1/sql_service",
+        "tree_sha256": "25e45f1c61c922958a6e830944363825e89e8d4b1fbb6294e63cbe5ae95c9624",
+        "file_count": 6,
+        "loc": 332
+      },
+      {
+        "name": "cache_engine",
+        "path": "benchmarks/external_v1/cache_engine",
+        "tree_sha256": "ecf092160541d59cbf16a444ed00a6dda6da01eb9c99d7739f305a6890343b89",
+        "file_count": 6,
+        "loc": 315
+      },
+      {
+        "name": "cli_tooling",
+        "path": "benchmarks/external_v1/cli_tooling",
+        "tree_sha256": "ac0a32fe38e66f26e8e4156a1376d4f85d9bad04a3cd417e82a935862b565096",
+        "file_count": 6,
+        "loc": 284
+      },
+      {
+        "name": "queue_worker",
+        "path": "benchmarks/external_v1/queue_worker",
+        "tree_sha256": "260fa69b57563dbc0375e1fbf08fd390de40107b9e575919bd732248a65862cc",
+        "file_count": 7,
+        "loc": 358
+      }
+    ]
+  },
+  "milestone3_3_frozen_reports": {
+    "final_report_sha256": "d1396138702eb44d213f997e20cee5c84aa4897825d8702156ff31e771fee80c",
+    "external_predictions_sha256": "537c79b0551e5cd4a2d1a84afa596f0991d321dbe18146a86caee3ea4b891aa2",
+    "adjudication_results_sha256": "566f85b09e6079a68039438875b4e6cbfbef1c4bb75c95104c81c2806a402d7d",
+    "repository_metrics_sha256": "db009edb4aea74b59071fdb212779c0a9939af6f147461d37985c722eafeee36",
+    "patch_inventory_sha256": "8e674940cef6c5a1566b50797487242d2410d589dcf1503c8cc841575147e123",
+    "validation_results_sha256": "bf960a7349f19bc5894fe7434532ac4408538b6c0f1a6e4d78cdcd59229a5de5",
+    "safety_test_matrix_sha256": "7f5e8308baf8f25050ed05fec717c4683b54911d79aea951289737ef6f49d779"
+  }
+}
