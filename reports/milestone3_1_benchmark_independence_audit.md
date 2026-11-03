@@ -61,3 +61,4 @@ The 96 fixtures in Suite v2 provide systematic stress-testing across diverse cat
 
 1. Claims regarding Suite v2 must describe it as an **"Expanded Systematic Synthetic Multi-Category Benchmark"** rather than an "open-domain held-out production repository".
 2. Real-world generalization must be validated against third-party production codebases (such as the native Rust `thermodynamic-ast-engine` and real polyglot repositories).
+

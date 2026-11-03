@@ -64,3 +64,4 @@ The system's autonomous remediation capabilities are strictly confined to **Go c
 - **Go:** Fully supported for autonomous self-healing.
 - **Rust:** Supported for read-only repository intelligence and manifest verification.
 - **C++:** Unsupported.
+

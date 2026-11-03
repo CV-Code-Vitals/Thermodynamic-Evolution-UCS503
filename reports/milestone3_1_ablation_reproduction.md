@@ -62,3 +62,4 @@ The diagnostic engine emits confidence scores $c_i \in [0.80, 1.00]$. The indepe
 ## 5. Audit Conclusion
 
 The scientific improvements reported in Milestone 3.0 are **reproducible, deterministic, and statistically sound**. The engine exhibits reliable confidence calibration and substantial performance gains when moving from baseline heuristics to contextual diagnostic intelligence.
+

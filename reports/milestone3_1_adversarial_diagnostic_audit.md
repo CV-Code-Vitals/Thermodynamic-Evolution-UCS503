@@ -55,3 +55,4 @@ This audit conducted targeted adversarial stress-testing to verify that these me
 ## 3. Summary Verdict
 
 The diagnostic engine is resilient against adversarial counter-evidence suppression and path traversal attacks. The Bayesian aggregation formula operates safely within its 0.99 bound, with its conditional independence limitations fully disclosed.
+

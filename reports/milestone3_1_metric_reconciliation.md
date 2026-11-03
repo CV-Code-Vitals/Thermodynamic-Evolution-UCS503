@@ -84,3 +84,4 @@ The independent verification confirmed high recall across all categories (8/8 in
 ## 5. Audit Conclusion
 
 Milestone 3.0's reported gains in recall and F1 score are **100% scientifically reproducible**. The independent audit has clarified the critical boundary between isolated single-file controls (0% FPR) and multi-category directory interactions (68.75% Specificity on Suite v2).
+
