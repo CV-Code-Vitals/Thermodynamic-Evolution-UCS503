@@ -54,3 +54,4 @@ To mitigate these known limitations in real development workflows:
 1. **Mandatory Human Approval for Security & Concurrency:** Automated remediation must never execute concurrency refactorings or public API signature changes autonomously.
 2. **Defect-Class Gating:** Autonomous self-healing must be restricted to verified low-risk patterns (intra-loop resource closures, explicitly discarded error returns, and localized parameterization).
 3. **Complementary Tooling:** The platform should be paired with standard linters (`golangci-lint`, `govet`, `errcheck`) to cover expression-statement and linear resource defects until the diagnostic engine incorporates full control-flow graph (CFG) analysis.
+

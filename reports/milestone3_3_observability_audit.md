@@ -72,3 +72,4 @@ The pipeline incorporates automated secret detection and masking via `redactSecr
 1. **Masking Algorithm:** Matched tokens retain only their first 4 characters and final 4 characters, with intermediate characters replaced by `****` (e.g., `AKIAIOSFODNN7EXAMPLE1234` -> `AKIA****1234`).
 2. **Audit Check in Phase 7:** In adversarial test 11 (`DIAGNOSTIC_REGRESSION`), a synthetic AWS Access Key was injected into a workspace file. The reliability analyzer correctly identified the token, emitted a critical alert, and sanitized the value in its evidence snippet.
 3. **Log Scrubbing:** No raw API keys, passwords, or private key blocks are written to stdout or persistent execution logs.
+

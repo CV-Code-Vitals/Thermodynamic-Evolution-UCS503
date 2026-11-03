@@ -98,3 +98,4 @@ Three candidates were audited and rejected from autonomous execution in complian
 1. `REM-CAND-09` (`cache_engine: cache.go`): Modifying `UnsafeKeys` to hold read locks creates potential deadlocks if called from existing locked contexts. Classified as **HIGH RISK**. Status: `HUMAN_REVIEW_REQUIRED`.
 2. `REM-CAND-10` (`cache_engine: eviction.go`): Adding cancellation to `StartBackgroundEvictor` alters the public interface signature. Classified as **HIGH RISK**. Status: `HUMAN_REVIEW_REQUIRED`.
 3. `REM-CAND-11` (`cli_tooling: fs.go`): Enforcing strict path confinement impacts directory traversal semantics and requires operator policy specification. Classified as **HIGH RISK**. Status: `HUMAN_REVIEW_REQUIRED`.
+

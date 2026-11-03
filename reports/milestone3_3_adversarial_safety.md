@@ -48,3 +48,4 @@ Every test verified that the system fails safe under anomalous, malicious, or de
 1. **Deterministic Containment:** In no scenario did an adversarial input cause an uncaught panic or leak beyond the isolated workspace boundary.
 2. **Fail-Closed Gateways:** Every security boundary (path traversal, unapproved tasks, invalid approval tokens) operates in an explicit fail-closed mode.
 3. **Workspace Sanitation:** Disposable isolated workspaces guarantee that aborted or rolled-back trials leave zero residual artifacts in the operating environment.
+
