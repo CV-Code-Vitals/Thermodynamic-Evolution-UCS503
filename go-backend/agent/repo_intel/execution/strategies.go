@@ -195,12 +195,29 @@ func (s *HumanGuidedStrategy) Execute(wsDir string, task *planning.RemediationTa
 
 		// If task addresses hardcoded secrets (e.g. AKIA...)
 		if strings.Contains(task.Description, "AWS Access Key ID") || strings.Contains(strings.ToLower(task.Title), "secret") {
+			// Ensure "os" package is imported if not present
+			if !strings.Contains(content, `"os"`) {
+				if strings.Contains(content, "import (") {
+					content = strings.Replace(content, "import (", "import (\n\t\"os\"", 1)
+				} else if strings.Contains(content, "package ") {
+					lines := strings.Split(content, "\n")
+					var b strings.Builder
+					for i, l := range lines {
+						b.WriteString(l + "\n")
+						if i == 0 {
+							b.WriteString("\nimport \"os\"\n")
+						}
+					}
+					content = b.String()
+				}
+			}
+
 			// Redact secret with environment variable lookup (replacing quotes if present)
-			reSecretQuoted := regexp.MustCompile(`"AKIA[0-9A-Z]{16}"`)
+			reSecretQuoted := regexp.MustCompile(`"AKIA[0-9A-Z]+"`)
 			if reSecretQuoted.MatchString(content) {
 				content = reSecretQuoted.ReplaceAllString(content, `os.Getenv("AWS_ACCESS_KEY_ID")`)
 			}
-			reSecret := regexp.MustCompile(`AKIA[0-9A-Z]{16}`)
+			reSecret := regexp.MustCompile(`AKIA[0-9A-Z]+`)
 			if reSecret.MatchString(content) {
 				content = reSecret.ReplaceAllString(content, `os.Getenv("AWS_ACCESS_KEY_ID")`)
 			}

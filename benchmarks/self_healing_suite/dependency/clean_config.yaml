@@ -1,0 +1,8 @@
+# Ground-truth negative control: CLEAN-DEP-01 (Harmless 'latest' string in unrelated context)
+server:
+  host: "127.0.0.1"
+  port: 8080
+deployment:
+  channel: "latest_stable"
+  active: true
+

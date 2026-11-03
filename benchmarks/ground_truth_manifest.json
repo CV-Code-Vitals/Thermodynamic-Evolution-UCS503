@@ -1,0 +1,438 @@
+{
+  "benchmark_name": "Self-Healing Pipeline Autonomous Remediation Benchmark",
+  "version": "1.0.0",
+  "created_at": "2026-11-03T17:40:00Z",
+  "target_repository_path": "benchmarks/self_healing_suite",
+  "total_fixtures": 21,
+  "defect_fixtures_count": 15,
+  "clean_fixtures_count": 6,
+  "defect_fixtures": [
+    {
+      "fixture_id": "FIX-STR-01",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive control flow nesting depth (depth reaches 5, exceeding threshold 3)",
+      "target_file": "structural/nesting.go",
+      "target_symbol": "ProcessNestedData",
+      "ground_truth_location": {
+        "file": "structural/nesting.go",
+        "start_line": 5,
+        "end_line": 23
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [0.85, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "Control flow nesting depth reduced to <= 3",
+        "Semantic behavior preserved"
+      ],
+      "regression_tests": [
+        "go test ./structural/..."
+      ],
+      "file_sha256": "D8143A4DDB3E452149AEE2AB10AE322FAC3"
+    },
+    {
+      "fixture_id": "FIX-STR-02",
+      "category": "STRUCTURAL",
+      "defect_description": "High cyclomatic complexity (M = 16, exceeding threshold 12)",
+      "target_file": "structural/complexity.go",
+      "target_symbol": "CalculateComplexMetric",
+      "ground_truth_location": {
+        "file": "structural/complexity.go",
+        "start_line": 5,
+        "end_line": 37
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [0.85, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "Cyclomatic complexity reduced below threshold M < 12",
+        "Decomposed into pure helper functions"
+      ],
+      "regression_tests": [
+        "go test ./structural/..."
+      ],
+      "file_sha256": "022BAF21A8DCEC36B342CF5B40F92714893"
+    },
+    {
+      "fixture_id": "FIX-REL-01",
+      "category": "RELIABILITY",
+      "defect_description": "Missing error handling / ignored error return on critical file write operation",
+      "target_file": "reliability/error_handling.go",
+      "target_symbol": "WriteAuditLog",
+      "ground_truth_location": {
+        "file": "reliability/error_handling.go",
+        "start_line": 8,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [0.80, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_WITH_REVIEW",
+      "expected_execution_strategy": "RULE_BASED",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "I/O error return is checked and handled or returned to caller"
+      ],
+      "regression_tests": [
+        "go test ./reliability/..."
+      ],
+      "file_sha256": "6B74659C612434CFEA6EC3AC47DA5D6EED999D39E35E2561D35"
+    },
+    {
+      "fixture_id": "FIX-REL-02",
+      "category": "RELIABILITY",
+      "defect_description": "Unsafe resource lifecycle: file descriptors opened inside loop without closing",
+      "target_file": "reliability/resource_lifecycle.go",
+      "target_symbol": "ReadFilesUnsafely",
+      "ground_truth_location": {
+        "file": "reliability/resource_lifecycle.go",
+        "start_line": 9,
+        "end_line": 21
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [0.80, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "File handles closed deterministically per loop iteration"
+      ],
+      "regression_tests": [
+        "go test ./reliability/..."
+      ],
+      "file_sha256": "AF25BAA74C9D83F5C6AE2054BC4A81D8472"
+    },
+    {
+      "fixture_id": "FIX-SEC-01",
+      "category": "SECURITY",
+      "defect_description": "Unsafe command construction / command injection via raw string interpolation",
+      "target_file": "security/command_exec.go",
+      "target_symbol": "RunUserCommand",
+      "ground_truth_location": {
+        "file": "security/command_exec.go",
+        "start_line": 9,
+        "end_line": 13
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "CRITICAL",
+      "expected_confidence_range": [0.90, 1.0],
+      "expected_remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "expected_execution_strategy": "HUMAN_GUIDED",
+      "expected_approval_requirements": true,
+      "expected_resolution_conditions": [
+        "Direct shell interpolation replaced with parameterized discrete arguments"
+      ],
+      "regression_tests": [
+        "go test ./security/..."
+      ],
+      "file_sha256": "F4AC574B91E5CDCBAC2768198E2C3428480404C510331C143EE"
+    },
+    {
+      "fixture_id": "FIX-SEC-02",
+      "category": "SECURITY",
+      "defect_description": "Suspicious SQL concatenation / potential SQL injection via fmt.Sprintf",
+      "target_file": "security/sql_injection.go",
+      "target_symbol": "FetchUserUnsafe",
+      "ground_truth_location": {
+        "file": "security/sql_injection.go",
+        "start_line": 9,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "CRITICAL",
+      "expected_confidence_range": [0.90, 1.0],
+      "expected_remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "expected_execution_strategy": "HUMAN_GUIDED",
+      "expected_approval_requirements": true,
+      "expected_resolution_conditions": [
+        "Replaced with parameterized query using $1 or ? placeholders"
+      ],
+      "regression_tests": [
+        "go test ./security/..."
+      ],
+      "file_sha256": "5700A052689EA3DF01AE8BFC3E2BC51CC123BF1DE83050D7F6DFD37"
+    },
+    {
+      "fixture_id": "FIX-SEC-03",
+      "category": "SECURITY",
+      "defect_description": "Potential hardcoded credential or token: AWS Access Key ID",
+      "target_file": "security/secrets.go",
+      "target_symbol": "GetDefaultCredentials",
+      "ground_truth_location": {
+        "file": "security/secrets.go",
+        "start_line": 11,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "CRITICAL",
+      "expected_confidence_range": [0.95, 1.0],
+      "expected_remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "expected_execution_strategy": "HUMAN_GUIDED",
+      "expected_approval_requirements": true,
+      "expected_resolution_conditions": [
+        "Hardcoded key removed and replaced with os.Getenv lookup"
+      ],
+      "regression_tests": [
+        "go test ./security/..."
+      ],
+      "file_sha256": "F391EB7305BE05E8F2600291674A4780676DFD9816BBFC09AA4"
+    },
+    {
+      "fixture_id": "FIX-DEP-01",
+      "category": "DEPENDENCY",
+      "defect_description": "Mutable container image tag (alpine:latest) prevents reproducible builds",
+      "target_file": "dependency/Dockerfile",
+      "target_symbol": "FROM alpine:latest",
+      "ground_truth_location": {
+        "file": "dependency/Dockerfile",
+        "start_line": 3,
+        "end_line": 3
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [0.85, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_READY",
+      "expected_execution_strategy": "RULE_BASED",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "Image tag pinned to explicit version or immutable sha256 digest"
+      ],
+      "regression_tests": [
+        "docker build --check"
+      ],
+      "file_sha256": "EC2BB32F01C409D4FEB66E827625FE01A33"
+    },
+    {
+      "fixture_id": "FIX-DEP-02",
+      "category": "DEPENDENCY",
+      "defect_description": "Dockerfile lacks non-root USER directive, running container as root",
+      "target_file": "dependency/Dockerfile",
+      "target_symbol": "USER",
+      "ground_truth_location": {
+        "file": "dependency/Dockerfile",
+        "start_line": 1,
+        "end_line": 8
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [0.90, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_READY",
+      "expected_execution_strategy": "RULE_BASED",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "USER directive added before CMD"
+      ],
+      "regression_tests": [
+        "docker lint"
+      ],
+      "file_sha256": "EC2BB32F01C409D4FEB66E827625FE01A33"
+    },
+    {
+      "fixture_id": "FIX-DEP-03",
+      "category": "DEPENDENCY",
+      "defect_description": "Go module lacks go.sum lockfile, preventing cryptographic build verification",
+      "target_file": "go.mod",
+      "target_symbol": "go.sum",
+      "ground_truth_location": {
+        "file": "go.mod",
+        "start_line": 1,
+        "end_line": 3
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [0.90, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_READY",
+      "expected_execution_strategy": "RULE_BASED",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "go.sum lockfile generated and present"
+      ],
+      "regression_tests": [
+        "go mod verify"
+      ],
+      "file_sha256": "2BE719997F9595576C6C5FE2D2C59343E34"
+    },
+    {
+      "fixture_id": "FIX-ARC-01",
+      "category": "ARCHITECTURE",
+      "defect_description": "Layer boundary violation: API handler directly issues raw database queries",
+      "target_file": "architecture/boundary/api_to_db.go",
+      "target_symbol": "HandleUserRequest",
+      "ground_truth_location": {
+        "file": "architecture/boundary/api_to_db.go",
+        "start_line": 12,
+        "end_line": 15
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [0.80, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "Handler delegates to service interface"
+      ],
+      "regression_tests": [
+        "go vet ./architecture/..."
+      ],
+      "file_sha256": "06C37306AF75180730379089E53E17EA15C"
+    },
+    {
+      "fixture_id": "FIX-ARC-02",
+      "category": "ARCHITECTURE",
+      "defect_description": "Circular dependency / tight mutual coupling between ServiceA and ServiceB",
+      "target_file": "architecture/circular/cycle.go",
+      "target_symbol": "ServiceA",
+      "ground_truth_location": {
+        "file": "architecture/circular/cycle.go",
+        "start_line": 3,
+        "end_line": 23
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [0.85, 1.0],
+      "expected_remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "expected_execution_strategy": "HUMAN_GUIDED",
+      "expected_approval_requirements": true,
+      "expected_resolution_conditions": [
+        "Coupling inverted through interface abstraction"
+      ],
+      "regression_tests": [
+        "go vet ./architecture/..."
+      ],
+      "file_sha256": "26F2656AEDE4F3C14C8B395BED090D91E0F"
+    },
+    {
+      "fixture_id": "FIX-TST-01",
+      "category": "TESTING",
+      "defect_description": "Untested critical business logic: CalculateInvoiceTax in package testing",
+      "target_file": "testing/untested_billing.go",
+      "target_symbol": "CalculateInvoiceTax",
+      "ground_truth_location": {
+        "file": "testing/untested_billing.go",
+        "start_line": 5,
+        "end_line": 18
+      },
+      "expected_diagnostic_classification": "QUALITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [0.75, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_WITH_REVIEW",
+      "expected_execution_strategy": "LLM_ASSISTED",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "Comprehensive unit test file created with boundary conditions"
+      ],
+      "regression_tests": [
+        "go test -v ./testing/..."
+      ],
+      "file_sha256": "194AF6E9F7229CC93AED2D28616DEE7A1B6"
+    },
+    {
+      "fixture_id": "FIX-MNT-01",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated helper implementation: NormalizeEmailA and NormalizeEmailB are identical",
+      "target_file": "maintainability/duplicate_helpers.go",
+      "target_symbol": "NormalizeEmailB",
+      "ground_truth_location": {
+        "file": "maintainability/duplicate_helpers.go",
+        "start_line": 9,
+        "end_line": 27
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [0.80, 1.0],
+      "expected_remediation_eligibility": "AUTOMATION_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "Duplicated helper consolidated into single function"
+      ],
+      "regression_tests": [
+        "go vet ./maintainability/..."
+      ],
+      "file_sha256": "A73B4EDBE5AE05CABDFC07E7F243D8E1F2A"
+    },
+    {
+      "fixture_id": "FIX-DOC-01",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported struct and methods lack godoc comments in undocumented_service",
+      "target_file": "documentation/undocumented_service/service.go",
+      "target_symbol": "PaymentGatewayClient",
+      "ground_truth_location": {
+        "file": "documentation/undocumented_service/service.go",
+        "start_line": 5,
+        "end_line": 19
+      },
+      "expected_diagnostic_classification": "QUALITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [0.70, 0.95],
+      "expected_remediation_eligibility": "AUTOMATION_READY",
+      "expected_execution_strategy": "RULE_BASED",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": [
+        "Exported symbols documented with godoc comments"
+      ],
+      "regression_tests": [
+        "go vet ./documentation/..."
+      ],
+      "file_sha256": "9946DCCA4CE68EB1D614AB683A21B6E7896"
+    }
+  ],
+  "clean_fixtures": [
+    {
+      "fixture_id": "CLEAN-STR-01",
+      "category": "STRUCTURAL",
+      "description": "Benign complex switch-case mapping HTTP status codes (correct and clean design)",
+      "target_file": "structural/clean_complex.go",
+      "target_symbol": "MapHTTPStatusToCategory",
+      "file_sha256": "80E3B954614D074838B03F9F0B70411436E"
+    },
+    {
+      "fixture_id": "CLEAN-REL-01",
+      "category": "RELIABILITY",
+      "description": "Benign error handling with proper fallback for missing files",
+      "target_file": "reliability/clean_error.go",
+      "target_symbol": "ReadConfigWithFallback",
+      "file_sha256": "1B2BF7D542C5C1F6E77A0547173EC2CA69C"
+    },
+    {
+      "fixture_id": "CLEAN-SEC-01",
+      "category": "SECURITY",
+      "description": "Safe SQL query with parameterized placeholder binding",
+      "target_file": "security/clean_sql.go",
+      "target_symbol": "FetchUserSafe",
+      "file_sha256": "771D7AEE2FF572F08D8D98E4A526067D45C"
+    },
+    {
+      "fixture_id": "CLEAN-SEC-02",
+      "category": "SECURITY",
+      "description": "Safe subprocess invocation with fixed constant argument list",
+      "target_file": "security/clean_exec.go",
+      "target_symbol": "CheckGitVersion",
+      "file_sha256": "DDA8E20B3A1C9C3C97FA99E0D1AB9535D34"
+    },
+    {
+      "fixture_id": "CLEAN-DEP-01",
+      "category": "DEPENDENCY",
+      "description": "Harmless configuration setting containing string 'latest_stable' in unrelated context",
+      "target_file": "dependency/clean_config.yaml",
+      "target_symbol": "channel",
+      "file_sha256": "C99158A68E168CF8D6CECC05F4BED790A5D"
+    },
+    {
+      "fixture_id": "CLEAN-TST-01",
+      "category": "TESTING",
+      "description": "Authentication validator fully covered by automated unit tests",
+      "target_file": "testing/tested_auth.go",
+      "target_symbol": "ValidateToken",
+      "file_sha256": "6BABB5CB16C37D79BEC75C4C9B5C782443E"
+    }
+  ]
+}

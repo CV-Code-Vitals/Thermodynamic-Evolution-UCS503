@@ -1,0 +1,12 @@
+{
+  "eligible_ground_truth_defects": 15,
+  "verified_remediations": 3,
+  "verified_remediation_rate": 0.2,
+  "introduced_regressions": 0,
+  "regression_rate": 0,
+  "false_remediations": 0,
+  "false_remediation_rate": 0,
+  "accepted_patches": 3,
+  "integrated_patches": 0,
+  "integration_success_rate": 0
+}
