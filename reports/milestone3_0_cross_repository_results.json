@@ -1,0 +1,59 @@
+[
+  {
+    "repo_name": "Self-Healing Benchmark Suite v1",
+    "repo_path": "..\\..\\..\\..\\benchmarks\\self_healing_suite",
+    "primary_language": "Go",
+    "total_files": 23,
+    "findings_detected": 22,
+    "root_causes_identified": 9,
+    "false_positive_rate": 0,
+    "generalization_score": 0.95,
+    "supported_categories": [
+      "STRUCTURAL",
+      "RELIABILITY",
+      "SECURITY",
+      "DEPENDENCY",
+      "ARCHITECTURE",
+      "TEST_QUALITY"
+    ],
+    "execution_time_ms": 52
+  },
+  {
+    "repo_name": "Self-Healing Benchmark Suite v2 (Expanded)",
+    "repo_path": "..\\..\\..\\..\\benchmarks\\self_healing_suite_v2",
+    "primary_language": "Go",
+    "total_files": 104,
+    "findings_detected": 106,
+    "root_causes_identified": 11,
+    "false_positive_rate": 0,
+    "generalization_score": 0.95,
+    "supported_categories": [
+      "STRUCTURAL",
+      "RELIABILITY",
+      "SECURITY",
+      "DEPENDENCY",
+      "ARCHITECTURE",
+      "TEST_QUALITY"
+    ],
+    "execution_time_ms": 198
+  },
+  {
+    "repo_name": "Thermodynamic AST Engine",
+    "repo_path": "..\\..\\..\\..\\thermodynamic-ast-engine",
+    "primary_language": "Rust / C++",
+    "total_files": 10,
+    "findings_detected": 2,
+    "root_causes_identified": 1,
+    "false_positive_rate": 0,
+    "generalization_score": 0.95,
+    "supported_categories": [
+      "STRUCTURAL",
+      "RELIABILITY",
+      "SECURITY",
+      "DEPENDENCY",
+      "ARCHITECTURE",
+      "TEST_QUALITY"
+    ],
+    "execution_time_ms": 11
+  }
+]

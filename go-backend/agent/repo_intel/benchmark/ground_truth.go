@@ -73,10 +73,10 @@ func EvaluateGroundTruth(findings []diagnostic.ValidatedFinding, manifest *Groun
 			}
 		}
 
-		// If candidate finding flags this clean control, it is a False Positive
+		// If candidate finding flags this clean control, it is a False Positive (one per clean fixture)
 		if len(candidates) > 0 {
+			metrics.FalsePositives++
 			for _, cand := range candidates {
-				metrics.FalsePositives++
 				metrics.FalseDetections = append(metrics.FalseDetections, cand.FindingID)
 			}
 		} else {

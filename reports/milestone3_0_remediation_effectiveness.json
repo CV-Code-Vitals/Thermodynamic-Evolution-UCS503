@@ -1,0 +1,10 @@
+{
+  "autonomous_ready_tasks": 32,
+  "baseline_remediation_rate": 0.2,
+  "evaluation_benchmark": "Suite v1 \u0026 Suite v2",
+  "human_approval_required_tasks": 3,
+  "investigation_required_tasks": 2,
+  "optimized_m3_remediation_rate": 1,
+  "remediation_effectiveness_score": 0.88,
+  "remediation_verdict": "VERIFIED_SAFE_EXPANSION"
+}

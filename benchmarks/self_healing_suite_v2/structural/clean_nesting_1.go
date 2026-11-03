@@ -1,0 +1,8 @@
+package structural
+
+func SafeCleanNesting1(data map[string]int) int {
+	if data == nil { return 0 }
+	val, ok := data["score"]
+	if !ok || val <= 0 { return 0 }
+	return val * 2
+}

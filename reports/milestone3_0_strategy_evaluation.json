@@ -1,0 +1,72 @@
+{
+  "timestamp": "2026-11-03T19:03:06.0858501+05:30",
+  "total_fixtures_evaluated": 5,
+  "correct_strategy_count": 5,
+  "strategy_selection_accuracy": 1,
+  "false_automation_count": 0,
+  "false_automation_rate": 0,
+  "human_gate_preservation_rate": 1,
+  "evaluations": [
+    {
+      "fixture_id": "FIX-STR-01",
+      "category": "STRUCTURAL",
+      "finding_id": "RI-STR-HIGH-NESTING-L10",
+      "assigned_strategy": "AST_TRANSFORMATION",
+      "assigned_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_strategy": "AST_TRANSFORMATION",
+      "expected_eligibility": "SUPPORTED_WITH_REVIEW",
+      "requires_approval": false,
+      "is_match": true,
+      "rationale": "Local AST transformation guarded by test and compiler checks."
+    },
+    {
+      "fixture_id": "FIX-SEC-01",
+      "category": "SECURITY",
+      "finding_id": "RI-SEC-SECRET-L12",
+      "assigned_strategy": "HUMAN_GUIDED",
+      "assigned_eligibility": "SUPPORTED_AUTOMATION",
+      "expected_strategy": "HUMAN_GUIDED",
+      "expected_eligibility": "SUPPORTED_AUTOMATION",
+      "requires_approval": true,
+      "is_match": true,
+      "rationale": "Automated secret extraction with credential rotation gate."
+    },
+    {
+      "fixture_id": "FIX-DEP-01",
+      "category": "DEPENDENCY",
+      "finding_id": "RI-DEP-UNPINNED-BASE",
+      "assigned_strategy": "RULE_BASED",
+      "assigned_eligibility": "SUPPORTED_AUTOMATION",
+      "expected_strategy": "RULE_BASED",
+      "expected_eligibility": "SUPPORTED_AUTOMATION",
+      "requires_approval": false,
+      "is_match": true,
+      "rationale": "Deterministic AST or manifest rewrite with verified declarative validation rules."
+    },
+    {
+      "fixture_id": "FIX-ARC-01",
+      "category": "ARCHITECTURE",
+      "finding_id": "CTX-ARC-LAYER-BYPASS",
+      "assigned_strategy": "INVESTIGATION_ONLY",
+      "assigned_eligibility": "INVESTIGATION_REQUIRED",
+      "expected_strategy": "INVESTIGATION_ONLY",
+      "expected_eligibility": "INVESTIGATION_REQUIRED",
+      "requires_approval": true,
+      "is_match": true,
+      "rationale": "Architectural boundaries and cyclic graphs require architectural investigation and human review."
+    },
+    {
+      "fixture_id": "FIX-SEC-02",
+      "category": "SECURITY",
+      "finding_id": "CTX-SEC-SQL-INJECT",
+      "assigned_strategy": "HUMAN_GUIDED",
+      "assigned_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "expected_strategy": "HUMAN_GUIDED",
+      "expected_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "requires_approval": true,
+      "is_match": true,
+      "rationale": "Database schema semantics and high-stakes business calculations require explicit human approval."
+    }
+  ],
+  "evaluation_verdict": "PASSED_SAFETY_GATE"
+}

@@ -1,0 +1,66 @@
+{
+  "timestamp": "2026-11-03T19:03:06.064098+05:30",
+  "total_findings": 4,
+  "root_causes_identified": 3,
+  "compression_ratio": 1.3333333333333333,
+  "cluster_distribution": {
+    "INPUT_TAINT_EXPOSURE": 1,
+    "RESOURCE_LIFECYCLE_NEGLECT": 1,
+    "STRUCTURAL_CONGESTION": 1
+  },
+  "root_causes": [
+    {
+      "root_cause_id": "RC-001-INPUT_TAINT_EXPOSURE",
+      "pattern": "INPUT_TAINT_EXPOSURE",
+      "title": "Input Taint \u0026 Credential Exposure in config/secrets.go",
+      "description": "Unsafe handling of external input or hardcoded credentials poses severe security risks.",
+      "primary_file": "config/secrets.go",
+      "affected_files": [
+        "config/secrets.go"
+      ],
+      "symptom_finding_ids": [
+        "F3-SECRET"
+      ],
+      "confidence": 0.95,
+      "confidence_rationale": "Bayesian aggregation across 1 confirming symptoms in cluster",
+      "remediation_priority": 1,
+      "recommended_resolution": "Parameterize all dynamic queries, isolate secrets to environment configs, and sanitize command arguments."
+    },
+    {
+      "root_cause_id": "RC-002-RESOURCE_LIFECYCLE_NEGLECT",
+      "pattern": "RESOURCE_LIFECYCLE_NEGLECT",
+      "title": "Resource Lifecycle Neglect in io/files.go",
+      "description": "Handles allocated in iteration loops or long-lived functions without prompt per-cycle release.",
+      "primary_file": "io/files.go",
+      "affected_files": [
+        "io/files.go"
+      ],
+      "symptom_finding_ids": [
+        "F4-RESOURCE"
+      ],
+      "confidence": 0.92,
+      "confidence_rationale": "Bayesian aggregation across 1 confirming symptoms in cluster",
+      "remediation_priority": 2,
+      "recommended_resolution": "Explicitly close resources at end of each iteration or wrap inside scoped function closures."
+    },
+    {
+      "root_cause_id": "RC-003-STRUCTURAL_CONGESTION",
+      "pattern": "STRUCTURAL_CONGESTION",
+      "title": "Structural Congestion \u0026 Cognitive Overload in pkg/process.go",
+      "description": "Excessive control-flow nesting depth combined with elevated cyclomatic branching.",
+      "primary_file": "pkg/process.go",
+      "affected_files": [
+        "pkg/process.go"
+      ],
+      "symptom_finding_ids": [
+        "F1-NEST",
+        "F2-COMPLEX"
+      ],
+      "confidence": 0.99,
+      "confidence_rationale": "Bayesian aggregation across 2 confirming symptoms in cluster",
+      "remediation_priority": 3,
+      "recommended_resolution": "Decompose monolithic conditionals using early guard returns and extract modular sub-functions."
+    }
+  ],
+  "evaluation_verdict": "SUCCESS_VALIDATED"
+}

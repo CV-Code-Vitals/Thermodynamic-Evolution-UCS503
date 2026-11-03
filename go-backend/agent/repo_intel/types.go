@@ -13,8 +13,10 @@ const (
 	CategoryArchitecture Category = "ARCHITECTURE"
 	CategoryReliability  Category = "RELIABILITY"
 	CategorySecurity     Category = "SECURITY"
-	CategoryTestQuality  Category = "TEST_QUALITY"
-	CategoryDependency   Category = "DEPENDENCY"
+	CategoryTestQuality     Category = "TEST_QUALITY"
+	CategoryDependency      Category = "DEPENDENCY"
+	CategoryMaintainability Category = "MAINTAINABILITY"
+	CategoryDocumentation   Category = "DOCUMENTATION"
 )
 
 // Severity classifications for findings.
