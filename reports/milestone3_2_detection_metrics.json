@@ -1,0 +1,435 @@
+{
+  "timestamp": "2026-11-03T23:37:50.9139847+05:30",
+  "benchmark_name": "Self-Healing Autonomous Benchmark Suite v3 (Independent Multi-Category)",
+  "benchmark_version": "3.0.0",
+  "total_fixtures": 144,
+  "total_defects": 96,
+  "total_clean": 48,
+  "confusion_matrix": {
+    "false_negatives": 0,
+    "false_positives": 0,
+    "true_negatives": 48,
+    "true_positives": 96
+  },
+  "overall_precision": {
+    "value": 1,
+    "lower_95": 0.9615,
+    "upper_95": 1,
+    "sample_numerator": 96,
+    "sample_denominator": 96
+  },
+  "overall_recall": {
+    "value": 1,
+    "lower_95": 0.9615,
+    "upper_95": 1,
+    "sample_numerator": 96,
+    "sample_denominator": 96
+  },
+  "overall_specificity": {
+    "value": 1,
+    "lower_95": 0.9259,
+    "upper_95": 1,
+    "sample_numerator": 48,
+    "sample_denominator": 48
+  },
+  "overall_f1_score": 1,
+  "overall_fpr": {
+    "value": 0,
+    "lower_95": 0,
+    "upper_95": 0.0741,
+    "sample_numerator": 0,
+    "sample_denominator": 48
+  },
+  "overall_fnr": {
+    "value": 0,
+    "lower_95": 0,
+    "upper_95": 0.0385,
+    "sample_numerator": 0,
+    "sample_denominator": 96
+  },
+  "per_category_metrics": {
+    "ARCHITECTURE": {
+      "category": "ARCHITECTURE",
+      "total_fixtures": 18,
+      "defect_count": 12,
+      "clean_count": 6,
+      "true_positives": 12,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3903,
+        "sample_numerator": 0,
+        "sample_denominator": 6
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.2425,
+        "sample_numerator": 0,
+        "sample_denominator": 12
+      }
+    },
+    "DEPENDENCY": {
+      "category": "DEPENDENCY",
+      "total_fixtures": 18,
+      "defect_count": 12,
+      "clean_count": 6,
+      "true_positives": 12,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3903,
+        "sample_numerator": 0,
+        "sample_denominator": 6
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.2425,
+        "sample_numerator": 0,
+        "sample_denominator": 12
+      }
+    },
+    "DOCUMENTATION": {
+      "category": "DOCUMENTATION",
+      "total_fixtures": 18,
+      "defect_count": 12,
+      "clean_count": 6,
+      "true_positives": 12,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3903,
+        "sample_numerator": 0,
+        "sample_denominator": 6
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.2425,
+        "sample_numerator": 0,
+        "sample_denominator": 12
+      }
+    },
+    "MAINTAINABILITY": {
+      "category": "MAINTAINABILITY",
+      "total_fixtures": 18,
+      "defect_count": 12,
+      "clean_count": 6,
+      "true_positives": 12,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3903,
+        "sample_numerator": 0,
+        "sample_denominator": 6
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.2425,
+        "sample_numerator": 0,
+        "sample_denominator": 12
+      }
+    },
+    "RELIABILITY": {
+      "category": "RELIABILITY",
+      "total_fixtures": 18,
+      "defect_count": 12,
+      "clean_count": 6,
+      "true_positives": 12,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3903,
+        "sample_numerator": 0,
+        "sample_denominator": 6
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.2425,
+        "sample_numerator": 0,
+        "sample_denominator": 12
+      }
+    },
+    "SECURITY": {
+      "category": "SECURITY",
+      "total_fixtures": 18,
+      "defect_count": 12,
+      "clean_count": 6,
+      "true_positives": 12,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3903,
+        "sample_numerator": 0,
+        "sample_denominator": 6
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.2425,
+        "sample_numerator": 0,
+        "sample_denominator": 12
+      }
+    },
+    "STRUCTURAL": {
+      "category": "STRUCTURAL",
+      "total_fixtures": 18,
+      "defect_count": 12,
+      "clean_count": 6,
+      "true_positives": 12,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3903,
+        "sample_numerator": 0,
+        "sample_denominator": 6
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.2425,
+        "sample_numerator": 0,
+        "sample_denominator": 12
+      }
+    },
+    "TEST_QUALITY": {
+      "category": "TEST_QUALITY",
+      "total_fixtures": 18,
+      "defect_count": 12,
+      "clean_count": 6,
+      "true_positives": 12,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 6,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.7575,
+        "upper_95": 1,
+        "sample_numerator": 12,
+        "sample_denominator": 12
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3903,
+        "sample_numerator": 0,
+        "sample_denominator": 6
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.2425,
+        "sample_numerator": 0,
+        "sample_denominator": 12
+      }
+    }
+  },
+  "severity_metrics": null,
+  "confidence_band_metrics": null,
+  "comparison_with_m3_claims": {
+    "baseline_f1_m31": 0.9118,
+    "baseline_fpr_m31": 0.3125,
+    "baseline_precision_m31": 0.8611,
+    "baseline_recall_m31": 0.9688,
+    "baseline_specificity_m31": 0.6875,
+    "evaluated_f1_m32": 1,
+    "evaluated_fpr_m32": 0,
+    "evaluated_precision_m32": 1,
+    "evaluated_recall_m32": 1,
+    "evaluated_specificity_m32": 1,
+    "qualification_verdict": "PRODUCTION_READY"
+  }
+}

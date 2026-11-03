@@ -62,3 +62,40 @@ func TestScientificVerificationStage2(t *testing.T) {
 		t.Errorf("Expected ECE <= 0.25, got %f", calRep.ExpectedCalibrationError)
 	}
 }
+
+func TestMilestone32PrecisionEvaluation(t *testing.T) {
+	manifestV3Path := filepath.Join("..", "..", "..", "..", "benchmarks", "ground_truth_manifest_v3.json")
+	suite3Dir := filepath.Join("..", "..", "..", "..", "benchmarks", "self_healing_suite_v3")
+	reportsDir := filepath.Join("..", "..", "..", "..", "reports")
+
+	rep, err := RunMilestone32Evaluation(manifestV3Path, suite3Dir, reportsDir)
+	if err != nil {
+		t.Fatalf("RunMilestone32Evaluation failed: %v", err)
+	}
+
+	if rep.TotalFixtures != 144 {
+		t.Errorf("Expected 144 total fixtures, got %d", rep.TotalFixtures)
+	}
+	if rep.TotalDefects != 96 {
+		t.Errorf("Expected 96 defects, got %d", rep.TotalDefects)
+	}
+	if rep.TotalClean != 48 {
+		t.Errorf("Expected 48 clean controls, got %d", rep.TotalClean)
+	}
+
+	if rep.OverallPrecision.Value < 0.90 {
+		t.Errorf("Expected precision >= 0.90, got %f", rep.OverallPrecision.Value)
+	}
+	if rep.OverallRecall.Value < 0.90 {
+		t.Errorf("Expected recall >= 0.90, got %f", rep.OverallRecall.Value)
+	}
+	if rep.OverallSpecificity.Value < 0.90 {
+		t.Errorf("Expected specificity >= 0.90, got %f", rep.OverallSpecificity.Value)
+	}
+	if rep.OverallFPR.Value > 0.10 {
+		t.Errorf("Expected FPR <= 0.10, got %f", rep.OverallFPR.Value)
+	}
+	if rep.OverallF1Score < 0.90 {
+		t.Errorf("Expected F1 >= 0.90, got %f", rep.OverallF1Score)
+	}
+}

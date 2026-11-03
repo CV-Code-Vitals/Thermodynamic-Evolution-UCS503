@@ -44,6 +44,36 @@ func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEv
 		return eval, nil
 	}
 
+	// Pre-pass: Index variables assigned from dynamic formatting (fmt.Sprintf) or concatenation
+	dynamicVars := make(map[string]string)
+	ast.Inspect(node, func(n ast.Node) bool {
+		assign, ok := n.(*ast.AssignStmt)
+		if !ok {
+			return true
+		}
+		for idx, rhs := range assign.Rhs {
+			isDyn := false
+			var snip string
+			if bin, isBin := rhs.(*ast.BinaryExpr); isBin && bin.Op == token.ADD {
+				isDyn = true
+				snip = string(src[bin.Pos()-1 : bin.End()-1])
+			} else if call, isCall := rhs.(*ast.CallExpr); isCall {
+				if sel, isSel := call.Fun.(*ast.SelectorExpr); isSel {
+					if id, isId := sel.X.(*ast.Ident); isId && id.Name == "fmt" && sel.Sel.Name == "Sprintf" {
+						isDyn = true
+						snip = string(src[call.Pos()-1 : call.End()-1])
+					}
+				}
+			}
+			if isDyn && idx < len(assign.Lhs) {
+				if lhsId, isLhsId := assign.Lhs[idx].(*ast.Ident); isLhsId {
+					dynamicVars[lhsId.Name] = snip
+				}
+			}
+		}
+		return true
+	})
+
 	ast.Inspect(node, func(n ast.Node) bool {
 		callExpr, ok := n.(*ast.CallExpr)
 		if !ok {
@@ -91,6 +121,14 @@ func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEv
 					}
 				}
 			}
+			// Check for variables assigned from dynamic formatting / concatenation
+			if id, isId := arg.(*ast.Ident); isId {
+				if snip, ok := dynamicVars[id.Name]; ok {
+					isDynamic = true
+					dynamicSnippet = snip
+					break
+				}
+			}
 		}
 
 		if isDynamic {
@@ -101,6 +139,7 @@ func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEv
 				Severity:            repo_intel.SeverityHigh,
 				Confidence:          0.95,
 				ConfidenceRationale: "Dynamic string interpolation or binary concatenation detected in exec.Command arguments",
+				State:               StateConfirmed,
 				Title:               "Command Argument Injection Risk",
 				Description:         "Process execution command dynamically formats or concatenates arguments, risking shell/argument injection.",
 				RootCause:           "Dynamic argument composition rather than discrete argument slicing.",

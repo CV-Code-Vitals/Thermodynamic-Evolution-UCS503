@@ -1,0 +1,71 @@
+{
+  "security_metrics": {
+    "f1_score": 1.0,
+    "true_negatives": 4,
+    "false_negatives": 0,
+    "total_defects": 8,
+    "false_positives": 0,
+    "precision": 1.0,
+    "true_positives": 8,
+    "recall": 1.0,
+    "total_clean": 4,
+    "specificity": 1.0
+  },
+  "phase": "3",
+  "remediated_defects": 2,
+  "security_fixtures": [
+    {
+      "target_file": "security/secrets_1.go",
+      "matched_finding": "RI-SEC-SECRET-security_secrets_1_go-L4",
+      "vulnerability": "Hardcoded AWS Access Key ID",
+      "baseline_status": "FALSE_NEGATIVE",
+      "remediated_status": "TRUE_POSITIVE",
+      "token": "AKIA1111222233334444",
+      "fixture_id": "FIX-SEC-SECRET-01",
+      "confidence": 0.95
+    },
+    {
+      "target_file": "security/secrets_2.go",
+      "matched_finding": "RI-SEC-SECRET-security_secrets_2_go-L4",
+      "vulnerability": "Hardcoded AWS Access Key ID",
+      "baseline_status": "FALSE_NEGATIVE",
+      "remediated_status": "TRUE_POSITIVE",
+      "token": "AKIA1111222233334444",
+      "fixture_id": "FIX-SEC-SECRET-02",
+      "confidence": 0.95
+    },
+    {
+      "false_positives": 0,
+      "target_file": "security/clean_secret_1.go",
+      "fixture_id": "CLEAN-SEC-SECRET-01",
+      "status": "TRUE_NEGATIVE",
+      "expected": "CLEAN_CONTROL"
+    },
+    {
+      "false_positives": 0,
+      "target_file": "security/clean_exec_1.go",
+      "fixture_id": "CLEAN-SEC-EXEC-01",
+      "status": "TRUE_NEGATIVE",
+      "expected": "CLEAN_CONTROL"
+    },
+    {
+      "false_positives": 0,
+      "target_file": "security/clean_exec_2.go",
+      "fixture_id": "CLEAN-SEC-EXEC-02",
+      "status": "TRUE_NEGATIVE",
+      "expected": "CLEAN_CONTROL"
+    },
+    {
+      "false_positives": 0,
+      "target_file": "security/clean_sql_1.go",
+      "fixture_id": "CLEAN-SEC-SQL-01",
+      "status": "TRUE_NEGATIVE",
+      "expected": "CLEAN_CONTROL"
+    }
+  ],
+  "milestone": "3.2",
+  "timestamp": "2026-11-03T22:08:42.5881735+05:30",
+  "purpose": "Security Defect False-Negative Verification & Regression Suite Results",
+  "baseline_missed_defects": 2,
+  "residual_missed_defects": 0
+}

@@ -1,0 +1,2701 @@
+{
+  "benchmark_name": "Self-Healing Autonomous Benchmark Suite v3 (Independent Multi-Category)",
+  "version": "3.0.0",
+  "created_at": "2026-11-03T22:11:45.9369843+05:30",
+  "target_repository_path": "../../../../benchmarks/self_healing_suite_v3",
+  "total_fixtures": 144,
+  "defect_fixtures_count": 96,
+  "clean_fixtures_count": 48,
+  "defect_fixtures": [
+    {
+      "fixture_id": "FIX-V3-ARC-BYPASS-01",
+      "category": "ARCHITECTURE",
+      "defect_description": "Presentation layer handler directly imports database driver, violating layered architecture",
+      "target_file": "architecture/payment_gateway_handler.go",
+      "target_symbol": "ProcessPaymentCheckout",
+      "ground_truth_location": {
+        "file": "architecture/payment_gateway_handler.go",
+        "start_line": 3,
+        "end_line": 18
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "MANUAL_REVIEW_REQUIRED",
+      "expected_execution_strategy": "ARCHITECTURAL_DECOUPLING",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "f90f78764773d26ce5a83df9935e02cd5530652f613fbd25ca32ffcfaea4ae92"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-BYPASS-02",
+      "category": "ARCHITECTURE",
+      "defect_description": "Presentation layer handler directly imports database driver, violating layered architecture",
+      "target_file": "architecture/user_profile_handler.go",
+      "target_symbol": "UpdateProfileDetails",
+      "ground_truth_location": {
+        "file": "architecture/user_profile_handler.go",
+        "start_line": 3,
+        "end_line": 18
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "MANUAL_REVIEW_REQUIRED",
+      "expected_execution_strategy": "ARCHITECTURAL_DECOUPLING",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "606bb191a66759cfe2c76d491a1c7bfa7b1a745364f1c2227cc9e3341dc62d3d"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-BYPASS-03",
+      "category": "ARCHITECTURE",
+      "defect_description": "Presentation layer handler directly imports database driver, violating layered architecture",
+      "target_file": "architecture/subscription_handler.go",
+      "target_symbol": "CancelSubscriptionPlan",
+      "ground_truth_location": {
+        "file": "architecture/subscription_handler.go",
+        "start_line": 3,
+        "end_line": 18
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "MANUAL_REVIEW_REQUIRED",
+      "expected_execution_strategy": "ARCHITECTURAL_DECOUPLING",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "e720dcdd54f08053db8685b3b123c4c87afac2a674db27f3b1f85de069bb83e4"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-BYPASS-04",
+      "category": "ARCHITECTURE",
+      "defect_description": "Presentation layer handler directly imports database driver, violating layered architecture",
+      "target_file": "architecture/billing_invoice_handler.go",
+      "target_symbol": "GenerateBillingInvoice",
+      "ground_truth_location": {
+        "file": "architecture/billing_invoice_handler.go",
+        "start_line": 3,
+        "end_line": 18
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "MANUAL_REVIEW_REQUIRED",
+      "expected_execution_strategy": "ARCHITECTURAL_DECOUPLING",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "70ed0be852f6c4476dced1a503583484c7ea26cef2ef9f328604f8b3de09b9d7"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-BYPASS-05",
+      "category": "ARCHITECTURE",
+      "defect_description": "Presentation layer handler directly imports database driver, violating layered architecture",
+      "target_file": "architecture/auth_session_handler.go",
+      "target_symbol": "InvalidateSessionToken",
+      "ground_truth_location": {
+        "file": "architecture/auth_session_handler.go",
+        "start_line": 3,
+        "end_line": 18
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "MANUAL_REVIEW_REQUIRED",
+      "expected_execution_strategy": "ARCHITECTURAL_DECOUPLING",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "05987985b6fcc522c692d7b134a41282bfec91c72f65df66022954b43d51b9c0"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-BYPASS-06",
+      "category": "ARCHITECTURE",
+      "defect_description": "Presentation layer handler directly imports database driver, violating layered architecture",
+      "target_file": "architecture/inventory_order_handler.go",
+      "target_symbol": "ReserveInventoryStock",
+      "ground_truth_location": {
+        "file": "architecture/inventory_order_handler.go",
+        "start_line": 3,
+        "end_line": 18
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "MANUAL_REVIEW_REQUIRED",
+      "expected_execution_strategy": "ARCHITECTURAL_DECOUPLING",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "0c527df881829a9d6dbf07099e206fca79a09cef38e2b4309ac385a2bf8406d9"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-CYCLE-07",
+      "category": "ARCHITECTURE",
+      "defect_description": "Direct bidirectional circular type coupling between OrderModelV3 and CustomerModelV3",
+      "target_file": "architecture/order_customer_cycle.go",
+      "target_symbol": "OrderModelV3",
+      "ground_truth_location": {
+        "file": "architecture/order_customer_cycle.go",
+        "start_line": 3,
+        "end_line": 15
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "INTERFACE_EXTRACTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "53cbe7d616760c63f0b3542eb882f9056b0ace1b9c36228ccc3ac3275ad7dab1"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-CYCLE-08",
+      "category": "ARCHITECTURE",
+      "defect_description": "Direct bidirectional circular type coupling between AccountNodeV3 and LedgerNodeV3",
+      "target_file": "architecture/account_ledger_cycle.go",
+      "target_symbol": "AccountNodeV3",
+      "ground_truth_location": {
+        "file": "architecture/account_ledger_cycle.go",
+        "start_line": 3,
+        "end_line": 15
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "INTERFACE_EXTRACTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "96f406662c2447ccba4bf2c7e5dde4520f22830376ab675e1cb91a39d70fcd7e"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-CYCLE-09",
+      "category": "ARCHITECTURE",
+      "defect_description": "Direct bidirectional circular type coupling between WorkflowGraphV3 and StepGraphV3",
+      "target_file": "architecture/workflow_step_cycle.go",
+      "target_symbol": "WorkflowGraphV3",
+      "ground_truth_location": {
+        "file": "architecture/workflow_step_cycle.go",
+        "start_line": 3,
+        "end_line": 15
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "INTERFACE_EXTRACTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "cd21e341b03e86b62e4e221081cb3c6ed89057348c17128ff1c31b538808332b"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-CYCLE-10",
+      "category": "ARCHITECTURE",
+      "defect_description": "Direct bidirectional circular type coupling between ClusterCoordinatorV3 and MemberPeerV3",
+      "target_file": "architecture/cluster_member_cycle.go",
+      "target_symbol": "ClusterCoordinatorV3",
+      "ground_truth_location": {
+        "file": "architecture/cluster_member_cycle.go",
+        "start_line": 3,
+        "end_line": 15
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "INTERFACE_EXTRACTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "82c6804f3b2feefcc929ed6f5dbc50ac8ba42566289bc07a6064e840c725d230"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-CYCLE-11",
+      "category": "ARCHITECTURE",
+      "defect_description": "Direct bidirectional circular type coupling between SessionContextV3 and DeviceRegistryV3",
+      "target_file": "architecture/session_device_cycle.go",
+      "target_symbol": "SessionContextV3",
+      "ground_truth_location": {
+        "file": "architecture/session_device_cycle.go",
+        "start_line": 3,
+        "end_line": 15
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "INTERFACE_EXTRACTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "9fc41c1cfd347d12a27e37ccd866d82f418ab700b05245f5cb107455f65bb6e3"
+    },
+    {
+      "fixture_id": "FIX-V3-ARC-CYCLE-12",
+      "category": "ARCHITECTURE",
+      "defect_description": "Direct bidirectional circular type coupling between SupportTicketV3 and AssignedAgentV3",
+      "target_file": "architecture/ticket_agent_cycle.go",
+      "target_symbol": "SupportTicketV3",
+      "ground_truth_location": {
+        "file": "architecture/ticket_agent_cycle.go",
+        "start_line": 3,
+        "end_line": 15
+      },
+      "expected_diagnostic_classification": "ARCHITECTURE",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "INTERFACE_EXTRACTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "dabb8978a3936e01373ff02fd7476359411b0331d3be3578a8eac0c05ec30a2d"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-01",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/auth_client/go.mod",
+      "target_symbol": "auth_client",
+      "ground_truth_location": {
+        "file": "dependency/auth_client/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "70b16b28a1b7cfd74776464020a34e97fffc61ca0f4847e440a7564f6c02d7bf"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-02",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/billing_core/go.mod",
+      "target_symbol": "billing_core",
+      "ground_truth_location": {
+        "file": "dependency/billing_core/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "d7d0ba5a6e114af3652d1439644a684bb16fb9470d9b3be9a62f8dbda13e6444"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-03",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/shipping_calc/go.mod",
+      "target_symbol": "shipping_calc",
+      "ground_truth_location": {
+        "file": "dependency/shipping_calc/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "04b8ebd9ddc708a46fb470e8d502d288f542e8dda0b556ec998ac83a2cf35703"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-04",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/analytics_agg/go.mod",
+      "target_symbol": "analytics_agg",
+      "ground_truth_location": {
+        "file": "dependency/analytics_agg/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "4cc330649dd6f639130bf0493e43b91e2df64e2b17ccfe96da49737bc44e3fde"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-05",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/search_indexer/go.mod",
+      "target_symbol": "search_indexer",
+      "ground_truth_location": {
+        "file": "dependency/search_indexer/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "ada03e1aa659b12861dedab8805c2edc45e0eb2e394d5bacb8bca9dd1968ca8c"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-06",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/notification_hub/go.mod",
+      "target_symbol": "notification_hub",
+      "ground_truth_location": {
+        "file": "dependency/notification_hub/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "c71a7b32e70ef724936b9298ff7f16f29a8ea8f8c561d3df17ca91dc91e443c6"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-07",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/etl_pipeline/go.mod",
+      "target_symbol": "etl_pipeline",
+      "ground_truth_location": {
+        "file": "dependency/etl_pipeline/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "7ce0907593ef894761eebe3d26bcf71301a2142347a7ae9562541aad343ecb5d"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-08",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/gateway_proxy/go.mod",
+      "target_symbol": "gateway_proxy",
+      "ground_truth_location": {
+        "file": "dependency/gateway_proxy/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "4a34d8bed8feae25fc66df9c323c3bba41b062812261290ff02acc16f50da5c0"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-09",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/reporting_worker/go.mod",
+      "target_symbol": "reporting_worker",
+      "ground_truth_location": {
+        "file": "dependency/reporting_worker/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "a0106c14a035cb7f84e9a0d6f0801389852f3c898cec81c3b68ec782cede42ec"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-10",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/ingest_agent/go.mod",
+      "target_symbol": "ingest_agent",
+      "ground_truth_location": {
+        "file": "dependency/ingest_agent/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "8f84280ff0dc7e67bc4d8b477aea614c8fe7c4c5fee7d7e7bed87fa3bf325247"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-11",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/cache_cluster/go.mod",
+      "target_symbol": "cache_cluster",
+      "ground_truth_location": {
+        "file": "dependency/cache_cluster/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "fefe432db795f8eee4ea7b25f729e8cd3f5f57bd69b9947ec49bb9119938eb8f"
+    },
+    {
+      "fixture_id": "FIX-V3-DEP-LOCK-12",
+      "category": "DEPENDENCY",
+      "defect_description": "Module go.mod has unpinned dependencies and is missing cryptographic go.sum",
+      "target_file": "dependency/sync_daemon/go.mod",
+      "target_symbol": "sync_daemon",
+      "ground_truth_location": {
+        "file": "dependency/sync_daemon/go.mod",
+        "start_line": 1,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "DEPENDENCY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "MANIFEST_TIDY",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "e7715d0d45c95d129f1c7987fd27b28873cc1d55d31bf687ba7cb6a10e1cc02a"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-01",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/router_dispatcher.go",
+      "target_symbol": "RouterDispatcherV3",
+      "ground_truth_location": {
+        "file": "documentation/router_dispatcher.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "9b5f7bb7702c6b008a66e3b1f7e870b8c655a0df9bc83ea3edca214ac77e3d15"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-02",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/webhook_subscriber.go",
+      "target_symbol": "WebhookSubscriberV3",
+      "ground_truth_location": {
+        "file": "documentation/webhook_subscriber.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "dcceb7f088656e7be6d415682aba50e6728ad9f5a11582cf1c4472b1c6c18f4d"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-03",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/rate_limiter_registry.go",
+      "target_symbol": "RateLimiterRegistryV3",
+      "ground_truth_location": {
+        "file": "documentation/rate_limiter_registry.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "bce0d9a0466be1e2912499a489bf1091d2eeace74af9f464fc4eecba4c41dd0d"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-04",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/token_revoker.go",
+      "target_symbol": "TokenRevokerV3",
+      "ground_truth_location": {
+        "file": "documentation/token_revoker.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "9fd64eab04d2b6e88d1dcc8e630b90c0d9868fccc5554c7b013722d7feb082e8"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-05",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/batch_stream_flusher.go",
+      "target_symbol": "BatchStreamFlusherV3",
+      "ground_truth_location": {
+        "file": "documentation/batch_stream_flusher.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "b8f2bc72f619c708249d7c2e29583e81fa7d54803b59e32ef9e1e2c12a25e7d5"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-06",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/cache_partition_manager.go",
+      "target_symbol": "CachePartitionManagerV3",
+      "ground_truth_location": {
+        "file": "documentation/cache_partition_manager.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "adbf1a25cda64352a005d90340b130f4fa65bafdfebfa5b43c5950488472eb62"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-07",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/circuit_breaker_panel.go",
+      "target_symbol": "CircuitBreakerPanelV3",
+      "ground_truth_location": {
+        "file": "documentation/circuit_breaker_panel.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "dcd5acc62f6ed343f133a7ff6372786a8be4cfb60c2b2b46201fe93f679118ae"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-08",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/storage_blob_client.go",
+      "target_symbol": "StorageBlobClientV3",
+      "ground_truth_location": {
+        "file": "documentation/storage_blob_client.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "2126df500534def5543d32d0475058b13014b7fd5d691417c312948085fcd948"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-09",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/index_bloom_filter.go",
+      "target_symbol": "IndexBloomFilterV3",
+      "ground_truth_location": {
+        "file": "documentation/index_bloom_filter.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "0b57237c2e045a1a1248d2bfac32328acade31e454e0f592ae17488258d79464"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-10",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/query_ast_optimizer.go",
+      "target_symbol": "QueryAstOptimizerV3",
+      "ground_truth_location": {
+        "file": "documentation/query_ast_optimizer.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "ff956d403cba4e2d93a4f5411add527d6026f5303704f9050c2d4846f06c10e7"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-11",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/payload_proto_encoder.go",
+      "target_symbol": "PayloadProtoEncoderV3",
+      "ground_truth_location": {
+        "file": "documentation/payload_proto_encoder.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "5ae08515fb228bac7be34599709be9cc89f315c6969f67a6fa121a9fdf561334"
+    },
+    {
+      "fixture_id": "FIX-V3-DOC-UNDOC-12",
+      "category": "DOCUMENTATION",
+      "defect_description": "Exported public struct and method missing required godoc comments",
+      "target_file": "documentation/tenant_policy_resolver.go",
+      "target_symbol": "TenantPolicyResolverV3",
+      "ground_truth_location": {
+        "file": "documentation/tenant_policy_resolver.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "DOCUMENTATION",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "GODOC_SYNTHESIS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "86af1a45d131cea779324066d4c3f2cd32151ac6580789d883983a2901234c0b"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-01",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/token_normalizer_1.go",
+      "target_symbol": "SanitizeBearerTokenA",
+      "ground_truth_location": {
+        "file": "maintainability/token_normalizer_1.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "96723c816b30b8cbc2b38ab7cbeb439997a8cf79a8dfe450c733e3b4fc5c8100"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-02",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/token_normalizer_2.go",
+      "target_symbol": "SanitizeBearerTokenB",
+      "ground_truth_location": {
+        "file": "maintainability/token_normalizer_2.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "0bf739a552ad6b4511a5149e2c109728f6d4fdc40e80b675ff8455e041828769"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-03",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/ip_subnet_matcher_1.go",
+      "target_symbol": "MatchCIDRRangeA",
+      "ground_truth_location": {
+        "file": "maintainability/ip_subnet_matcher_1.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "444f4170556a31e0ae63b8dbf9aa2e5ee03f16e1ed4751b7ba4fa8b8df350260"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-04",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/ip_subnet_matcher_2.go",
+      "target_symbol": "MatchCIDRRangeB",
+      "ground_truth_location": {
+        "file": "maintainability/ip_subnet_matcher_2.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "cdf02d2bdfa8ac3b3a66c37e09c06e6f3198af8fe188a35e98cb90f9f1a59f52"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-05",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/hex_digest_parser_1.go",
+      "target_symbol": "ParseHexFingerprintA",
+      "ground_truth_location": {
+        "file": "maintainability/hex_digest_parser_1.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "e354a6a74d96ffd81bd9f88d2857cc7ccfaf23086a24eaf80f5ab6265be94f01"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-06",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/hex_digest_parser_2.go",
+      "target_symbol": "ParseHexFingerprintB",
+      "ground_truth_location": {
+        "file": "maintainability/hex_digest_parser_2.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "0b53bf854c7627f42b1d28ab992c670bb560e627d2cf953dbaa26e7b5d6c5e67"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-07",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/url_slug_generator_1.go",
+      "target_symbol": "GenerateSafeSlugA",
+      "ground_truth_location": {
+        "file": "maintainability/url_slug_generator_1.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "a09dfb6a90dacb94c3f737e60850b96d033cc98e592d3e0554ba604291fe667c"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-08",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/url_slug_generator_2.go",
+      "target_symbol": "GenerateSafeSlugB",
+      "ground_truth_location": {
+        "file": "maintainability/url_slug_generator_2.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "99d264a6325b611dcf33e7709b1fbd8059856995e9da76bb78da8fc092dc3854"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-09",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/cron_interval_parser_1.go",
+      "target_symbol": "CalculateNextIntervalA",
+      "ground_truth_location": {
+        "file": "maintainability/cron_interval_parser_1.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "af73443109cbf964352bccd677ef84e9f7bd563784e9d420f706cee6cc1a5983"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-10",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/cron_interval_parser_2.go",
+      "target_symbol": "CalculateNextIntervalB",
+      "ground_truth_location": {
+        "file": "maintainability/cron_interval_parser_2.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "896197d10bef4cb0a0b3a8af494bef84111f82615502a0f084149cb287870ae1"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-11",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/semantic_version_cmp_1.go",
+      "target_symbol": "CompareSemVerComponentsA",
+      "ground_truth_location": {
+        "file": "maintainability/semantic_version_cmp_1.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "c02b02d30bc4d533441fbdd63005a7d39e29a89346e053164cf056b5d209f896"
+    },
+    {
+      "fixture_id": "FIX-V3-MNT-DUPLICATE-12",
+      "category": "MAINTAINABILITY",
+      "defect_description": "Duplicated 7-statement AST implementation clone across files",
+      "target_file": "maintainability/semantic_version_cmp_2.go",
+      "target_symbol": "CompareSemVerComponentsB",
+      "ground_truth_location": {
+        "file": "maintainability/semantic_version_cmp_2.go",
+        "start_line": 5,
+        "end_line": 16
+      },
+      "expected_diagnostic_classification": "MAINTAINABILITY",
+      "expected_severity": "LOW",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_HELPER_FUNCTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "46800f18beb3e498e609c84dc8ef45944bf65b2582920b70a4a99d6b0f1014f7"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-LEAK-01",
+      "category": "RELIABILITY",
+      "defect_description": "Resource handle opened in loop without Close() call, leaking descriptors",
+      "target_file": "reliability/stream_file_leak_1.go",
+      "target_symbol": "ProcessStreamLeak1",
+      "ground_truth_location": {
+        "file": "reliability/stream_file_leak_1.go",
+        "start_line": 9,
+        "end_line": 19
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.92,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "INSERT_CLOSE_CALL",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "7d8497156b679a50bbc2fd914917c5b2c97856dd606ad079e308e74a7550d977"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-LEAK-02",
+      "category": "RELIABILITY",
+      "defect_description": "Resource handle opened in loop without Close() call, leaking descriptors",
+      "target_file": "reliability/stream_file_leak_2.go",
+      "target_symbol": "ProcessStreamLeak2",
+      "ground_truth_location": {
+        "file": "reliability/stream_file_leak_2.go",
+        "start_line": 9,
+        "end_line": 19
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.92,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "INSERT_CLOSE_CALL",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "dc85741d74123321ebdfc3626ca3f96d1cb432c76b64815a7426feba42563f47"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-LEAK-03",
+      "category": "RELIABILITY",
+      "defect_description": "Resource handle opened in loop without Close() call, leaking descriptors",
+      "target_file": "reliability/db_conn_leak_1.go",
+      "target_symbol": "ProcessDBLeak1",
+      "ground_truth_location": {
+        "file": "reliability/db_conn_leak_1.go",
+        "start_line": 9,
+        "end_line": 19
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.92,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "INSERT_CLOSE_CALL",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "3552bb065612cf165f78c9ed6840c5642d45a3f5f6b7405d71fd21e8f2898ee1"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-LEAK-04",
+      "category": "RELIABILITY",
+      "defect_description": "Resource handle opened in loop without Close() call, leaking descriptors",
+      "target_file": "reliability/db_conn_leak_2.go",
+      "target_symbol": "ProcessDBLeak2",
+      "ground_truth_location": {
+        "file": "reliability/db_conn_leak_2.go",
+        "start_line": 9,
+        "end_line": 19
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.92,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "INSERT_CLOSE_CALL",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "4f13c2f6a7f03d630b6d7dfbe1da249461e1da5ef3228e26e4bfee83a7678814"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-LEAK-05",
+      "category": "RELIABILITY",
+      "defect_description": "Resource handle opened in loop without Close() call, leaking descriptors",
+      "target_file": "reliability/socket_drain_leak_1.go",
+      "target_symbol": "ProcessSocketLeak1",
+      "ground_truth_location": {
+        "file": "reliability/socket_drain_leak_1.go",
+        "start_line": 9,
+        "end_line": 19
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.92,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "INSERT_CLOSE_CALL",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "8a7c915de41f660050eceadeb81e1ff43fcfbb4814b237b429e43e53118d6e68"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-LEAK-06",
+      "category": "RELIABILITY",
+      "defect_description": "Resource handle opened in loop without Close() call, leaking descriptors",
+      "target_file": "reliability/socket_drain_leak_2.go",
+      "target_symbol": "ProcessSocketLeak2",
+      "ground_truth_location": {
+        "file": "reliability/socket_drain_leak_2.go",
+        "start_line": 9,
+        "end_line": 19
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.92,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "INSERT_CLOSE_CALL",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "dd0042bbfa51459e79e5c3cea4a85b3e3b074460e7b53a217b6dfbc6cf099c46"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-DEFER-07",
+      "category": "RELIABILITY",
+      "defect_description": "Resource defer placed directly inside loop body, deferring cleanup until outer function returns",
+      "target_file": "reliability/defer_loop_file_1.go",
+      "target_symbol": "ProcessDeferLoop1",
+      "ground_truth_location": {
+        "file": "reliability/defer_loop_file_1.go",
+        "start_line": 9,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_LOOP_CLOSURE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "5726c51d87dbea8129b2d4a05ab7620898d7badbde7bad0954e6afa458d30960"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-DEFER-08",
+      "category": "RELIABILITY",
+      "defect_description": "Resource defer placed directly inside loop body, deferring cleanup until outer function returns",
+      "target_file": "reliability/defer_loop_file_2.go",
+      "target_symbol": "ProcessDeferLoop2",
+      "ground_truth_location": {
+        "file": "reliability/defer_loop_file_2.go",
+        "start_line": 9,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_LOOP_CLOSURE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "f45811dc1e8b0631ed20efd84d995b2e52d906bc5502bf4e42a33d92787a89ec"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-DEFER-09",
+      "category": "RELIABILITY",
+      "defect_description": "Resource defer placed directly inside loop body, deferring cleanup until outer function returns",
+      "target_file": "reliability/defer_loop_db_1.go",
+      "target_symbol": "ProcessDeferLoopDB1",
+      "ground_truth_location": {
+        "file": "reliability/defer_loop_db_1.go",
+        "start_line": 9,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_LOOP_CLOSURE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "28450bee279f5f8d19a00a0b4222f6dd0a6e6f098e9c3965c3144e8619406497"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-DEFER-10",
+      "category": "RELIABILITY",
+      "defect_description": "Resource defer placed directly inside loop body, deferring cleanup until outer function returns",
+      "target_file": "reliability/defer_loop_db_2.go",
+      "target_symbol": "ProcessDeferLoopDB2",
+      "ground_truth_location": {
+        "file": "reliability/defer_loop_db_2.go",
+        "start_line": 9,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_LOOP_CLOSURE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "f4db5520c00283afa4e43e0d4c08303d048d229fb5972cca5a51a4f982714d01"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-DEFER-11",
+      "category": "RELIABILITY",
+      "defect_description": "Resource defer placed directly inside loop body, deferring cleanup until outer function returns",
+      "target_file": "reliability/defer_loop_net_1.go",
+      "target_symbol": "ProcessDeferLoopNet1",
+      "ground_truth_location": {
+        "file": "reliability/defer_loop_net_1.go",
+        "start_line": 9,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_LOOP_CLOSURE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "3d9665b7a4835835b07745984f25f0cc0ff5d5c628d4a83ebd882342eb1ccb79"
+    },
+    {
+      "fixture_id": "FIX-V3-REL-DEFER-12",
+      "category": "RELIABILITY",
+      "defect_description": "Resource defer placed directly inside loop body, deferring cleanup until outer function returns",
+      "target_file": "reliability/defer_loop_net_2.go",
+      "target_symbol": "ProcessDeferLoopNet2",
+      "ground_truth_location": {
+        "file": "reliability/defer_loop_net_2.go",
+        "start_line": 9,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "RELIABILITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.9,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "EXTRACT_LOOP_CLOSURE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "64959beb89b8ff5e63df1f7a35f868fac93a3dbefe0052bb8fb5933217183891"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-SQL-01",
+      "category": "SECURITY",
+      "defect_description": "SQL query dynamically constructed via string binary concatenation without parameterized binding",
+      "target_file": "security/sql_user_lookup.go",
+      "target_symbol": "QueryUserByIDUnsafe",
+      "ground_truth_location": {
+        "file": "security/sql_user_lookup.go",
+        "start_line": 5,
+        "end_line": 9
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.95,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SQL_PARAMETERIZE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "157614946a1734bd9f081a4b2143c8e85fefdcd82874833f265dc0d53a130b26"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-SQL-02",
+      "category": "SECURITY",
+      "defect_description": "SQL query dynamically constructed via string binary concatenation without parameterized binding",
+      "target_file": "security/sql_order_fetch.go",
+      "target_symbol": "FetchOrderByCodeUnsafe",
+      "ground_truth_location": {
+        "file": "security/sql_order_fetch.go",
+        "start_line": 5,
+        "end_line": 9
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.95,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SQL_PARAMETERIZE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "0247254c2ee6d63ff37f582bd00a0a7ff1f4447c17995f1bfb292a3b5bc74d31"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-SQL-03",
+      "category": "SECURITY",
+      "defect_description": "SQL query dynamically constructed via string binary concatenation without parameterized binding",
+      "target_file": "security/sql_billing_search.go",
+      "target_symbol": "SearchBillingPlanUnsafe",
+      "ground_truth_location": {
+        "file": "security/sql_billing_search.go",
+        "start_line": 5,
+        "end_line": 9
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.95,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SQL_PARAMETERIZE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "b252a587b5ecc50366753af90a8a4fa503a4e673f3311df1804381f77bdcde0a"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-SQL-04",
+      "category": "SECURITY",
+      "defect_description": "SQL query dynamically constructed via string binary concatenation without parameterized binding",
+      "target_file": "security/sql_audit_filter.go",
+      "target_symbol": "FilterAuditRecordsUnsafe",
+      "ground_truth_location": {
+        "file": "security/sql_audit_filter.go",
+        "start_line": 5,
+        "end_line": 9
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.95,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SQL_PARAMETERIZE",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "7b7d9a1f81c5680665843f0275f6b4e383f96b1eefbce1a60f6b2c04df744b0a"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-CMD-05",
+      "category": "SECURITY",
+      "defect_description": "OS command executed via shell with dynamic format interpolation, risking command injection",
+      "target_file": "security/cmd_ping_target.go",
+      "target_symbol": "ExecutePingUnsafe",
+      "ground_truth_location": {
+        "file": "security/cmd_ping_target.go",
+        "start_line": 8,
+        "end_line": 14
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.94,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SANITIZE_COMMAND_ARGS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "c9f2a5d0890735d1315713e8089db43682bae25fa24080db6d1c3b03ee46b7df"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-CMD-06",
+      "category": "SECURITY",
+      "defect_description": "OS command executed via shell with dynamic format interpolation, risking command injection",
+      "target_file": "security/cmd_dns_lookup.go",
+      "target_symbol": "ExecuteDNSQueryUnsafe",
+      "ground_truth_location": {
+        "file": "security/cmd_dns_lookup.go",
+        "start_line": 8,
+        "end_line": 14
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.94,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SANITIZE_COMMAND_ARGS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "cd1246edb5300f0a84e60b173e07a85deade5bb5e3f232c6b0fe175cffd34869"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-CMD-07",
+      "category": "SECURITY",
+      "defect_description": "OS command executed via shell with dynamic format interpolation, risking command injection",
+      "target_file": "security/cmd_system_backup.go",
+      "target_symbol": "ExecuteBackupUnsafe",
+      "ground_truth_location": {
+        "file": "security/cmd_system_backup.go",
+        "start_line": 8,
+        "end_line": 14
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.94,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SANITIZE_COMMAND_ARGS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "0d5288f39deb3fa0b47ce2f7d8b4b2dd7d28717496ec74147f0a147c455708ed"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-CMD-08",
+      "category": "SECURITY",
+      "defect_description": "OS command executed via shell with dynamic format interpolation, risking command injection",
+      "target_file": "security/cmd_log_rotate.go",
+      "target_symbol": "ExecuteLogRotateUnsafe",
+      "ground_truth_location": {
+        "file": "security/cmd_log_rotate.go",
+        "start_line": 8,
+        "end_line": 14
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.94,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SANITIZE_COMMAND_ARGS",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "196a98097641c1e85ab2f69699fe0780f0b261adf031175ca255cfa83f816c0b"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-SECRET-09",
+      "category": "SECURITY",
+      "defect_description": "Hardcoded plaintext AWS Access Key ID embedded directly in source code",
+      "target_file": "security/hardcoded_aws_token_1.go",
+      "target_symbol": "MasterAWSKeyV3",
+      "ground_truth_location": {
+        "file": "security/hardcoded_aws_token_1.go",
+        "start_line": 3,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.95,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SECRET_ENV_SUBSTITUTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "e4f86567936a9b8009c0501327b6a7b2ce0122dabb6f953df19413c156c9d1f0"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-SECRET-10",
+      "category": "SECURITY",
+      "defect_description": "Hardcoded plaintext AWS Access Key ID embedded directly in source code",
+      "target_file": "security/hardcoded_aws_token_2.go",
+      "target_symbol": "ProductionRootAKIA",
+      "ground_truth_location": {
+        "file": "security/hardcoded_aws_token_2.go",
+        "start_line": 3,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.95,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SECRET_ENV_SUBSTITUTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "a954c0dabc90e46bb5e71695b51119efb752db8890898ff938004dec9479fee7"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-SECRET-11",
+      "category": "SECURITY",
+      "defect_description": "Hardcoded plaintext AWS Access Key ID embedded directly in source code",
+      "target_file": "security/hardcoded_aws_token_3.go",
+      "target_symbol": "ClientAWSAccessKey",
+      "ground_truth_location": {
+        "file": "security/hardcoded_aws_token_3.go",
+        "start_line": 3,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.95,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SECRET_ENV_SUBSTITUTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "f0f7db0eecce0628d928849d2d5c1f0ee201eadd007872d992007ac90564b31f"
+    },
+    {
+      "fixture_id": "FIX-V3-SEC-SECRET-12",
+      "category": "SECURITY",
+      "defect_description": "Hardcoded plaintext AWS Access Key ID embedded directly in source code",
+      "target_file": "security/hardcoded_aws_token_4.go",
+      "target_symbol": "S3BackupTokenAKIA",
+      "ground_truth_location": {
+        "file": "security/hardcoded_aws_token_4.go",
+        "start_line": 3,
+        "end_line": 5
+      },
+      "expected_diagnostic_classification": "SECURITY",
+      "expected_severity": "HIGH",
+      "expected_confidence_range": [
+        0.95,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SECRET_ENV_SUBSTITUTION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "d0e3de4a46cf7d343cb4ea25d620371d8ce276f944fda3a25b2fe75e2e72e820"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-NEST-01",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive control flow nesting depth exceeding threshold (\u003e= 5 levels)",
+      "target_file": "structural/deep_nest_tree_1.go",
+      "target_symbol": "EvaluateDeepNestingTreeV3_1",
+      "ground_truth_location": {
+        "file": "structural/deep_nest_tree_1.go",
+        "start_line": 3,
+        "end_line": 22
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "4c54efe0accce8a7c923f07f69c92a4bf08c86b5d7458b2bef22c685e28ebc1f"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-NEST-02",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive control flow nesting depth exceeding threshold (\u003e= 5 levels)",
+      "target_file": "structural/deep_nest_tree_2.go",
+      "target_symbol": "EvaluateDeepNestingTreeV3_2",
+      "ground_truth_location": {
+        "file": "structural/deep_nest_tree_2.go",
+        "start_line": 3,
+        "end_line": 22
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "253a3fce465935976cccbb9ecb852b795969e5e703f178b47af8c6c07d7a4ef9"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-NEST-03",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive control flow nesting depth exceeding threshold (\u003e= 5 levels)",
+      "target_file": "structural/deep_nest_tree_3.go",
+      "target_symbol": "EvaluateDeepNestingTreeV3_3",
+      "ground_truth_location": {
+        "file": "structural/deep_nest_tree_3.go",
+        "start_line": 3,
+        "end_line": 22
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "9295e3c9e81ad4bdbf249734bc57f8bd68d25bbfc1254189459aaf174a345fde"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-NEST-04",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive control flow nesting depth exceeding threshold (\u003e= 5 levels)",
+      "target_file": "structural/deep_nest_tree_4.go",
+      "target_symbol": "EvaluateDeepNestingTreeV3_4",
+      "ground_truth_location": {
+        "file": "structural/deep_nest_tree_4.go",
+        "start_line": 3,
+        "end_line": 22
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "2c23f1039107a4a0906f6690ca1b63db8b0d361191f5b2ed2b8c6cbc12be8663"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-NEST-05",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive control flow nesting depth exceeding threshold (\u003e= 5 levels)",
+      "target_file": "structural/deep_nest_tree_5.go",
+      "target_symbol": "EvaluateDeepNestingTreeV3_5",
+      "ground_truth_location": {
+        "file": "structural/deep_nest_tree_5.go",
+        "start_line": 3,
+        "end_line": 22
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "dc0ddeee9b2af36904b1130ce765c5fdb05dc39752bb82b20bbd4f2012dd3cfc"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-NEST-06",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive control flow nesting depth exceeding threshold (\u003e= 5 levels)",
+      "target_file": "structural/deep_nest_tree_6.go",
+      "target_symbol": "EvaluateDeepNestingTreeV3_6",
+      "ground_truth_location": {
+        "file": "structural/deep_nest_tree_6.go",
+        "start_line": 3,
+        "end_line": 22
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "AST_TRANSFORMATION",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "fe1e454687b2998627df071fd0464c7b55c21f8e3d024443c548a0a16f2911fb"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-COMPLEX-07",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive cyclomatic complexity exceeding cognitive load threshold (\u003e= 10)",
+      "target_file": "structural/high_complexity_calc_1.go",
+      "target_symbol": "ComputeMultiDecisionV3_1",
+      "ground_truth_location": {
+        "file": "structural/high_complexity_calc_1.go",
+        "start_line": 3,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "REFACTOR_GUARD_CLAUSES",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "0cf2c9da69ea73b1754d683cff46a74f1e3f215e1eaea7ee2f7226bdc4492a77"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-COMPLEX-08",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive cyclomatic complexity exceeding cognitive load threshold (\u003e= 10)",
+      "target_file": "structural/high_complexity_calc_2.go",
+      "target_symbol": "ComputeMultiDecisionV3_2",
+      "ground_truth_location": {
+        "file": "structural/high_complexity_calc_2.go",
+        "start_line": 3,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "REFACTOR_GUARD_CLAUSES",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "927858c33580acfce7ca369a74c237e5e5765f4277d9655adebac2346611ef9d"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-COMPLEX-09",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive cyclomatic complexity exceeding cognitive load threshold (\u003e= 10)",
+      "target_file": "structural/high_complexity_calc_3.go",
+      "target_symbol": "ComputeMultiDecisionV3_3",
+      "ground_truth_location": {
+        "file": "structural/high_complexity_calc_3.go",
+        "start_line": 3,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "REFACTOR_GUARD_CLAUSES",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "cc1aa91c3386e8ae82d7950dbfed40c0adf9ae28910c56248f966dd41d191281"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-COMPLEX-10",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive cyclomatic complexity exceeding cognitive load threshold (\u003e= 10)",
+      "target_file": "structural/high_complexity_calc_4.go",
+      "target_symbol": "ComputeMultiDecisionV3_4",
+      "ground_truth_location": {
+        "file": "structural/high_complexity_calc_4.go",
+        "start_line": 3,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "REFACTOR_GUARD_CLAUSES",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "99d3318c19adca834dc95c217db95f44d1750255adcc8e981b821eb6df436413"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-COMPLEX-11",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive cyclomatic complexity exceeding cognitive load threshold (\u003e= 10)",
+      "target_file": "structural/high_complexity_calc_5.go",
+      "target_symbol": "ComputeMultiDecisionV3_5",
+      "ground_truth_location": {
+        "file": "structural/high_complexity_calc_5.go",
+        "start_line": 3,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "REFACTOR_GUARD_CLAUSES",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "02233f10f7d3b87208b879fef534a0e658e80aead1be50b47236971ba8032671"
+    },
+    {
+      "fixture_id": "FIX-V3-STR-COMPLEX-12",
+      "category": "STRUCTURAL",
+      "defect_description": "Excessive cyclomatic complexity exceeding cognitive load threshold (\u003e= 10)",
+      "target_file": "structural/high_complexity_calc_6.go",
+      "target_symbol": "ComputeMultiDecisionV3_6",
+      "ground_truth_location": {
+        "file": "structural/high_complexity_calc_6.go",
+        "start_line": 3,
+        "end_line": 20
+      },
+      "expected_diagnostic_classification": "STRUCTURAL",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.85,
+        1
+      ],
+      "expected_remediation_eligibility": "SUPPORTED_WITH_REVIEW",
+      "expected_execution_strategy": "REFACTOR_GUARD_CLAUSES",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "10546fbec6780310a9403379c70fd8dc1f06946de2b4cc5a65ba2c71a5df96c0"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-01",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported business logic calculation function has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_billing_calc_1.go",
+      "target_symbol": "CalculateTieredDiscountV3_1",
+      "ground_truth_location": {
+        "file": "testing/untested_billing_calc_1.go",
+        "start_line": 3,
+        "end_line": 13
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "f5616b7b24a74a25678d37380a5e0ac6530daebae53b7a796e0474e529803e68"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-02",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported business logic calculation function has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_billing_calc_2.go",
+      "target_symbol": "CalculateTieredDiscountV3_2",
+      "ground_truth_location": {
+        "file": "testing/untested_billing_calc_2.go",
+        "start_line": 3,
+        "end_line": 13
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "0eb55e48f3db4ae2551232e801aa6516fc71fc69938078c68ecaf4dddbe229ae"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-03",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported business logic calculation function has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_billing_calc_3.go",
+      "target_symbol": "CalculateTieredDiscountV3_3",
+      "ground_truth_location": {
+        "file": "testing/untested_billing_calc_3.go",
+        "start_line": 3,
+        "end_line": 13
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "4ca9bc6edc6286c1da7bf067c7a34b80cacf0928eb6283435b244e1cf7356f3e"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-04",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported business logic calculation function has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_billing_calc_4.go",
+      "target_symbol": "CalculateTieredDiscountV3_4",
+      "ground_truth_location": {
+        "file": "testing/untested_billing_calc_4.go",
+        "start_line": 3,
+        "end_line": 13
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "41af6c3e4324a2aefa543aedf574a394fe0162010cfb91b56d1350650d415fce"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-05",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported business logic calculation function has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_billing_calc_5.go",
+      "target_symbol": "CalculateTieredDiscountV3_5",
+      "ground_truth_location": {
+        "file": "testing/untested_billing_calc_5.go",
+        "start_line": 3,
+        "end_line": 13
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "41ef27a096b9734a62125ba786ea1cd4fb04749116525fb42cfb07f4e72d0542"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-06",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported business logic calculation function has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_billing_calc_6.go",
+      "target_symbol": "CalculateTieredDiscountV3_6",
+      "ground_truth_location": {
+        "file": "testing/untested_billing_calc_6.go",
+        "start_line": 3,
+        "end_line": 13
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "f4be99bda4c3f74d7799949f6e5346ca3dbdeb7f14071f7666bf01514abbb280"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-07",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported authorization scope checker has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_auth_engine_1.go",
+      "target_symbol": "EvaluateTokenScopesV3_1",
+      "ground_truth_location": {
+        "file": "testing/untested_auth_engine_1.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "9977f5afe7a835a58be5ce08dc01e32fb90cc0cde47b588208904b5c466b033b"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-08",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported authorization scope checker has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_auth_engine_2.go",
+      "target_symbol": "EvaluateTokenScopesV3_2",
+      "ground_truth_location": {
+        "file": "testing/untested_auth_engine_2.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "b30dff937878b8653d5c144bf9d5e522a5753c93194455caca943d70cb2c613d"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-09",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported authorization scope checker has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_auth_engine_3.go",
+      "target_symbol": "EvaluateTokenScopesV3_3",
+      "ground_truth_location": {
+        "file": "testing/untested_auth_engine_3.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "470f4cecd4530fbc94ecb3f50e05e75f99243b95df2c5ea4860f351c00c4848e"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-10",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported authorization scope checker has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_auth_engine_4.go",
+      "target_symbol": "EvaluateTokenScopesV3_4",
+      "ground_truth_location": {
+        "file": "testing/untested_auth_engine_4.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "b78de9f0778516a1b88056b4fccd5807d912fa6daebb44ba2e8e6e0be1a3ab77"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-11",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported authorization scope checker has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_auth_engine_5.go",
+      "target_symbol": "EvaluateTokenScopesV3_5",
+      "ground_truth_location": {
+        "file": "testing/untested_auth_engine_5.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "5b0e9ef7f78980c04609cc7d8acdf8d4296170b0ad98cfee01b3782d26ea6f59"
+    },
+    {
+      "fixture_id": "FIX-V3-TST-UNTESTED-12",
+      "category": "TEST_QUALITY",
+      "defect_description": "Exported authorization scope checker has zero automated unit test invocations in package test suite",
+      "target_file": "testing/untested_auth_engine_6.go",
+      "target_symbol": "EvaluateTokenScopesV3_6",
+      "ground_truth_location": {
+        "file": "testing/untested_auth_engine_6.go",
+        "start_line": 3,
+        "end_line": 12
+      },
+      "expected_diagnostic_classification": "TEST_QUALITY",
+      "expected_severity": "MEDIUM",
+      "expected_confidence_range": [
+        0.88,
+        1
+      ],
+      "expected_remediation_eligibility": "FULLY_AUTONOMOUS",
+      "expected_execution_strategy": "SYNTHESIZE_UNIT_TEST",
+      "expected_approval_requirements": false,
+      "expected_resolution_conditions": null,
+      "regression_tests": null,
+      "file_sha256": "84a8f3f73c621686081ac5f2d4b4f8c3cd72ef2012e6a3281bda3efe3548341f"
+    }
+  ],
+  "clean_fixtures": [
+    {
+      "fixture_id": "CLEAN-V3-ARC-01",
+      "category": "ARCHITECTURE",
+      "description": "Clean presentation layer communicating through abstracted service interface",
+      "target_file": "architecture/clean_layered_user_handler.go",
+      "target_symbol": "HandleUserQueryClean",
+      "file_sha256": "3b3b15aee6e16e1d0bbcf828b69d6af4cfaac0602e9b8e0e6fd01e53421bb1b3"
+    },
+    {
+      "fixture_id": "CLEAN-V3-ARC-02",
+      "category": "ARCHITECTURE",
+      "description": "Clean presentation layer communicating through abstracted service interface",
+      "target_file": "architecture/clean_layered_product_catalog.go",
+      "target_symbol": "HandleCatalogQueryClean",
+      "file_sha256": "8293e369d74b8a06f35bb4a8381f16782f5309e1e63f2cf8adf4785017df0407"
+    },
+    {
+      "fixture_id": "CLEAN-V3-ARC-03",
+      "category": "ARCHITECTURE",
+      "description": "Clean presentation layer communicating through abstracted service interface",
+      "target_file": "architecture/clean_layered_telemetry.go",
+      "target_symbol": "HandleTelemetryQueryClean",
+      "file_sha256": "ee3e41119ea67a093c48b7e0c9ad0ed19b7d467f31e76133b8d186ef03b08ac0"
+    },
+    {
+      "fixture_id": "CLEAN-V3-ARC-04",
+      "category": "ARCHITECTURE",
+      "description": "Clean presentation layer communicating through abstracted service interface",
+      "target_file": "architecture/clean_layered_notifier.go",
+      "target_symbol": "HandleNotificationQueryClean",
+      "file_sha256": "8f7604a4f757d3d17e187a46dab176239fa17132f64575a400ba52de640a58bf"
+    },
+    {
+      "fixture_id": "CLEAN-V3-ARC-05",
+      "category": "ARCHITECTURE",
+      "description": "Clean presentation layer communicating through abstracted service interface",
+      "target_file": "architecture/clean_layered_audit_trail.go",
+      "target_symbol": "HandleAuditQueryClean",
+      "file_sha256": "7aad86fa53ee7006c186a7ff5166629f1ae83083b3716e74d3018d46af0b1d16"
+    },
+    {
+      "fixture_id": "CLEAN-V3-ARC-06",
+      "category": "ARCHITECTURE",
+      "description": "Clean presentation layer communicating through abstracted service interface",
+      "target_file": "architecture/clean_layered_health_probe.go",
+      "target_symbol": "HandleHealthProbeClean",
+      "file_sha256": "4155c4362b91637b5a61481e869f97e88d5a085ced80647269e1eab667693409"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DEP-01",
+      "category": "DEPENDENCY",
+      "description": "Clean module with cryptographically pinned dependencies and populated go.sum",
+      "target_file": "dependency/clean_order_client/go.mod",
+      "target_symbol": "order_client",
+      "file_sha256": "a87e0a2d378a27cd2d6c8b537ca2b01f1e076f7ea04365f01b53ce1679a75004"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DEP-02",
+      "category": "DEPENDENCY",
+      "description": "Clean module with cryptographically pinned dependencies and populated go.sum",
+      "target_file": "dependency/clean_account_client/go.mod",
+      "target_symbol": "account_client",
+      "file_sha256": "a3efedb5b0bcdf6f7d52832d6630e04a20244ac5f20222181565b0f30d2decc5"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DEP-03",
+      "category": "DEPENDENCY",
+      "description": "Clean module with cryptographically pinned dependencies and populated go.sum",
+      "target_file": "dependency/clean_email_client/go.mod",
+      "target_symbol": "email_client",
+      "file_sha256": "b0e2fe7c287fd52802f5c1e73265004e11f8dac1ca1c63a92325207479fdd1f1"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DEP-04",
+      "category": "DEPENDENCY",
+      "description": "Clean module with cryptographically pinned dependencies and populated go.sum",
+      "target_file": "dependency/clean_storage_client/go.mod",
+      "target_symbol": "storage_client",
+      "file_sha256": "9eb3f1845c835a7f6982d776d366691b1d1fb7199ed8354f5870383a56a73c2b"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DEP-05",
+      "category": "DEPENDENCY",
+      "description": "Clean module with cryptographically pinned dependencies and populated go.sum",
+      "target_file": "dependency/clean_queue_client/go.mod",
+      "target_symbol": "queue_client",
+      "file_sha256": "9f7060f0f57cb80edabf4170c2d06be24b471bfb02016d884be12a920ebcfc3c"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DEP-06",
+      "category": "DEPENDENCY",
+      "description": "Clean module with cryptographically pinned dependencies and populated go.sum",
+      "target_file": "dependency/clean_metrics_client/go.mod",
+      "target_symbol": "metrics_client",
+      "file_sha256": "7ce99ca99ba6533b2eee8f48c01c45c061a7b433622f1a99f0fa43c4c870fdd1"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DOC-01",
+      "category": "DOCUMENTATION",
+      "description": "Clean exported struct and method with comprehensive GoDoc documentation comments",
+      "target_file": "documentation/clean_documented_audit_logger.go",
+      "target_symbol": "CleanAuditLoggerV3",
+      "file_sha256": "398c6f5620381690564bd957b4ab57f8f5002af58c47548806734aa3ac3bb410"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DOC-02",
+      "category": "DOCUMENTATION",
+      "description": "Clean exported struct and method with comprehensive GoDoc documentation comments",
+      "target_file": "documentation/clean_documented_crypto_signer.go",
+      "target_symbol": "CleanCryptoSignerV3",
+      "file_sha256": "ee2cecbce3d2adb7745d053a8c688cd4d3aaf9c20c9a0a5ca40543780fba12ac"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DOC-03",
+      "category": "DOCUMENTATION",
+      "description": "Clean exported struct and method with comprehensive GoDoc documentation comments",
+      "target_file": "documentation/clean_documented_config_loader.go",
+      "target_symbol": "CleanConfigLoaderV3",
+      "file_sha256": "ffcea6ff1cd677fcd26d126f1a4594a46acf4db4f68a2313609af9e26b300b63"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DOC-04",
+      "category": "DOCUMENTATION",
+      "description": "Clean exported struct and method with comprehensive GoDoc documentation comments",
+      "target_file": "documentation/clean_documented_session_store.go",
+      "target_symbol": "CleanSessionStoreV3",
+      "file_sha256": "df2a8a0663ed21b87bc627ac6e81df06c80279b0eb67499e609a877ca81ab2ee"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DOC-05",
+      "category": "DOCUMENTATION",
+      "description": "Clean exported struct and method with comprehensive GoDoc documentation comments",
+      "target_file": "documentation/clean_documented_metrics_exporter.go",
+      "target_symbol": "CleanMetricsExporterV3",
+      "file_sha256": "b60543c4121a1283ad70fe8df47009a5a76b569fa71af2b49cdb1925563da133"
+    },
+    {
+      "fixture_id": "CLEAN-V3-DOC-06",
+      "category": "DOCUMENTATION",
+      "description": "Clean exported struct and method with comprehensive GoDoc documentation comments",
+      "target_file": "documentation/clean_documented_task_scheduler.go",
+      "target_symbol": "CleanTaskSchedulerV3",
+      "file_sha256": "0bb788920a4c9059ae93c5219cd15d41de5ba44ec48623278c5fa8122a1ff310"
+    },
+    {
+      "fixture_id": "CLEAN-V3-MNT-01",
+      "category": "MAINTAINABILITY",
+      "description": "Clean concise helper with no duplicate clones across the repository",
+      "target_file": "maintainability/clean_slice_lookup.go",
+      "target_symbol": "SafeSliceLookupClean",
+      "file_sha256": "1c7e4ee25d02401a15dea0f3d0b8cc6dbc1d50f8ade64ed863e9e57c213c4e9b"
+    },
+    {
+      "fixture_id": "CLEAN-V3-MNT-02",
+      "category": "MAINTAINABILITY",
+      "description": "Clean concise helper with no duplicate clones across the repository",
+      "target_file": "maintainability/clean_prefix_trimmer.go",
+      "target_symbol": "TrimPrefixClean",
+      "file_sha256": "8ed672abaf839872f814f4ab8678d841bbd00d5078361fffdc9ec68d9db9abff"
+    },
+    {
+      "fixture_id": "CLEAN-V3-MNT-03",
+      "category": "MAINTAINABILITY",
+      "description": "Clean concise helper with no duplicate clones across the repository",
+      "target_file": "maintainability/clean_port_parser.go",
+      "target_symbol": "ParsePortClean",
+      "file_sha256": "6926eafe0f0c8d95f59d6ab1a23f601131ac5dbc82143774ca1fc0f759c67fa8"
+    },
+    {
+      "fixture_id": "CLEAN-V3-MNT-04",
+      "category": "MAINTAINABILITY",
+      "description": "Clean concise helper with no duplicate clones across the repository",
+      "target_file": "maintainability/clean_int_clamper.go",
+      "target_symbol": "ClampIntegerClean",
+      "file_sha256": "b6bd0690d80a822be8900efe32aea8ec03631cb90ad8adb39754e1e5f5ed62bf"
+    },
+    {
+      "fixture_id": "CLEAN-V3-MNT-05",
+      "category": "MAINTAINABILITY",
+      "description": "Clean concise helper with no duplicate clones across the repository",
+      "target_file": "maintainability/clean_time_formatter.go",
+      "target_symbol": "FormatTimestampClean",
+      "file_sha256": "05837cac0d0e782603f52c03805b390dbab7958e2195c063ef01208145b2b1f5"
+    },
+    {
+      "fixture_id": "CLEAN-V3-MNT-06",
+      "category": "MAINTAINABILITY",
+      "description": "Clean concise helper with no duplicate clones across the repository",
+      "target_file": "maintainability/clean_email_masker.go",
+      "target_symbol": "MaskEmailClean",
+      "file_sha256": "bb60da2801355c48c6f8900550dc59fe0c02ce24ed94aa84ef1a7e7ba9530b3f"
+    },
+    {
+      "fixture_id": "CLEAN-V3-REL-01",
+      "category": "RELIABILITY",
+      "description": "Clean resource management using atomic helper function with automatic descriptor cleanup",
+      "target_file": "reliability/clean_closure_stream.go",
+      "target_symbol": "StreamFileWithClosureClean",
+      "file_sha256": "eff746276a5e77ddca90b5e4c1bfee6891df959e72b16a130d0c6272c743ab59"
+    },
+    {
+      "fixture_id": "CLEAN-V3-REL-02",
+      "category": "RELIABILITY",
+      "description": "Clean resource management using atomic helper function with automatic descriptor cleanup",
+      "target_file": "reliability/clean_batch_socket.go",
+      "target_symbol": "ProcessBatchedSocketsClean",
+      "file_sha256": "1cf452d9b05d930422f56b76baeb2bd9033a7a659038b39ed8ddc3d3be61839b"
+    },
+    {
+      "fixture_id": "CLEAN-V3-REL-03",
+      "category": "RELIABILITY",
+      "description": "Clean resource management using atomic helper function with automatic descriptor cleanup",
+      "target_file": "reliability/clean_payload_downloader.go",
+      "target_symbol": "DownloadPayloadSafelyClean",
+      "file_sha256": "31ed9aef53cdb13ba50906f3e9cd61b32da319d014ab87b4b6952be7eaafa456"
+    },
+    {
+      "fixture_id": "CLEAN-V3-REL-04",
+      "category": "RELIABILITY",
+      "description": "Clean resource management using atomic helper function with automatic descriptor cleanup",
+      "target_file": "reliability/clean_config_reader.go",
+      "target_symbol": "ReadConfigFileStrictClean",
+      "file_sha256": "9de98ed1a7fdf4b37b0e74224881a772f6c5280a4beb3abd05154098e1dc1214"
+    },
+    {
+      "fixture_id": "CLEAN-V3-REL-05",
+      "category": "RELIABILITY",
+      "description": "Clean resource management using atomic helper function with automatic descriptor cleanup",
+      "target_file": "reliability/clean_temp_lock.go",
+      "target_symbol": "AcquireTempLockClean",
+      "file_sha256": "501e1b81bbb829a198201bc1d492b959c7960b8899ff980c4add28836551c61d"
+    },
+    {
+      "fixture_id": "CLEAN-V3-REL-06",
+      "category": "RELIABILITY",
+      "description": "Clean resource management using atomic helper function with automatic descriptor cleanup",
+      "target_file": "reliability/clean_db_transaction.go",
+      "target_symbol": "TransactDatabaseSafeClean",
+      "file_sha256": "f1c9614ae31c975ff007f9a4ead5f1100574755991186eaecef3b8ebbf840725"
+    },
+    {
+      "fixture_id": "CLEAN-V3-SEC-01",
+      "category": "SECURITY",
+      "description": "Clean security implementation utilizing parameterized queries, static args, or environment variables",
+      "target_file": "security/clean_sql_parameterized_1.go",
+      "target_symbol": "QueryUserSafeClean",
+      "file_sha256": "fb9c60479715d706d1259938dc01211a6d9c62da71adc4cef166c78de873e651"
+    },
+    {
+      "fixture_id": "CLEAN-V3-SEC-02",
+      "category": "SECURITY",
+      "description": "Clean security implementation utilizing parameterized queries, static args, or environment variables",
+      "target_file": "security/clean_sql_parameterized_2.go",
+      "target_symbol": "FetchOrderSafeClean",
+      "file_sha256": "f8b918ddfdf867e4e3024bd7a165e4d7253f8d81b3380a2b9d7752440cb9b1b9"
+    },
+    {
+      "fixture_id": "CLEAN-V3-SEC-03",
+      "category": "SECURITY",
+      "description": "Clean security implementation utilizing parameterized queries, static args, or environment variables",
+      "target_file": "security/clean_cmd_static_args_1.go",
+      "target_symbol": "ExecuteGitStatusSafeClean",
+      "file_sha256": "b2f5e1432357ef31804e27965e0e33dc897a9a6dfd8a48c8bc626fa7e54446d2"
+    },
+    {
+      "fixture_id": "CLEAN-V3-SEC-04",
+      "category": "SECURITY",
+      "description": "Clean security implementation utilizing parameterized queries, static args, or environment variables",
+      "target_file": "security/clean_cmd_static_args_2.go",
+      "target_symbol": "ExecuteVersionSafeClean",
+      "file_sha256": "af2992933f8ce40fd7fbc1c957861e9ce75de32e35654ab2a9185bf6496dd739"
+    },
+    {
+      "fixture_id": "CLEAN-V3-SEC-05",
+      "category": "SECURITY",
+      "description": "Clean security implementation utilizing parameterized queries, static args, or environment variables",
+      "target_file": "security/clean_secret_env_1.go",
+      "target_symbol": "FetchTokenFromEnvSafeClean",
+      "file_sha256": "c1e8a159cb48ff1cf4986d63dd668aa88fbe652dfd94d66a68af4d5a7a77eda7"
+    },
+    {
+      "fixture_id": "CLEAN-V3-SEC-06",
+      "category": "SECURITY",
+      "description": "Clean security implementation utilizing parameterized queries, static args, or environment variables",
+      "target_file": "security/clean_secret_env_2.go",
+      "target_symbol": "FetchKeyFromEnvSafeClean",
+      "file_sha256": "10cd6944ac422ed40e9ec10982df873c156af606a70e0cc3426373e60660a7b0"
+    },
+    {
+      "fixture_id": "CLEAN-V3-STR-01",
+      "category": "STRUCTURAL",
+      "description": "Clean linear logic with early guard-clause returns and low cyclomatic complexity",
+      "target_file": "structural/clean_flat_guard_1.go",
+      "target_symbol": "EvaluatePrivilegeClean1",
+      "file_sha256": "2e99f9ed6246257b394789b9a05848b30189e89b9a311655ced24d4f4f21c8a5"
+    },
+    {
+      "fixture_id": "CLEAN-V3-STR-02",
+      "category": "STRUCTURAL",
+      "description": "Clean linear logic with early guard-clause returns and low cyclomatic complexity",
+      "target_file": "structural/clean_flat_guard_2.go",
+      "target_symbol": "EvaluatePrivilegeClean2",
+      "file_sha256": "19667c80e1334ce2ddb4f76329556ba65ba9dee0a918364ce1cf77df2d554e7f"
+    },
+    {
+      "fixture_id": "CLEAN-V3-STR-03",
+      "category": "STRUCTURAL",
+      "description": "Clean linear logic with early guard-clause returns and low cyclomatic complexity",
+      "target_file": "structural/clean_simple_calc_1.go",
+      "target_symbol": "SanitizeHeaderClean1",
+      "file_sha256": "fc13c94619ade701c13cf9498c15b3e971eaa810dc8576860ddef3727fc93fc6"
+    },
+    {
+      "fixture_id": "CLEAN-V3-STR-04",
+      "category": "STRUCTURAL",
+      "description": "Clean linear logic with early guard-clause returns and low cyclomatic complexity",
+      "target_file": "structural/clean_simple_calc_2.go",
+      "target_symbol": "SanitizeHeaderClean2",
+      "file_sha256": "75b867a3de5b073d743d261f07ed18225f461a25b54175a458f6e48cb4818491"
+    },
+    {
+      "fixture_id": "CLEAN-V3-STR-05",
+      "category": "STRUCTURAL",
+      "description": "Clean linear logic with early guard-clause returns and low cyclomatic complexity",
+      "target_file": "structural/clean_filter_records_1.go",
+      "target_symbol": "FilterValidRecordsClean1",
+      "file_sha256": "69522c14348d3fa2b06503d2750bf276f519101c86a2c528c940c918ec9f2243"
+    },
+    {
+      "fixture_id": "CLEAN-V3-STR-06",
+      "category": "STRUCTURAL",
+      "description": "Clean linear logic with early guard-clause returns and low cyclomatic complexity",
+      "target_file": "structural/clean_filter_records_2.go",
+      "target_symbol": "FilterValidRecordsClean2",
+      "file_sha256": "113c8be6129cb35c58671c4f67f31464e0d17ac63335e3095c2bf3dcad08ec8d"
+    },
+    {
+      "fixture_id": "CLEAN-V3-TST-01",
+      "category": "TEST_QUALITY",
+      "description": "Clean business service fully exercised and validated by automated unit test suite",
+      "target_file": "testing/clean_auth_service.go",
+      "target_symbol": "ValidateAuthSessionClean",
+      "file_sha256": "17be995001157816e65256093b2c2126209acce90c65467451a99ffe4d4b1a86"
+    },
+    {
+      "fixture_id": "CLEAN-V3-TST-02",
+      "category": "TEST_QUALITY",
+      "description": "Clean business service fully exercised and validated by automated unit test suite",
+      "target_file": "testing/clean_payment_service.go",
+      "target_symbol": "ValidatePaymentAuthClean",
+      "file_sha256": "5b7156997fe3a4de484d0d16278cea09b505203619733c5ec812d3b74930894c"
+    },
+    {
+      "fixture_id": "CLEAN-V3-TST-03",
+      "category": "TEST_QUALITY",
+      "description": "Clean business service fully exercised and validated by automated unit test suite",
+      "target_file": "testing/clean_user_service.go",
+      "target_symbol": "ValidateUserProfileClean",
+      "file_sha256": "c7da74f137ecf095af4854932f8373c0e1eac52f1823ec54f0a9c84d451921b1"
+    },
+    {
+      "fixture_id": "CLEAN-V3-TST-04",
+      "category": "TEST_QUALITY",
+      "description": "Clean business service fully exercised and validated by automated unit test suite",
+      "target_file": "testing/clean_order_service.go",
+      "target_symbol": "ValidateOrderDetailsClean",
+      "file_sha256": "62e804c0efce74371f531b34e7e48d13be58d3662ca4641deb484f5cbd5a0fb8"
+    },
+    {
+      "fixture_id": "CLEAN-V3-TST-05",
+      "category": "TEST_QUALITY",
+      "description": "Clean business service fully exercised and validated by automated unit test suite",
+      "target_file": "testing/clean_token_service.go",
+      "target_symbol": "ValidateTokenIssuerClean",
+      "file_sha256": "cdfed6ce33bab1c1d0735dfba01968b0d39e5cb28e454d88932a529b4893f1a3"
+    },
+    {
+      "fixture_id": "CLEAN-V3-TST-06",
+      "category": "TEST_QUALITY",
+      "description": "Clean business service fully exercised and validated by automated unit test suite",
+      "target_file": "testing/clean_cache_service.go",
+      "target_symbol": "ValidateCacheEntryClean",
+      "file_sha256": "a1720b804f0c7b116965be2d5c765d8b34ec3e284c561f2308b29b68fd7857e7"
+    }
+  ]
+}

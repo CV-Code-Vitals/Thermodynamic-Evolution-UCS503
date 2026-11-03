@@ -40,6 +40,7 @@ func (a *ResourceContextAnalyzer) EvaluateFile(relPath string) ([]ContextFinding
 		"os":   {"Open": true, "OpenFile": true, "Create": true},
 		"net":  {"Dial": true, "DialTimeout": true},
 		"http": {"Get": true, "Post": true},
+		"sql":  {"Open": true, "OpenDB": true},
 	}
 
 	checkLoopBody := func(body *ast.BlockStmt, loopPos token.Pos) {
@@ -111,6 +112,7 @@ func (a *ResourceContextAnalyzer) EvaluateFile(relPath string) ([]ContextFinding
 							Severity:            repo_intel.SeverityMedium,
 							Confidence:          0.92,
 							ConfidenceRationale: "Resource defer statement executed inside loop body delays handle cleanup until enclosing function returns",
+							State:               StateConfirmed,
 							Title:               "Resource Defer Statement Inside Loop Body",
 							Description:         fmt.Sprintf("Resource %s.%s opened at line %d uses defer inside loop, risking descriptor exhaustion.", pkgIdent.Name, sel.Sel.Name, pos.Line),
 							RootCause:           "Defer statement within loop boundary postpones resource cleanup until outer function termination.",
@@ -139,6 +141,7 @@ func (a *ResourceContextAnalyzer) EvaluateFile(relPath string) ([]ContextFinding
 							Severity:            repo_intel.SeverityHigh,
 							Confidence:          0.95,
 							ConfidenceRationale: "Resource handle acquired in loop iteration without corresponding Close() call within iteration scope",
+							State:               StateConfirmed,
 							Title:               "Unclosed Resource Handle In Loop Iteration",
 							Description:         fmt.Sprintf("File %s opens resource handle via %s.%s at line %d without closing it, causing descriptor leaks.", relPath, pkgIdent.Name, sel.Sel.Name, pos.Line),
 							RootCause:           "Omission of resource cleanup within iterative loop lifecycle.",

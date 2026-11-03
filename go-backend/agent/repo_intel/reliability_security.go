@@ -26,7 +26,7 @@ var (
 		name    string
 		pattern *regexp.Regexp
 	}{
-		{"AWS Access Key ID", regexp.MustCompile(`(?i)(?:aws_access_key_id|aws_key)\s*(?::=|=|:)\s*["']?(AKIA[0-9A-Z]{16})["']?`)},
+		{"AWS Access Key ID", regexp.MustCompile(`\b((?:AKIA|ASIA|ACCA)[0-9A-Z]{16})\b`)},
 		{"Generic Secret Key", regexp.MustCompile(`(?i)(?:api_key|secret_key|client_secret|auth_token)\s*(?::=|=|:)\s*["']([a-zA-Z0-9_\-\.]{24,})["']`)},
 		{"Hardcoded Password in String", regexp.MustCompile(`(?i)(?:password|passwd|pwd)\s*(?::=|=|:)\s*["']([^"'\s]{8,})["']`)},
 		{"Private Key Header", regexp.MustCompile(`-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----`)},

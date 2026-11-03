@@ -76,6 +76,7 @@ func (a *SQLContextAnalyzer) EvaluateFile(relPath string) (*SQLContextEvaluation
 				Severity:            repo_intel.SeverityHigh,
 				Confidence:          0.96,
 				ConfidenceRationale: "AST BinaryExpr concatenation with raw SQL string literal and dynamic variable operand",
+				State:               StateConfirmed,
 				Title:               "Unparameterized SQL Query Concatenation",
 				Description:         "Dynamic SQL query constructed via binary string concatenation instead of parameterized binding.",
 				RootCause:           "Direct concatenation of dynamic values into SQL query string.",

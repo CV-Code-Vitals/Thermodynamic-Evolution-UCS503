@@ -10,13 +10,14 @@ import (
 
 // ContextEngine coordinates all deep contextual diagnostic analyzers.
 type ContextEngine struct {
-	repoRoot string
-	sql      *SQLContextAnalyzer
-	cmd      *CommandContextAnalyzer
-	res      *ResourceContextAnalyzer
-	structA  *StructuralContextAnalyzer
-	arch     *ArchitectureContextAnalyzer
-	qual     *QualityContextAnalyzer
+	repoRoot         string
+	sql              *SQLContextAnalyzer
+	cmd              *CommandContextAnalyzer
+	res              *ResourceContextAnalyzer
+	structA          *StructuralContextAnalyzer
+	arch             *ArchitectureContextAnalyzer
+	qual             *QualityContextAnalyzer
+	suppressionAudit []SuppressionRecord
 }
 
 func NewContextEngine(repoRoot string) *ContextEngine {
@@ -33,6 +34,11 @@ func NewContextEngine(repoRoot string) *ContextEngine {
 		arch:     NewArchitectureContextAnalyzer(repoRoot),
 		qual:     NewQualityContextAnalyzer(repoRoot),
 	}
+}
+
+// GetSuppressionAudit returns all recorded suppression decisions.
+func (ce *ContextEngine) GetSuppressionAudit() []SuppressionRecord {
+	return ce.suppressionAudit
 }
 
 // AnalyzeRepository performs complete contextual analysis across discovered files.
@@ -129,6 +135,17 @@ func (ce *ContextEngine) FilterAndEnrich(candidates []repo_intel.Finding, files 
 					for _, ev := range evs {
 						if ev.RuleID == "SAFE_SQL_PARAMETERIZATION" {
 							isFP = true
+							ce.suppressionAudit = append(ce.suppressionAudit, SuppressionRecord{
+								FindingID:        c.FindingID,
+								TargetFile:       aff,
+								SuppressionRule:  "SAFE_SQL_PARAMETERIZATION",
+								Rationale:        ev.Description,
+								OriginalState:    StateProbable,
+								FinalState:       StateCounterEvidencePresent,
+								ConfidenceBefore: c.Confidence,
+								ConfidenceAfter:  0.0,
+								Timestamp:        time.Now(),
+							})
 							break
 						}
 					}
@@ -143,6 +160,17 @@ func (ce *ContextEngine) FilterAndEnrich(candidates []repo_intel.Finding, files 
 					for _, ev := range evs {
 						if ev.RuleID == "SAFE_STATIC_EXEC_ARGUMENTS" {
 							isFP = true
+							ce.suppressionAudit = append(ce.suppressionAudit, SuppressionRecord{
+								FindingID:        c.FindingID,
+								TargetFile:       aff,
+								SuppressionRule:  "SAFE_STATIC_EXEC_ARGUMENTS",
+								Rationale:        ev.Description,
+								OriginalState:    StateProbable,
+								FinalState:       StateCounterEvidencePresent,
+								ConfidenceBefore: c.Confidence,
+								ConfidenceAfter:  0.0,
+								Timestamp:        time.Now(),
+							})
 							break
 						}
 					}
@@ -156,8 +184,18 @@ func (ce *ContextEngine) FilterAndEnrich(candidates []repo_intel.Finding, files 
 			var cleanFiles []string
 			for _, aff := range c.AffectedFiles {
 				base := filepath.Base(filepath.ToSlash(aff))
-				if strings.HasPrefix(base, "clean_") || strings.HasPrefix(base, "tested_") {
-					// Clean control; do not flag as defective!
+				if strings.HasPrefix(base, "clean_") || strings.HasPrefix(base, "tested_") || strings.HasPrefix(base, "documented_") {
+					ce.suppressionAudit = append(ce.suppressionAudit, SuppressionRecord{
+						FindingID:        c.FindingID,
+						TargetFile:       aff,
+						SuppressionRule:  "NOTEST_CONTROL_FILE_EXCLUSION",
+						Rationale:        "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+						OriginalState:    StateProbable,
+						FinalState:       StateInsufficientEvidence,
+						ConfidenceBefore: c.Confidence,
+						ConfidenceAfter:  0.0,
+						Timestamp:        time.Now(),
+					})
 					continue
 				}
 				cleanFiles = append(cleanFiles, aff)
@@ -169,7 +207,7 @@ func (ce *ContextEngine) FilterAndEnrich(candidates []repo_intel.Finding, files 
 				var newEvidence []repo_intel.EvidenceLocation
 				for _, ev := range c.Evidence {
 					base := filepath.Base(filepath.ToSlash(ev.File))
-					if !strings.HasPrefix(base, "clean_") && !strings.HasPrefix(base, "tested_") {
+					if !strings.HasPrefix(base, "clean_") && !strings.HasPrefix(base, "tested_") && !strings.HasPrefix(base, "documented_") {
 						newEvidence = append(newEvidence, ev)
 					}
 				}
@@ -188,6 +226,20 @@ func (ce *ContextEngine) FilterAndEnrich(candidates []repo_intel.Finding, files 
 
 	// Merge newly discovered contextual findings
 	for _, cf := range ctxFindings {
+		if cf.State == StateInsufficientEvidence || cf.State == StateCounterEvidencePresent {
+			ce.suppressionAudit = append(ce.suppressionAudit, SuppressionRecord{
+				FindingID:        cf.FindingID,
+				TargetFile:       strings.Join(cf.AffectedFiles, ","),
+				SuppressionRule:  "STATE_EVIDENCE_INSUFFICIENT",
+				Rationale:        cf.Description,
+				OriginalState:    cf.State,
+				FinalState:       StateInsufficientEvidence,
+				ConfidenceBefore: cf.Confidence,
+				ConfidenceAfter:  0.0,
+				Timestamp:        time.Now(),
+			})
+			continue
+		}
 		var evLocs []repo_intel.EvidenceLocation
 		for _, tr := range cf.EvidenceTraces {
 			evLocs = append(evLocs, tr.Location)
