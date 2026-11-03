@@ -119,3 +119,4 @@ func (ri *ReportIngester) ValidateReport(report *diagnostic.DiagnosticReport, re
 
 	return assessment, nil
 }
+

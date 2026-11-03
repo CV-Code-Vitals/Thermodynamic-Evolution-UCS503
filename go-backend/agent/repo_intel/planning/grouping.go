@@ -95,3 +95,4 @@ func (tg *TaskGrouper) GroupFindings(
 	_ = strings.Contains
 	return groups
 }
+

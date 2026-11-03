@@ -133,3 +133,4 @@ func (cd *ConflictDetector) DetectConflicts(tasks []RemediationTask) ([]TaskConf
 
 	return conflicts, updatedTasks
 }
+

@@ -140,3 +140,4 @@ func (dr *DependencyResolver) ResolveDependencies(tasks []RemediationTask) (map[
 
 	return depGraph, executionOrder, blockedGroups, updatedTasks
 }
+

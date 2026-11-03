@@ -120,3 +120,4 @@ func init() {
 	_ = repo_intel.CategoryStructural
 	_ = diagnostic.StateValidated
 }
+

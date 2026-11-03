@@ -63,3 +63,4 @@ func (pe *PriorityEngine) EvaluatePriority(f *diagnostic.ValidatedFinding) (Task
 	totalScore := sevPoints + confPoints
 	return rank, totalScore, rationale
 }
+

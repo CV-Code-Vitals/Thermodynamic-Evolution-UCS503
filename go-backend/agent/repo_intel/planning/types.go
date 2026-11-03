@@ -133,3 +133,4 @@ type RemediationPlan struct {
 func (rp *RemediationPlan) ToJSON() ([]byte, error) {
 	return json.MarshalIndent(rp, "", "  ")
 }
+

@@ -108,3 +108,4 @@ func (cg *CriteriaGenerator) GenerateCriteria(f *diagnostic.ValidatedFinding, ta
 
 	return criteria, commands, rollback
 }
+
