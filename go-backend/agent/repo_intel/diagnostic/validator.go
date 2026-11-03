@@ -207,3 +207,4 @@ func countLines(path string) (int, error) {
 	}
 	return strings.Count(string(data), "\n") + 1, nil
 }
+

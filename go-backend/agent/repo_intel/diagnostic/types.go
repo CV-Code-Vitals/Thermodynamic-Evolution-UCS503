@@ -124,3 +124,4 @@ type FindingValidationResult struct {
 func (dr *DiagnosticReport) ToJSON() ([]byte, error) {
 	return json.MarshalIndent(dr, "", "  ")
 }
+

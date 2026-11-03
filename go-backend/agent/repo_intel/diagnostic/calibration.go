@@ -88,3 +88,4 @@ func (c *ConfidenceCalibrator) CalibrateConfidence(f *ValidatedFinding) (float64
 	rationale := fmt.Sprintf("%.2f: %s", baseScore, methodRationale)
 	return baseScore, rationale
 }
+

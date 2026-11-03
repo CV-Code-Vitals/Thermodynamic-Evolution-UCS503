@@ -265,3 +265,4 @@ func (dr *DiagnosticReporter) GenerateMarkdown(report *DiagnosticReport) string 
 
 	return sb.String()
 }
+
