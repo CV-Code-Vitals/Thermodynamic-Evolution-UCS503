@@ -1,0 +1,38 @@
+[
+  {
+    "task_id": "RP-0103",
+    "status": "REJECTED",
+    "validation_status": "",
+    "build_passed": false,
+    "test_passed": false,
+    "defect_eliminated": false,
+    "duration_ms": 0
+  },
+  {
+    "task_id": "RP-0001",
+    "status": "ROLLED_BACK",
+    "validation_status": "FAILED",
+    "build_passed": true,
+    "test_passed": false,
+    "defect_eliminated": true,
+    "duration_ms": 278
+  },
+  {
+    "task_id": "RP-0005",
+    "status": "COMPLETED",
+    "validation_status": "PASSED",
+    "build_passed": true,
+    "test_passed": true,
+    "defect_eliminated": true,
+    "duration_ms": 11316
+  },
+  {
+    "task_id": "RP-0125",
+    "status": "COMPLETED",
+    "validation_status": "PASSED",
+    "build_passed": true,
+    "test_passed": true,
+    "defect_eliminated": true,
+    "duration_ms": 5363
+  }
+]

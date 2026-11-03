@@ -1,0 +1,14 @@
+[
+  {
+    "patch_id": "PATCH-RP-0125",
+    "task_id": "RP-0125",
+    "target_files": [
+      "samples/benchmark/go.sum"
+    ],
+    "diff_content": "--- a/samples/benchmark/go.sum\n+++ b/samples/benchmark/go.sum\n@@ -0,0 +1,1 @@\n+// Cryptographically pinned checksums\n\n",
+    "sha256": "c0360a1966259b59509c8305421a8a33b0d59be7b31d974f002d99d724047239",
+    "line_count": 6,
+    "bytes_count": 118,
+    "created_at": "2026-11-03T15:50:42.2877442+05:30"
+  }
+]

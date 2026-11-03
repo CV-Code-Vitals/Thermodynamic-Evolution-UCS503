@@ -1,0 +1,29 @@
+[
+  {
+    "task_id": "RP-0001",
+    "workspace_dir": "C:\\Users\\mishr\\AppData\\Local\\Temp\\swe_remediation_workspaces\\ws_RP-0001_1793701112736363800",
+    "created_at": "2026-11-03T15:48:32.7374884+05:30",
+    "destroyed_at": "2026-11-03T15:49:09.5582992+05:30",
+    "retained": false,
+    "cleaned_up": true,
+    "size_bytes": 1818136870
+  },
+  {
+    "task_id": "RP-0005",
+    "workspace_dir": "C:\\Users\\mishr\\AppData\\Local\\Temp\\swe_remediation_workspaces\\ws_RP-0005_1793701155189655000",
+    "created_at": "2026-11-03T15:49:15.1902667+05:30",
+    "destroyed_at": "2026-11-03T15:50:00.8922174+05:30",
+    "retained": false,
+    "cleaned_up": true,
+    "size_bytes": 1818136870
+  },
+  {
+    "task_id": "RP-0125",
+    "workspace_dir": "C:\\Users\\mishr\\AppData\\Local\\Temp\\swe_remediation_workspaces\\ws_RP-0125_1793701206638061600",
+    "created_at": "2026-11-03T15:50:06.638752+05:30",
+    "destroyed_at": "2026-11-03T15:50:47.6515184+05:30",
+    "retained": false,
+    "cleaned_up": true,
+    "size_bytes": 1818136870
+  }
+]
