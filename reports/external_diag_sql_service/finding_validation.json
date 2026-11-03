@@ -1,0 +1,232 @@
+{
+  "summary": {
+    "total_findings": 6,
+    "validated": 5,
+    "partially_validated": 0,
+    "stale": 1,
+    "invalid": 0,
+    "requires_human_review": 0
+  },
+  "findings": [
+    {
+      "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+      "source_finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+      "validation_state": "STALE",
+      "validation_reason": "Referenced file does not exist: .github/workflows",
+      "category": "TEST_QUALITY",
+      "severity": "HIGH",
+      "severity_rationale": "HIGH: Absence of continuous integration workflows leaves commits unvalidated before merge",
+      "calibrated_confidence": 0.15,
+      "confidence_rationale": "0.15: Generic heuristic detection; severely discounted: finding references stale source state",
+      "title": "No continuous integration (CI) workflows detected",
+      "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+      "root_cause": "Absence of continuous integration test runners.",
+      "root_cause_confidence": 0.12,
+      "affected_components": [
+        ".github/workflows"
+      ],
+      "impact_scope": "Repository Release Gate \u0026 CI/CD",
+      "potential_consequences": [
+        "Uncaught regressions reaching staging/production"
+      ],
+      "expected_benefit": "Continuous gate verification on every commit and pull request.",
+      "remediation_complexity": "LOW",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INFORMATIONAL_ONLY",
+      "readiness_rationale": "Finding is invalid or stale; no remediation required",
+      "evidence": [],
+      "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+      "validation_requirements": [
+        "Workflow runs on push/pull_request and executes test suites"
+      ],
+      "detection_method": "CI_WORKFLOW_AUDIT"
+    },
+    {
+      "finding_id": "RI-HYG-MISSING-README",
+      "source_finding_id": "RI-HYG-MISSING-README",
+      "validation_state": "VALIDATED",
+      "validation_reason": "Verified absence of expected file across repository",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Missing README documentation",
+      "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+      "root_cause": "Documentation omitted.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "README.md"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [],
+      "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+      "validation_requirements": [
+        "README.md exists and is populated"
+      ],
+      "detection_method": "DOCUMENTATION_AUDIT"
+    },
+    {
+      "finding_id": "RI-HYG-MISSING-LICENSE",
+      "source_finding_id": "RI-HYG-MISSING-LICENSE",
+      "validation_state": "VALIDATED",
+      "validation_reason": "Verified absence of expected file across repository",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Missing repository LICENSE file",
+      "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+      "root_cause": "License file omitted.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "LICENSE"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Clarifies legal rights and license boundaries.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [],
+      "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+      "validation_requirements": [
+        "LICENSE file exists"
+      ],
+      "detection_method": "LICENSE_AUDIT"
+    },
+    {
+      "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+      "source_finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "DEPENDENCY",
+      "severity": "MEDIUM",
+      "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+      "calibrated_confidence": 0.92,
+      "confidence_rationale": "0.92: Deterministic package manifest parser",
+      "title": "Missing go.sum lockfile",
+      "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+      "root_cause": "go.sum file not committed or generated",
+      "root_cause_confidence": 0.92,
+      "affected_components": [
+        "go.mod"
+      ],
+      "impact_scope": "Build Pipeline \u0026 Supply Chain",
+      "potential_consequences": [
+        "Non-reproducible CI builds",
+        "Vulnerability to upstream dependency drift"
+      ],
+      "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+      "remediation_complexity": "LOW",
+      "regression_risk": "LOW",
+      "remediation_readiness": "AUTOMATION_READY",
+      "readiness_rationale": "Safe dependency lockfile generation: execute go mod download",
+      "evidence": [
+        {
+          "file": "go.mod",
+          "description": "go.mod without adjacent go.sum"
+        }
+      ],
+      "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+      "validation_requirements": [
+        "go.sum exists adjacent to go.mod"
+      ],
+      "detection_method": "MANIFEST_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-TST-UNTESTED-SYM-db_go",
+      "source_finding_id": "CTX-TST-UNTESTED-SYM-db_go",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "TEST_QUALITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Directory lacks co-located unit test files",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Exported Symbols Lack Automated Unit Tests (InitDB, WithTransaction)",
+      "description": "Source file db.go defines exported function(s) [InitDB, WithTransaction] with 0 test invocations in package test suites.",
+      "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "db.go"
+      ],
+      "impact_scope": "Package Regression Safety",
+      "potential_consequences": [
+        "Lack of unit test coverage during refactoring"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "db.go",
+          "line_start": 19,
+          "line_end": 19,
+          "description": "Untested symbol InitDB"
+        }
+      ],
+      "recommended_action": "Author comprehensive unit tests in db_test.go covering functions: InitDB, WithTransaction.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+    },
+    {
+      "finding_id": "CTX-TST-UNTESTED-SYM-repository_go",
+      "source_finding_id": "CTX-TST-UNTESTED-SYM-repository_go",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "TEST_QUALITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Directory lacks co-located unit test files",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Exported Symbols Lack Automated Unit Tests (NewUserRepository, CreateUser, GetUserByID, FindUserByNameRaw, ListRecentUsers)",
+      "description": "Source file repository.go defines exported function(s) [NewUserRepository, CreateUser, GetUserByID, FindUserByNameRaw, ListRecentUsers] with 0 test invocations in package test suites.",
+      "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "repository.go"
+      ],
+      "impact_scope": "Package Regression Safety",
+      "potential_consequences": [
+        "Lack of unit test coverage during refactoring"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "repository.go",
+          "line_start": 16,
+          "line_end": 16,
+          "description": "Untested symbol NewUserRepository"
+        }
+      ],
+      "recommended_action": "Author comprehensive unit tests in repository_test.go covering functions: NewUserRepository, CreateUser, GetUserByID, FindUserByNameRaw, ListRecentUsers.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+    }
+  ]
+}

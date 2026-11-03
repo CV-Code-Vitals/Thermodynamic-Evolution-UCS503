@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-11-04T00:26:48.1099673+05:30",
+  "milestone": "3.3",
+  "phase": "0",
+  "purpose": "Frozen Predecessor Benchmark Performance Baseline Recomputed from Raw Telemetry",
+  "baseline_commit": "5d41b531f46d10bc972b2d1518a0fb4cf139c09a",
+  "branch": "validation/milestone-3.3-external-validation",
+  "suite_v2_regression": {
+    "suite_name": "Self-Healing Autonomous Benchmark Suite v2",
+    "total_fixtures": 96,
+    "defect_fixtures": 64,
+    "clean_controls": 32,
+    "confusion_matrix": {
+      "true_positives": 64,
+      "false_positives": 0,
+      "true_negatives": 32,
+      "false_negatives": 0
+    },
+    "metrics": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "specificity": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0,
+      "f1_score": 1.0
+    },
+    "reproduction_status": "VERIFIED_IDENTICAL"
+  },
+  "suite_v3_evaluation": {
+    "suite_name": "Self-Healing Autonomous Benchmark Suite v3 (Independent Multi-Category)",
+    "total_fixtures": 144,
+    "defect_fixtures": 96,
+    "clean_controls": 48,
+    "confusion_matrix": {
+      "true_positives": 96,
+      "false_positives": 0,
+      "true_negatives": 48,
+      "false_negatives": 0
+    },
+    "metrics": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "specificity": 1.0,
+      "false_positive_rate": 0.0,
+      "false_negative_rate": 0.0,
+      "f1_score": 1.0
+    },
+    "wilson_95_ci": {
+      "precision": {
+        "lower": 0.9615,
+        "upper": 1.0
+      },
+      "recall": {
+        "lower": 0.9615,
+        "upper": 1.0
+      },
+      "specificity": {
+        "lower": 0.9259,
+        "upper": 1.0
+      },
+      "fpr": {
+        "lower": 0.0,
+        "upper": 0.0741
+      },
+      "fnr": {
+        "lower": 0.0,
+        "upper": 0.0385
+      }
+    },
+    "reproduction_status": "VERIFIED_IDENTICAL"
+  },
+  "frozen_directive": "Diagnostic rules and thresholds are strictly frozen. No tuning or threshold modifications permitted prior to external unseen evaluations."
+}

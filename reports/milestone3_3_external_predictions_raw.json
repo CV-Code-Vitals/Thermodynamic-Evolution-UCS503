@@ -1,0 +1,1455 @@
+[
+  {
+    "repo_id": "ext-repo-01",
+    "repo_name": "http_router",
+    "repo_path": "..\\..\\..\\..\\benchmarks\\external_v1\\http_router",
+    "discovered_files": 6,
+    "raw_findings": [
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "filtered_findings": [
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-context_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (Next, Header, JSON)",
+        "description": "Source file context.go defines exported function(s) [Next, Header, JSON] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "context.go"
+        ],
+        "evidence": [
+          {
+            "file": "context.go",
+            "line_start": 32,
+            "line_end": 32,
+            "description": "Untested symbol Next"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in context_test.go covering functions: Next, Header, JSON.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-middleware_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (Logger, Recovery, UpstreamProbe)",
+        "description": "Source file middleware.go defines exported function(s) [Logger, Recovery, UpstreamProbe] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "middleware.go"
+        ],
+        "evidence": [
+          {
+            "file": "middleware.go",
+            "line_start": 12,
+            "line_end": 12,
+            "description": "Untested symbol Logger"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in middleware_test.go covering functions: Logger, Recovery, UpstreamProbe.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-router_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (Use, Handle, POST)",
+        "description": "Source file router.go defines exported function(s) [Use, Handle, POST] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "router.go"
+        ],
+        "evidence": [
+          {
+            "file": "router.go",
+            "line_start": 27,
+            "line_end": 27,
+            "description": "Untested symbol Use"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in router_test.go covering functions: Use, Handle, POST.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-trie_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (NewTrieNode, Insert, Search)",
+        "description": "Source file trie.go defines exported function(s) [NewTrieNode, Insert, Search] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "trie.go"
+        ],
+        "evidence": [
+          {
+            "file": "trie.go",
+            "line_start": 20,
+            "line_end": 20,
+            "description": "Untested symbol NewTrieNode"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in trie_test.go covering functions: NewTrieNode, Insert, Search.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "suppressed_count": -4,
+    "suppressions": null,
+    "duration_ms": 7
+  },
+  {
+    "repo_id": "ext-repo-02",
+    "repo_name": "sql_service",
+    "repo_path": "..\\..\\..\\..\\benchmarks\\external_v1\\sql_service",
+    "discovered_files": 6,
+    "raw_findings": [
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "filtered_findings": [
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-db_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (InitDB, WithTransaction)",
+        "description": "Source file db.go defines exported function(s) [InitDB, WithTransaction] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "db.go"
+        ],
+        "evidence": [
+          {
+            "file": "db.go",
+            "line_start": 19,
+            "line_end": 19,
+            "description": "Untested symbol InitDB"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in db_test.go covering functions: InitDB, WithTransaction.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-repository_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (NewUserRepository, CreateUser, GetUserByID, FindUserByNameRaw, ListRecentUsers)",
+        "description": "Source file repository.go defines exported function(s) [NewUserRepository, CreateUser, GetUserByID, FindUserByNameRaw, ListRecentUsers] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "repository.go"
+        ],
+        "evidence": [
+          {
+            "file": "repository.go",
+            "line_start": 16,
+            "line_end": 16,
+            "description": "Untested symbol NewUserRepository"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in repository_test.go covering functions: NewUserRepository, CreateUser, GetUserByID, FindUserByNameRaw, ListRecentUsers.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "suppressed_count": -2,
+    "suppressions": null,
+    "duration_ms": 7
+  },
+  {
+    "repo_id": "ext-repo-03",
+    "repo_name": "cache_engine",
+    "repo_path": "..\\..\\..\\..\\benchmarks\\external_v1\\cache_engine",
+    "discovered_files": 6,
+    "raw_findings": [
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "filtered_findings": [
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-cache_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (IsExpired, UnsafeKeys, SafeKeys)",
+        "description": "Source file cache.go defines exported function(s) [IsExpired, UnsafeKeys, SafeKeys] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "cache.go"
+        ],
+        "evidence": [
+          {
+            "file": "cache.go",
+            "line_start": 15,
+            "line_end": 15,
+            "description": "Untested symbol IsExpired"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in cache_test.go covering functions: IsExpired, UnsafeKeys, SafeKeys.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-eviction_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (EvictExpired, StartBackgroundEvictor)",
+        "description": "Source file eviction.go defines exported function(s) [EvictExpired, StartBackgroundEvictor] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "eviction.go"
+        ],
+        "evidence": [
+          {
+            "file": "eviction.go",
+            "line_start": 9,
+            "line_end": 9,
+            "description": "Untested symbol EvictExpired"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in eviction_test.go covering functions: EvictExpired, StartBackgroundEvictor.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-stats_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (RecordHit, RecordMiss, RecordSet, RecordDel, Snapshot)",
+        "description": "Source file stats.go defines exported function(s) [RecordHit, RecordMiss, RecordSet, RecordDel, Snapshot] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "stats.go"
+        ],
+        "evidence": [
+          {
+            "file": "stats.go",
+            "line_start": 14,
+            "line_end": 14,
+            "description": "Untested symbol RecordHit"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in stats_test.go covering functions: RecordHit, RecordMiss, RecordSet, RecordDel, Snapshot.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "suppressed_count": -3,
+    "suppressions": null,
+    "duration_ms": 7
+  },
+  {
+    "repo_id": "ext-repo-04",
+    "repo_name": "cli_tooling",
+    "repo_path": "..\\..\\..\\..\\benchmarks\\external_v1\\cli_tooling",
+    "discovered_files": 6,
+    "raw_findings": [
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "filtered_findings": [
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-DEFER-IN-LOOP-fs_go-L38",
+        "category": "RELIABILITY",
+        "severity": "MEDIUM",
+        "confidence": 0.92,
+        "title": "Resource Defer Statement Inside Loop Body",
+        "description": "Resource os.Open opened at line 38 uses defer inside loop, risking descriptor exhaustion.",
+        "root_cause": "Defer statement within loop boundary postpones resource cleanup until outer function termination.",
+        "affected_files": [
+          "fs.go"
+        ],
+        "evidence": [
+          {
+            "file": "fs.go",
+            "line_start": 38,
+            "line_end": 38,
+            "description": "defer f.Close() in loop"
+          }
+        ],
+        "recommended_action": "Wrap iteration in an anonymous function closure or invoke Close() explicitly at loop iteration end.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_LOOP_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-fs_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (ReadFileFromRoot, InspectFiles, SafeInspectFiles)",
+        "description": "Source file fs.go defines exported function(s) [ReadFileFromRoot, InspectFiles, SafeInspectFiles] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "fs.go"
+        ],
+        "evidence": [
+          {
+            "file": "fs.go",
+            "line_start": 12,
+            "line_end": 12,
+            "description": "Untested symbol ReadFileFromRoot"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in fs_test.go covering functions: ReadFileFromRoot, InspectFiles, SafeInspectFiles.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-runner_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (ExecuteShellScript)",
+        "description": "Source file runner.go defines exported function(s) [ExecuteShellScript] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "runner.go"
+        ],
+        "evidence": [
+          {
+            "file": "runner.go",
+            "line_start": 23,
+            "line_end": 23,
+            "description": "Untested symbol ExecuteShellScript"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in runner_test.go covering functions: ExecuteShellScript.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "suppressed_count": -3,
+    "suppressions": null,
+    "duration_ms": 5
+  },
+  {
+    "repo_id": "ext-repo-05",
+    "repo_name": "queue_worker",
+    "repo_path": "..\\..\\..\\..\\benchmarks\\external_v1\\queue_worker",
+    "discovered_files": 7,
+    "raw_findings": [
+      {
+        "finding_id": "RI-REL-IGNORED-ERR-INTERNAL_CONSUMER_CONSUMER_GO-L47",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 0.85,
+        "title": "Ignored function error return value",
+        "description": "File internal/consumer/consumer.go at line 47 explicitly discards error return value via blank identifier '_'.",
+        "root_cause": "Error return value suppressed without handling or logging.",
+        "affected_files": [
+          "internal/consumer/consumer.go"
+        ],
+        "evidence": [
+          {
+            "file": "internal/consumer/consumer.go",
+            "line_start": 47,
+            "line_end": 47,
+            "description": "_ = c.handler(ctx, msg)"
+          }
+        ],
+        "recommended_action": "Inspect returned error and propagate, log, or handle gracefully.",
+        "expected_benefit": "Prevents silent failures and simplifies operational diagnosis.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Error is checked and handled"
+        ],
+        "detection_method": "STATIC_ERROR_PATTERN",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "filtered_findings": [
+      {
+        "finding_id": "RI-REL-IGNORED-ERR-INTERNAL_CONSUMER_CONSUMER_GO-L47",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 0.85,
+        "title": "Ignored function error return value",
+        "description": "File internal/consumer/consumer.go at line 47 explicitly discards error return value via blank identifier '_'.",
+        "root_cause": "Error return value suppressed without handling or logging.",
+        "affected_files": [
+          "internal/consumer/consumer.go"
+        ],
+        "evidence": [
+          {
+            "file": "internal/consumer/consumer.go",
+            "line_start": 47,
+            "line_end": 47,
+            "description": "_ = c.handler(ctx, msg)"
+          }
+        ],
+        "recommended_action": "Inspect returned error and propagate, log, or handle gracefully.",
+        "expected_benefit": "Prevents silent failures and simplifies operational diagnosis.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Error is checked and handled"
+        ],
+        "detection_method": "STATIC_ERROR_PATTERN",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-QUAL-NOCI-WORKFLOWS",
+        "category": "TEST_QUALITY",
+        "severity": "HIGH",
+        "confidence": 0.95,
+        "title": "No continuous integration (CI) workflows detected",
+        "description": "The repository contains no CI workflows in .github/workflows, leaving code changes unverified before merge.",
+        "root_cause": "Absence of continuous integration test runners.",
+        "affected_files": [
+          ".github/workflows"
+        ],
+        "evidence": [
+          {
+            "file": ".github/workflows",
+            "description": "Directory empty or missing"
+          }
+        ],
+        "recommended_action": "Create automated CI workflows in .github/workflows for test execution and linting.",
+        "expected_benefit": "Continuous gate verification on every commit and pull request.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Workflow runs on push/pull_request and executes test suites"
+        ],
+        "detection_method": "CI_WORKFLOW_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-README",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing README documentation",
+        "description": "No root or top-level README file was detected, hindering developer onboarding and automated repository context ingestion.",
+        "root_cause": "Documentation omitted.",
+        "affected_files": [
+          "README.md"
+        ],
+        "evidence": null,
+        "recommended_action": "Create a README.md documenting architecture, build steps, and prerequisites.",
+        "expected_benefit": "Provides clear onboarding and automated documentation ingestion context.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "README.md exists and is populated"
+        ],
+        "detection_method": "DOCUMENTATION_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-HYG-MISSING-LICENSE",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 1,
+        "title": "Missing repository LICENSE file",
+        "description": "No software license file (LICENSE or COPYING) was detected in repository root.",
+        "root_cause": "License file omitted.",
+        "affected_files": [
+          "LICENSE"
+        ],
+        "evidence": null,
+        "recommended_action": "Add an explicit LICENSE file (e.g. Apache-2.0 or MIT) to govern code redistribution and usage.",
+        "expected_benefit": "Clarifies legal rights and license boundaries.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "LICENSE file exists"
+        ],
+        "detection_method": "LICENSE_AUDIT",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "RI-DEP-GOSUM-MISSING-ROOT",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.95,
+        "title": "Missing go.sum lockfile",
+        "description": "Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build verification.",
+        "root_cause": "go.sum file not committed or generated",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "description": "go.mod without adjacent go.sum"
+          }
+        ],
+        "recommended_action": "Run 'go mod download' or 'go mod tidy' and commit go.sum.",
+        "expected_benefit": "Ensures reproducible and tamper-proof Go dependency builds.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "go.sum exists adjacent to go.mod"
+        ],
+        "detection_method": "MANIFEST_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-pkg-retry-retry_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (RetryWithTimerLeak)",
+        "description": "Source file pkg/retry/retry.go defines exported function(s) [RetryWithTimerLeak] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "pkg/retry/retry.go"
+        ],
+        "evidence": [
+          {
+            "file": "pkg/retry/retry.go",
+            "line_start": 59,
+            "line_end": 59,
+            "description": "Untested symbol RetryWithTimerLeak"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in pkg/retry/retry_test.go covering functions: RetryWithTimerLeak.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (ParseRawPayload)",
+        "description": "Source file internal/consumer/consumer.go defines exported function(s) [ParseRawPayload] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "internal/consumer/consumer.go"
+        ],
+        "evidence": [
+          {
+            "file": "internal/consumer/consumer.go",
+            "line_start": 57,
+            "line_end": 57,
+            "description": "Untested symbol ParseRawPayload"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in internal/consumer/consumer_test.go covering functions: ParseRawPayload.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      }
+    ],
+    "suppressed_count": -2,
+    "suppressions": null,
+    "duration_ms": 7
+  }
+]
