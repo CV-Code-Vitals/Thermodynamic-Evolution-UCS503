@@ -69,17 +69,16 @@ func (sa *StructuralAnalyzer) convertReportToFindings(report *agent.Thermodynami
 
 	for _, fr := range report.FileReports {
 		relPath := filepath.ToSlash(fr.FilePath)
-		if strings.HasPrefix(relPath, sa.repoRoot) {
-			rel, err := filepath.Rel(sa.repoRoot, fr.FilePath)
-			if err == nil {
-				relPath = filepath.ToSlash(rel)
-			}
+		rootSlash := filepath.ToSlash(sa.repoRoot)
+		if strings.HasPrefix(strings.ToLower(relPath), strings.ToLower(rootSlash)) {
+			relPath = strings.TrimPrefix(relPath, rootSlash)
+			relPath = strings.TrimPrefix(relPath, "/")
 		}
 
 		// Parse errors
 		if fr.ParseErrors {
 			findings = append(findings, Finding{
-				FindingID:   fmt.Sprintf("RI-STR-PARSE-%s", sanitizeID(relPath)),
+				FindingID:   fmt.Sprintf("RI-STR-PARSE-ERROR-%s", sanitizeID(relPath)),
 				Category:    CategoryStructural,
 				Severity:    SeverityMedium,
 				Confidence:  1.0,
@@ -104,7 +103,7 @@ func (sa *StructuralAnalyzer) convertReportToFindings(report *agent.Thermodynami
 			// Deep Nesting
 			if hs.Metrics.MaxNestingDepth >= 4 {
 				findings = append(findings, Finding{
-					FindingID:   fmt.Sprintf("RI-STR-NEST-%s-%s-L%d", sanitizeID(relPath), hs.FunctionName, hs.LineNumber),
+					FindingID:   fmt.Sprintf("RI-STR-HIGH-NESTING-%s-%s-L%d", sanitizeID(relPath), hs.FunctionName, hs.LineNumber),
 					Category:    CategoryStructural,
 					Severity:    SeverityMedium,
 					Confidence:  0.95,
@@ -140,7 +139,7 @@ func (sa *StructuralAnalyzer) convertReportToFindings(report *agent.Thermodynami
 					sev = SeverityHigh
 				}
 				findings = append(findings, Finding{
-					FindingID:   fmt.Sprintf("RI-STR-COMPLEX-%s-%s-L%d", sanitizeID(relPath), hs.FunctionName, hs.LineNumber),
+					FindingID:   fmt.Sprintf("RI-STR-HIGH-COMPLEXITY-%s-%s-L%d", sanitizeID(relPath), hs.FunctionName, hs.LineNumber),
 					Category:    CategoryStructural,
 					Severity:    sev,
 					Confidence:  0.95,
@@ -170,7 +169,7 @@ func (sa *StructuralAnalyzer) convertReportToFindings(report *agent.Thermodynami
 			// Large AST node volume
 			if hs.Metrics.ASTNodeCount >= 400 {
 				findings = append(findings, Finding{
-					FindingID:   fmt.Sprintf("RI-STR-VOLUME-%s-%s-L%d", sanitizeID(relPath), hs.FunctionName, hs.LineNumber),
+					FindingID:   fmt.Sprintf("RI-STR-LARGE-AST-VOLUME-%s-%s-L%d", sanitizeID(relPath), hs.FunctionName, hs.LineNumber),
 					Category:    CategoryStructural,
 					Severity:    SeverityLow,
 					Confidence:  0.90,

@@ -153,6 +153,16 @@
     "E:/SWE/go-backend/agent/mutation.go",
     "E:/SWE/go-backend/agent/repo_intel/aggregator.go",
     "E:/SWE/go-backend/agent/repo_intel/architecture.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/calibration.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/correlation.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/readiness.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/severity.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/types.go",
+    "E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
     "E:/SWE/go-backend/agent/repo_intel/discovery.go",
     "E:/SWE/go-backend/agent/repo_intel/manifests.go",
     "E:/SWE/go-backend/agent/repo_intel/orchestrator.go",
@@ -167,6 +177,7 @@
     "E:/SWE/go-backend/agent/workspace_test.go",
     "E:/SWE/go-backend/broker.go",
     "E:/SWE/go-backend/broker_workspace.go",
+    "E:/SWE/go-backend/cmd/diagnostic/main.go",
     "E:/SWE/go-backend/cmd/repo_intel/main.go",
     "E:/SWE/go-backend/deliverables.go",
     "E:/SWE/go-backend/evolve.go",
@@ -270,6 +281,10 @@
     "E:/SWE/go-backend/uploads/extracted_code_1793690681747_e951338f/thermodynamic_report.json",
     "E:/SWE/go-backend/uploads/extracted_code_1793693230230_afa97365/pipeline.py",
     "E:/SWE/go-backend/uploads/extracted_code_1793693230230_afa97365/thermodynamic_report.json",
+    "E:/SWE/go-backend/uploads/extracted_code_1793696305789_05414004/pipeline.py",
+    "E:/SWE/go-backend/uploads/extracted_code_1793696305789_05414004/thermodynamic_report.json",
+    "E:/SWE/go-backend/uploads/extracted_code_1793696435565_16a5cf9d/pipeline.py",
+    "E:/SWE/go-backend/uploads/extracted_code_1793696435565_16a5cf9d/thermodynamic_report.json",
     "E:/SWE/go-backend/workspace.go",
     "E:/SWE/go-backend/workspace_test.go",
     "E:/SWE/graph-visualizer/OrbitControls.js",
@@ -292,6 +307,7 @@
     "E:/SWE/nginx/nginx.conf",
     "E:/SWE/parser/Cargo.toml",
     "E:/SWE/parser/src/main.rs",
+    "E:/SWE/reports/diagnostic_quality_evaluation.md",
     "E:/SWE/reports/repository_dependency_graph.json",
     "E:/SWE/reports/repository_intelligence.md",
     "E:/SWE/samples/benchmark/benchmark_target.go",
@@ -317,6 +333,8 @@
     "E:/SWE/security_audit/MILESTONE2_6_DEPLOYMENT_READINESS_REPORT.md",
     "E:/SWE/security_audit/MILESTONE2_7_STAGING_RELEASE_GATE_REPORT.md",
     "E:/SWE/security_audit/MILESTONE2_8_PHASE0_CAPABILITY_AUDIT.md",
+    "E:/SWE/security_audit/MILESTONE2_8_PHASE1_IMPLEMENTATION_REPORT.md",
+    "E:/SWE/security_audit/MILESTONE2_8_PHASE2_INPUT_AUDIT.md",
     "E:/SWE/security_audit/MILESTONE2_MUTATION_AND_SEARCH_REPORT.md",
     "E:/SWE/serve.js",
     "E:/SWE/source-stager/README.md",
@@ -412,6 +430,7 @@
     "github.com/lib/pq",
     "github.com/saksham/self-healing-pipeline/agent",
     "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+    "github.com/saksham/self-healing-pipeline/agent/repo_intel/diagnostic",
     "go-backend/agent/agent.go",
     "go-backend/agent/annealer.go",
     "go-backend/agent/broker_evaluator.go",
@@ -420,6 +439,16 @@
     "go-backend/agent/mutation.go",
     "go-backend/agent/repo_intel/aggregator.go",
     "go-backend/agent/repo_intel/architecture.go",
+    "go-backend/agent/repo_intel/diagnostic/calibration.go",
+    "go-backend/agent/repo_intel/diagnostic/correlation.go",
+    "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+    "go-backend/agent/repo_intel/diagnostic/engine.go",
+    "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+    "go-backend/agent/repo_intel/diagnostic/readiness.go",
+    "go-backend/agent/repo_intel/diagnostic/reporter.go",
+    "go-backend/agent/repo_intel/diagnostic/severity.go",
+    "go-backend/agent/repo_intel/diagnostic/types.go",
+    "go-backend/agent/repo_intel/diagnostic/validator.go",
     "go-backend/agent/repo_intel/discovery.go",
     "go-backend/agent/repo_intel/manifests.go",
     "go-backend/agent/repo_intel/orchestrator.go",
@@ -432,6 +461,7 @@
     "go-backend/agent/workspace.go",
     "go-backend/broker.go",
     "go-backend/broker_workspace.go",
+    "go-backend/cmd/diagnostic/main.go",
     "go-backend/cmd/repo_intel/main.go",
     "go-backend/evolve.go",
     "go-backend/evolve_stream_test.go",
@@ -1075,6 +1105,69 @@
       "confidence": 0.95
     },
     {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/diagnostic_test.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
+      "confidence": 0.95
+    },
+    {
       "source": "go-backend/agent/repo_intel/orchestrator.go",
       "target": "go-backend/agent/strategy.go",
       "type": "imports",
@@ -1131,10 +1224,199 @@
       "confidence": 0.95
     },
     {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/validator.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/reporter.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
+      "confidence": 0.95
+    },
+    {
       "source": "admin-portal/tests/vite-config.test.js",
       "target": "admin-portal/vite.config.js",
       "type": "imports",
       "evidence": "Source: admin-portal/tests/vite-config.test.js -\u003e Target: admin-portal/vite.config.js (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/evaluator.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
       "confidence": 0.95
     },
     {
@@ -1215,62 +1497,6 @@
       "confidence": 0.95
     },
     {
-      "source": "go-backend/agent/repo_intel/structural.go",
-      "target": "go-backend/agent/strategy.go",
-      "type": "imports",
-      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/strategy.go (imports)",
-      "confidence": 0.95
-    },
-    {
-      "source": "go-backend/agent/repo_intel/structural.go",
-      "target": "go-backend/agent/workspace.go",
-      "type": "imports",
-      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/workspace.go (imports)",
-      "confidence": 0.95
-    },
-    {
-      "source": "go-backend/agent/repo_intel/structural.go",
-      "target": "go-backend/agent/evaluator.go",
-      "type": "imports",
-      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/evaluator.go (imports)",
-      "confidence": 0.95
-    },
-    {
-      "source": "go-backend/agent/repo_intel/structural.go",
-      "target": "go-backend/agent/broker_evaluator.go",
-      "type": "imports",
-      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/broker_evaluator.go (imports)",
-      "confidence": 0.95
-    },
-    {
-      "source": "go-backend/agent/repo_intel/structural.go",
-      "target": "go-backend/agent/energy.go",
-      "type": "imports",
-      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/energy.go (imports)",
-      "confidence": 0.95
-    },
-    {
-      "source": "go-backend/agent/repo_intel/structural.go",
-      "target": "go-backend/agent/annealer.go",
-      "type": "imports",
-      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/annealer.go (imports)",
-      "confidence": 0.95
-    },
-    {
-      "source": "go-backend/agent/repo_intel/structural.go",
-      "target": "go-backend/agent/agent.go",
-      "type": "imports",
-      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/agent.go (imports)",
-      "confidence": 0.95
-    },
-    {
-      "source": "go-backend/agent/repo_intel/structural.go",
-      "target": "go-backend/agent/mutation.go",
-      "type": "imports",
-      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/mutation.go (imports)",
-      "confidence": 0.95
-    },
-    {
       "source": "admin-portal/tests/measurements.test.js",
       "target": "graph-visualizer/measurements.mjs",
       "type": "imports",
@@ -1341,6 +1567,125 @@
       "confidence": 0.95
     },
     {
+      "source": "go-backend/agent/repo_intel/structural.go",
+      "target": "go-backend/agent/strategy.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/strategy.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/structural.go",
+      "target": "go-backend/agent/workspace.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/workspace.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/structural.go",
+      "target": "go-backend/agent/evaluator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/evaluator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/structural.go",
+      "target": "go-backend/agent/broker_evaluator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/broker_evaluator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/structural.go",
+      "target": "go-backend/agent/energy.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/energy.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/structural.go",
+      "target": "go-backend/agent/annealer.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/annealer.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/structural.go",
+      "target": "go-backend/agent/agent.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/agent.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/structural.go",
+      "target": "go-backend/agent/mutation.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/structural.go -\u003e Target: go-backend/agent/mutation.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/severity.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
+      "confidence": 0.95
+    },
+    {
       "source": "admin-portal/tests/account.test.js",
       "target": "graph-visualizer/account.mjs",
       "type": "imports",
@@ -1348,10 +1693,199 @@
       "confidence": 0.95
     },
     {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/readiness.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/calibration.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
+      "confidence": 0.95
+    },
+    {
       "source": "admin-portal/tests/archive-download.test.js",
       "target": "admin-portal/src/archive-download.js",
       "type": "imports",
       "evidence": "Source: admin-portal/tests/archive-download.test.js -\u003e Target: admin-portal/src/archive-download.js (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/engine.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
       "confidence": 0.95
     },
     {
@@ -1439,6 +1973,69 @@
       "confidence": 0.95
     },
     {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/validator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/validator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/reporter.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/correlation.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/correlation.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/evaluator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/severity.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/severity.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/readiness.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/calibration.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/engine.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/engine.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/cmd/diagnostic/main.go",
+      "target": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/cmd/diagnostic/main.go -\u003e Target: go-backend/agent/repo_intel/diagnostic/types.go (imports)",
+      "confidence": 0.95
+    },
+    {
       "source": "go-backend/cmd/repo_intel/main.go",
       "target": "go-backend/agent/repo_intel/discovery.go",
       "type": "imports",
@@ -1499,6 +2096,69 @@
       "target": "go-backend/agent/repo_intel/types.go",
       "type": "imports",
       "evidence": "Source: go-backend/cmd/repo_intel/main.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/discovery.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/discovery.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/manifests.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/manifests.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/architecture.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/architecture.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/quality.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/quality.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/orchestrator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/orchestrator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/aggregator.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/aggregator.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/reliability_security.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/reliability_security.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/structural.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/structural.go (imports)",
+      "confidence": 0.95
+    },
+    {
+      "source": "go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "go-backend/agent/repo_intel/types.go",
+      "type": "imports",
+      "evidence": "Source: go-backend/agent/repo_intel/diagnostic/types.go -\u003e Target: go-backend/agent/repo_intel/types.go (imports)",
       "confidence": 0.95
     },
     {
@@ -6297,6 +6957,48 @@
       "confidence": 0.9
     },
     {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "encoding/json",
+      "type": "import",
+      "evidence": "Import 'encoding/json' in E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "os",
+      "type": "import",
+      "evidence": "Import 'os' in E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "path/filepath",
+      "type": "import",
+      "evidence": "Import 'path/filepath' in E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "target": "testing",
+      "type": "import",
+      "evidence": "Import 'testing' in E:/SWE/go-backend/agent/repo_intel/diagnostic/diagnostic_test.go",
+      "confidence": 0.9
+    },
+    {
       "source": "E:/SWE/admin-portal/vite.config.js",
       "target": "@vitejs/plugin-react",
       "type": "import",
@@ -6448,6 +7150,41 @@
       "target": "time",
       "type": "import",
       "evidence": "Import 'time' in E:/SWE/go-backend/scan_handler_test.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "os",
+      "type": "import",
+      "evidence": "Import 'os' in E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "path/filepath",
+      "type": "import",
+      "evidence": "Import 'path/filepath' in E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/diagnostic/validator.go",
       "confidence": 0.9
     },
     {
@@ -6808,6 +7545,62 @@
       "confidence": 0.9
     },
     {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "encoding/json",
+      "type": "import",
+      "evidence": "Import 'encoding/json' in E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "os",
+      "type": "import",
+      "evidence": "Import 'os' in E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "path/filepath",
+      "type": "import",
+      "evidence": "Import 'path/filepath' in E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "sort",
+      "type": "import",
+      "evidence": "Import 'sort' in E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "target": "time",
+      "type": "import",
+      "evidence": "Import 'time' in E:/SWE/go-backend/agent/repo_intel/diagnostic/reporter.go",
+      "confidence": 0.9
+    },
+    {
       "source": "E:/SWE/go-backend/workspace_test.go",
       "target": "crypto/sha256",
       "type": "import",
@@ -6875,6 +7668,27 @@
       "target": "node:test",
       "type": "import",
       "evidence": "Import 'node:test' in E:/SWE/admin-portal/tests/vite-config.test.js",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/correlation.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/diagnostic/correlation.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/correlation.go",
+      "target": "sort",
+      "type": "import",
+      "evidence": "Import 'sort' in E:/SWE/go-backend/agent/repo_intel/diagnostic/correlation.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/correlation.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/diagnostic/correlation.go",
       "confidence": 0.9
     },
     {
@@ -6959,6 +7773,48 @@
       "target": "time",
       "type": "import",
       "evidence": "Import 'time' in E:/SWE/go-backend/scanner.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "os",
+      "type": "import",
+      "evidence": "Import 'os' in E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "path/filepath",
+      "type": "import",
+      "evidence": "Import 'path/filepath' in E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
+      "target": "time",
+      "type": "import",
+      "evidence": "Import 'time' in E:/SWE/go-backend/agent/repo_intel/diagnostic/evaluator.go",
       "confidence": 0.9
     },
     {
@@ -7368,69 +8224,6 @@
       "confidence": 0.9
     },
     {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "context",
-      "type": "import",
-      "evidence": "Import 'context' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "encoding/json",
-      "type": "import",
-      "evidence": "Import 'encoding/json' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "fmt",
-      "type": "import",
-      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "github.com/saksham/self-healing-pipeline/agent",
-      "type": "import",
-      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "os",
-      "type": "import",
-      "evidence": "Import 'os' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "os/exec",
-      "type": "import",
-      "evidence": "Import 'os/exec' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "path/filepath",
-      "type": "import",
-      "evidence": "Import 'path/filepath' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "strings",
-      "type": "import",
-      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
-      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "target": "time",
-      "type": "import",
-      "evidence": "Import 'time' in E:/SWE/go-backend/agent/repo_intel/structural.go",
-      "confidence": 0.9
-    },
-    {
       "source": "E:/SWE/admin-portal/tests/measurements.test.js",
       "target": "../../graph-visualizer/measurements.mjs",
       "type": "import",
@@ -7578,6 +8371,90 @@
       "confidence": 0.9
     },
     {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "context",
+      "type": "import",
+      "evidence": "Import 'context' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "encoding/json",
+      "type": "import",
+      "evidence": "Import 'encoding/json' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "os",
+      "type": "import",
+      "evidence": "Import 'os' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "os/exec",
+      "type": "import",
+      "evidence": "Import 'os/exec' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "path/filepath",
+      "type": "import",
+      "evidence": "Import 'path/filepath' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "target": "time",
+      "type": "import",
+      "evidence": "Import 'time' in E:/SWE/go-backend/agent/repo_intel/structural.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/diagnostic/severity.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/severity.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/severity.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/diagnostic/severity.go",
+      "confidence": 0.9
+    },
+    {
       "source": "E:/SWE/admin-portal/tests/account.test.js",
       "target": "../../graph-visualizer/account.mjs",
       "type": "import",
@@ -7596,6 +8473,20 @@
       "target": "node:test",
       "type": "import",
       "evidence": "Import 'node:test' in E:/SWE/admin-portal/tests/account.test.js",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/readiness.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/diagnostic/readiness.go",
       "confidence": 0.9
     },
     {
@@ -7631,6 +8522,27 @@
       "target": "node:url",
       "type": "import",
       "evidence": "Import 'node:url' in E:/SWE/scripts/validate-sandbox-host.mjs",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/calibration.go",
+      "target": "strings",
+      "type": "import",
+      "evidence": "Import 'strings' in E:/SWE/go-backend/agent/repo_intel/diagnostic/calibration.go",
       "confidence": 0.9
     },
     {
@@ -7823,6 +8735,41 @@
       "confidence": 0.9
     },
     {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "encoding/json",
+      "type": "import",
+      "evidence": "Import 'encoding/json' in E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "os",
+      "type": "import",
+      "evidence": "Import 'os' in E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "target": "time",
+      "type": "import",
+      "evidence": "Import 'time' in E:/SWE/go-backend/agent/repo_intel/diagnostic/engine.go",
+      "confidence": 0.9
+    },
+    {
       "source": "E:/SWE/go-backend/evolve_stream_test.go",
       "target": "context",
       "type": "import",
@@ -7988,6 +8935,48 @@
       "target": "testing",
       "type": "import",
       "evidence": "Import 'testing' in E:/SWE/samples/benchmark/benchmark_target_test.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "target": "flag",
+      "type": "import",
+      "evidence": "Import 'flag' in E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "target": "fmt",
+      "type": "import",
+      "evidence": "Import 'fmt' in E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel/diagnostic",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel/diagnostic' in E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "target": "log",
+      "type": "import",
+      "evidence": "Import 'log' in E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "target": "os",
+      "type": "import",
+      "evidence": "Import 'os' in E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/cmd/diagnostic/main.go",
+      "target": "path/filepath",
+      "type": "import",
+      "evidence": "Import 'path/filepath' in E:/SWE/go-backend/cmd/diagnostic/main.go",
       "confidence": 0.9
     },
     {
@@ -8170,6 +9159,27 @@
       "target": "node:test",
       "type": "import",
       "evidence": "Import 'node:test' in E:/SWE/tests/graph-visualizer-config.test.mjs",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "encoding/json",
+      "type": "import",
+      "evidence": "Import 'encoding/json' in E:/SWE/go-backend/agent/repo_intel/diagnostic/types.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "github.com/saksham/self-healing-pipeline/agent/repo_intel",
+      "type": "import",
+      "evidence": "Import 'github.com/saksham/self-healing-pipeline/agent/repo_intel' in E:/SWE/go-backend/agent/repo_intel/diagnostic/types.go",
+      "confidence": 0.9
+    },
+    {
+      "source": "E:/SWE/go-backend/agent/repo_intel/diagnostic/types.go",
+      "target": "time",
+      "type": "import",
+      "evidence": "Import 'time' in E:/SWE/go-backend/agent/repo_intel/diagnostic/types.go",
       "confidence": 0.9
     },
     {

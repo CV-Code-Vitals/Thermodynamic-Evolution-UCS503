@@ -59,13 +59,17 @@ func (ma *ManifestAnalyzer) AnalyzeManifests(manifestPaths []string) ([]Manifest
 			info.Dependencies = deps
 			findings = append(findings, f...)
 			// Check for go.sum
+			dirID := sanitizeID(dir)
+			if dirID == "" {
+				dirID = "ROOT"
+			}
 			lockRel := filepath.ToSlash(filepath.Join(dir, "go.sum"))
 			if fileExists(filepath.Join(ma.repoRoot, filepath.FromSlash(lockRel))) {
 				info.HasLockfile = true
 				info.LockfilePath = lockRel
 			} else {
 				findings = append(findings, Finding{
-					FindingID:   fmt.Sprintf("RI-DEP-GOSUM-%s", sanitizeID(dir)),
+					FindingID:   fmt.Sprintf("RI-DEP-GOSUM-MISSING-%s", dirID),
 					Category:    CategoryDependency,
 					Severity:    SeverityMedium,
 					Confidence:  0.95,
@@ -101,6 +105,10 @@ func (ma *ManifestAnalyzer) AnalyzeManifests(manifestPaths []string) ([]Manifest
 			deps, f := parsePackageJSON(fullPath, relPath)
 			info.Dependencies = deps
 			findings = append(findings, f...)
+			dirID := sanitizeID(dir)
+			if dirID == "" {
+				dirID = "ROOT"
+			}
 			// Check package-lock.json / pnpm-lock.yaml / yarn.lock
 			for _, lockName := range []string{"package-lock.json", "pnpm-lock.yaml", "yarn.lock"} {
 				lockRel := filepath.ToSlash(filepath.Join(dir, lockName))
@@ -112,7 +120,7 @@ func (ma *ManifestAnalyzer) AnalyzeManifests(manifestPaths []string) ([]Manifest
 			}
 			if !info.HasLockfile {
 				findings = append(findings, Finding{
-					FindingID:   fmt.Sprintf("RI-DEP-NOLOCK-%s", sanitizeID(dir)),
+					FindingID:   fmt.Sprintf("RI-DEP-LOCKFILE-MISSING-%s", dirID),
 					Category:    CategoryDependency,
 					Severity:    SeverityMedium,
 					Confidence:  0.90,
@@ -340,7 +348,7 @@ func parseDockerfile(fullPath, relPath string) ([]ManifestDependency, []Finding)
 			})
 			if strings.HasSuffix(baseImg, ":latest") || !strings.Contains(baseImg, ":") {
 				findings = append(findings, Finding{
-					FindingID:   fmt.Sprintf("RI-SEC-DOCKER-LATEST-%s-L%d", sanitizeID(relPath), lineNum),
+					FindingID:   fmt.Sprintf("RI-SEC-DOCKER-UNPINNED-BASE-%s-L%d", sanitizeID(relPath), lineNum),
 					Category:    CategorySecurity,
 					Severity:    SeverityLow,
 					Confidence:  0.90,
@@ -368,7 +376,7 @@ func parseDockerfile(fullPath, relPath string) ([]ManifestDependency, []Finding)
 
 	if !hasUserDirective {
 		findings = append(findings, Finding{
-			FindingID:   fmt.Sprintf("RI-SEC-DOCKER-ROOT-%s", sanitizeID(relPath)),
+			FindingID:   fmt.Sprintf("RI-SEC-DOCKER-ROOT-USER-%s", sanitizeID(relPath)),
 			Category:    CategorySecurity,
 			Severity:    SeverityMedium,
 			Confidence:  0.85,
@@ -401,8 +409,9 @@ func sanitizeID(s string) string {
 	s = strings.ReplaceAll(s, "\\", "_")
 	s = strings.ReplaceAll(s, ".", "_")
 	s = strings.ReplaceAll(s, "-", "_")
+	s = strings.ToUpper(s)
 	if s == "" {
-		return "root"
+		return "ROOT"
 	}
 	return s
 }
