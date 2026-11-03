@@ -1,0 +1,431 @@
+{
+  "timestamp": "2026-11-03T20:59:45.3192468+05:30",
+  "benchmark_name": "Self-Healing Autonomous Benchmark Suite v2 (Expanded Multi-Category)",
+  "benchmark_version": "2.0.0",
+  "total_fixtures": 96,
+  "total_defects": 64,
+  "total_clean": 32,
+  "confusion_matrix": {
+    "false_negatives": 2,
+    "false_positives": 10,
+    "true_negatives": 22,
+    "true_positives": 62
+  },
+  "overall_precision": {
+    "value": 0.8611,
+    "lower_95": 0.7629,
+    "upper_95": 0.9228,
+    "sample_numerator": 62,
+    "sample_denominator": 72
+  },
+  "overall_recall": {
+    "value": 0.9688,
+    "lower_95": 0.893,
+    "upper_95": 0.9914,
+    "sample_numerator": 62,
+    "sample_denominator": 64
+  },
+  "overall_specificity": {
+    "value": 0.6875,
+    "lower_95": 0.5143,
+    "upper_95": 0.8205,
+    "sample_numerator": 22,
+    "sample_denominator": 32
+  },
+  "overall_f1_score": 0.9118,
+  "overall_fpr": {
+    "value": 0.3125,
+    "lower_95": 0.1795,
+    "upper_95": 0.4857,
+    "sample_numerator": 10,
+    "sample_denominator": 32
+  },
+  "overall_fnr": {
+    "value": 0.0313,
+    "lower_95": 0.0086,
+    "upper_95": 0.107,
+    "sample_numerator": 2,
+    "sample_denominator": 64
+  },
+  "per_category_metrics": {
+    "ARCHITECTURE": {
+      "category": "ARCHITECTURE",
+      "total_fixtures": 12,
+      "defect_count": 8,
+      "clean_count": 4,
+      "true_positives": 8,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 4,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.5101,
+        "upper_95": 1,
+        "sample_numerator": 4,
+        "sample_denominator": 4
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.4899,
+        "sample_numerator": 0,
+        "sample_denominator": 4
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3244,
+        "sample_numerator": 0,
+        "sample_denominator": 8
+      }
+    },
+    "DEPENDENCY": {
+      "category": "DEPENDENCY",
+      "total_fixtures": 12,
+      "defect_count": 8,
+      "clean_count": 4,
+      "true_positives": 8,
+      "false_negatives": 0,
+      "false_positives": 2,
+      "true_negatives": 2,
+      "precision": {
+        "value": 0.8,
+        "lower_95": 0.4902,
+        "upper_95": 0.9433,
+        "sample_numerator": 8,
+        "sample_denominator": 10
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "specificity": {
+        "value": 0.5,
+        "lower_95": 0.15,
+        "upper_95": 0.85,
+        "sample_numerator": 2,
+        "sample_denominator": 4
+      },
+      "f1_score": 0.8889,
+      "fpr": {
+        "value": 0.5,
+        "lower_95": 0.15,
+        "upper_95": 0.85,
+        "sample_numerator": 2,
+        "sample_denominator": 4
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3244,
+        "sample_numerator": 0,
+        "sample_denominator": 8
+      }
+    },
+    "DOCUMENTATION": {
+      "category": "DOCUMENTATION",
+      "total_fixtures": 12,
+      "defect_count": 8,
+      "clean_count": 4,
+      "true_positives": 8,
+      "false_negatives": 0,
+      "false_positives": 4,
+      "true_negatives": 0,
+      "precision": {
+        "value": 0.6667,
+        "lower_95": 0.3906,
+        "upper_95": 0.8619,
+        "sample_numerator": 8,
+        "sample_denominator": 12
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "specificity": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.4899,
+        "sample_numerator": 0,
+        "sample_denominator": 4
+      },
+      "f1_score": 0.8,
+      "fpr": {
+        "value": 1,
+        "lower_95": 0.5101,
+        "upper_95": 1,
+        "sample_numerator": 4,
+        "sample_denominator": 4
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3244,
+        "sample_numerator": 0,
+        "sample_denominator": 8
+      }
+    },
+    "MAINTAINABILITY": {
+      "category": "MAINTAINABILITY",
+      "total_fixtures": 12,
+      "defect_count": 8,
+      "clean_count": 4,
+      "true_positives": 8,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 4,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.5101,
+        "upper_95": 1,
+        "sample_numerator": 4,
+        "sample_denominator": 4
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.4899,
+        "sample_numerator": 0,
+        "sample_denominator": 4
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3244,
+        "sample_numerator": 0,
+        "sample_denominator": 8
+      }
+    },
+    "RELIABILITY": {
+      "category": "RELIABILITY",
+      "total_fixtures": 12,
+      "defect_count": 8,
+      "clean_count": 4,
+      "true_positives": 8,
+      "false_negatives": 0,
+      "false_positives": 2,
+      "true_negatives": 2,
+      "precision": {
+        "value": 0.8,
+        "lower_95": 0.4902,
+        "upper_95": 0.9433,
+        "sample_numerator": 8,
+        "sample_denominator": 10
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "specificity": {
+        "value": 0.5,
+        "lower_95": 0.15,
+        "upper_95": 0.85,
+        "sample_numerator": 2,
+        "sample_denominator": 4
+      },
+      "f1_score": 0.8889,
+      "fpr": {
+        "value": 0.5,
+        "lower_95": 0.15,
+        "upper_95": 0.85,
+        "sample_numerator": 2,
+        "sample_denominator": 4
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3244,
+        "sample_numerator": 0,
+        "sample_denominator": 8
+      }
+    },
+    "SECURITY": {
+      "category": "SECURITY",
+      "total_fixtures": 12,
+      "defect_count": 8,
+      "clean_count": 4,
+      "true_positives": 6,
+      "false_negatives": 2,
+      "false_positives": 0,
+      "true_negatives": 4,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.6097,
+        "upper_95": 1,
+        "sample_numerator": 6,
+        "sample_denominator": 6
+      },
+      "recall": {
+        "value": 0.75,
+        "lower_95": 0.4093,
+        "upper_95": 0.9285,
+        "sample_numerator": 6,
+        "sample_denominator": 8
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.5101,
+        "upper_95": 1,
+        "sample_numerator": 4,
+        "sample_denominator": 4
+      },
+      "f1_score": 0.8571,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.4899,
+        "sample_numerator": 0,
+        "sample_denominator": 4
+      },
+      "fnr": {
+        "value": 0.25,
+        "lower_95": 0.0715,
+        "upper_95": 0.5907,
+        "sample_numerator": 2,
+        "sample_denominator": 8
+      }
+    },
+    "STRUCTURAL": {
+      "category": "STRUCTURAL",
+      "total_fixtures": 12,
+      "defect_count": 8,
+      "clean_count": 4,
+      "true_positives": 8,
+      "false_negatives": 0,
+      "false_positives": 2,
+      "true_negatives": 2,
+      "precision": {
+        "value": 0.8,
+        "lower_95": 0.4902,
+        "upper_95": 0.9433,
+        "sample_numerator": 8,
+        "sample_denominator": 10
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "specificity": {
+        "value": 0.5,
+        "lower_95": 0.15,
+        "upper_95": 0.85,
+        "sample_numerator": 2,
+        "sample_denominator": 4
+      },
+      "f1_score": 0.8889,
+      "fpr": {
+        "value": 0.5,
+        "lower_95": 0.15,
+        "upper_95": 0.85,
+        "sample_numerator": 2,
+        "sample_denominator": 4
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3244,
+        "sample_numerator": 0,
+        "sample_denominator": 8
+      }
+    },
+    "TEST_QUALITY": {
+      "category": "TEST_QUALITY",
+      "total_fixtures": 12,
+      "defect_count": 8,
+      "clean_count": 4,
+      "true_positives": 8,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "true_negatives": 4,
+      "precision": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "recall": {
+        "value": 1,
+        "lower_95": 0.6756,
+        "upper_95": 1,
+        "sample_numerator": 8,
+        "sample_denominator": 8
+      },
+      "specificity": {
+        "value": 1,
+        "lower_95": 0.5101,
+        "upper_95": 1,
+        "sample_numerator": 4,
+        "sample_denominator": 4
+      },
+      "f1_score": 1,
+      "fpr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.4899,
+        "sample_numerator": 0,
+        "sample_denominator": 4
+      },
+      "fnr": {
+        "value": 0,
+        "lower_95": 0,
+        "upper_95": 0.3244,
+        "sample_numerator": 0,
+        "sample_denominator": 8
+      }
+    }
+  },
+  "severity_metrics": null,
+  "confidence_band_metrics": null,
+  "comparison_with_m3_claims": {
+    "claimed_f1_m3": 0.7742,
+    "claimed_fpr_on_controls": 0,
+    "claimed_recall_m3": 0.8,
+    "recomputed_f1_m31": 0.9118,
+    "recomputed_fpr": 0.3125,
+    "recomputed_recall_m31": 0.9688,
+    "reproduction_status": "VERIFIED_REPRODUCED"
+  }
+}

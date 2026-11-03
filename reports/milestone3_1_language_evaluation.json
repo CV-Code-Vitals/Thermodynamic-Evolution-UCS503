@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-11-03T20:59:44.3293854+05:30",
+  "evaluated_languages": [
+    "Go",
+    "Rust",
+    "C++"
+  ],
+  "capabilities": [
+    {
+      "language": "Go",
+      "file_discovery": "SUPPORTED",
+      "parsing_ingestion": "SUPPORTED",
+      "symbol_analysis": "SUPPORTED",
+      "dependency_analysis": "SUPPORTED",
+      "contextual_diagnostic": "SUPPORTED",
+      "counter_evidence": "SUPPORTED",
+      "root_cause_analysis": "SUPPORTED",
+      "remediation_planning": "SUPPORTED",
+      "patch_generation": "SUPPORTED",
+      "independent_validation": "SUPPORTED",
+      "overall_readiness_tier": "PRODUCTION_READY",
+      "audit_notes": "Full end-to-end AST analysis, counter-evidence, patch generation, and go test validation."
+    },
+    {
+      "language": "Rust",
+      "file_discovery": "SUPPORTED",
+      "parsing_ingestion": "SUPPORTED",
+      "symbol_analysis": "PARTIAL",
+      "dependency_analysis": "SUPPORTED",
+      "contextual_diagnostic": "PARTIAL",
+      "counter_evidence": "UNSUPPORTED",
+      "root_cause_analysis": "PARTIAL",
+      "remediation_planning": "PARTIAL",
+      "patch_generation": "UNSUPPORTED",
+      "independent_validation": "SUPPORTED",
+      "overall_readiness_tier": "RESTRICTED_RESEARCH_ONLY",
+      "audit_notes": "High-speed parsing and manifest analysis (Cargo.toml); semantic diagnostics and automated patch generation unsupported."
+    },
+    {
+      "language": "C++",
+      "file_discovery": "SUPPORTED",
+      "parsing_ingestion": "PARTIAL",
+      "symbol_analysis": "UNSUPPORTED",
+      "dependency_analysis": "UNSUPPORTED",
+      "contextual_diagnostic": "UNSUPPORTED",
+      "counter_evidence": "UNSUPPORTED",
+      "root_cause_analysis": "UNSUPPORTED",
+      "remediation_planning": "UNSUPPORTED",
+      "patch_generation": "UNSUPPORTED",
+      "independent_validation": "UNSUPPORTED",
+      "overall_readiness_tier": "UNSUPPORTED",
+      "audit_notes": "Basic file discovery and rough line-count metrics only; zero semantic analysis, AST linting, or remediation."
+    }
+  ],
+  "production_support_summary": {
+    "C++": "UNSUPPORTED_INGESTION_ONLY",
+    "Go": "FULL_AUTONOMOUS_SUPPORT",
+    "Rust": "READ_ONLY_DISCOVERY_AND_MANIFEST_ANALYSIS"
+  }
+}

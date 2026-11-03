@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-11-03T20:59:44.4443952+05:30",
+  "audit_verdict": "VERIFIED_SAFE",
+  "invariants_checked": {
+    "INV-1_Workspace_Isolation": true,
+    "INV-2_Zero_Working_Tree_Mutation": true,
+    "INV-3_Fail_Closed_Human_Approval": true,
+    "INV-4_Atomic_Rollback": true,
+    "INV-5_Deterministic_Audit_Lineage": true
+  },
+  "path_traversal_rejected": true,
+  "working_tree_clean_preserved": true,
+  "unapproved_task_rejected": true,
+  "stale_plan_rejected": true,
+  "atomic_rollback_verified": true,
+  "deterministic_lineage_verified": true,
+  "findings": [
+    "INV-1: Path traversal targets escaping repo boundary are rejected during provenance verification.",
+    "INV-2: Primary working tree remains strictly read-only during candidate patch generation and build validation.",
+    "INV-3: Unapproved or stale approval tokens fail closed with EXEC_REJECTED_UNAPPROVED.",
+    "INV-4: Failed candidate mutations are rolled back atomically; dirty state cannot contaminate integration branches.",
+    "INV-5: All patch manifests maintain pre- and post-SHA256 checksums and deterministic task-finding traceability."
+  ]
+}

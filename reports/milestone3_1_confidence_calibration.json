@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-11-03T20:59:45.5074903+05:30",
+  "total_predictions_sampled": 22,
+  "brier_score": 0.0075,
+  "expected_calibration_error": 0.0836,
+  "maximum_calibration_error": 0.0836,
+  "reliability_diagram_bins": [
+    {
+      "bin_range": "[0.90, 1.00]",
+      "sample_count": 22,
+      "mean_confidence": 0.9164,
+      "observed_accuracy": 1,
+      "calibration_error": 0.0836
+    }
+  ],
+  "calibration_assessment": "CONFIDENCE_SCORES_WELL_CALIBRATED"
+}

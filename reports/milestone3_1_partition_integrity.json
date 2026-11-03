@@ -1,0 +1,16 @@
+{
+  "timestamp": "2026-11-03T20:59:45.334771+05:30",
+  "baseline_suite_path": "..\\..\\..\\..\\benchmarks\\self_healing_suite",
+  "expanded_suite_path": "..\\..\\..\\..\\benchmarks\\self_healing_suite_v2",
+  "total_baseline_fixtures": 21,
+  "total_expanded_fixtures": 96,
+  "identity_overlap_count": 0,
+  "structural_template_overlap": 8,
+  "is_held_out_dataset_genuinely_independent": false,
+  "audit_findings": [
+    "Suite v2 fixtures are not an unobserved third-party production codebase, but a synthetic parameterized benchmark suite.",
+    "Zero direct file path collisions with Suite v1 (overlap count = 0), but semantic and syntactic templates are directly shared.",
+    "Diagnostic performance on Suite v2 measures systematic rule coverage across 8 categories rather than open-domain zero-shot generalization."
+  ],
+  "recommendation": "Do not equate passing Suite v2 with open-domain production readiness; report Suite v2 as an expanded synthetic multi-category benchmark."
+}
