@@ -67,3 +67,4 @@ The `external_v2` benchmark corpus satisfies strict scientific criteria for **me
 - The detector was frozen before acquisition and has not been tuned.
 - The evaluation will be strictly blinded when authorized in Phase 2.
 - Ambiguous natural defects have been excluded from headline claims.
+

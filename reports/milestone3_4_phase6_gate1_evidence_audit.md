@@ -71,3 +71,4 @@ All 20 clean controls were audited at the source level. None depend on external 
 - **Audited Natural Defects:** 4 candidates $\to$ 0 confirmed, 2 rejected, 2 unverified $\to$ **All 4 Excluded**.
 - **Audited Injected Defects:** 6 candidates $\to$ All 6 verified present at exact AST lines $\to$ **Confirmed Injected Stratum**.
 - **Audited Clean Controls:** 20 candidates $\to$ All 20 verified benign with defensible proofs $\to$ **Confirmed Negative Control Stratum**.
+

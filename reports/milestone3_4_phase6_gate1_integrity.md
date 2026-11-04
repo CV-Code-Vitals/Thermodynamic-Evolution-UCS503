@@ -51,3 +51,4 @@ Each injected file was designed to reside completely independently inside the pa
 
 `git diff` against upstream tags confirms 0 modifications to any original repository file.
 All injected changes are documented in [`benchmarks/external_v2/injection_ledger.json`](file:///E:/SWE/benchmarks/external_v2/injection_ledger.json).
+
