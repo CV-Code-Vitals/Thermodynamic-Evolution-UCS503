@@ -283,3 +283,4 @@ func Pos_Res_DeferredInLoop(paths []string) error {
 func QueryUser(ctx context.Context, db *sql.DB) (*sql.Rows, error) {
 	return db.QueryContext(ctx, "SELECT 1")
 }
+

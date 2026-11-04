@@ -87,3 +87,4 @@ To prevent unsafe code modifications, the remediation engine enforces strict qua
 
 1. **Phase 4 (AST-Based Error-Handling Analysis):** Complement resource tracking with structured analysis of error return patterns (`if err != nil`), error wrapping idioms, and error masking.
 2. **Phase 5 (Cross-Package Semantic Integration):** Construct interprocedural summary tables for repository-internal packages, allowing precise tracking across function call boundaries within the same module.
+

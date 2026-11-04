@@ -159,3 +159,4 @@ func (reg *ResourceRegistry) IsReleaseCall(call *ast.CallExpr, kind ResourceKind
 
 	return false
 }
+

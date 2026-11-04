@@ -156,3 +156,4 @@ To guarantee that the function-level analyzer does not emit spurious findings on
 | **Milestone 3.4 Phase 3** | External v1 (Frozen) | **71.43% (5/7)** | **100.00% (3/3)** | **100.0%** |
 
 Through Phases 1, 2, and 3, external defect recall has advanced from 14.29% to **71.43%**, directly validating that the Semantic IR and Function-Level CFG reachability analysis successfully eliminate external generalization barriers while preserving 100% precision.
+

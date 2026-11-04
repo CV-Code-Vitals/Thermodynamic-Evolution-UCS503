@@ -74,3 +74,4 @@ The function-level resource analyzer satisfies all production performance requir
 - Negligible memory footprint ($<15$ KB per function).
 - Immune to combinatorial path explosion on dense branching logic.
 - Total diagnostic pass on a 50-file repository is projected under 100 milliseconds.
+

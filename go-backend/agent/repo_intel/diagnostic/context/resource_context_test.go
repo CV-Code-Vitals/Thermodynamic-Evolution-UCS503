@@ -48,3 +48,4 @@ func TestResourceContextAnalyzerOnFixtures(t *testing.T) {
 		t.Errorf("expected SAFE_RESOURCE_LIFECYCLE counter-evidences")
 	}
 }
+

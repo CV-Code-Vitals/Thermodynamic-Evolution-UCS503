@@ -151,3 +151,4 @@ With these three detections restored, the external diagnostic recall for resourc
 2. **Autonomous Execution Gating:**
    - Only `CONFIRMED` resource leaks with `Confidence >= 0.95` and unambiguous local variable ownership are admitted into autonomous patch generation.
    - Uncertain cases (`RESOURCE_UNRESOLVED`) remain in `INSUFFICIENT_EVIDENCE` and are quarantined, preventing hallucinated or improper `Close()` insertions on resources managed by external lifecycles.
+

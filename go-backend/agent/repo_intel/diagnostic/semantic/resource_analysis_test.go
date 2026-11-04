@@ -276,3 +276,4 @@ func TestExportResourceEvidenceReport(t *testing.T) {
 		t.Fatalf("write report error: %v", err)
 	}
 }
+
