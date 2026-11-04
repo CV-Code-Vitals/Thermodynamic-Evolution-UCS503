@@ -1,0 +1,625 @@
+{
+  "analyzer": "semantic.ErrorAnalyzer",
+  "evidences": [
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_ExplicitBlankCriticalOp",
+      "line": 69,
+      "call_snippet": "json.Unmarshal(data, \u0026res)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_EXPLICITLY_IGNORED",
+      "category": "SERIALIZATION",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "finding_state": "CONFIRMED",
+      "title": "Explicitly Discarded Critical Error (json.Unmarshal)",
+      "description": "Function 'Pos_Err_ExplicitBlankCriticalOp' at line 69 explicitly discards error from critical operation 'json.Unmarshal(data, \u0026res)' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_OverwrittenBeforeCheck",
+      "line": 81,
+      "call_snippet": "os.Open(p1)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_UNHANDLED",
+      "category": "FILE_IO",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "title": "Unhandled Error Return (os.Open)",
+      "description": "Function 'Pos_Err_OverwrittenBeforeCheck' at line 81 invokes error-producing call 'os.Open(p1)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_OverwrittenBeforeCheck",
+      "line": 82,
+      "call_snippet": "os.Open(p2)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_CHECKED",
+      "category": "FILE_IO",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Check",
+      "description": "Error from 'os.Open(p2)' is checked and handled appropriately.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error checked with conditional branch and handled/returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_WrappedPropagation",
+      "line": 130,
+      "call_snippet": "os.ReadFile(path)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_WRAPPED_AND_PROPAGATED",
+      "category": "FILE_IO",
+      "severity": "",
+      "confidence": 0.99,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Wrapped Error Propagation",
+      "description": "Error from 'os.ReadFile(path)' is checked and wrapped with %w before return.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error wrapped with %w and returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_UnhandledMarshalDiscard",
+      "line": 47,
+      "call_snippet": "json.Marshal(v)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_EXPLICITLY_IGNORED",
+      "category": "SERIALIZATION",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "finding_state": "CONFIRMED",
+      "title": "Explicitly Discarded Critical Error (json.Marshal)",
+      "description": "Function 'Pos_Err_UnhandledMarshalDiscard' at line 47 explicitly discards error from critical operation 'json.Marshal(v)' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_UnhandledDial",
+      "line": 63,
+      "call_snippet": "net.Dial(\"tcp\", addr)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_UNHANDLED",
+      "category": "NETWORK",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "title": "Unhandled Error Return (net.Dial)",
+      "description": "Function 'Pos_Err_UnhandledDial' at line 63 invokes error-producing call 'net.Dial(\"tcp\", addr)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_ExplicitIfCheck",
+      "line": 116,
+      "call_snippet": "json.Marshal(v)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_CHECKED",
+      "category": "SERIALIZATION",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Check",
+      "description": "Error from 'json.Marshal(v)' is checked and handled appropriately.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error checked with conditional branch and handled/returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_MultipleReturnHandled",
+      "line": 146,
+      "call_snippet": "loadConfig()",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_CHECKED",
+      "category": "GENERAL",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Check",
+      "description": "Error from 'loadConfig()' is checked and handled appropriately.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error checked with conditional branch and handled/returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_IgnoredCleanup",
+      "line": 155,
+      "call_snippet": "os.Open(path)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_CHECKED",
+      "category": "FILE_IO",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Check",
+      "description": "Error from 'os.Open(path)' is checked and handled appropriately.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error checked with conditional branch and handled/returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_IgnoredCleanup",
+      "line": 159,
+      "call_snippet": "f.Close()",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_EXPLICITLY_IGNORED",
+      "category": "CLEANUP",
+      "severity": "LOW",
+      "confidence": 0.95,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Safe Explicit Cleanup Error Suppression (f.Close)",
+      "description": "Cleanup error explicitly suppressed via blank identifier in 'f.Close()'.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Explicit suppression of cleanup operation error adheres to standard idiom"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_HelperCheck",
+      "line": 189,
+      "call_snippet": "fetch()",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_CHECKED",
+      "category": "GENERAL",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Check",
+      "description": "Error from 'fetch()' is checked and handled appropriately.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error checked with conditional branch and handled/returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_UnhandledUnmarshal",
+      "line": 41,
+      "call_snippet": "json.Unmarshal(data, \u0026res)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_UNHANDLED",
+      "category": "SERIALIZATION",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "title": "Unhandled Error Return (json.Unmarshal)",
+      "description": "Function 'Pos_Err_UnhandledUnmarshal' at line 41 invokes error-producing call 'json.Unmarshal(data, \u0026res)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_UnhandledWriteFile",
+      "line": 53,
+      "call_snippet": "os.WriteFile(path, data, 0644)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_UNHANDLED",
+      "category": "FILE_IO",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "title": "Unhandled Error Return (os.WriteFile)",
+      "description": "Function 'Pos_Err_UnhandledWriteFile' at line 53 invokes error-producing call 'os.WriteFile(path, data, 0644)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_UnhandledDBExec",
+      "line": 58,
+      "call_snippet": "db.Exec(query)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_UNHANDLED",
+      "category": "DATABASE_QUERY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "title": "Unhandled Error Return (db.Exec)",
+      "description": "Function 'Pos_Err_UnhandledDBExec' at line 58 invokes error-producing call 'db.Exec(query)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_MultipleReturnDiscardError",
+      "line": 75,
+      "call_snippet": "loadConfig()",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_EXPLICITLY_IGNORED",
+      "category": "GENERAL",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "finding_state": "CONFIRMED",
+      "title": "Explicitly Discarded Critical Error (loadConfig)",
+      "description": "Function 'Pos_Err_MultipleReturnDiscardError' at line 75 explicitly discards error from critical operation 'loadConfig()' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_DirectPropagation",
+      "line": 125,
+      "call_snippet": "os.WriteFile(path, data, 0644)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_PROPAGATED",
+      "category": "FILE_IO",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Propagation",
+      "description": "Error from 'os.WriteFile(path, data, 0644)' is directly propagated to caller.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error returned to caller"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_TestHelperFatal",
+      "line": 176,
+      "call_snippet": "json.Unmarshal(data, \u0026res)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_CHECKED",
+      "category": "SERIALIZATION",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Check",
+      "description": "Error from 'json.Unmarshal(data, \u0026res)' is checked and handled appropriately.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error checked with conditional branch and handled/returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_MismatchedErrorCheck",
+      "line": 91,
+      "call_snippet": "json.Marshal(v1)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_CHECKED",
+      "category": "SERIALIZATION",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Check",
+      "description": "Error from 'json.Marshal(v1)' is checked and handled appropriately.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error checked with conditional branch and handled/returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_MismatchedErrorCheck",
+      "line": 92,
+      "call_snippet": "json.Marshal(v2)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_UNHANDLED",
+      "category": "SERIALIZATION",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "title": "Unhandled Error Return (json.Marshal)",
+      "description": "Function 'Pos_Err_MismatchedErrorCheck' at line 92 invokes error-producing call 'json.Marshal(v2)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_NamedReturn",
+      "line": 140,
+      "call_snippet": "json.Unmarshal(data, \u0026m)",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_PROPAGATED",
+      "category": "SERIALIZATION",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Propagation",
+      "description": "Error from 'json.Unmarshal(data, \u0026m)' is directly propagated to caller.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error returned to caller"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_TxRollbackWithCommit",
+      "line": 165,
+      "call_snippet": "db.Begin()",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_CHECKED",
+      "category": "DATABASE_TX",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Check",
+      "description": "Error from 'db.Begin()' is checked and handled appropriately.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error checked with conditional branch and handled/returned"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_TxRollbackWithCommit",
+      "line": 169,
+      "call_snippet": "tx.Rollback()",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_UNRESOLVED",
+      "category": "CLEANUP",
+      "severity": "",
+      "confidence": 0.6,
+      "finding_state": "INSUFFICIENT_EVIDENCE",
+      "title": "Unresolved Error Handling",
+      "description": "Error return handling for 'tx.Rollback()' could not be statically determined.",
+      "root_cause": "",
+      "recommended_action": "",
+      "analysis_limitations": [
+        "Complex control flow or unverified error sink"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Neg_Err_TxRollbackWithCommit",
+      "line": 170,
+      "call_snippet": "tx.Commit()",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 0,
+        "num_returns": 1,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_PROPAGATED",
+      "category": "DATABASE_TX",
+      "severity": "",
+      "confidence": 0.98,
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "title": "Verified Error Propagation",
+      "description": "Error from 'tx.Commit()' is directly propagated to caller.",
+      "root_cause": "",
+      "recommended_action": "",
+      "counter_evidence": [
+        "Error returned to caller"
+      ],
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    },
+    {
+      "file_path": "fixtures\\error_fixtures.go",
+      "package": "",
+      "function": "Pos_Err_UnsafeBranchContinue",
+      "line": 102,
+      "call_snippet": "fetch()",
+      "signature": {
+        "is_error_returning": true,
+        "error_index": 1,
+        "num_returns": 2,
+        "resolution": "AST_INFERRED",
+        "has_named_returns": false
+      },
+      "classification": "ERROR_PARTIALLY_HANDLED",
+      "category": "GENERAL",
+      "severity": "MEDIUM",
+      "confidence": 0.88,
+      "finding_state": "PROBABLE",
+      "title": "Partially Handled Error Return (fetch)",
+      "description": "Error from 'fetch()' at line 102 is tested in branch but execution continues unsafely.",
+      "root_cause": "Error check branch does not terminate or safely handle the error condition.",
+      "recommended_action": "Ensure the error branch returns, propagates, or terminates control flow.",
+      "timestamp": "2026-11-04T21:34:40.0661466+05:30"
+    }
+  ],
+  "report_type": "Milestone 3.4 Phase 4 Error Handling Cryptographic Evidence Report",
+  "timestamp": "2026-11-04T21:34:40+05:30"
+}

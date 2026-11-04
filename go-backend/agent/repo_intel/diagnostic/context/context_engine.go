@@ -14,6 +14,7 @@ type ContextEngine struct {
 	sql              *SQLContextAnalyzer
 	cmd              *CommandContextAnalyzer
 	res              *ResourceContextAnalyzer
+	errA             *ErrorContextAnalyzer
 	structA          *StructuralContextAnalyzer
 	arch             *ArchitectureContextAnalyzer
 	qual             *QualityContextAnalyzer
@@ -30,6 +31,7 @@ func NewContextEngine(repoRoot string) *ContextEngine {
 		sql:      NewSQLContextAnalyzer(repoRoot),
 		cmd:      NewCommandContextAnalyzer(repoRoot),
 		res:      NewResourceContextAnalyzer(repoRoot),
+		errA:     NewErrorContextAnalyzer(repoRoot),
 		structA:  NewStructuralContextAnalyzer(repoRoot),
 		arch:     NewArchitectureContextAnalyzer(repoRoot),
 		qual:     NewQualityContextAnalyzer(repoRoot),
@@ -79,6 +81,14 @@ func (ce *ContextEngine) AnalyzeRepository(files []string) (*ContextAnalysisSumm
 				counterEvs[f] = append(counterEvs[f], resEval.CounterEvidences...)
 			}
 		}
+
+		errEval, err := ce.errA.EvaluateFile(f)
+		if err == nil && errEval != nil {
+			allFindings = append(allFindings, errEval.Findings...)
+			if len(errEval.CounterEvidences) > 0 {
+				counterEvs[f] = append(counterEvs[f], errEval.CounterEvidences...)
+			}
+		}
 	}
 
 	// 2. Structural Clones across repository
@@ -108,6 +118,7 @@ func (ce *ContextEngine) AnalyzeRepository(files []string) (*ContextAnalysisSumm
 			"SQLContextAnalyzer",
 			"CommandContextAnalyzer",
 			"ResourceContextAnalyzer",
+			"ErrorContextAnalyzer",
 			"StructuralContextAnalyzer",
 			"ArchitectureContextAnalyzer",
 			"QualityContextAnalyzer",
