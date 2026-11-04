@@ -1,0 +1,230 @@
+{
+  "manifest_version": "1.0.0",
+  "created_at": "2026-11-04T00:50:00+05:30",
+  "evaluation_suite": "Milestone 3.3 External Unseen Repositories Suite v1",
+  "firebreak_frozen": true,
+  "repositories": [
+    {
+      "id": "ext-repo-01",
+      "name": "http_router",
+      "relative_path": "benchmarks/external_v1/http_router",
+      "module": "github.com/external-bench/http-router",
+      "domain": "Network Services / HTTP Routing & Middleware",
+      "architectural_complexity": "Modular Single-Package",
+      "tree_sha256": "53bd717a0ce27a1ac6d42ee3267d66f0e6079b6aedd2f9cc13eccd9d875e0b59",
+      "file_count": 6,
+      "loc": 312,
+      "license": "Apache-2.0",
+      "ground_truth_defects": [
+        {
+          "defect_id": "DEF-HTTP-01",
+          "file": "middleware.go",
+          "symbol": "UpstreamProbe",
+          "category": "RESOURCE_LEAK",
+          "expected_finding": "ResourceLeak",
+          "severity": "HIGH",
+          "description": "http.Get response body is not closed via defer resp.Body.Close(), leaking TCP sockets"
+        },
+        {
+          "defect_id": "DEF-HTTP-02",
+          "file": "context.go",
+          "symbol": "JSON",
+          "category": "UNHANDLED_ERROR",
+          "expected_finding": "UnhandledError",
+          "severity": "LOW",
+          "description": "json.NewEncoder(c.Writer).Encode(data) return value unchecked"
+        },
+        {
+          "defect_id": "DEF-HTTP-03",
+          "file": "context.go",
+          "symbol": "ExecuteWithTimeout",
+          "category": "CONTEXT_LEAK",
+          "expected_finding": "ContextCancelLeak",
+          "severity": "MEDIUM",
+          "description": "context.WithTimeout cancel function ignored, leaking context timer"
+        }
+      ],
+      "negative_controls": [
+        "trie.go: TrieNode thread-safe route matching with RWMutex",
+        "router.go: Engine request dispatch and middleware execution",
+        "middleware.go: Recovery middleware with panic handling"
+      ]
+    },
+    {
+      "id": "ext-repo-02",
+      "name": "sql_service",
+      "relative_path": "benchmarks/external_v1/sql_service",
+      "module": "github.com/external-bench/sql-service",
+      "domain": "Database Access / Persistence Microservice",
+      "architectural_complexity": "Layered Service / Repository Pattern",
+      "tree_sha256": "25e45f1c61c922958a6e830944363825e89e8d4b1fbb6294e63cbe5ae95c9624",
+      "file_count": 6,
+      "loc": 332,
+      "license": "MIT",
+      "ground_truth_defects": [
+        {
+          "defect_id": "DEF-SQL-01",
+          "file": "repository.go",
+          "symbol": "FindUserByNameRaw",
+          "category": "SQL_INJECTION",
+          "expected_finding": "SQLInjection",
+          "severity": "CRITICAL",
+          "description": "String formatted SQL query concatenation via fmt.Sprintf without query parameterization"
+        },
+        {
+          "defect_id": "DEF-SQL-02",
+          "file": "repository.go",
+          "symbol": "ListRecentUsers",
+          "category": "RESOURCE_LEAK",
+          "expected_finding": "ResourceLeak",
+          "severity": "HIGH",
+          "description": "sql.Rows cursor is opened via QueryContext without closing via defer rows.Close()"
+        },
+        {
+          "defect_id": "DEF-SQL-03",
+          "file": "db.go",
+          "symbol": "WithTransaction",
+          "category": "UNHANDLED_ERROR",
+          "expected_finding": "UnhandledError",
+          "severity": "MEDIUM",
+          "description": "Transaction rollback return value ignored during error handling and recovery"
+        }
+      ],
+      "negative_controls": [
+        "repository.go: CreateUser parameterized SQL INSERT",
+        "repository.go: GetUserByID parameterized SQL SELECT",
+        "db.go: InitDB connection pool configuration with ping"
+      ]
+    },
+    {
+      "id": "ext-repo-03",
+      "name": "cache_engine",
+      "relative_path": "benchmarks/external_v1/cache_engine",
+      "module": "github.com/external-bench/cache-engine",
+      "domain": "Concurrency & In-Memory Data Storage",
+      "architectural_complexity": "Sharded Concurrency Partitioning",
+      "tree_sha256": "ecf092160541d59cbf16a444ed00a6dda6da01eb9c99d7739f305a6890343b89",
+      "file_count": 6,
+      "loc": 315,
+      "license": "BSD-3-Clause",
+      "ground_truth_defects": [
+        {
+          "defect_id": "DEF-CACHE-01",
+          "file": "cache.go",
+          "symbol": "UnsafeKeys",
+          "category": "CONCURRENCY_RACE",
+          "expected_finding": "ConcurrencyRace",
+          "severity": "HIGH",
+          "description": "Concurrent read access to shared items map without acquiring RLock"
+        },
+        {
+          "defect_id": "DEF-CACHE-02",
+          "file": "eviction.go",
+          "symbol": "StartBackgroundEvictor",
+          "category": "GOROUTINE_LEAK",
+          "expected_finding": "GoroutineLeak",
+          "severity": "HIGH",
+          "description": "Ticker loop spawns infinite goroutine without context cancellation or shutdown channel"
+        }
+      ],
+      "negative_controls": [
+        "cache.go: SafeKeys thread-safe map iteration with RLock",
+        "sharded.go: ShardedCache FNV hash partitioning across shards",
+        "stats.go: CacheStats atomic metrics counter updates"
+      ]
+    },
+    {
+      "id": "ext-repo-04",
+      "name": "cli_tooling",
+      "relative_path": "benchmarks/external_v1/cli_tooling",
+      "module": "github.com/external-bench/cli-tooling",
+      "domain": "Developer CLI & Subprocess Automation",
+      "architectural_complexity": "Modular Command Line Application",
+      "tree_sha256": "ac0a32fe38e66f26e8e4156a1376d4f85d9bad04a3cd417e82a935862b565096",
+      "file_count": 6,
+      "loc": 284,
+      "license": "Apache-2.0",
+      "ground_truth_defects": [
+        {
+          "defect_id": "DEF-CLI-01",
+          "file": "runner.go",
+          "symbol": "ExecuteShellScript",
+          "category": "COMMAND_INJECTION",
+          "expected_finding": "CommandInjection",
+          "severity": "CRITICAL",
+          "description": "User string passed directly to cmd.exe / sh interpreter enabling command injection"
+        },
+        {
+          "defect_id": "DEF-CLI-02",
+          "file": "fs.go",
+          "symbol": "ReadFileFromRoot",
+          "category": "PATH_TRAVERSAL",
+          "expected_finding": "PathTraversal",
+          "severity": "HIGH",
+          "description": "filepath.Join without clean boundary checks permits directory traversal escape"
+        },
+        {
+          "defect_id": "DEF-CLI-03",
+          "file": "fs.go",
+          "symbol": "InspectFiles",
+          "category": "RESOURCE_LEAK",
+          "expected_finding": "DeferInLoop",
+          "severity": "MEDIUM",
+          "description": "defer f.Close() inside for loop delays descriptor closure until function exit"
+        }
+      ],
+      "negative_controls": [
+        "runner.go: ExecuteDirect safe binary invocation with arg array",
+        "fs.go: SafeReadFileFromRoot path confinement prefix check",
+        "fs.go: SafeInspectFiles closure-scoped file closing"
+      ]
+    },
+    {
+      "id": "ext-repo-05",
+      "name": "queue_worker",
+      "relative_path": "benchmarks/external_v1/queue_worker",
+      "module": "github.com/external-bench/queue-worker",
+      "domain": "Asynchronous Stream Worker & Network Ingestion",
+      "architectural_complexity": "Structured Multi-Package (cmd, internal, pkg)",
+      "tree_sha256": "260fa69b57563dbc0375e1fbf08fd390de40107b9e575919bd732248a65862cc",
+      "file_count": 7,
+      "loc": 358,
+      "license": "MIT",
+      "ground_truth_defects": [
+        {
+          "defect_id": "DEF-QUEUE-01",
+          "file": "internal/producer/producer.go",
+          "symbol": "SendDirect",
+          "category": "RESOURCE_LEAK",
+          "expected_finding": "ResourceLeak",
+          "severity": "HIGH",
+          "description": "net.Dial connection is opened without closing via defer conn.Close()"
+        },
+        {
+          "defect_id": "DEF-QUEUE-02",
+          "file": "pkg/retry/retry.go",
+          "symbol": "RetryWithTimerLeak",
+          "category": "TIMER_LEAK",
+          "expected_finding": "ResourceLeak",
+          "severity": "MEDIUM",
+          "description": "time.NewTimer allocated in loop without timer.Stop(), leaking runtime timer references"
+        },
+        {
+          "defect_id": "DEF-QUEUE-03",
+          "file": "internal/consumer/consumer.go",
+          "symbol": "ParseRawPayload",
+          "category": "UNHANDLED_ERROR",
+          "expected_finding": "UnhandledError",
+          "severity": "LOW",
+          "description": "json.Unmarshal error return ignored during raw byte payload parsing"
+        }
+      ],
+      "negative_controls": [
+        "pkg/retry/retry.go: Retry exponential backoff with context cancellation",
+        "internal/consumer/consumer.go: SafeParseRawPayload proper error return",
+        "internal/consumer/consumer.go: Consumer worker pool with sync.WaitGroup"
+      ]
+    }
+  ]
+}
+

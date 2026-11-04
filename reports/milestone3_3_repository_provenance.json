@@ -1,0 +1,85 @@
+{
+  "provenance_metadata": {
+    "milestone": "Milestone 3.3",
+    "generation_timestamp": "2026-11-04T00:50:30+05:30",
+    "purpose": "External Unseen Repository Provenance and Snapshot Record",
+    "baseline_engine_commit": "5d41b531f46d10bc972b2d1518a0fb4cf139c09a",
+    "target_branch": "validation/milestone-3.3-external-validation",
+    "platform": "windows/amd64",
+    "go_version": "go1.25.6 windows/amd64"
+  },
+  "repositories": [
+    {
+      "id": "ext-repo-01",
+      "name": "http_router",
+      "path": "benchmarks/external_v1/http_router",
+      "tree_sha256": "53bd717a0ce27a1ac6d42ee3267d66f0e6079b6aedd2f9cc13eccd9d875e0b59",
+      "files": [
+        {"path": "go.mod", "sha256": "71b4e67e3841be3bc06c21b0123c72a9c799594d51394903dba7555583113809", "size": 56},
+        {"path": "router.go", "sha256": "fae8c7afe6b999aa48b8c2ba944d9858794bddc53ccea0d995c1cb08fa1892e7", "size": 1843},
+        {"path": "trie.go", "sha256": "c3165a1a3ba277bc71708682b03b55ed34975d7052d5ac173e47d4dc2541794f", "size": 2040},
+        {"path": "context.go", "sha256": "9a58cfb8d0d3a0b623fe941c66827399b166bf11e4e9690f719c99c99c7a8076", "size": 1739},
+        {"path": "middleware.go", "sha256": "d7babbe5bbcc966314db8dcac04d7d7068b861de50a2738213e3847e8f484a00", "size": 1243},
+        {"path": "router_test.go", "sha256": "3a6d2decfb2d6a92cff3e6b8c97fc5c9cc0bb4395122352361a79c0bee5e3862", "size": 1408}
+      ]
+    },
+    {
+      "id": "ext-repo-02",
+      "name": "sql_service",
+      "path": "benchmarks/external_v1/sql_service",
+      "tree_sha256": "25e45f1c61c922958a6e830944363825e89e8d4b1fbb6294e63cbe5ae95c9624",
+      "files": [
+        {"path": "go.mod", "sha256": "f8edba1b984dcd4ede1990d736b320ce5129b3ad81d9fa248bd0ed113aae4829", "size": 56},
+        {"path": "models.go", "sha256": "d4a6dc6958f4642bd803307709266ec95b57f48baf8011271029a9ca4e269379", "size": 551},
+        {"path": "db.go", "sha256": "aa9ebb152f0cc4f3cc3e70b442d35af1d161982ee1a4d6e4904810553a76377a", "size": 1453},
+        {"path": "repository.go", "sha256": "84e564d48d3c3a70c4302c0d240211b35acc7b3ca6660f1a0b303dac1e4ccd0a", "size": 2845},
+        {"path": "service.go", "sha256": "41cfd63c492c32d43c04ecefe3d15b9958f4aaa073dd96ea922a5d079efc621f", "size": 1177},
+        {"path": "service_test.go", "sha256": "6092adbfe573d6f6eab7f02f20e19fc98dcd92a9a6d7b5b36627aa5368040c2a", "size": 703}
+      ]
+    },
+    {
+      "id": "ext-repo-03",
+      "name": "cache_engine",
+      "path": "benchmarks/external_v1/cache_engine",
+      "tree_sha256": "ecf092160541d59cbf16a444ed00a6dda6da01eb9c99d7739f305a6890343b89",
+      "files": [
+        {"path": "go.mod", "sha256": "d03b77c5eee2391e9b958dfb3a5e3cdc9ffdbe6fefd34aede1293e70fd307ccf", "size": 57},
+        {"path": "cache.go", "sha256": "9c0d9b669d6606696034e77980e3c0279fa02dd34288e146b829cbf31917af91", "size": 2024},
+        {"path": "sharded.go", "sha256": "5cc4d1786f7aa779ad762d3fbbf1b24cb8c6f1b06ecc69f6ab4f2bdfd825e641", "size": 1173},
+        {"path": "eviction.go", "sha256": "0035745ac70a73e1eb2ccacce7ec3feb7843bb8598d7c6dc6da2f6722d243432", "size": 1081},
+        {"path": "stats.go", "sha256": "138c1786ce274b608bfe3c3c695536fa60ae9281d6f5a3bff1adc2728b0939ee", "size": 857},
+        {"path": "cache_test.go", "sha256": "6de0377b7bec51f23f1c86f9e392dae4e24d9649b4813a3b6baa00e09a527a06", "size": 1277}
+      ]
+    },
+    {
+      "id": "ext-repo-04",
+      "name": "cli_tooling",
+      "path": "benchmarks/external_v1/cli_tooling",
+      "tree_sha256": "ac0a32fe38e66f26e8e4156a1376d4f85d9bad04a3cd417e82a935862b565096",
+      "files": [
+        {"path": "go.mod", "sha256": "8ffc6f06d6947460ff6e46514f5bcd1cf271f0c98434806ff22fbf9bf74b8d3b", "size": 56},
+        {"path": "main.go", "sha256": "450bed71ea7f55b146833046e6c2ea67d674ad23d137127825932627b4ff11c5", "size": 262},
+        {"path": "cmd.go", "sha256": "46ef1eabd9f85b2953d081bee7f2f3d19fff175d2438e5f653a3dae7a4fbbf84", "size": 713},
+        {"path": "runner.go", "sha256": "8dd74f1641e4a33ea8c5aff4d709a7fb1a384e4364ec6a981cedb8eccad97ab0", "size": 1124},
+        {"path": "fs.go", "sha256": "a421882e88482575b2ee9b0c50daa61f7c61b3f6d4e8b73fe318eed17d458d97", "size": 1982},
+        {"path": "runner_test.go", "sha256": "348289ba5e70237c5fe977737dcd3b736859b1dd6b667ddf0288e329541a9e62", "size": 1322}
+      ]
+    },
+    {
+      "id": "ext-repo-05",
+      "name": "queue_worker",
+      "path": "benchmarks/external_v1/queue_worker",
+      "tree_sha256": "260fa69b57563dbc0375e1fbf08fd390de40107b9e575919bd732248a65862cc",
+      "files": [
+        {"path": "go.mod", "sha256": "41093f7b0859bd07dccfc6daeaf75940f3b9324162cc1c7f35e2037413b736f6", "size": 57},
+        {"path": "cmd/worker/main.go", "sha256": "55a2f12aea859f58862e0e8102bd948677f23d09cde9bb276750e5a21af9166b", "size": 609},
+        {"path": "internal/consumer/consumer.go", "sha256": "2bb924810bd31cd11ecb0f1971b1fee482b04aebd66eee1d929ddd03e6e33a75", "size": 1771},
+        {"path": "internal/consumer/consumer_test.go", "sha256": "458b412546b157be5dffa55616f7ce4c306bb442f75aaa323eee90b04e661139", "size": 1080},
+        {"path": "internal/producer/producer.go", "sha256": "b8c799eec03c775c7e0fbfbb9a24edf25be3c45a9f1da5ad3611da0a24182eeb", "size": 1475},
+        {"path": "pkg/retry/retry.go", "sha256": "748ea199fd28599b3a25534798f91547528ecf389733523851d1f06b369b8281", "size": 1568},
+        {"path": "pkg/retry/retry_test.go", "sha256": "996c0d523d6f6576b488377ca92fa88525ff4f16ed1055a8d57b8a6db30d34d8", "size": 734}
+      ]
+    }
+  ]
+}
+

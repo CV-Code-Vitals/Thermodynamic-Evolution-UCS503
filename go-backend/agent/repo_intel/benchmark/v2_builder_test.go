@@ -6,10 +6,10 @@ import (
 )
 
 func TestGenerateBenchmarkSuiteV2(t *testing.T) {
-	baseDir := filepath.Join("..", "..", "..", "..", "benchmarks", "self_healing_suite_v2")
-	manifestPath := filepath.Join("..", "..", "..", "..", "benchmarks", "ground_truth_manifest_v2.json")
+	tempBase := t.TempDir()
+	tempManifest := filepath.Join(tempBase, "ground_truth_manifest_v2.json")
 
-	manifest, err := GenerateBenchmarkSuiteV2(baseDir, manifestPath)
+	manifest, err := GenerateBenchmarkSuiteV2(tempBase, tempManifest)
 	if err != nil {
 		t.Fatalf("Failed to generate suite v2: %v", err)
 	}

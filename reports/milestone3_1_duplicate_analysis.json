@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-11-03T20:59:45.334771+05:30",
+  "total_fixtures_analyzed": 96,
+  "exact_file_duplicates": 0,
+  "normalized_ast_duplicates": 0,
+  "template_clusters_count": 0,
+  "synthetic_template_ratio": 0,
+  "template_clusters": {},
+  "independence_finding": "Suite v2 consists of systematic synthetic parameterized templates expanding the 8 core categories.",
+  "audit_verdict": "SYNTHETIC_EXPANSION_VERIFIED"
+}

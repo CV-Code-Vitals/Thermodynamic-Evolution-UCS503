@@ -1,0 +1,13 @@
+[2026-11-04T01:08:32.6428521+05:30] === START REMEDIATION TRIAL REM-CAND-06 (Repo: sql_service, File: repository.go, Risk: MEDIUM) ===
+[2026-11-04T01:08:32.6636424+05:30] INV-1 Pre-trial repo tree SHA-256: 8f08f4c1dbc8bef6b2f983e76d2bb6ba9ff3077d785037c74b7a4fdda085e092 (files: db.go,go.mod,models.go,repository.go,service.go,service_test.go)
+[2026-11-04T01:08:32.6636424+05:30] INV-3 Approval token verified: SIM-APP-SQL-INJECT-06
+[2026-11-04T01:08:32.7447726+05:30] INV-2 Workspace created: C:\Users\mishr\AppData\Local\Temp\milestone3_3_isolated_trials\ws_REM-CAND-06_1793734712664762500 (size: 6791 bytes)
+[2026-11-04T01:08:33.4388393+05:30] Pre-remediation go build passed=true (output: )
+[2026-11-04T01:08:36.1526715+05:30] Pre-remediation go test passed=true (output: ok  	github.com/external-bench/sql-service	1.303s)
+[2026-11-04T01:08:36.1571055+05:30] Patch applied successfully in isolated workspace.
+[2026-11-04T01:08:36.7853942+05:30] Post-remediation go build passed=true (output: )
+[2026-11-04T01:08:39.1433596+05:30] Post-remediation go test passed=true (output: ok  	github.com/external-bench/sql-service	1.104s)
+[2026-11-04T01:08:39.1445095+05:30] Unified diff generated (SHA-256: c00cebb485bc22aa3d2abd5bb316fbdf145658e106386a88fc8632c5fe31ff5e, lines: 76)
+[2026-11-04T01:08:39.1587692+05:30] INV-5 Workspace destroyed cleanly: true
+[2026-11-04T01:08:39.1640567+05:30] INV-1 Post-trial repo tree SHA-256: 8f08f4c1dbc8bef6b2f983e76d2bb6ba9ff3077d785037c74b7a4fdda085e092 (files: db.go,go.mod,models.go,repository.go,service.go,service_test.go, matches pre-trial: true)
+[2026-11-04T01:08:39.1640567+05:30] === TRIAL REM-CAND-06 COMPLETED in 6521 ms WITH STATUS: VERIFIED_RESOLVED ===

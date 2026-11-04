@@ -58,8 +58,9 @@ func (a *StructuralContextAnalyzer) AnalyzeDuplicates(files []string) ([]Context
 
 		for _, decl := range node.Decls {
 			fn, isFn := decl.(*ast.FuncDecl)
-			if !isFn || fn.Body == nil || len(fn.Body.List) < 3 {
-				// Require at least 3 statements to avoid trivial one-liners
+			if !isFn || fn.Body == nil || len(fn.Body.List) < 5 {
+				// Require at least 5 statements to avoid flagging standard 1-4 statement Go idioms
+				// (e.g. read wrappers, simple map lookups, standard error guard checks).
 				continue
 			}
 
@@ -121,6 +122,7 @@ func (a *StructuralContextAnalyzer) AnalyzeDuplicates(files []string) ([]Context
 				Severity:            repo_intel.SeverityLow,
 				Confidence:          0.94,
 				ConfidenceRationale: fmt.Sprintf("AST exact statement clone detected across %d functions (%s)", len(sigs), strings.Join(names, ", ")),
+				State:               StateConfirmed,
 				Title:               fmt.Sprintf("Duplicated Function Implementation (%s)", strings.Join(names, ", ")),
 				Description:         fmt.Sprintf("Functions %s share identical implementation logic of %d statements.", strings.Join(names, ", "), primary.StmtCount),
 				RootCause:           "Copy-pasting helper functions instead of extracting shared reusable package utility.",

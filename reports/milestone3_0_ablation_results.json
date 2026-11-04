@@ -69,7 +69,7 @@
     "eligible_remediations": 15,
     "verified_remediations": 3,
     "remediation_rate": 0.2,
-    "duration_ms": 55
+    "duration_ms": 10
   },
   {
     "config": {
@@ -117,7 +117,7 @@
     "eligible_remediations": 15,
     "verified_remediations": 3,
     "remediation_rate": 0.2,
-    "duration_ms": 45
+    "duration_ms": 10
   },
   {
     "config": {
@@ -141,6 +141,6 @@
     "eligible_remediations": 15,
     "verified_remediations": 32,
     "remediation_rate": 1,
-    "duration_ms": 62
+    "duration_ms": 21
   }
 ]

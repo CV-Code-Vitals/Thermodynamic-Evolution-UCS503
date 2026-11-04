@@ -1,0 +1,13 @@
+[2026-11-04T01:08:39.6669409+05:30] === START REMEDIATION TRIAL REM-CAND-07 (Repo: cli_tooling, File: runner.go, Risk: MEDIUM) ===
+[2026-11-04T01:08:39.685643+05:30] INV-1 Pre-trial repo tree SHA-256: 8240ed55780d10160dd27148b538bec32478ac05dfb429952bcf8b21f9f51288 (files: cmd.go,fs.go,go.mod,main.go,runner.go,runner_test.go)
+[2026-11-04T01:08:39.685643+05:30] INV-3 Approval token verified: SIM-APP-CMD-INJECT-07
+[2026-11-04T01:08:39.7274631+05:30] INV-2 Workspace created: C:\Users\mishr\AppData\Local\Temp\milestone3_3_isolated_trials\ws_REM-CAND-07_1793734719686658200 (size: 5464 bytes)
+[2026-11-04T01:08:40.8595785+05:30] Pre-remediation go build passed=true (output: )
+[2026-11-04T01:08:43.2932856+05:30] Pre-remediation go test passed=true (output: ok  	github.com/external-bench/cli-tooling	1.232s)
+[2026-11-04T01:08:43.2948951+05:30] Patch applied successfully in isolated workspace.
+[2026-11-04T01:08:44.2970129+05:30] Post-remediation go build passed=true (output: )
+[2026-11-04T01:08:46.5845928+05:30] Post-remediation go test passed=true (output: ok  	github.com/external-bench/cli-tooling	1.195s)
+[2026-11-04T01:08:46.5878573+05:30] Unified diff generated (SHA-256: 72482e66f3ae510c0789972e981b043dd6d6424f99596dcaea0ac32f07b6d681, lines: 71)
+[2026-11-04T01:08:46.6017016+05:30] INV-5 Workspace destroyed cleanly: true
+[2026-11-04T01:08:46.6099314+05:30] INV-1 Post-trial repo tree SHA-256: 8240ed55780d10160dd27148b538bec32478ac05dfb429952bcf8b21f9f51288 (files: cmd.go,fs.go,go.mod,main.go,runner.go,runner_test.go, matches pre-trial: true)
+[2026-11-04T01:08:46.6099314+05:30] === TRIAL REM-CAND-07 COMPLETED in 6942 ms WITH STATUS: VERIFIED_RESOLVED ===
