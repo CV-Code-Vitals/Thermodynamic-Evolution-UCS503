@@ -165,6 +165,17 @@ type ReachingDefinitionsAnalysis struct {
 	DefUseChains map[int][]VariableUse    `json:"-"` // Def ID -> uses
 }
 
+// FindingState defines the explicit probabilistic lifecycle state of a diagnostic finding.
+type FindingState string
+
+const (
+	StateConfirmed              FindingState = "CONFIRMED"
+	StateProbable               FindingState = "PROBABLE"
+	StateInsufficientEvidence   FindingState = "INSUFFICIENT_EVIDENCE"
+	StateCounterEvidencePresent FindingState = "COUNTER_EVIDENCE_PRESENT"
+	StateHumanInvestigationReq  FindingState = "HUMAN_INVESTIGATION_REQUIRED"
+)
+
 // ResourceAction represents a lifecycle transition on an allocated system resource.
 type ResourceAction string
 

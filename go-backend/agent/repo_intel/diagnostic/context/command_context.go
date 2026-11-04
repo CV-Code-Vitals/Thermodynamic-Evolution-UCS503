@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel"
+	"github.com/saksham/self-healing-pipeline/agent/repo_intel/diagnostic/semantic"
 )
 
 // CommandContextAnalyzer evaluates exec.Command calls for injection vulnerabilities and static safety.
@@ -28,7 +29,7 @@ type CommandContextEvaluation struct {
 	CounterEvidences   []CounterEvidence
 }
 
-// EvaluateFile performs AST inspection of exec.Command invocations.
+// EvaluateFile performs AST and semantic IR inspection of exec.Command invocations.
 func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEvaluation, error) {
 	eval := &CommandContextEvaluation{}
 	fullPath := filepath.Join(a.repoRoot, filepath.FromSlash(relPath))
@@ -44,7 +45,67 @@ func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEv
 		return eval, nil
 	}
 
-	// Pre-pass: Index variables assigned from dynamic formatting (fmt.Sprintf) or concatenation
+	findingIDsSeen := make(map[string]bool)
+
+	// 1. Semantic IR Analysis Pass (Expression-aware shell interpretation, parameter tracing, discrete argv)
+	semAnalyzer := semantic.NewSemanticAnalyzer(a.repoRoot)
+	fileModel, _, err := semAnalyzer.AnalyzeFile(relPath)
+	if err == nil && fileModel != nil {
+		cmdSem := semantic.NewCommandAnalyzer(a.repoRoot)
+		for fnName, cfg := range fileModel.CFGs {
+			df := fileModel.Dataflow[fnName]
+			evs, err := cmdSem.AnalyzeFunction(cfg.FuncDecl, fileModel.FileSet, cfg, df, relPath)
+			if err != nil {
+				continue
+			}
+			for _, ev := range evs {
+				if ev.Classification == semantic.ClassificationUntrustedShellCommand {
+					eval.HasVulnerabilities = true
+					fid := fmt.Sprintf("CTX-SEC-CMD-INJECT-%s-L%d", sanitizeRel(relPath), ev.Line)
+					if !findingIDsSeen[fid] {
+						findingIDsSeen[fid] = true
+						eval.Findings = append(eval.Findings, ContextFinding{
+							FindingID:           fid,
+							Category:            repo_intel.CategorySecurity,
+							Severity:            repo_intel.SeverityHigh,
+							Confidence:          ev.Confidence,
+							ConfidenceRationale: fmt.Sprintf("%s: %s", ev.Title, ev.Description),
+							State:               StateConfirmed,
+							Title:               ev.Title,
+							Description:         ev.Description,
+							RootCause:           ev.RootCause,
+							AffectedFiles:       []string{relPath},
+							EvidenceTraces: []EvidenceTrace{
+								{
+									Location: repo_intel.EvidenceLocation{
+										File:        relPath,
+										LineStart:   ev.Line,
+										LineEnd:     ev.Line,
+										Description: ev.Title,
+									},
+									ASTNodeType: ev.ASTNodeType,
+									ContextType: "SHELL_COMMAND_SEMANTIC",
+									CodeSnippet: ev.ShellCommandSnippet,
+									Rationale:   ev.Description,
+								},
+							},
+							DetectionMethod:   "SEMANTIC_DATAFLOW_ANALYSIS",
+							RecommendedAction: ev.RecommendedAction,
+						})
+					}
+				} else if ev.Classification == semantic.ClassificationSafeArgumentSeparation || ev.Classification == semantic.ClassificationStaticCommand {
+					eval.CounterEvidences = append(eval.CounterEvidences, CounterEvidence{
+						RuleID:      "SAFE_STATIC_EXEC_ARGUMENTS",
+						Description: fmt.Sprintf("%s: %s", ev.Title, ev.Description),
+						Location:    fmt.Sprintf("%s:%d", filepath.ToSlash(relPath), ev.Line),
+						VerifiedAt:  time.Now(),
+					})
+				}
+			}
+		}
+	}
+
+	// 2. Legacy AST Inspection Pass (for backward compatibility)
 	dynamicVars := make(map[string]string)
 	ast.Inspect(node, func(n ast.Node) bool {
 		assign, ok := n.(*ast.AssignStmt)
@@ -80,7 +141,6 @@ func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEv
 			return true
 		}
 
-		// Look for exec.Command or exec.CommandContext
 		sel, ok := callExpr.Fun.(*ast.SelectorExpr)
 		if !ok {
 			return true
@@ -92,24 +152,20 @@ func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEv
 		}
 
 		pos := fset.Position(callExpr.Pos())
-
-		// Analyze arguments
 		args := callExpr.Args
 		if sel.Sel.Name == "CommandContext" && len(args) > 0 {
-			args = args[1:] // skip context argument
+			args = args[1:]
 		}
 
 		isDynamic := false
 		var dynamicSnippet string
 
 		for _, arg := range args {
-			// Check for string concatenation (+)
 			if bin, isBin := arg.(*ast.BinaryExpr); isBin && bin.Op == token.ADD {
 				isDynamic = true
 				dynamicSnippet = string(src[bin.Pos()-1 : bin.End()-1])
 				break
 			}
-			// Check for fmt.Sprintf calls within arguments
 			if subCall, isSubCall := arg.(*ast.CallExpr); isSubCall {
 				if subSel, isSubSel := subCall.Fun.(*ast.SelectorExpr); isSubSel {
 					if subIdent, isSubIdent := subSel.X.(*ast.Ident); isSubIdent {
@@ -121,7 +177,6 @@ func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEv
 					}
 				}
 			}
-			// Check for variables assigned from dynamic formatting / concatenation
 			if id, isId := arg.(*ast.Ident); isId {
 				if snip, ok := dynamicVars[id.Name]; ok {
 					isDynamic = true
@@ -133,36 +188,39 @@ func (a *CommandContextAnalyzer) EvaluateFile(relPath string) (*CommandContextEv
 
 		if isDynamic {
 			eval.HasVulnerabilities = true
-			eval.Findings = append(eval.Findings, ContextFinding{
-				FindingID:           "CTX-SEC-CMD-INJECT-" + sanitizeRel(relPath) + fmt.Sprintf("-L%d", pos.Line),
-				Category:            repo_intel.CategorySecurity,
-				Severity:            repo_intel.SeverityHigh,
-				Confidence:          0.95,
-				ConfidenceRationale: "Dynamic string interpolation or binary concatenation detected in exec.Command arguments",
-				State:               StateConfirmed,
-				Title:               "Command Argument Injection Risk",
-				Description:         "Process execution command dynamically formats or concatenates arguments, risking shell/argument injection.",
-				RootCause:           "Dynamic argument composition rather than discrete argument slicing.",
-				AffectedFiles:       []string{relPath},
-				EvidenceTraces: []EvidenceTrace{
-					{
-						Location: repo_intel.EvidenceLocation{
-							File:        relPath,
-							LineStart:   pos.Line,
-							LineEnd:     pos.Line,
-							Description: "Dynamic argument in exec.Command",
+			fid := "CTX-SEC-CMD-INJECT-" + sanitizeRel(relPath) + fmt.Sprintf("-L%d", pos.Line)
+			if !findingIDsSeen[fid] {
+				findingIDsSeen[fid] = true
+				eval.Findings = append(eval.Findings, ContextFinding{
+					FindingID:           fid,
+					Category:            repo_intel.CategorySecurity,
+					Severity:            repo_intel.SeverityHigh,
+					Confidence:          0.95,
+					ConfidenceRationale: "Dynamic string interpolation or binary concatenation detected in exec.Command arguments",
+					State:               StateConfirmed,
+					Title:               "Command Argument Injection Risk",
+					Description:         "Process execution command dynamically formats or concatenates arguments, risking shell/argument injection.",
+					RootCause:           "Dynamic argument composition rather than discrete argument slicing.",
+					AffectedFiles:       []string{relPath},
+					EvidenceTraces: []EvidenceTrace{
+						{
+							Location: repo_intel.EvidenceLocation{
+								File:        relPath,
+								LineStart:   pos.Line,
+								LineEnd:     pos.Line,
+								Description: "Dynamic argument in exec.Command",
+							},
+							ASTNodeType: "ast.CallExpr",
+							ContextType: "EXEC_ARGUMENT",
+							CodeSnippet: dynamicSnippet,
+							Rationale:   "Argument expression dynamically formats input instead of passing fixed discrete tokens.",
 						},
-						ASTNodeType: "ast.CallExpr",
-						ContextType: "EXEC_ARGUMENT",
-						CodeSnippet: dynamicSnippet,
-						Rationale:   "Argument expression dynamically formats input instead of passing fixed discrete tokens.",
 					},
-				},
-				DetectionMethod:   "AST_CALL_ANALYSIS",
-				RecommendedAction: "Pass command arguments as separate discrete string elements without dynamic string concatenation.",
-			})
+					DetectionMethod:   "AST_CALL_ANALYSIS",
+					RecommendedAction: "Pass command arguments as separate discrete string elements without dynamic string concatenation.",
+				})
+			}
 		} else if len(args) > 0 {
-			// All arguments are static string literals or individual identifier references without concatenation
 			eval.CounterEvidences = append(eval.CounterEvidences, CounterEvidence{
 				RuleID:      "SAFE_STATIC_EXEC_ARGUMENTS",
 				Description: "exec.Command uses discrete, unconcatenated arguments without shell interpolation",

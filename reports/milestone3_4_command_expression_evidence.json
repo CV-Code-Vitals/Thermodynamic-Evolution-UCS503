@@ -1,0 +1,350 @@
+{
+  "analyzer": "semantic.CommandAnalyzer",
+  "confusion_matrix": {
+    "false_negatives": 0,
+    "false_positives": 0,
+    "true_negatives": 6,
+    "true_positives": 5
+  },
+  "external_findings": [
+    {
+      "file_path": "runner.go",
+      "package": "",
+      "function": "ExecuteDirect",
+      "line": 13,
+      "classification": "DYNAMIC_ARGUMENTS",
+      "sink_name": "exec.CommandContext",
+      "sink_call_snippet": "exec.CommandContext(ctx, binary, args...)",
+      "binary_expr": "binary",
+      "is_shell_interpreter": false,
+      "argument_snippets": [
+        "args"
+      ],
+      "untrusted_inputs": [
+        "binary_param:binary (string)"
+      ],
+      "confidence": 0.9,
+      "lifecycle_state": "PROBABLE",
+      "severity": "MEDIUM",
+      "title": "Dynamic Executable Path from Parameter",
+      "description": "Executable path in exec.CommandContext is derived from function parameter binary.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "runner.go",
+      "package": "",
+      "function": "ExecuteShellScript",
+      "line": 29,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.CommandContext",
+      "sink_call_snippet": "exec.CommandContext(ctx, \"cmd.exe\", \"/C\", userInput)",
+      "binary_expr": "\"cmd.exe\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "userInput",
+      "argument_snippets": [
+        "\"/C\"",
+        "userInput"
+      ],
+      "untrusted_inputs": [
+        "param:userInput (string)"
+      ],
+      "reaching_defs": [
+        "def:userInput (line 23)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Shell Interpreter",
+      "description": "Command string in ExecuteShellScript at line 29 is passed directly from function parameter 'userInput' to shell interpreter 'cmd.exe -c'.",
+      "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+      "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "runner.go",
+      "package": "",
+      "function": "ExecuteShellScript",
+      "line": 31,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.CommandContext",
+      "sink_call_snippet": "exec.CommandContext(ctx, \"sh\", \"-c\", userInput)",
+      "binary_expr": "\"sh\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "userInput",
+      "argument_snippets": [
+        "\"-c\"",
+        "userInput"
+      ],
+      "untrusted_inputs": [
+        "param:userInput (string)"
+      ],
+      "reaching_defs": [
+        "def:userInput (line 23)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Shell Interpreter",
+      "description": "Command string in ExecuteShellScript at line 31 is passed directly from function parameter 'userInput' to shell interpreter 'sh -c'.",
+      "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+      "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+      "ast_node_type": "*ast.BasicLit"
+    }
+  ],
+  "fixtures_evaluated": [
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Neg_Cmd_SafeArgSeparation",
+      "line": 50,
+      "classification": "SAFE_ARGUMENT_SEPARATION",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"git\", \"log\", \"--grep\", userInput)",
+      "binary_expr": "\"git\"",
+      "is_shell_interpreter": false,
+      "argument_snippets": [
+        "\"log\"",
+        "\"--grep\"",
+        "userInput"
+      ],
+      "counter_evidence": [
+        "Arguments (userInput) are passed as discrete array elements directly to executable git without shell interpretation"
+      ],
+      "confidence": 0.95,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Discrete Argument Separation",
+      "description": "Command uses OS-level argv separation; arguments are not subject to shell parsing or word splitting.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Neg_Cmd_DirectArgBranch",
+      "line": 55,
+      "classification": "SAFE_ARGUMENT_SEPARATION",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"git\", \"checkout\", branch)",
+      "binary_expr": "\"git\"",
+      "is_shell_interpreter": false,
+      "argument_snippets": [
+        "\"checkout\"",
+        "branch"
+      ],
+      "counter_evidence": [
+        "Arguments (branch) are passed as discrete array elements directly to executable git without shell interpretation"
+      ],
+      "confidence": 0.95,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Discrete Argument Separation",
+      "description": "Command uses OS-level argv separation; arguments are not subject to shell parsing or word splitting.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Neg_Cmd_StaticShell",
+      "line": 60,
+      "classification": "SHELL_INTERPRETED_COMMAND",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"sh\", \"-c\", \"echo static safe text\")",
+      "binary_expr": "\"sh\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "\"echo static safe text\"",
+      "argument_snippets": [
+        "\"-c\"",
+        "\"echo static safe text\""
+      ],
+      "counter_evidence": [
+        "Shell command string is a static unconcatenated string literal"
+      ],
+      "confidence": 0.95,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Static Shell Command Execution",
+      "description": "Shell sh executes a constant command string.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Pos_Cmd_ShellSprintf",
+      "line": 15,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"sh\", \"-c\", cmdStr)",
+      "binary_expr": "\"sh\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "cmdStr",
+      "argument_snippets": [
+        "\"-c\"",
+        "cmdStr"
+      ],
+      "untrusted_inputs": [
+        "param:userInput (string)"
+      ],
+      "reaching_defs": [
+        "def:cmdStr (line 14)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Formatted Shell String",
+      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
+      "root_cause": "Formatting user variables into shell interpreter string (-c).",
+      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Pos_Cmd_ShellConcat",
+      "line": 20,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"bash\", \"-c\", \"echo \"+userInput)",
+      "binary_expr": "\"bash\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "\"echo \" + userInput",
+      "argument_snippets": [
+        "\"-c\"",
+        "\"echo \" + userInput"
+      ],
+      "untrusted_inputs": [
+        "param:userInput (string)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Shell String Concatenation",
+      "description": "Shell command executed via 'bash -c' concatenates untrusted input(s): param:userInput (string).",
+      "root_cause": "Direct binary concatenation (+) of dynamic input into shell command string.",
+      "recommended_action": "Execute target binary directly without shell interpreter (-c).",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Pos_Cmd_ShellParamDirect",
+      "line": 32,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"sh\", \"-c\", commandString)",
+      "binary_expr": "\"sh\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "commandString",
+      "argument_snippets": [
+        "\"-c\"",
+        "commandString"
+      ],
+      "untrusted_inputs": [
+        "param:commandString (string)"
+      ],
+      "reaching_defs": [
+        "def:commandString (line 31)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Shell Interpreter",
+      "description": "Command string in Pos_Cmd_ShellParamDirect at line 32 is passed directly from function parameter 'commandString' to shell interpreter 'sh -c'.",
+      "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+      "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Pos_Cmd_ShellPropagated",
+      "line": 27,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"cmd.exe\", \"/c\", target)",
+      "binary_expr": "\"cmd.exe\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "target",
+      "argument_snippets": [
+        "\"/c\"",
+        "target"
+      ],
+      "untrusted_inputs": [
+        "param:script (string)"
+      ],
+      "reaching_defs": [
+        "def:target (line 26)",
+        "def:raw (line 25)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Formatted Shell String",
+      "description": "Shell command executed via 'cmd.exe -c' dynamically formats shell string with untrusted input(s): param:script (string).",
+      "root_cause": "Formatting user variables into shell interpreter string (-c).",
+      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Pos_Cmd_ContextShell",
+      "line": 38,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.CommandContext",
+      "sink_call_snippet": "exec.CommandContext(ctx, \"sh\", \"-c\", cmd)",
+      "binary_expr": "\"sh\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "cmd",
+      "argument_snippets": [
+        "\"-c\"",
+        "cmd"
+      ],
+      "untrusted_inputs": [
+        "param:userInput (string)"
+      ],
+      "reaching_defs": [
+        "def:cmd (line 37)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Formatted Shell String",
+      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
+      "root_cause": "Formatting user variables into shell interpreter string (-c).",
+      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Neg_Cmd_StaticExec",
+      "line": 45,
+      "classification": "STATIC_COMMAND",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"git\", \"status\", \"--short\")",
+      "binary_expr": "\"git\"",
+      "is_shell_interpreter": false,
+      "argument_snippets": [
+        "\"status\"",
+        "\"--short\""
+      ],
+      "counter_evidence": [
+        "Fixed binary invoked with static string literal arguments without shell interpretation"
+      ],
+      "confidence": 0.99,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Static Command Execution",
+      "description": "Subprocess invoked with static command name and constant arguments.",
+      "ast_node_type": "*ast.BasicLit"
+    }
+  ],
+  "metrics": {
+    "f1_score": 1,
+    "precision": 1,
+    "recall": 1,
+    "specificity": 1
+  },
+  "report_type": "Milestone 3.4 Phase 2 Command Expression Evidence",
+  "timestamp": "2026-11-04T15:49:54+05:30"
+}

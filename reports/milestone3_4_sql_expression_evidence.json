@@ -1,0 +1,331 @@
+{
+  "analyzer": "semantic.SQLAnalyzer",
+  "confusion_matrix": {
+    "false_negatives": 0,
+    "false_positives": 0,
+    "true_negatives": 6,
+    "true_positives": 5
+  },
+  "external_findings": [
+    {
+      "file_path": "repository.go",
+      "package": "",
+      "function": "CreateUser",
+      "line": 24,
+      "classification": "SAFE_PARAMETERIZED_SQL",
+      "sink_name": "ExecContext",
+      "sink_call_snippet": "r.db.ExecContext(ctx, query, u.Username, u.Email, u.Role, now)",
+      "query_expr_snippet": "query",
+      "reaching_defs": [
+        "def:query (line 22)"
+      ],
+      "parameter_arguments": [
+        "u.Username",
+        "u.Email",
+        "u.Role",
+        "now"
+      ],
+      "counter_evidence": [
+        "Query string contains bind placeholder (?) and receives 4 discrete parameter arguments at sink"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Parameterized SQL Query",
+      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "repository.go",
+      "package": "",
+      "function": "GetUserByID",
+      "line": 41,
+      "classification": "SAFE_PARAMETERIZED_SQL",
+      "sink_name": "QueryRowContext",
+      "sink_call_snippet": "r.db.QueryRowContext(ctx, query, id)",
+      "query_expr_snippet": "query",
+      "reaching_defs": [
+        "def:query (line 39)"
+      ],
+      "parameter_arguments": [
+        "id"
+      ],
+      "counter_evidence": [
+        "Query string contains bind placeholder (?) and receives 1 discrete parameter arguments at sink"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Parameterized SQL Query",
+      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "repository.go",
+      "package": "",
+      "function": "FindUserByNameRaw",
+      "line": 56,
+      "classification": "UNTRUSTED_SQL_STRUCTURE",
+      "sink_name": "QueryRowContext",
+      "sink_call_snippet": "r.db.QueryRowContext(ctx, query)",
+      "query_expr_snippet": "query",
+      "construction_expr": "fmt.Sprintf(\"SELECT id, username, email, role, created_at FROM users WHERE username = '%s'\", name)",
+      "reaching_defs": [
+        "def:query (line 54)"
+      ],
+      "untrusted_inputs": [
+        "param:name (string)"
+      ],
+      "confidence": 0.97,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)",
+      "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [name] directly into SQL syntax.",
+      "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
+      "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "repository.go",
+      "package": "",
+      "function": "ListRecentUsers",
+      "line": 70,
+      "classification": "SAFE_PARAMETERIZED_SQL",
+      "sink_name": "QueryContext",
+      "sink_call_snippet": "r.db.QueryContext(ctx, query, limit)",
+      "query_expr_snippet": "query",
+      "reaching_defs": [
+        "def:query (line 69)"
+      ],
+      "parameter_arguments": [
+        "limit"
+      ],
+      "counter_evidence": [
+        "Query string contains bind placeholder (?) and receives 1 discrete parameter arguments at sink"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Parameterized SQL Query",
+      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
+      "ast_node_type": "*ast.Ident"
+    }
+  ],
+  "fixtures_evaluated": [
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Neg_SQL_ParameterizedQuery",
+      "line": 51,
+      "classification": "SAFE_PARAMETERIZED_SQL",
+      "sink_name": "Query",
+      "sink_call_snippet": "db.Query(\"SELECT id, name FROM users WHERE username = ?\", username)",
+      "query_expr_snippet": "\"SELECT id, name FROM users WHERE username = ?\"",
+      "parameter_arguments": [
+        "username"
+      ],
+      "counter_evidence": [
+        "Query string contains bind placeholder (?) and receives 1 discrete parameter arguments at sink"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Parameterized SQL Query",
+      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Neg_SQL_ParameterizedContext",
+      "line": 56,
+      "classification": "SAFE_PARAMETERIZED_SQL",
+      "sink_name": "QueryContext",
+      "sink_call_snippet": "db.QueryContext(ctx, \"SELECT id FROM accounts WHERE name = $1\", name)",
+      "query_expr_snippet": "\"SELECT id FROM accounts WHERE name = $1\"",
+      "parameter_arguments": [
+        "name"
+      ],
+      "counter_evidence": [
+        "Query string contains bind placeholder ($1) and receives 1 discrete parameter arguments at sink"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Parameterized SQL Query",
+      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Pos_SQL_Sprintf",
+      "line": 15,
+      "classification": "UNTRUSTED_SQL_STRUCTURE",
+      "sink_name": "Query",
+      "sink_call_snippet": "db.Query(query)",
+      "query_expr_snippet": "query",
+      "construction_expr": "fmt.Sprintf(\"SELECT id, name FROM users WHERE username = '%s'\", username)",
+      "reaching_defs": [
+        "def:query (line 14)"
+      ],
+      "untrusted_inputs": [
+        "param:username (string)"
+      ],
+      "confidence": 0.97,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)",
+      "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [username] directly into SQL syntax.",
+      "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
+      "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Pos_SQL_Concat",
+      "line": 21,
+      "classification": "UNTRUSTED_SQL_STRUCTURE",
+      "sink_name": "QueryRow",
+      "sink_call_snippet": "db.QueryRow(query)",
+      "query_expr_snippet": "query",
+      "construction_expr": "\"SELECT id, category FROM items WHERE category = '\" + userInput + \"'\"",
+      "reaching_defs": [
+        "def:query (line 20)"
+      ],
+      "untrusted_inputs": [
+        "param:userInput (string)"
+      ],
+      "confidence": 0.96,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "SQL Injection Risk via String Concatenation",
+      "description": "SQL query in Pos_SQL_Concat combines raw SQL literals with dynamic variable(s): userInput.",
+      "root_cause": "Direct binary concatenation (+) of dynamic values into SQL statement string.",
+      "recommended_action": "Replace dynamic concatenation with parameterized bind placeholders ($1, ?) and pass values to Exec/Query.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Pos_SQL_ParamAsQuery",
+      "line": 33,
+      "classification": "UNTRUSTED_SQL_STRUCTURE",
+      "sink_name": "Query",
+      "sink_call_snippet": "db.Query(rawQuery)",
+      "query_expr_snippet": "rawQuery",
+      "reaching_defs": [
+        "def:rawQuery (line 32)"
+      ],
+      "untrusted_inputs": [
+        "param:rawQuery (string)"
+      ],
+      "confidence": 0.96,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Untrusted SQL Query Passed as Function Parameter",
+      "description": "SQL query at Query is supplied directly from function parameter rawQuery without bind parameterization.",
+      "root_cause": "Exposing SQL query structure directly to caller parameter.",
+      "recommended_action": "Pass query parameters separately using bind placeholders ($1, ?) rather than dynamic query strings.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Pos_SQL_ContextSink",
+      "line": 39,
+      "classification": "UNTRUSTED_SQL_STRUCTURE",
+      "sink_name": "QueryContext",
+      "sink_call_snippet": "db.QueryContext(ctx, q)",
+      "query_expr_snippet": "q",
+      "construction_expr": "fmt.Sprintf(\"SELECT id, email FROM accounts WHERE name = '%s'\", name)",
+      "reaching_defs": [
+        "def:q (line 38)"
+      ],
+      "untrusted_inputs": [
+        "param:name (string)"
+      ],
+      "confidence": 0.97,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)",
+      "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [name] directly into SQL syntax.",
+      "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
+      "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Neg_SQL_PreparedStatement",
+      "line": 61,
+      "classification": "SAFE_PARAMETERIZED_SQL",
+      "sink_name": "Prepare",
+      "sink_call_snippet": "db.Prepare(\"SELECT id, name FROM users WHERE username = ?\")",
+      "query_expr_snippet": "\"SELECT id, name FROM users WHERE username = ?\"",
+      "counter_evidence": [
+        "Query string contains bind placeholder (?) and receives 0 discrete parameter arguments at sink"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Parameterized SQL Query",
+      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Pos_SQL_PropagatedLocal",
+      "line": 28,
+      "classification": "UNTRUSTED_SQL_STRUCTURE",
+      "sink_name": "Exec",
+      "sink_call_snippet": "db.Exec(statement)",
+      "query_expr_snippet": "statement",
+      "construction_expr": "fmt.Sprintf(\"DELETE FROM logs WHERE level = '%s'\", filter)",
+      "reaching_defs": [
+        "def:statement (line 27)",
+        "def:formatted (line 26)"
+      ],
+      "untrusted_inputs": [
+        "param:filter (string)"
+      ],
+      "confidence": 0.97,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)",
+      "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [filter] directly into SQL syntax.",
+      "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
+      "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Neg_SQL_StaticQuery",
+      "line": 46,
+      "classification": "STATIC_SQL",
+      "sink_name": "Query",
+      "sink_call_snippet": "db.Query(\"SELECT id, name, email FROM users WHERE active = 1\")",
+      "query_expr_snippet": "\"SELECT id, name, email FROM users WHERE active = 1\"",
+      "counter_evidence": [
+        "Query is an unconcatenated static string literal with no dynamic arguments"
+      ],
+      "confidence": 0.99,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Static Constant SQL Query",
+      "description": "Static SQL query executed without runtime string formatting.",
+      "ast_node_type": "*ast.BasicLit"
+    }
+  ],
+  "metrics": {
+    "f1_score": 1,
+    "precision": 1,
+    "recall": 1,
+    "specificity": 1
+  },
+  "report_type": "Milestone 3.4 Phase 2 SQL Expression Evidence",
+  "timestamp": "2026-11-04T15:49:54+05:30"
+}

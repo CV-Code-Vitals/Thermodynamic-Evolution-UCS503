@@ -344,3 +344,84 @@ func containsBlock(list []*Block, target *Block) bool {
 	}
 	return false
 }
+
+// FindReachingDefinitions returns all definitions of varName that reach pos within blockID.
+func (rda *ReachingDefinitionsAnalysis) FindReachingDefinitions(varName string, blockID int, pos token.Pos) []*Definition {
+	if rda == nil {
+		return nil
+	}
+
+	var results []*Definition
+
+	// 1. Check for definitions within blockID occurring before pos
+	var latestLocalDef *Definition
+	for _, def := range rda.Definitions {
+		if def.BlockID == blockID && def.VarName == varName && !def.IsParameter {
+			if def.Stmt != nil && def.Stmt.Pos() < pos {
+				latestLocalDef = def
+			}
+		}
+	}
+
+	if latestLocalDef != nil {
+		return []*Definition{latestLocalDef}
+	}
+
+	// 2. Check In[blockID]
+	if inDefs, ok := rda.In[blockID]; ok {
+		for defID := range inDefs {
+			if defID < len(rda.Definitions) {
+				def := rda.Definitions[defID]
+				if def.VarName == varName {
+					results = append(results, def)
+				}
+			}
+		}
+	}
+
+	// 3. Fallback: find any definition in the function before pos
+	if len(results) == 0 {
+		for _, def := range rda.Definitions {
+			if def.VarName == varName {
+				if def.IsParameter || (def.Stmt != nil && def.Stmt.Pos() < pos) {
+					results = append(results, def)
+				}
+			}
+		}
+	}
+
+	return results
+}
+
+// ResolveRootExpression recursively unwraps variable aliases to find the origin expression.
+func (rda *ReachingDefinitionsAnalysis) ResolveRootExpression(expr ast.Expr, blockID int, pos token.Pos) (ast.Expr, []*Definition) {
+	if rda == nil || expr == nil {
+		return expr, nil
+	}
+
+	curr := expr
+	var defTrace []*Definition
+	visited := make(map[string]bool)
+
+	for {
+		id, ok := curr.(*ast.Ident)
+		if !ok || visited[id.Name] {
+			break
+		}
+		visited[id.Name] = true
+
+		defs := rda.FindReachingDefinitions(id.Name, blockID, pos)
+		if len(defs) == 0 {
+			break
+		}
+
+		def := defs[0]
+		defTrace = append(defTrace, def)
+		if def.Expr == nil {
+			break
+		}
+		curr = def.Expr
+	}
+
+	return curr, defTrace
+}
