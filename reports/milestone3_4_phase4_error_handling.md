@@ -136,3 +136,4 @@ The dedicated fixture suite in `fixtures/error_fixtures.go` evaluates 10 positiv
 | **Mismatched Error Variable Checked (`err1` vs `err2`)** | **Blind (0% recall)** | **Detected (100% recall)** |
 | **Cleanup Suppression vs Critical Discard** | Identical low-severity finding | Differentiated: cleanup is safe counter-evidence; critical is confirmed high defect |
 | **Safe Counter-Evidence Generation** | None | Emits `SAFE_ERROR_HANDLING` for verified branches |
+

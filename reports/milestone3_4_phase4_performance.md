@@ -67,3 +67,4 @@ The analyzer was subjected to adverse and malformed code patterns to assess stab
 - **Memory Overhead:** Negligible ($< 10\,\text{KB}$ per function).
 - **Scalability:** Capable of scanning $>4,000$ functions per second on a single thread.
 - **Resilience:** 100% crash-free across all malformed, nested, and synthetic stress fixtures.
+

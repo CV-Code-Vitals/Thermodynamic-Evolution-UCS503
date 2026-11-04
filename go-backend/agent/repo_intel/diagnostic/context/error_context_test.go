@@ -47,3 +47,4 @@ func TestErrorContextAnalyzerOnFixtures(t *testing.T) {
 		t.Errorf("expected SAFE_ERROR_HANDLING counter-evidences")
 	}
 }
+

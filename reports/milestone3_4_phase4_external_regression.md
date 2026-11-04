@@ -146,3 +146,4 @@ Across Milestone 3.4 Phases 1–4, the external defect recall on the frozen exte
 
 ### Summary
 The complete set of 7 external defects identified during Milestone 3.3 external evaluation (`DEF-SQL-01`, `DEF-CMD-01`, `DEF-HTTP-01`, `DEF-SQL-02`, `DEF-QUEUE-01`, `DEF-HTTP-02`, `DEF-SQL-03`, `DEF-QUEUE-03`) is now **100% detectable** by the Milestone 3.4 semantic diagnostic subsystem, with zero regressions and zero false positives.
+
