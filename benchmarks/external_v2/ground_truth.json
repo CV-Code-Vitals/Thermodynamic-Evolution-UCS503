@@ -1,0 +1,281 @@
+{
+  "ground_truth_version": "2.0.0",
+  "created_at": "2026-11-05T04:36:00+05:30",
+  "evaluation_suite": "Milestone 3.4 Phase 6 Independent External Corpus Suite v2",
+  "external_natural_defects": [
+    {
+      "defect_id": "NAT-EXT2-ERR-01",
+      "repository": "fatih_color",
+      "file": "color.go",
+      "symbol": "Color.print",
+      "line": 290,
+      "category": "UNHANDLED_ERROR",
+      "expected_finding": "UnhandledError",
+      "severity": "LOW",
+      "origin": "natural_historical",
+      "description": "fmt.Fprint(w, str) error return value discarded without propagation"
+    },
+    {
+      "defect_id": "NAT-EXT2-ERR-02",
+      "repository": "schollz_progressbar",
+      "file": "progressbar.go",
+      "symbol": "ProgressBar.render",
+      "line": 883,
+      "category": "UNHANDLED_ERROR",
+      "expected_finding": "UnhandledError",
+      "severity": "LOW",
+      "origin": "natural_historical",
+      "description": "Terminal io.Writer Write return error discarded without check"
+    },
+    {
+      "defect_id": "NAT-EXT2-RES-01",
+      "repository": "gorilla_websocket",
+      "file": "client.go",
+      "symbol": "Dialer.DialContext",
+      "line": 82,
+      "category": "RESOURCE_LEAK",
+      "expected_finding": "ResourceLeak",
+      "severity": "HIGH",
+      "origin": "natural_historical",
+      "description": "net.Conn socket opened during handshake failure exit path without close"
+    },
+    {
+      "defect_id": "NAT-EXT2-ERR-03",
+      "repository": "gorilla_websocket",
+      "file": "conn.go",
+      "symbol": "Conn.Close",
+      "line": 345,
+      "category": "UNHANDLED_ERROR",
+      "expected_finding": "UnhandledError",
+      "severity": "LOW",
+      "origin": "natural_historical",
+      "description": "Underlying network descriptor close error ignored during connection cleanup"
+    }
+  ],
+  "external_injected_defects": [
+    {
+      "defect_id": "INJ-EXT2-SQL-01",
+      "repository": "stretchr_objx",
+      "file": "sql_helper.go",
+      "symbol": "SQLQueryExecutor.QueryUserByRole",
+      "line": 25,
+      "category": "SQL_INJECTION",
+      "expected_finding": "SqlInjection",
+      "severity": "CRITICAL",
+      "origin": "deliberately_injected",
+      "description": "fmt.Sprintf string concatenation into db.QueryContext"
+    },
+    {
+      "defect_id": "INJ-EXT2-SQL-02",
+      "repository": "stretchr_objx",
+      "file": "sql_helper.go",
+      "symbol": "SearchByTagRaw",
+      "line": 31,
+      "category": "SQL_INJECTION",
+      "expected_finding": "SqlInjection",
+      "severity": "CRITICAL",
+      "origin": "deliberately_injected",
+      "description": "String concatenation directly passed to db.Query"
+    },
+    {
+      "defect_id": "INJ-EXT2-CMD-01",
+      "repository": "schollz_progressbar",
+      "file": "cmd_runner.go",
+      "symbol": "TriggerProgressHook",
+      "line": 15,
+      "category": "COMMAND_INJECTION",
+      "expected_finding": "CommandInjection",
+      "severity": "CRITICAL",
+      "origin": "deliberately_injected",
+      "description": "exec.Command passes unsanitized customHook string to sh -c interpreter"
+    },
+    {
+      "defect_id": "INJ-EXT2-RES-02",
+      "repository": "fatih_color",
+      "file": "file_printer.go",
+      "symbol": "DumpColorProfile",
+      "line": 21,
+      "category": "RESOURCE_LEAK",
+      "expected_finding": "ResourceLeak",
+      "severity": "HIGH",
+      "origin": "deliberately_injected",
+      "description": "os.Open file descriptor allocated without Close or defer Close"
+    },
+    {
+      "defect_id": "INJ-EXT2-RES-03",
+      "repository": "gorilla_websocket",
+      "file": "trace_conn.go",
+      "symbol": "ProbeWebSocketGateway",
+      "line": 19,
+      "category": "RESOURCE_LEAK",
+      "expected_finding": "ResourceLeak",
+      "severity": "HIGH",
+      "origin": "deliberately_injected",
+      "description": "net.Dial TCP socket allocated without Close"
+    },
+    {
+      "defect_id": "INJ-EXT2-ERR-04",
+      "repository": "spf13_cast",
+      "file": "json_loader.go",
+      "symbol": "ParsePayloadUnchecked",
+      "line": 23,
+      "category": "UNHANDLED_ERROR",
+      "expected_finding": "UnhandledError",
+      "severity": "HIGH",
+      "origin": "deliberately_injected",
+      "description": "json.Unmarshal error return value discarded via blank identifier"
+    }
+  ],
+  "clean_controls": [
+    {
+      "control_id": "CTL-EXT2-01",
+      "repository": "google_uuid",
+      "file": "uuid.go",
+      "symbol": "New",
+      "description": "Pure UUID v4 generation using crypto/rand with internal error propagation"
+    },
+    {
+      "control_id": "CTL-EXT2-02",
+      "repository": "google_uuid",
+      "file": "hash.go",
+      "symbol": "NewHash",
+      "description": "Safe MD5/SHA1 hashing using memory buffer with verified bounds"
+    },
+    {
+      "control_id": "CTL-EXT2-03",
+      "repository": "pkg_errors",
+      "file": "errors.go",
+      "symbol": "Wrap",
+      "description": "Idiomatic error wrapping preserving nil checks"
+    },
+    {
+      "control_id": "CTL-EXT2-04",
+      "repository": "pkg_errors",
+      "file": "stack.go",
+      "symbol": "Frame.Format",
+      "description": "Safe stack trace formatting to fmt.State"
+    },
+    {
+      "control_id": "CTL-EXT2-05",
+      "repository": "jinzhu_inflection",
+      "file": "inflections.go",
+      "symbol": "Plural",
+      "description": "Pure string regex substitution without resources or errors"
+    },
+    {
+      "control_id": "CTL-EXT2-06",
+      "repository": "jinzhu_inflection",
+      "file": "inflections.go",
+      "symbol": "Singular",
+      "description": "Pure regex-based word singularization"
+    },
+    {
+      "control_id": "CTL-EXT2-07",
+      "repository": "hashicorp_go_version",
+      "file": "version.go",
+      "symbol": "NewVersion",
+      "description": "Semantic version parsing with explicit error checks on invalid segments"
+    },
+    {
+      "control_id": "CTL-EXT2-08",
+      "repository": "hashicorp_go_version",
+      "file": "constraint.go",
+      "symbol": "NewConstraint",
+      "description": "Version constraint compiler with strict error validation"
+    },
+    {
+      "control_id": "CTL-EXT2-09",
+      "repository": "spf13_cast",
+      "file": "caste.go",
+      "symbol": "ToStringE",
+      "description": "Type assertion conversion returning value and error cleanly"
+    },
+    {
+      "control_id": "CTL-EXT2-10",
+      "repository": "spf13_cast",
+      "file": "json_loader.go",
+      "symbol": "LoadJSONConfigSafe",
+      "description": "os.ReadFile followed by json.Unmarshal with explicit error checks"
+    },
+    {
+      "control_id": "CTL-EXT2-11",
+      "repository": "fatih_color",
+      "file": "color.go",
+      "symbol": "New",
+      "description": "Color struct initialization with clean attribute slice"
+    },
+    {
+      "control_id": "CTL-EXT2-12",
+      "repository": "fatih_color",
+      "file": "file_printer.go",
+      "symbol": "PrintFileSafe",
+      "description": "Safe file reader with immediate defer f.Close() and io.ReadAll"
+    },
+    {
+      "control_id": "CTL-EXT2-13",
+      "repository": "tidwall_gjson",
+      "file": "gjson.go",
+      "symbol": "Get",
+      "description": "Zero-allocation byte slice index search without file descriptors"
+    },
+    {
+      "control_id": "CTL-EXT2-14",
+      "repository": "tidwall_gjson",
+      "file": "gjson.go",
+      "symbol": "Parse",
+      "description": "Safe JSON document parsing returning Result struct"
+    },
+    {
+      "control_id": "CTL-EXT2-15",
+      "repository": "stretchr_objx",
+      "file": "accessors.go",
+      "symbol": "Map.Get",
+      "description": "Safe nested map key traversal without unchecked type assertions"
+    },
+    {
+      "control_id": "CTL-EXT2-16",
+      "repository": "stretchr_objx",
+      "file": "sql_helper.go",
+      "symbol": "QueryUserSafe",
+      "description": "Parameterized SQL query using db.QueryContext with parameter placeholder"
+    },
+    {
+      "control_id": "CTL-EXT2-17",
+      "repository": "gorilla_websocket",
+      "file": "trace_conn.go",
+      "symbol": "DialProbeSafe",
+      "description": "Safe socket dial with defer conn.Close() prior to return"
+    },
+    {
+      "control_id": "CTL-EXT2-18",
+      "repository": "gorilla_websocket",
+      "file": "util.go",
+      "symbol": "tokenListContainsValue",
+      "description": "Pure header token scanning utility"
+    },
+    {
+      "control_id": "CTL-EXT2-19",
+      "repository": "schollz_progressbar",
+      "file": "cmd_runner.go",
+      "symbol": "RunTerminalResetSafe",
+      "description": "exec.Command with static constant argument separation"
+    },
+    {
+      "control_id": "CTL-EXT2-20",
+      "repository": "schollz_progressbar",
+      "file": "progressbar.go",
+      "symbol": "NewOptions64",
+      "description": "Thread-safe progress bar option initialization with mutex guard"
+    }
+  ],
+  "uncertain_cases": [
+    {
+      "exclusion_scope": "Test files (*_test.go)",
+      "reason": "Test scaffolding often uses deliberately panic-based assertions, mock net.Pipe descriptors, or temporary file discard patterns not representative of production lifecycles"
+    },
+    {
+      "exclusion_scope": "Third-party vendor directories",
+      "reason": "Opaque external dependencies without guaranteed local source AST access"
+    }
+  ]
+}
