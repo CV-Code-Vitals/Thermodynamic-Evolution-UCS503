@@ -77,6 +77,7 @@ func BuildCFG(fn *ast.FuncDecl, fset *token.FileSet, filePath string) *ControlFl
 	// 3. Connect fallthrough exit to Exit block if not already returned
 	if lastBlock != nil && len(lastBlock.Successors) == 0 && lastBlock.Kind != BlockReturn {
 		builder.addEdge(lastBlock, exit)
+		cfg.ReturnBlocks = append(cfg.ReturnBlocks, lastBlock)
 	}
 
 	// 4. Connect all Return blocks to Exit

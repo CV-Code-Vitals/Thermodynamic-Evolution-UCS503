@@ -1,0 +1,156 @@
+{
+  "manifest_version": "1.0.0",
+  "created_at": "2026-11-04T22:15:00+05:30",
+  "evaluation_suite": "Milestone 3.4 Phase 6 Held-Out External Evaluation Suite v1",
+  "firebreak_frozen": true,
+  "selection_criteria": "Real-world inspired Go microservices across varied multi-package architectures not present in training or previous development phases",
+  "repositories": [
+    {
+      "id": "heldout-repo-01",
+      "name": "microservice_api",
+      "relative_path": "benchmarks/heldout_v1/microservice_api",
+      "module": "github.com/heldout-bench/microservice-api",
+      "domain": "Microservice REST API & Storage",
+      "architectural_complexity": "Multi-Package (api, storage, config)",
+      "tree_sha256": "5cdf37babeef1e7e67e353d8cdaa612f118410e4428c5a0ee637b536194d2e2d",
+      "file_count": 3,
+      "loc": 85,
+      "ground_truth_defects": [
+        {
+          "defect_id": "DEF-HOLDOUT-01",
+          "file": "config/config.go",
+          "symbol": "LoadConfigUnchecked",
+          "category": "UNHANDLED_ERROR",
+          "expected_finding": "UnhandledError",
+          "severity": "HIGH",
+          "origin": "deliberately_injected",
+          "description": "json.Unmarshal return error discarded via blank identifier"
+        },
+        {
+          "defect_id": "DEF-HOLDOUT-02",
+          "file": "storage/repo.go",
+          "symbol": "SearchUsersDynamic",
+          "category": "SQL_INJECTION",
+          "expected_finding": "SqlInjection",
+          "severity": "CRITICAL",
+          "origin": "deliberately_injected",
+          "description": "fmt.Sprintf dynamically concatenated into QueryContext"
+        },
+        {
+          "defect_id": "DEF-HOLDOUT-03",
+          "file": "api/handler.go",
+          "symbol": "ExportReportLeak",
+          "category": "RESOURCE_LEAK",
+          "expected_finding": "ResourceLeak",
+          "severity": "HIGH",
+          "origin": "deliberately_injected",
+          "description": "os.Open file handle opened without Close or defer Close"
+        }
+      ],
+      "negative_controls": [
+        "config/config.go: LoadConfigSafe with full error checking",
+        "storage/repo.go: FindUserSafe with parameterized query",
+        "api/handler.go: ExportSafe with deferred f.Close()",
+        "api/handler.go: FetchExternalMetadata with deferred resp.Body.Close()"
+      ]
+    },
+    {
+      "id": "heldout-repo-02",
+      "name": "stream_ingestor",
+      "relative_path": "benchmarks/heldout_v1/stream_ingestor",
+      "module": "github.com/heldout-bench/stream-ingestor",
+      "domain": "Stream Processing & Task Execution",
+      "architectural_complexity": "Multi-Package (ingest, exec, telemetry)",
+      "tree_sha256": "c7773b87a10f77f94eb49e66f9edfd9b453838313ef3adf2c4b1db8e8c74d63e",
+      "file_count": 3,
+      "loc": 76,
+      "ground_truth_defects": [
+        {
+          "defect_id": "DEF-HOLDOUT-04",
+          "file": "exec/runner.go",
+          "symbol": "DispatchShellTask",
+          "category": "COMMAND_INJECTION",
+          "expected_finding": "CommandInjection",
+          "severity": "CRITICAL",
+          "origin": "deliberately_injected",
+          "description": "exec.Command invokes sh -c with unvalidated concatenated topic string"
+        },
+        {
+          "defect_id": "DEF-HOLDOUT-05",
+          "file": "ingest/fetcher.go",
+          "symbol": "IngestEventStream",
+          "category": "RESOURCE_LEAK",
+          "expected_finding": "ResourceLeak",
+          "severity": "HIGH",
+          "origin": "deliberately_injected",
+          "description": "http.Get response body never closed via defer resp.Body.Close()"
+        },
+        {
+          "defect_id": "DEF-HOLDOUT-06",
+          "file": "exec/runner.go",
+          "symbol": "DumpTelemetryLog",
+          "category": "UNHANDLED_ERROR",
+          "expected_finding": "UnhandledError",
+          "severity": "MEDIUM",
+          "origin": "deliberately_injected",
+          "description": "os.WriteFile return value unchecked"
+        }
+      ],
+      "negative_controls": [
+        "exec/runner.go: RunBackupSafe with argument separation",
+        "ingest/fetcher.go: FetchStreamSafe with deferred resp.Body.Close()",
+        "telemetry/metrics.go: IncrementRecord with mutex locking",
+        "telemetry/metrics.go: FormatStats with thread-safe formatting"
+      ]
+    },
+    {
+      "id": "heldout-repo-03",
+      "name": "auth_broker",
+      "relative_path": "benchmarks/heldout_v1/auth_broker",
+      "module": "github.com/heldout-bench/auth-broker",
+      "domain": "Authentication & Session Management",
+      "architectural_complexity": "Multi-Package (token, session, audit)",
+      "tree_sha256": "fdee20493174109035ffbaf62cbefd5b4b50102aeaff1ee430245558af8d5544",
+      "file_count": 3,
+      "loc": 79,
+      "ground_truth_defects": [
+        {
+          "defect_id": "DEF-HOLDOUT-07",
+          "file": "session/store.go",
+          "symbol": "InvalidateSessionUnchecked",
+          "category": "UNHANDLED_ERROR",
+          "expected_finding": "UnhandledError",
+          "severity": "MEDIUM",
+          "origin": "deliberately_injected",
+          "description": "db.Exec return value ignored"
+        },
+        {
+          "defect_id": "DEF-HOLDOUT-08",
+          "file": "session/store.go",
+          "symbol": "FindSessionDynamic",
+          "category": "SQL_INJECTION",
+          "expected_finding": "SqlInjection",
+          "severity": "CRITICAL",
+          "origin": "deliberately_injected",
+          "description": "String concatenation inside db.Query"
+        },
+        {
+          "defect_id": "DEF-HOLDOUT-09",
+          "file": "audit/logger.go",
+          "symbol": "RotateAuditLog",
+          "category": "RESOURCE_LEAK",
+          "expected_finding": "ResourceLeak",
+          "severity": "HIGH",
+          "origin": "deliberately_injected",
+          "description": "os.OpenFile descriptor unclosed"
+        }
+      ],
+      "negative_controls": [
+        "session/store.go: ValidateSessionSafe with parameterized query",
+        "audit/logger.go: LogEventSafe with deferred f.Close()",
+        "token/jwt.go: VerifySignature HMAC timing-safe check",
+        "token/jwt.go: ParseTokenSafe error-handling validation"
+      ]
+    }
+  ]
+}

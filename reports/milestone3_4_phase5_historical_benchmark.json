@@ -1,0 +1,66 @@
+{
+  "baseline_commit": "be917a4",
+  "milestone": "Milestone 3.4 Phase 5",
+  "suites_evaluated": {
+    "external_v1_full_denominator": {
+      "ground_truth_defects": 14,
+      "m3_3_baseline_detected": 2,
+      "m3_3_baseline_recall": 0.142857,
+      "m3_4_semantic_detected": 9,
+      "m3_4_semantic_precision": 1,
+      "m3_4_semantic_recall": 0.642857,
+      "negative_controls": 15,
+      "repositories": 5,
+      "unrecovered_categories": [
+        "Concurrency Race (DEF-CACHE-01)",
+        "Goroutine Leak (DEF-CACHE-02)",
+        "Context Cancel Leak (DEF-HTTP-03)",
+        "Path Traversal (DEF-CLI-02)",
+        "Timer Reference Leak (DEF-QUEUE-02)"
+      ]
+    },
+    "external_v1_targeted_scope": {
+      "detected": 9,
+      "precision": 1,
+      "recall": 1,
+      "target_defects": 9,
+      "targeted_categories": "SQL, Command, Resource, Error Handling"
+    },
+    "phase_fixtures": {
+      "error_fixtures": {
+        "cases": 20,
+        "precision": 1,
+        "recall": 1
+      },
+      "resource_fixtures": {
+        "cases": 24,
+        "precision": 1,
+        "recall": 1
+      },
+      "sql_command_fixtures": {
+        "cases": 20,
+        "precision": 1,
+        "recall": 1
+      }
+    },
+    "suite_v2": {
+      "controls": 32,
+      "defects": 64,
+      "fixtures": 96,
+      "precision": 1,
+      "recall": 1,
+      "specificity": 1,
+      "status": "IMMUTABLE_VERIFIED"
+    },
+    "suite_v3": {
+      "controls": 48,
+      "defects": 96,
+      "fixtures": 144,
+      "precision": 1,
+      "recall": 1,
+      "specificity": 1,
+      "status": "IMMUTABLE_VERIFIED"
+    }
+  },
+  "timestamp": "2026-11-04T22:29:59+05:30"
+}

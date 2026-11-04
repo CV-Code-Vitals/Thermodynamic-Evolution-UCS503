@@ -88,7 +88,10 @@ func (sa *SemanticAnalyzer) AnalyzeSource(fileName, src string) (*FileSemanticMo
 
 // AnalyzeFile loads and analyzes a single Go file from disk.
 func (sa *SemanticAnalyzer) AnalyzeFile(relPath string) (*FileSemanticModel, *SymbolTable, error) {
-	fullPath := filepath.Join(sa.repoRoot, filepath.FromSlash(relPath))
+	fullPath := relPath
+	if !filepath.IsAbs(fullPath) {
+		fullPath = filepath.Join(sa.repoRoot, filepath.FromSlash(relPath))
+	}
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("read file %s: %w", relPath, err)
@@ -98,7 +101,10 @@ func (sa *SemanticAnalyzer) AnalyzeFile(relPath string) (*FileSemanticModel, *Sy
 
 // AnalyzePackage discovers all Go files in a directory and builds a PackageSemanticModel.
 func (sa *SemanticAnalyzer) AnalyzePackage(dirRelPath string) (*PackageSemanticModel, error) {
-	fullDir := filepath.Join(sa.repoRoot, filepath.FromSlash(dirRelPath))
+	fullDir := dirRelPath
+	if !filepath.IsAbs(fullDir) {
+		fullDir = filepath.Join(sa.repoRoot, filepath.FromSlash(dirRelPath))
+	}
 	entries, err := os.ReadDir(fullDir)
 	if err != nil {
 		return nil, fmt.Errorf("read package dir %s: %w", dirRelPath, err)
