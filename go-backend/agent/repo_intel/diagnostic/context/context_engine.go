@@ -72,9 +72,12 @@ func (ce *ContextEngine) AnalyzeRepository(files []string) (*ContextAnalysisSumm
 			}
 		}
 
-		resFindings, err := ce.res.EvaluateFile(f)
-		if err == nil {
-			allFindings = append(allFindings, resFindings...)
+		resEval, err := ce.res.EvaluateFile(f)
+		if err == nil && resEval != nil {
+			allFindings = append(allFindings, resEval.Findings...)
+			if len(resEval.CounterEvidences) > 0 {
+				counterEvs[f] = append(counterEvs[f], resEval.CounterEvidences...)
+			}
 		}
 	}
 

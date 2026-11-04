@@ -1,0 +1,155 @@
+{
+  "model_version": "3.4.0",
+  "name": "Function-Level Resource Lifecycle State Machine",
+  "description": "Formal state machine specification for tracking system resource handle lifecycles along function CFG paths",
+  "states": [
+    {
+      "state": "RESOURCE_ACQUIRED",
+      "description": "Resource handle successfully acquired via supported API contract",
+      "is_terminal": false,
+      "obligation_active": true
+    },
+    {
+      "state": "RESOURCE_RELEASED",
+      "description": "Resource handle explicitly released via registered release method along execution path",
+      "is_terminal": true,
+      "obligation_active": false
+    },
+    {
+      "state": "RESOURCE_DEFERRED_RELEASE",
+      "description": "Resource release registered via top-level function defer statement, guaranteeing execution on all normal and panic exits",
+      "is_terminal": true,
+      "obligation_active": false
+    },
+    {
+      "state": "RESOURCE_TRANSFERRED",
+      "description": "Resource ownership transferred to caller via return value or consuming contract",
+      "is_terminal": true,
+      "obligation_active": false
+    },
+    {
+      "state": "RESOURCE_ESCAPED",
+      "description": "Resource handle stored in long-lived state or passed across unverified boundary",
+      "is_terminal": false,
+      "obligation_active": false
+    },
+    {
+      "state": "RESOURCE_LEAK_CONFIRMED",
+      "description": "Reachable normal exit paths terminate without explicit or deferred release, with zero clean exits",
+      "is_terminal": true,
+      "obligation_active": true,
+      "severity": "HIGH",
+      "confidence": 0.97
+    },
+    {
+      "state": "RESOURCE_LEAK_PROBABLE",
+      "description": "Resource is released along some exit paths but leaks on error or conditional paths, or release is deferred inside a loop",
+      "is_terminal": true,
+      "obligation_active": true,
+      "severity": "MEDIUM",
+      "confidence": 0.90
+    },
+    {
+      "state": "RESOURCE_UNRESOLVED",
+      "description": "Resource ownership cannot be statically determined (e.g. opaque struct encapsulation or reflection)",
+      "is_terminal": true,
+      "obligation_active": false,
+      "severity": "LOW",
+      "confidence": 0.60
+    }
+  ],
+  "supported_resources": [
+    {
+      "kind": "os.File",
+      "package": "os",
+      "acquisition_methods": [
+        "Open",
+        "OpenFile",
+        "Create"
+      ],
+      "release_methods": [
+        "Close"
+      ],
+      "requires_receiver": false
+    },
+    {
+      "kind": "net.Conn",
+      "packages": [
+        "net",
+        "crypto/tls"
+      ],
+      "acquisition_methods": [
+        "Dial",
+        "DialTimeout",
+        "DialTCP",
+        "DialUDP",
+        "DialIP",
+        "DialUnix",
+        "Accept"
+      ],
+      "release_methods": [
+        "Close"
+      ],
+      "requires_receiver": false
+    },
+    {
+      "kind": "http.Response.Body",
+      "package": "net/http",
+      "acquisition_methods": [
+        "Get",
+        "Post",
+        "PostForm",
+        "Head",
+        "Do"
+      ],
+      "release_methods": [
+        "Close"
+      ],
+      "release_field": "Body",
+      "requires_receiver": false
+    },
+    {
+      "kind": "sql.Rows",
+      "package": "database/sql",
+      "acquisition_methods": [
+        "Query",
+        "QueryContext"
+      ],
+      "release_methods": [
+        "Close"
+      ],
+      "requires_receiver": true
+    },
+    {
+      "kind": "sql.Tx",
+      "package": "database/sql",
+      "acquisition_methods": [
+        "Begin",
+        "BeginTx"
+      ],
+      "release_methods": [
+        "Commit",
+        "Rollback"
+      ],
+      "requires_receiver": true,
+      "special_semantics": "defer Rollback() followed by Commit() is safe in Go; Rollback after Commit is a documented no-op."
+    },
+    {
+      "kind": "time.Timer",
+      "package": "time",
+      "acquisition_methods": [
+        "NewTimer"
+      ],
+      "release_methods": [
+        "Stop"
+      ],
+      "requires_receiver": false
+    }
+  ],
+  "safety_invariants": [
+    "Every tracked acquisition must terminate in a defensible lifecycle outcome on all reachable function exit paths.",
+    "Acquisition error check branches (if err != nil { return err }) immediately following acquisition represent failed acquisition; unacquired exits are pruned from leak accounting.",
+    "Deferred releases inside loop bodies are flagged as RESOURCE_LEAK_PROBABLE due to descriptor accumulation across iterations.",
+    "Unresolved lifecycles (RESOURCE_UNRESOLVED) are marked INSUFFICIENT_EVIDENCE and never eligible for autonomous remediation without human confirmation."
+  ]
+}
