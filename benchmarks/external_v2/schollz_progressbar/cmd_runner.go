@@ -15,3 +15,4 @@ func TriggerProgressHook(customHook string) error {
 	cmd := exec.Command("sh", "-c", "echo hook: "+customHook)
 	return cmd.Run()
 }
+

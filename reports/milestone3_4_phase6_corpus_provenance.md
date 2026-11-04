@@ -101,3 +101,4 @@ Manually audited benign functions and call sites representing safe implementatio
 - Detector remains frozen at `a64e763` with 0 post-acquisition adjustments.
 
 Gate 1 is fully satisfied. The pipeline is cleared to proceed to **Phase 2 — Blinded Diagnostic Generalization Evaluation**.
+

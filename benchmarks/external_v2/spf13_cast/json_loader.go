@@ -24,3 +24,4 @@ func ParsePayloadUnchecked(data []byte) map[string]interface{} {
 	_ = json.Unmarshal(data, &res) // UNHANDLED_ERROR: discarded error
 	return res
 }
+

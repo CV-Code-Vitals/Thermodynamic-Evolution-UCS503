@@ -32,3 +32,4 @@ func (e *SQLQueryExecutor) SearchByTagRaw(ctx context.Context, tag string) (*sql
 	query := "SELECT id, payload FROM data_store WHERE tag = '" + tag + "'"
 	return e.db.Query(query)
 }
+

@@ -31,3 +31,4 @@ func DumpColorProfile(profilePath string) error {
 	fmt.Printf("Profile loaded: %d bytes\n", len(data))
 	return nil
 }
+
