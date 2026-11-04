@@ -1,0 +1,329 @@
+[
+  {
+    "case_id": "INJ-EXT2-SQL-01",
+    "case_type": "INJECTED_DEFECT",
+    "repository": "stretchr_objx",
+    "file": "sql_helper.go",
+    "line": 25,
+    "symbol": "SQLQueryExecutor.QueryUserByRole",
+    "ground_truth_class": "SQL_INJECTION",
+    "evaluation_outcome": "TP",
+    "matched_finding_ids": [
+      "SEM-SEC-SQL-benchmarks-external_v2-stretchr_objx-sql_helper_go-L27"
+    ],
+    "notes": "Detected accurately: SEM-SEC-SQL-benchmarks-external_v2-stretchr_objx-sql_helper_go-L27"
+  },
+  {
+    "case_id": "INJ-EXT2-SQL-02",
+    "case_type": "INJECTED_DEFECT",
+    "repository": "stretchr_objx",
+    "file": "sql_helper.go",
+    "line": 31,
+    "symbol": "SQLQueryExecutor.SearchByTagRaw",
+    "ground_truth_class": "SQL_INJECTION",
+    "evaluation_outcome": "TP",
+    "matched_finding_ids": [
+      "SEM-SEC-SQL-benchmarks-external_v2-stretchr_objx-sql_helper_go-L33"
+    ],
+    "notes": "Detected accurately: SEM-SEC-SQL-benchmarks-external_v2-stretchr_objx-sql_helper_go-L33"
+  },
+  {
+    "case_id": "INJ-EXT2-CMD-01",
+    "case_type": "INJECTED_DEFECT",
+    "repository": "schollz_progressbar",
+    "file": "cmd_runner.go",
+    "line": 15,
+    "symbol": "TriggerProgressHook",
+    "ground_truth_class": "COMMAND_INJECTION",
+    "evaluation_outcome": "TP",
+    "matched_finding_ids": [
+      "SEM-SEC-CMD-benchmarks-external_v2-schollz_progressbar-cmd_runner_go-L15"
+    ],
+    "notes": "Detected accurately: SEM-SEC-CMD-benchmarks-external_v2-schollz_progressbar-cmd_runner_go-L15"
+  },
+  {
+    "case_id": "INJ-EXT2-RES-02",
+    "case_type": "INJECTED_DEFECT",
+    "repository": "fatih_color",
+    "file": "file_printer.go",
+    "line": 21,
+    "symbol": "DumpColorProfile",
+    "ground_truth_class": "RESOURCE_LEAK",
+    "evaluation_outcome": "TP",
+    "matched_finding_ids": [
+      "SEM-REL-RES-benchmarks-external_v2-fatih_color-file_printer_go-L22"
+    ],
+    "notes": "Detected accurately: SEM-REL-RES-benchmarks-external_v2-fatih_color-file_printer_go-L22"
+  },
+  {
+    "case_id": "INJ-EXT2-RES-03",
+    "case_type": "INJECTED_DEFECT",
+    "repository": "gorilla_websocket",
+    "file": "trace_conn.go",
+    "line": 19,
+    "symbol": "ProbeWebSocketGateway",
+    "ground_truth_class": "RESOURCE_LEAK",
+    "evaluation_outcome": "TP",
+    "matched_finding_ids": [
+      "SEM-REL-RES-benchmarks-external_v2-gorilla_websocket-trace_conn_go-L20"
+    ],
+    "notes": "Detected accurately: SEM-REL-RES-benchmarks-external_v2-gorilla_websocket-trace_conn_go-L20"
+  },
+  {
+    "case_id": "INJ-EXT2-ERR-04",
+    "case_type": "INJECTED_DEFECT",
+    "repository": "spf13_cast",
+    "file": "json_loader.go",
+    "line": 23,
+    "symbol": "ParsePayloadUnchecked",
+    "ground_truth_class": "UNHANDLED_ERROR",
+    "evaluation_outcome": "TP",
+    "matched_finding_ids": [
+      "SEM-REL-ERR-benchmarks-external_v2-spf13_cast-json_loader_go-L24"
+    ],
+    "notes": "Detected accurately: SEM-REL-ERR-benchmarks-external_v2-spf13_cast-json_loader_go-L24"
+  },
+  {
+    "case_id": "CTL-EXT2-01",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "google_uuid",
+    "file": "version4.go",
+    "line": 13,
+    "symbol": "New",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-02",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "google_uuid",
+    "file": "hash.go",
+    "line": 27,
+    "symbol": "NewHash",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "FP",
+    "matched_finding_ids": [
+      "SEM-REL-ERR-benchmarks-external_v2-google_uuid-hash_go-L29",
+      "SEM-REL-ERR-benchmarks-external_v2-google_uuid-hash_go-L30"
+    ],
+    "notes": "False alarm triggered on clean control: SEM-REL-ERR-benchmarks-external_v2-google_uuid-hash_go-L29, SEM-REL-ERR-benchmarks-external_v2-google_uuid-hash_go-L30"
+  },
+  {
+    "case_id": "CTL-EXT2-03",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "pkg_errors",
+    "file": "errors.go",
+    "line": 184,
+    "symbol": "Wrap",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-04",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "pkg_errors",
+    "file": "stack.go",
+    "line": 64,
+    "symbol": "Frame.Format",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-05",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "jinzhu_inflection",
+    "file": "inflections.go",
+    "line": 263,
+    "symbol": "Plural",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-06",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "jinzhu_inflection",
+    "file": "inflections.go",
+    "line": 273,
+    "symbol": "Singular",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-07",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "hashicorp_go_version",
+    "file": "version.go",
+    "line": 49,
+    "symbol": "NewVersion",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-08",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "hashicorp_go_version",
+    "file": "constraint.go",
+    "line": 65,
+    "symbol": "NewConstraint",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-09",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "spf13_cast",
+    "file": "caste.go",
+    "line": 931,
+    "symbol": "ToStringE",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-10",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "spf13_cast",
+    "file": "json_loader.go",
+    "line": 11,
+    "symbol": "LoadJSONConfigSafe",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-11",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "fatih_color",
+    "file": "color.go",
+    "line": 117,
+    "symbol": "New",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-12",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "fatih_color",
+    "file": "file_printer.go",
+    "line": 10,
+    "symbol": "PrintFileSafe",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-13",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "tidwall_gjson",
+    "file": "gjson.go",
+    "line": 1943,
+    "symbol": "Get",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-14",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "tidwall_gjson",
+    "file": "gjson.go",
+    "line": 464,
+    "symbol": "Parse",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-15",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "stretchr_objx",
+    "file": "accessors.go",
+    "line": 45,
+    "symbol": "Map.Get",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-16",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "stretchr_objx",
+    "file": "sql_helper.go",
+    "line": 19,
+    "symbol": "QueryUserSafe",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-17",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "gorilla_websocket",
+    "file": "trace_conn.go",
+    "line": 9,
+    "symbol": "DialProbeSafe",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-18",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "gorilla_websocket",
+    "file": "util.go",
+    "line": 202,
+    "symbol": "tokenListContainsValue",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-19",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "schollz_progressbar",
+    "file": "cmd_runner.go",
+    "line": 8,
+    "symbol": "RunTerminalResetSafe",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  },
+  {
+    "case_id": "CTL-EXT2-20",
+    "case_type": "CLEAN_CONTROL",
+    "repository": "schollz_progressbar",
+    "file": "progressbar.go",
+    "line": 302,
+    "symbol": "NewOptions64",
+    "ground_truth_class": "CLEAN",
+    "evaluation_outcome": "TN",
+    "matched_finding_ids": null,
+    "notes": "Correctly ignored, no false alarms"
+  }
+]

@@ -1,0 +1,89 @@
+{
+  "evaluation_run_id": "EVAL-EXT2-1793836164",
+  "detector_frozen_commit": "a64e7632476c1341343481661a3e246c69e5a644",
+  "evaluated_at": "2026-11-05T05:19:25+05:30",
+  "ground_truth_amendment": "benchmarks/external_v2/ground_truth_amendment_v2_1.json",
+  "strata": {
+    "stratum_a_natural_defects": {
+      "denominator_description": "Naturally occurring external defects independently confirmed",
+      "sample_count": 0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "tn": 0,
+      "recall": null,
+      "precision": null,
+      "specificity": null,
+      "f1_score": 0,
+      "status": "NOT_ESTIMABLE_ZERO_CONFIRMED"
+    },
+    "stratum_b_injected_defects": {
+      "denominator_description": "Verified injected defects in external repositories",
+      "sample_count": 6,
+      "tp": 6,
+      "fp": 0,
+      "fn": 0,
+      "tn": 0,
+      "recall": {
+        "point_estimate": 1,
+        "lower_95": 0.6096657083436265,
+        "upper_95": 1
+      },
+      "precision": null,
+      "specificity": null,
+      "f1_score": 0,
+      "status": "PRIMARY_SENSITIVITY_EVALUATION"
+    },
+    "stratum_bc_labeled_primary": {
+      "denominator_description": "Combined labeled evaluation ground truth (6 injected + 20 clean)",
+      "sample_count": 26,
+      "tp": 6,
+      "fp": 1,
+      "fn": 0,
+      "tn": 19,
+      "recall": {
+        "point_estimate": 1,
+        "lower_95": 0.6096657083436265,
+        "upper_95": 1
+      },
+      "precision": {
+        "point_estimate": 0.8571428571428571,
+        "lower_95": 0.486872167860775,
+        "upper_95": 0.9743203759421759
+      },
+      "specificity": {
+        "point_estimate": 0.95,
+        "lower_95": 0.7638688045357189,
+        "upper_95": 0.9911185512976646
+      },
+      "f1_score": 0.923076923076923,
+      "status": "PRIMARY_BENCHMARK_SCORE"
+    },
+    "stratum_c_clean_controls": {
+      "denominator_description": "Audited negative control functions in external repositories",
+      "sample_count": 20,
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "tn": 19,
+      "recall": null,
+      "precision": null,
+      "specificity": {
+        "point_estimate": 0.95,
+        "lower_95": 0.7638688045357189,
+        "upper_95": 0.9911185512976646
+      },
+      "f1_score": 0,
+      "status": "PRIMARY_SPECIFICITY_EVALUATION"
+    }
+  },
+  "summary_table": {
+    "total_ground_truth_defects": 6,
+    "total_clean_controls": 20,
+    "total_unadjudicated_code": 51,
+    "injected_defect_recall": 1,
+    "clean_control_specificity": 0.95,
+    "primary_precision": 0.8571428571428571,
+    "primary_f1_score": 0.923076923076923
+  }
+}
