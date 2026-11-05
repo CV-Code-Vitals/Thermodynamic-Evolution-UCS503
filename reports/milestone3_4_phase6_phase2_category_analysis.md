@@ -121,3 +121,4 @@ The category analysis confirms:
 - Zero false positives on SQL, Command, and Resource clean controls.
 - Exactly 1 false positive on Error clean controls due to the known Go `hash.Hash.Write` interface convention.
 - Zero security false positives on pristine external open-source code.
+

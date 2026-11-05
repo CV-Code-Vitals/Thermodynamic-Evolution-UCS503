@@ -147,3 +147,4 @@ The 100% recall on Stratum B must be reported with the strict qualification that
 $$\text{Stratum B (Injected Defect Recall)} = 100.0\% \quad (95\%\text{ CI: } [60.97\%, 100.0\%])$$
 $$\text{Stratum C (Clean Control Specificity)} = 95.0\% \quad (95\%\text{ CI: } [76.39\%, 99.11\%])$$
 $$\text{Stratum A (Natural Defect Recall)} = \text{NOT ESTIMABLE } (n=0)$$
+

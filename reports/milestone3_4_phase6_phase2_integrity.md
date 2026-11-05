@@ -60,3 +60,4 @@ Under [`benchmarks/external_v2/ground_truth_amendment_v2_1.json`](file:///E:/SWE
 - The first-look evaluation will be executed strictly on the frozen detector without post-hoc tuning.
 
 **Pre-Execution Integrity Gate: PASS**. Cleared for frozen first-look execution.
+
