@@ -4,6 +4,7 @@
 **Workspace:** `E:\SWE`  
 **Baseline Commit:** `8bea13bb5cbd67f20cf59d2607886fc5a7d1bffe`  
 **New Branch:** `integration/milestone-3.6-controlled-remediation`  
+**Completion Commit:** `5c72fb708e13db66317f952c6db9a49e6705e084`  
 **Document Type:** Milestone Completion & Final Gate Verification  
 **Authorization:** Controlled Integration & Fixture-Level Repair Trials  
 **Autonomous External Repairs:** **STRICTLY PROHIBITED**  
