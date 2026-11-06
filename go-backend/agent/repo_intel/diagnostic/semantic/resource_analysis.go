@@ -668,6 +668,9 @@ func (a *ResourceAnalyzer) constructEvidence(
 		LifecycleState:     inst.CurrentState,
 		AcquisitionSnippet: inst.AcquisitionCall,
 		History:            inst.History,
+		ConcurrencyState:   inst.ConcurrencyState,
+		AccessPath:         inst.AccessPath,
+		Aliases:            inst.Aliases,
 		Timestamp:          time.Now(),
 	}
 

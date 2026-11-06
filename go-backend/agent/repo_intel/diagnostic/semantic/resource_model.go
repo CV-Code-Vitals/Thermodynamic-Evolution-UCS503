@@ -105,6 +105,9 @@ type ResourceEvidence struct {
 	History             []ResourceTransition   `json:"history"`
 	AnalysisLimitations []string               `json:"analysis_limitations,omitempty"`
 	CounterEvidence     []string               `json:"counter_evidence,omitempty"`
+	ConcurrencyState    ConcurrencyOwnershipClass `json:"concurrency_state,omitempty"`
+	AccessPath          string                 `json:"access_path,omitempty"`
+	Aliases             []string               `json:"aliases,omitempty"`
 	Title               string                 `json:"title"`
 	Description         string                 `json:"description"`
 	RootCause           string                 `json:"root_cause,omitempty"`

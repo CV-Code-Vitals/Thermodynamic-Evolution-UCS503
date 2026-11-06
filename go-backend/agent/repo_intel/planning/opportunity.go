@@ -28,8 +28,12 @@ func (oa *OpportunityAnalyzer) EvaluateActionability(f *diagnostic.ValidatedFind
 	// 2. Human Approval Gate
 	if f.RemediationReadiness == diagnostic.ReadinessHumanApprovalRequired ||
 		(f.Category == repo_intel.CategorySecurity && strings.Contains(f.FindingID, "SECRET")) ||
-		(f.Category == repo_intel.CategoryArchitecture && strings.Contains(f.FindingID, "CYCLE")) {
-		return HumanApprovalRequired, "High-impact security credential or architectural cyclic dependency requires explicit human review and authorization"
+		(f.Category == repo_intel.CategorySecurity && (strings.Contains(f.FindingID, "CMD") || strings.Contains(f.FindingID, "COMMAND"))) ||
+		(f.Category == repo_intel.CategoryArchitecture && strings.Contains(f.FindingID, "CYCLE")) ||
+		strings.Contains(f.ReadinessRationale, "concurrency") ||
+		strings.Contains(f.ReadinessRationale, "goroutine") ||
+		strings.Contains(f.ReadinessRationale, "channel") {
+		return HumanApprovalRequired, "High-impact security modification, concurrent ownership ambiguity, or architectural cyclic dependency requires explicit human review and authorization"
 	}
 
 	// 3. Investigation Required

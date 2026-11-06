@@ -270,3 +270,107 @@ func TestPlanningEvaluationHarness(t *testing.T) {
 		t.Errorf("expected output report at %s", reportPath)
 	}
 }
+
+func TestRemediationPlanner_SemanticFindingsIntegration(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	report := &diagnostic.DiagnosticReport{
+		ReportSchemaVersion: "1.0",
+		ReportID:            "DR-SEMANTIC-INTEGRATION",
+		Repository: repo_intel.RepositoryMetadataRegistry{
+			RepoRoot:   tmpDir,
+			HeadCommit: "head_commit_123",
+		},
+		Findings: []diagnostic.ValidatedFinding{
+			{
+				FindingID:            "SEM-SEC-SQL-cmd-runner-L42",
+				Category:             repo_intel.CategorySecurity,
+				Severity:             repo_intel.SeverityHigh,
+				ValidationState:      diagnostic.StateValidated,
+				RemediationReadiness: diagnostic.ReadinessAutomationWithReview,
+				CalibratedConfidence: 0.98,
+				Title:                "Dynamic SQL Query",
+				AffectedComponents:   []string{"cmd/runner/query.go"},
+			},
+			{
+				FindingID:            "SEM-SEC-CMD-runner-L88",
+				Category:             repo_intel.CategorySecurity,
+				Severity:             repo_intel.SeverityHigh,
+				ValidationState:      diagnostic.StateValidated,
+				RemediationReadiness: diagnostic.ReadinessHumanApprovalRequired,
+				CalibratedConfidence: 0.98,
+				Title:                "Shell Command Injection",
+				AffectedComponents:   []string{"cmd/runner/exec.go"},
+			},
+			{
+				FindingID:            "SEM-REL-RES-worker-L50",
+				Category:             repo_intel.CategoryReliability,
+				Severity:             repo_intel.SeverityHigh,
+				ValidationState:      diagnostic.StateValidated,
+				RemediationReadiness: diagnostic.ReadinessAutomationReady,
+				CalibratedConfidence: 0.97,
+				Title:                "Unclosed File Resource Leak",
+				AffectedComponents:   []string{"pkg/worker/file.go"},
+			},
+			{
+				FindingID:            "SEM-REL-RES-async-L100",
+				Category:             repo_intel.CategoryReliability,
+				Severity:             repo_intel.SeverityMedium,
+				ValidationState:      diagnostic.StateValidated,
+				RemediationReadiness: diagnostic.ReadinessHumanApprovalRequired,
+				ReadinessRationale:   "Resource handle has uncertain concurrent ownership or goroutine escape",
+				CalibratedConfidence: 0.90,
+				Title:                "Concurrent Resource Escape",
+				AffectedComponents:   []string{"pkg/worker/async.go"},
+			},
+		},
+	}
+
+	planner := NewRemediationPlanner(RemediationPlannerConfig{
+		RepoRoot:      tmpDir,
+		CurrentCommit: "head_commit_123",
+	})
+
+	plan, err := planner.PlanFromDiagnosticReport(report, "hash_sem")
+	if err != nil {
+		t.Fatalf("PlanFromDiagnosticReport failed: %v", err)
+	}
+
+	if len(plan.Tasks) != 4 {
+		t.Fatalf("expected 4 planned tasks, got %d", len(plan.Tasks))
+	}
+
+	taskMap := make(map[string]RemediationTask)
+	for _, task := range plan.Tasks {
+		if len(task.SourceFindingIDs) > 0 {
+			taskMap[task.SourceFindingIDs[0]] = task
+		}
+	}
+
+	// 1. SQL task should be AutomationWithReview
+	sqlTask := taskMap["SEM-SEC-SQL-cmd-runner-L42"]
+	if sqlTask.ExecutionClass != ClassAutomationWithReview {
+		t.Errorf("expected SQL task to be ClassAutomationWithReview, got %s", sqlTask.ExecutionClass)
+	}
+	if sqlTask.HumanApprovalRequired {
+		t.Errorf("expected standard deterministic SQL task to not require upfront human approval")
+	}
+
+	// 2. Command injection task must require Human Approval
+	cmdTask := taskMap["SEM-SEC-CMD-runner-L88"]
+	if cmdTask.ExecutionClass != ClassHumanApprovalRequired || !cmdTask.HumanApprovalRequired {
+		t.Errorf("expected Command Injection to require Human Approval, got %s / %v", cmdTask.ExecutionClass, cmdTask.HumanApprovalRequired)
+	}
+
+	// 3. Local deterministic resource leak should be AutomationReady
+	resTask := taskMap["SEM-REL-RES-worker-L50"]
+	if resTask.ExecutionClass != ClassAutomationReady || resTask.HumanApprovalRequired {
+		t.Errorf("expected local resource leak to be AutomationReady, got %s / %v", resTask.ExecutionClass, resTask.HumanApprovalRequired)
+	}
+
+	// 4. Concurrent resource leak must fail closed and require Human Approval
+	asyncTask := taskMap["SEM-REL-RES-async-L100"]
+	if asyncTask.ExecutionClass != ClassHumanApprovalRequired || !asyncTask.HumanApprovalRequired {
+		t.Errorf("expected concurrent resource leak to strictly require Human Approval, got %s / %v", asyncTask.ExecutionClass, asyncTask.HumanApprovalRequired)
+	}
+}
