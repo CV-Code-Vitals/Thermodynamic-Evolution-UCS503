@@ -1,0 +1,133 @@
+{
+  "timestamp": "2026-11-06T20:58:56.4402573Z",
+  "total_cases": 8,
+  "synthesized_count": 4,
+  "abstained_count": 4,
+  "failed_count": 0,
+  "verified_count": 4,
+  "synthesis_rate": 0.5,
+  "abstention_rate": 0.5,
+  "oracle_success_rate": 1,
+  "records": [
+    {
+      "case_id": "SYNTH-RES-01",
+      "category": "RESOURCE_LEAK",
+      "target_file": "service/http_fetcher.go",
+      "expected_intent": "RESOURCE_CLEANUP",
+      "actual_status": "PROPOSED",
+      "patch_generated": true,
+      "unified_diff": "--- a/service/http_fetcher.go\n+++ b/service/http_fetcher.go\n@@ -13,3 +13,4 @@\n-\tbody, err := io.ReadAll(resp.Body)\n-\treturn body, err\n-}\n+\tdefer resp.Body.Close()\n+\tbody, err := io.ReadAll(resp.Body)\n+\treturn body, err\n+}\n",
+      "diff_hash": "8b78d1f7cc83835a6303b5f579f5768450f9078100fdfbb29e9cf8981dba567c",
+      "independent_validations": {
+        "BEHAVIORAL_INVARIANCE": true,
+        "DEFECT_REPRODUCER": true,
+        "NEGATIVE_PROPERTIES": true,
+        "REGRESSION_TEST": true,
+        "SYNTAX_AND_COMPILATION": true
+      },
+      "all_oracles_passed": true,
+      "duration_ms": 0
+    },
+    {
+      "case_id": "SYNTH-RES-02",
+      "category": "RESOURCE_LEAK",
+      "target_file": "storage/file_reader.go",
+      "expected_intent": "RESOURCE_CLEANUP",
+      "actual_status": "PROPOSED",
+      "patch_generated": true,
+      "unified_diff": "--- a/storage/file_reader.go\n+++ b/storage/file_reader.go\n@@ -13,2 +13,3 @@\n-\treturn io.ReadAll(f)\n-}\n+\tdefer f.Close()\n+\treturn io.ReadAll(f)\n+}\n",
+      "diff_hash": "e35f91bd59126502e381883829ee0d263bc69142b78284d84aec058a503c4ee4",
+      "independent_validations": {
+        "BEHAVIORAL_INVARIANCE": true,
+        "DEFECT_REPRODUCER": true,
+        "NEGATIVE_PROPERTIES": true,
+        "REGRESSION_TEST": true,
+        "SYNTAX_AND_COMPILATION": true
+      },
+      "all_oracles_passed": true,
+      "duration_ms": 0
+    },
+    {
+      "case_id": "SYNTH-ERR-01",
+      "category": "UNHANDLED_ERROR",
+      "target_file": "worker/cleaner.go",
+      "expected_intent": "HANDLE_ERROR",
+      "actual_status": "PROPOSED",
+      "patch_generated": true,
+      "unified_diff": "--- a/worker/cleaner.go\n+++ b/worker/cleaner.go\n@@ -8,3 +8,6 @@\n-\t_ = os.Remove(path)\n-\treturn nil\n-}\n+\terr := os.Remove(path)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\treturn nil\n+}\n",
+      "diff_hash": "fb3388bf7bac0217965c916563c808254d614d5019b452875c8c066ccce8e7f7",
+      "independent_validations": {
+        "BEHAVIORAL_INVARIANCE": true,
+        "DEFECT_REPRODUCER": true,
+        "NEGATIVE_PROPERTIES": true,
+        "REGRESSION_TEST": true,
+        "SYNTAX_AND_COMPILATION": true
+      },
+      "all_oracles_passed": true,
+      "duration_ms": 0
+    },
+    {
+      "case_id": "SYNTH-SQL-01",
+      "category": "SQL_INJECTION",
+      "target_file": "db/user_repo.go",
+      "expected_intent": "PARAMETERIZE_SQL",
+      "actual_status": "PROPOSED",
+      "patch_generated": true,
+      "unified_diff": "--- a/db/user_repo.go\n+++ b/db/user_repo.go\n@@ -6,1 +6,0 @@\n-\t\"fmt\"\n@@ -10,4 +9,4 @@\n-\tquery := fmt.Sprintf(\"SELECT id, username FROM users WHERE username = '%s'\", username)\n-\t_, err := db.ExecContext(ctx, query)\n-\treturn err\n-}\n+\tquery := \"SELECT id, username FROM users WHERE username = ?\"\n+\t_, err := db.ExecContext(ctx, query, username)\n+\treturn err\n+}\n",
+      "diff_hash": "cb560cc9bf4fda62a812d65a3f50d5c9fef52922e94f50442ad06433dd196f4e",
+      "independent_validations": {
+        "BEHAVIORAL_INVARIANCE": true,
+        "DEFECT_REPRODUCER": true,
+        "NEGATIVE_PROPERTIES": true,
+        "REGRESSION_TEST": true,
+        "SYNTAX_AND_COMPILATION": true
+      },
+      "all_oracles_passed": true,
+      "duration_ms": 0
+    },
+    {
+      "case_id": "SYNTH-CMD-ABSTAIN",
+      "category": "COMMAND_INJECTION",
+      "target_file": "cmd/exec_runner.go",
+      "expected_intent": "ABSTAIN",
+      "actual_status": "ABSTAINED",
+      "abstain_reason": "Shell command execution requires manual architectural redesign to separate executable from arguments safely",
+      "patch_generated": false,
+      "all_oracles_passed": false,
+      "duration_ms": 0
+    },
+    {
+      "case_id": "SYNTH-LOOP-ABSTAIN",
+      "category": "RESOURCE_LEAK_LOOP",
+      "target_file": "batch/downloader.go",
+      "expected_intent": "RESOURCE_CLEANUP",
+      "actual_status": "ABSTAINED",
+      "abstain_reason": "LOOP_DEFERRED_CLEANUP_ACCUMULATION: Resource allocated inside loop body; deferred cleanup would cause handle accumulation",
+      "patch_generated": false,
+      "all_oracles_passed": false,
+      "duration_ms": 0
+    },
+    {
+      "case_id": "SYNTH-ESCAPE-ABSTAIN",
+      "category": "CONCURRENT_ESCAPE",
+      "target_file": "async/worker.go",
+      "expected_intent": "RESOURCE_CLEANUP",
+      "actual_status": "ABSTAINED",
+      "abstain_reason": "CONCURRENT_OWNERSHIP_ESCAPE: Resource handle escapes to concurrent goroutine",
+      "patch_generated": false,
+      "all_oracles_passed": false,
+      "duration_ms": 0
+    },
+    {
+      "case_id": "SYNTH-RETURN-ABSTAIN",
+      "category": "AMBIGUOUS_RETURN",
+      "target_file": "log/audit.go",
+      "expected_intent": "HANDLE_ERROR",
+      "actual_status": "ABSTAINED",
+      "abstain_reason": "AMBIGUOUS_RETURN_SIGNATURE: Function does not return an error; cannot synthesize error propagation without altering public signature",
+      "patch_generated": false,
+      "all_oracles_passed": false,
+      "duration_ms": 0
+    }
+  ]
+}

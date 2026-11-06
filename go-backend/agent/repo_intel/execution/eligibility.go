@@ -44,3 +44,52 @@ func CheckTaskEligibility(task *planning.RemediationTask, approvedIDs map[string
 	}
 }
 
+// CheckTaskEligibilitySecure enforces cryptographic token authenticity, bounded expiry,
+// scope binding (commit, file, patch, workspace), and atomic replay prevention.
+func CheckTaskEligibilitySecure(
+	task *planning.RemediationTask,
+	token *ApprovalToken,
+	authority *ApprovalAuthority,
+	currentCommit string,
+	currentFileHashes map[string]string,
+	currentPatchDiffHash string,
+	currentWorkspace string,
+) (bool, bool, string) {
+	if task == nil {
+		return false, false, "task is nil"
+	}
+
+	isHumanApprovalRequired := task.HumanApprovalRequired || task.ExecutionClass == planning.ClassHumanApprovalRequired
+
+	if isHumanApprovalRequired {
+		if token == nil || authority == nil {
+			return false, false, fmt.Sprintf("EXEC_REJECTED_UNAPPROVED: Task %s requires cryptographically signed ApprovalToken (%s)",
+				task.TaskID, task.ApprovalRationale)
+		}
+
+		if token.TaskID != task.TaskID {
+			return false, false, fmt.Sprintf("EXEC_REJECTED_UNAPPROVED: ApprovalToken task ID %s does not match task %s", token.TaskID, task.TaskID)
+		}
+
+		if err := authority.VerifyAndConsumeToken(token, currentCommit, currentFileHashes, currentPatchDiffHash, currentWorkspace); err != nil {
+			return false, false, fmt.Sprintf("EXEC_REJECTED_UNAPPROVED: %v", err)
+		}
+
+		return true, false, ""
+	}
+
+	switch task.ExecutionClass {
+	case planning.ClassAutomationReady:
+		return true, false, ""
+
+	case planning.ClassAutomationWithReview:
+		return true, true, ""
+
+	case planning.ClassInvestigationRequired, planning.ClassInformationalOnly:
+		return false, false, fmt.Sprintf("EXEC_REJECTED: Task %s is classified as %s and cannot be executed automatically", task.TaskID, task.ExecutionClass)
+
+	default:
+		return false, false, fmt.Sprintf("EXEC_REJECTED: Task %s has unrecognized execution class %s", task.TaskID, task.ExecutionClass)
+	}
+}
+
