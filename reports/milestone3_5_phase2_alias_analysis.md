@@ -97,3 +97,4 @@ With the new `AliasGraph`:
 - `instances[i].Aliases` receives the complete transitive closure $\{h_1, h_2, h_3\}$.
 - When `CloserHelper(h3)` is evaluated, `h3` matches the alias closure of $f$.
 - The false positive leak alarm is completely eliminated, converting the test scenario from a documented limitation into a **fully supported capability**.
+

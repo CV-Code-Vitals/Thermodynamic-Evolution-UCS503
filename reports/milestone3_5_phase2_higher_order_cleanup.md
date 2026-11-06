@@ -76,3 +76,4 @@ A critical scientific requirement of Milestone 3.5 Phase 2 is the counterfactual
 - **Counterfactual Case (`TestHigherOrder_WrapperNeverInvokes_Counterfactual`):** The code is identical except the wrapper body does not call `fn()`. The engine immediately detects that invocation is absent (`INVOKE_NEVER`) and issues a confirmed `RESOURCE_LEAK_CONFIRMED` diagnostic finding.
 
 This conclusively proves that the analyzer reasons about **actual wrapper semantics and invocation contracts**, rather than syntactically accepting any call containing `.Close`.
+

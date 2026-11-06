@@ -68,3 +68,4 @@ The ablation study demonstrates that all three subsystems operate orthogonally a
 1. **Zero Diagnostic Regressions:** 100% recall and precision on `cross_package_stress_v1` were preserved across all 4 stages.
 2. **Progressive Elimination of Known Limitations:** Each subsystem resolved its targeted class of false alarms without introducing new false positives or masking true bugs.
 3. **Low Computational Cost:** The full Phase 2 pipeline incurs only **+1 ms** (+16.7%) additional latency and **+44 KB** (+2.28%) heap allocation over the Phase 1.1 baseline.
+

@@ -63,3 +63,4 @@ The implementation was verified against seven automated test cases in `field_sen
 
 - **Safe Case (`TestFieldSensitive_AssignmentAndRelease`):** When `h.file = f` is accompanied by `defer h.file.Close()`, the analyzer maps the release back to $f$ and certifies a clean lifecycle.
 - **Counterfactual Case (`TestFieldSensitive_StoredAndNeverReleased_Counterfactual`):** When `h.file = f` is stored but neither `h.file.Close()` nor `return h` is executed, the analyzer detects that the handle is held in a locally owned struct without release, correctly issuing a high-confidence diagnostic finding.
+

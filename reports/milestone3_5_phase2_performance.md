@@ -58,3 +58,4 @@ Milestone 3.5 Phase 2 added multi-hop alias analysis, higher-order cleanup inspe
    - Decompositions past depth 3 (e.g. `a.b.c.d.file`) are safely marked as `Truncated` and do not recurse indefinitely.
 3. **Fixed-Point Cycle Prevention:**
    - Circular assignments (`a = b; b = a`) terminate in $O(|V|)$ operations via the `visited` map.
+

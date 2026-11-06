@@ -286,3 +286,4 @@ func (t *FieldSensitiveTracker) inferKindFromFieldName(name string) ResourceKind
 		return ResourceKindFile
 	}
 }
+

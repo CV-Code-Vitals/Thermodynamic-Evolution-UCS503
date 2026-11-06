@@ -327,3 +327,4 @@ func (h *HigherOrderCleanupAnalyzer) wrapperReleasesParameter(wrapperName string
 	}
 	return false
 }
+

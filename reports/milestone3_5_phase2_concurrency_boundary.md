@@ -55,3 +55,4 @@ For a dedicated future milestone (Milestone 3.6: Concurrent Lifetime Reasoning),
    - If `wg.Wait()` dominates all exit paths, asynchronous closures can safely promote from `POSSIBLE_ESCAPE` to `PROVABLE_LOCAL`.
 3. **Context Lifecycle Awareness:**
    - Model `context.WithCancel` and `context.WithTimeout` cancel functions as first-class resources, pairing cancel calls with goroutine exits.
+
