@@ -94,3 +94,4 @@ func CheckTaskEligibilitySecure(
 }
 ```
 Client-side flags such as `approved=true` or unauthenticated database booleans are completely disregarded.
+

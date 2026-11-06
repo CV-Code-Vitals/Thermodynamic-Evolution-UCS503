@@ -78,3 +78,4 @@ Baseline execution latency and memory overhead prior to Phase 1.5 modifications:
 - `execution`: 14 suites passing in **8.602s**.
 - Heap memory overhead: **45.2 KB**.
 - Working tree: clean on `validation/milestone-3.7-external-evaluation` at `92f1c721bb6d7128295a0c63e117d2e8b85bd458`.
+

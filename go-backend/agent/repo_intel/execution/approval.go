@@ -240,3 +240,4 @@ func (a *ApprovalAuthority) VerifyAndConsumeToken(
 
 	return nil
 }
+

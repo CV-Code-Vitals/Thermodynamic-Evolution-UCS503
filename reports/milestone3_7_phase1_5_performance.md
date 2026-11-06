@@ -81,3 +81,4 @@ The Phase 1.5 performance profile satisfies all operational thresholds:
 2. **Instantaneous abstentions:** $< 1\text{ ms}$ to fail closed on high-risk or ambiguous defects.
 3. **Negligible cryptographic overhead:** Token signing and verification consume less than $0.1\text{ ms}$.
 4. **Stable resource envelope:** Peak memory consumption remains under $10\text{ MB}$ without memory leaks or descriptor exhaustion.
+
