@@ -1,0 +1,27 @@
+{
+  "corpus_name": "cross_package_stress_v1",
+  "created_at": "2026-11-05T06:21:00+05:30",
+  "schema_version": "1.0.0",
+  "provenance": {
+    "corpus_classification": "ADVERSARIAL_CONSTRUCTED_STRESS_CORPUS",
+    "stratum_a_status": "UNAVAILABLE_LIMITATION_DOCUMENTED",
+    "stratum_b_status": "CONSTRUCTED_CONTROLLED_CASES",
+    "notes": "Exercises interprocedural symbol resolution, call-edge classification, cycle handling, receiver dispatch, and dataflow boundaries under frozen detector conditions."
+  },
+  "package_directories": [
+    "benchmarks/cross_package_stress_v1/pkg_a",
+    "benchmarks/cross_package_stress_v1/pkg_b",
+    "benchmarks/cross_package_stress_v1/pkg_c",
+    "benchmarks/cross_package_stress_v1/pkg_d"
+  ],
+  "source_files": [
+    { "file": "benchmarks/cross_package_stress_v1/go.mod", "sha256": "CE779FCA5F69295D13E36E97DC8CDFB04FFB0BAFC1EE0EEE3F20372EA323CFE5" },
+    { "file": "benchmarks/cross_package_stress_v1/pkg_a/caller.go", "sha256": "0A2513C380E75FF10B4A2D653DAEAFA913FAB89BF9D5754EEE3450D3693D7B00" },
+    { "file": "benchmarks/cross_package_stress_v1/pkg_a/helper_local.go", "sha256": "8674A80F182B20F800F2136293AC3F9760B6F8131E63D0EE9E52E88BFDAD835B" },
+    { "file": "benchmarks/cross_package_stress_v1/pkg_b/helpers.go", "sha256": "30049B31AC655377985B04CA56CBD1C70D6BF74134AB97FA2B9EF29784BBBF08" },
+    { "file": "benchmarks/cross_package_stress_v1/pkg_c/callchains.go", "sha256": "B0026E82B32D45506E6FFD8560598FF6970D6A26F9D2EE0B49490B0C3D34909F" },
+    { "file": "benchmarks/cross_package_stress_v1/pkg_d/edge_cases.go", "sha256": "D25E75A9CF7C157F2A0490B3A1B0042B5A95F9AED013A1831EEACB4C4AE7E33F" },
+    { "file": "benchmarks/cross_package_stress_v1/pkg_d/tagged_linux.go", "sha256": "5649AF2DFAC42941FBFF837DF20C834B85EC2E2F9A557533A4D9439D1F86214B" }
+  ]
+}
+

@@ -1,0 +1,227 @@
+{
+  "benchmark_corpus": "cross_package_stress_v1",
+  "total_stress_cases": 22,
+  "cases": [
+    {
+      "case_id": "CP-SAME-PKG-01",
+      "name": "Same-package calls across files",
+      "file": "pkg_a/caller.go",
+      "function": "CallerRunCrossFile",
+      "callee": "pkg_a/helper_local.go:LocalFormat",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Same-package function in different file should resolve exact call edge"
+    },
+    {
+      "case_id": "CP-IMP-FUNC-02",
+      "name": "Imported function calls",
+      "file": "pkg_a/caller.go",
+      "function": "CallerRunImported",
+      "callee": "pkg_b/helpers.go:FormatQuery",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Project-local imported package call resolves exact edge"
+    },
+    {
+      "case_id": "CP-PKG-ALIAS-03",
+      "name": "Package aliases",
+      "file": "pkg_a/caller.go",
+      "function": "CallerRunAlias",
+      "callee": "pkg_b/helpers.go:BuildShellScript",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Explicit package alias 'b_alias' must resolve to pkg_b"
+    },
+    {
+      "case_id": "CP-RECV-METHOD-04",
+      "name": "Value receiver methods",
+      "file": "pkg_a/caller.go",
+      "function": "CallerRunReceiver",
+      "callee": "pkg_b/helpers.go:Service.Process",
+      "expected_resolution_state": "RESOLVED_CONSERVATIVE",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Receiver type estimated across package boundary; resolved conservative when cross-package"
+    },
+    {
+      "case_id": "CP-PTR-RECV-05",
+      "name": "Pointer receiver methods",
+      "file": "pkg_a/caller.go",
+      "function": "CallerRunReceiver",
+      "callee": "pkg_b/helpers.go:Service.Mutate",
+      "expected_resolution_state": "RESOLVED_CONSERVATIVE",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Pointer receiver estimated from composite literal; resolved conservative across packages"
+    },
+    {
+      "case_id": "CP-IFACE-SINGLE-06",
+      "name": "Interface dispatch with one known implementation",
+      "file": "pkg_c/callchains.go",
+      "function": "CleanInterfaceControl",
+      "callee": "FastProcessor.ProcessData",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Direct invocation on concrete pointer type resolves exact"
+    },
+    {
+      "case_id": "CP-IFACE-MULTI-07",
+      "name": "Interface dispatch with multiple possible implementations",
+      "file": "pkg_c/callchains.go",
+      "function": "MultiHandler.Handle",
+      "callee": "HandlerOne / HandlerTwo",
+      "expected_resolution_state": "RESOLVED_CONSERVATIVE",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Ambiguous interface method dispatch falls back to conservative selector"
+    },
+    {
+      "case_id": "CP-REC-DIRECT-08",
+      "name": "Recursive call graph (direct)",
+      "file": "pkg_c/callchains.go",
+      "function": "Factorial",
+      "callee": "Factorial",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Self-recursive call must resolve exact edge without infinite loop"
+    },
+    {
+      "case_id": "CP-REC-MUTUAL-09",
+      "name": "Mutual recursion",
+      "file": "pkg_c/callchains.go",
+      "function": "Ping/Pong",
+      "callee": "Pong/Ping",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Mutually recursive calls must terminate and resolve exact edges"
+    },
+    {
+      "case_id": "CP-DEPTH-K-10",
+      "name": "Call-depth boundaries at K=2, 3, 4",
+      "file": "pkg_c/callchains.go",
+      "function": "DepthStep1",
+      "callee": "DepthStep2 -> DepthStep3 -> DepthStep4",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Chained intra-package function calls resolve exact edges at each step"
+    },
+    {
+      "case_id": "CP-ERR-WRAP-11",
+      "name": "Error propagation through wrappers",
+      "file": "pkg_a/caller.go",
+      "function": "CallerErrorPropagation",
+      "callee": "pkg_b/helpers.go:WrapError",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "SUPPORTED_SIGNATURE_ONLY",
+      "rationale": "WrapError returns error signature; ignored return value flagged if checked"
+    },
+    {
+      "case_id": "CP-NAMED-RET-12",
+      "name": "Named return values across helper functions",
+      "file": "pkg_a/caller.go",
+      "function": "CallerNamedReturn",
+      "callee": "pkg_b/helpers.go:NamedReturnCalc",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "SUPPORTED_SIGNATURE_ONLY",
+      "rationale": "Cross-package named return error signature resolved via function type"
+    },
+    {
+      "case_id": "CP-RES-SPLIT-13",
+      "name": "Resource acquisition and cleanup in different functions",
+      "file": "pkg_a/caller.go",
+      "function": "CallerResourceSplit",
+      "callee": "pkg_b/helpers.go:CloserHelper",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Local acquisition closed in callee is flagged as leak due to intraprocedural limitation"
+    },
+    {
+      "case_id": "CP-RES-TRANS-14",
+      "name": "Resource ownership transfer through wrappers",
+      "file": "pkg_a/caller.go",
+      "function": "CallerResourceTransfer",
+      "callee": "pkg_b/helpers.go:AcquireFile",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Acquisition in callee transferred to caller is not recognized by intraprocedural analyzer"
+    },
+    {
+      "case_id": "CP-SQL-HELPER-15",
+      "name": "SQL construction through helper functions",
+      "file": "pkg_a/caller.go",
+      "function": "CallerSQLCrossPackage",
+      "callee": "pkg_b/helpers.go:FormatQuery",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "SQL taint generated in callee does not flow into caller's reaching definitions"
+    },
+    {
+      "case_id": "CP-CMD-HELPER-16",
+      "name": "Shell command construction through helper functions",
+      "file": "pkg_a/caller.go",
+      "function": "CallerCommandCrossPackage",
+      "callee": "pkg_b/helpers.go:BuildShellScript",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Command argument assembled in callee does not flow into caller's reaching definitions"
+    },
+    {
+      "case_id": "CP-DYN-DISP-17",
+      "name": "Dynamic dispatch",
+      "file": "pkg_c/callchains.go",
+      "function": "RunDynamicDispatch",
+      "callee": "p.ProcessData",
+      "expected_resolution_state": "RESOLVED_CONSERVATIVE",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Interface parameter dispatch without concrete binding resolves conservative"
+    },
+    {
+      "case_id": "CP-MISS-DEP-18",
+      "name": "Missing dependencies",
+      "file": "pkg_d/edge_cases.go",
+      "function": "InvokeExternalMissing",
+      "callee": "fmt.Println",
+      "expected_resolution_state": "EXTERNAL_OPAQUE",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Standard library or external package without registered model resolves EXTERNAL_OPAQUE"
+    },
+    {
+      "case_id": "CP-BUILD-TAG-19",
+      "name": "Build-tag-dependent implementations",
+      "file": "pkg_d/tagged_linux.go",
+      "function": "PlatformSpecificAction",
+      "callee": "None",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "File with build tags is parsed by standard AST parser unless tagged out by build system"
+    },
+    {
+      "case_id": "CP-GEN-CODE-20",
+      "name": "Generated code",
+      "file": "pkg_d/edge_cases.go",
+      "function": "ProcessUntyped",
+      "callee": "fmt.Sprintf",
+      "expected_resolution_state": "EXTERNAL_OPAQUE",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Generated code header parsed without panic; external fmt call is EXTERNAL_OPAQUE"
+    },
+    {
+      "case_id": "CP-INCOMP-TYPE-21",
+      "name": "Incomplete type information",
+      "file": "pkg_d/edge_cases.go",
+      "function": "ProcessUntyped",
+      "callee": "fmt.Sprintf",
+      "expected_resolution_state": "EXTERNAL_OPAQUE",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "interface{} field handled safely without type panic"
+    },
+    {
+      "case_id": "CP-UNRES-EXT-22",
+      "name": "Unresolved external calls",
+      "file": "pkg_d/edge_cases.go",
+      "function": "CleanEdgeControl",
+      "callee": "ProcessUntyped",
+      "expected_resolution_state": "RESOLVED_EXACT",
+      "expected_propagation": "UNSUPPORTED",
+      "rationale": "Local function call inside pkg_d resolves exact"
+    }
+  ]
+}
+

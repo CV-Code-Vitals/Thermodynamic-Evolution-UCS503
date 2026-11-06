@@ -1,0 +1,118 @@
+{
+  "amendment_version": "2.1.0",
+  "amended_at": "2026-11-05T05:05:00+05:30",
+  "base_manifest": "benchmarks/external_v2/manifest.json",
+  "base_ground_truth": "benchmarks/external_v2/ground_truth.json",
+  "amendment_rationale": "Gate 1 Forensic Evidence Audit disqualified 4 unverified/invalid natural defect candidates and certified 20 clean controls and 6 injected defects with exact line numbers",
+  "disqualified_natural_candidates": [
+    {
+      "candidate_id": "NAT-EXT2-RES-01",
+      "repository": "gorilla_websocket",
+      "file": "client.go",
+      "claimed_line": 82,
+      "disqualification_reason": "Claimed line 82 is a struct field. Socket at line 320 is protected by deferred Close handler at line 330. Not a defect."
+    },
+    {
+      "candidate_id": "NAT-EXT2-ERR-03",
+      "repository": "gorilla_websocket",
+      "file": "conn.go",
+      "claimed_line": 345,
+      "disqualification_reason": "Method func (c *Conn) Close() error explicitly returns c.conn.Close(). Not an unhandled error defect."
+    },
+    {
+      "candidate_id": "NAT-EXT2-ERR-01",
+      "repository": "fatih_color",
+      "file": "color.go",
+      "claimed_line": 290,
+      "disqualification_reason": "Claimed line 290 is PrintFunc declaration. Terminal writes on lines 154/174 discard fmt.Fprint error as an accepted Go idiom. Lacks independent upstream maintainer bug confirmation."
+    },
+    {
+      "candidate_id": "NAT-EXT2-ERR-02",
+      "repository": "schollz_progressbar",
+      "file": "progressbar.go",
+      "claimed_line": 883,
+      "disqualification_reason": "Claimed line 883 is string formatting. f.Sync() at line 1003 is intentionally ignored by author for OS compatibility. Lacks upstream bug confirmation."
+    }
+  ],
+  "certified_evaluation_strata": {
+    "external_injected_defects": [
+      {
+        "defect_id": "INJ-EXT2-SQL-01",
+        "repository": "stretchr_objx",
+        "file": "sql_helper.go",
+        "line": 25,
+        "symbol": "SQLQueryExecutor.QueryUserByRole",
+        "category": "SQL_INJECTION",
+        "severity": "CRITICAL"
+      },
+      {
+        "defect_id": "INJ-EXT2-SQL-02",
+        "repository": "stretchr_objx",
+        "file": "sql_helper.go",
+        "line": 31,
+        "symbol": "SQLQueryExecutor.SearchByTagRaw",
+        "category": "SQL_INJECTION",
+        "severity": "CRITICAL"
+      },
+      {
+        "defect_id": "INJ-EXT2-CMD-01",
+        "repository": "schollz_progressbar",
+        "file": "cmd_runner.go",
+        "line": 15,
+        "symbol": "TriggerProgressHook",
+        "category": "COMMAND_INJECTION",
+        "severity": "CRITICAL"
+      },
+      {
+        "defect_id": "INJ-EXT2-RES-02",
+        "repository": "fatih_color",
+        "file": "file_printer.go",
+        "line": 21,
+        "symbol": "DumpColorProfile",
+        "category": "RESOURCE_LEAK",
+        "severity": "HIGH"
+      },
+      {
+        "defect_id": "INJ-EXT2-RES-03",
+        "repository": "gorilla_websocket",
+        "file": "trace_conn.go",
+        "line": 19,
+        "symbol": "ProbeWebSocketGateway",
+        "category": "RESOURCE_LEAK",
+        "severity": "HIGH"
+      },
+      {
+        "defect_id": "INJ-EXT2-ERR-04",
+        "repository": "spf13_cast",
+        "file": "json_loader.go",
+        "line": 23,
+        "symbol": "ParsePayloadUnchecked",
+        "category": "UNHANDLED_ERROR",
+        "severity": "HIGH"
+      }
+    ],
+    "clean_controls": [
+      { "control_id": "CTL-EXT2-01", "repository": "google_uuid", "file": "version4.go", "line": 13, "symbol": "New" },
+      { "control_id": "CTL-EXT2-02", "repository": "google_uuid", "file": "hash.go", "line": 27, "symbol": "NewHash" },
+      { "control_id": "CTL-EXT2-03", "repository": "pkg_errors", "file": "errors.go", "line": 184, "symbol": "Wrap" },
+      { "control_id": "CTL-EXT2-04", "repository": "pkg_errors", "file": "stack.go", "line": 64, "symbol": "Frame.Format" },
+      { "control_id": "CTL-EXT2-05", "repository": "jinzhu_inflection", "file": "inflections.go", "line": 263, "symbol": "Plural" },
+      { "control_id": "CTL-EXT2-06", "repository": "jinzhu_inflection", "file": "inflections.go", "line": 273, "symbol": "Singular" },
+      { "control_id": "CTL-EXT2-07", "repository": "hashicorp_go_version", "file": "version.go", "line": 49, "symbol": "NewVersion" },
+      { "control_id": "CTL-EXT2-08", "repository": "hashicorp_go_version", "file": "constraint.go", "line": 65, "symbol": "NewConstraint" },
+      { "control_id": "CTL-EXT2-09", "repository": "spf13_cast", "file": "caste.go", "line": 931, "symbol": "ToStringE" },
+      { "control_id": "CTL-EXT2-10", "repository": "spf13_cast", "file": "json_loader.go", "line": 11, "symbol": "LoadJSONConfigSafe" },
+      { "control_id": "CTL-EXT2-11", "repository": "fatih_color", "file": "color.go", "line": 117, "symbol": "New" },
+      { "control_id": "CTL-EXT2-12", "repository": "fatih_color", "file": "file_printer.go", "line": 10, "symbol": "PrintFileSafe" },
+      { "control_id": "CTL-EXT2-13", "repository": "tidwall_gjson", "file": "gjson.go", "line": 1943, "symbol": "Get" },
+      { "control_id": "CTL-EXT2-14", "repository": "tidwall_gjson", "file": "gjson.go", "line": 464, "symbol": "Parse" },
+      { "control_id": "CTL-EXT2-15", "repository": "stretchr_objx", "file": "accessors.go", "line": 45, "symbol": "Map.Get" },
+      { "control_id": "CTL-EXT2-16", "repository": "stretchr_objx", "file": "sql_helper.go", "line": 19, "symbol": "QueryUserSafe" },
+      { "control_id": "CTL-EXT2-17", "repository": "gorilla_websocket", "file": "trace_conn.go", "line": 9, "symbol": "DialProbeSafe" },
+      { "control_id": "CTL-EXT2-18", "repository": "gorilla_websocket", "file": "util.go", "line": 202, "symbol": "tokenListContainsValue" },
+      { "control_id": "CTL-EXT2-19", "repository": "schollz_progressbar", "file": "cmd_runner.go", "line": 8, "symbol": "RunTerminalResetSafe" },
+      { "control_id": "CTL-EXT2-20", "repository": "schollz_progressbar", "file": "progressbar.go", "line": 302, "symbol": "NewOptions64" }
+    ]
+  }
+}
+

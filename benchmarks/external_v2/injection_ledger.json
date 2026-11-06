@@ -1,0 +1,86 @@
+{
+  "ledger_version": "1.0.0",
+  "created_at": "2026-11-05T05:00:00+05:30",
+  "audit_scope": "Milestone 3.4 Phase 6 External v2 Injected Stratum",
+  "injections": [
+    {
+      "injection_id": "INJ-EXT2-SQL-01",
+      "repository": "stretchr_objx",
+      "file": "benchmarks/external_v2/stretchr_objx/sql_helper.go",
+      "line": 25,
+      "symbol": "SQLQueryExecutor.QueryUserByRole",
+      "category": "SQL_INJECTION",
+      "severity": "CRITICAL",
+      "vulnerability_pattern": "Dynamic string interpolation via fmt.Sprintf concatenated into database/sql QueryContext",
+      "code_snippet": "query := fmt.Sprintf(\"SELECT id, payload FROM data_store WHERE role = '%s'\", role)\nreturn e.db.QueryContext(ctx, query)",
+      "companion_control": "CTL-EXT2-16 (QueryUserSafe parameterized query)",
+      "pristine_source_modified": false
+    },
+    {
+      "injection_id": "INJ-EXT2-SQL-02",
+      "repository": "stretchr_objx",
+      "file": "benchmarks/external_v2/stretchr_objx/sql_helper.go",
+      "line": 31,
+      "symbol": "SQLQueryExecutor.SearchByTagRaw",
+      "category": "SQL_INJECTION",
+      "severity": "CRITICAL",
+      "vulnerability_pattern": "Direct string concatenation with user-supplied parameter passed to database/sql Query",
+      "code_snippet": "query := \"SELECT id, payload FROM data_store WHERE tag = '\" + tag + \"'\"\nreturn e.db.Query(query)",
+      "companion_control": "CTL-EXT2-16 (QueryUserSafe parameterized query)",
+      "pristine_source_modified": false
+    },
+    {
+      "injection_id": "INJ-EXT2-CMD-01",
+      "repository": "schollz_progressbar",
+      "file": "benchmarks/external_v2/schollz_progressbar/cmd_runner.go",
+      "line": 15,
+      "symbol": "TriggerProgressHook",
+      "category": "COMMAND_INJECTION",
+      "severity": "CRITICAL",
+      "vulnerability_pattern": "Process invocation via sh -c shell interpreter with untrusted concatenated parameter",
+      "code_snippet": "cmd := exec.Command(\"sh\", \"-c\", \"echo hook: \"+customHook)\nreturn cmd.Run()",
+      "companion_control": "CTL-EXT2-19 (RunTerminalResetSafe static argument separation)",
+      "pristine_source_modified": false
+    },
+    {
+      "injection_id": "INJ-EXT2-RES-02",
+      "repository": "fatih_color",
+      "file": "benchmarks/external_v2/fatih_color/file_printer.go",
+      "line": 21,
+      "symbol": "DumpColorProfile",
+      "category": "RESOURCE_LEAK",
+      "severity": "HIGH",
+      "vulnerability_pattern": "System resource handle allocated via os.Open without Close or defer Close",
+      "code_snippet": "f, err := os.Open(profilePath)\nif err != nil {\n    return err\n}\n// Missing defer f.Close() -> RESOURCE_LEAK\ndata, err := io.ReadAll(f)",
+      "companion_control": "CTL-EXT2-12 (PrintFileSafe with deferred f.Close())",
+      "pristine_source_modified": false
+    },
+    {
+      "injection_id": "INJ-EXT2-RES-03",
+      "repository": "gorilla_websocket",
+      "file": "benchmarks/external_v2/gorilla_websocket/trace_conn.go",
+      "line": 19,
+      "symbol": "ProbeWebSocketGateway",
+      "category": "RESOURCE_LEAK",
+      "severity": "HIGH",
+      "vulnerability_pattern": "Network socket descriptor allocated via net.Dial without Close or defer Close",
+      "code_snippet": "conn, err := net.Dial(\"tcp\", gatewayAddr)\nif err != nil {\n    return err\n}\n// Missing defer conn.Close() -> RESOURCE_LEAK\n_ = conn\nreturn nil",
+      "companion_control": "CTL-EXT2-17 (DialProbeSafe with deferred conn.Close())",
+      "pristine_source_modified": false
+    },
+    {
+      "injection_id": "INJ-EXT2-ERR-04",
+      "repository": "spf13_cast",
+      "file": "benchmarks/external_v2/spf13_cast/json_loader.go",
+      "line": 23,
+      "symbol": "ParsePayloadUnchecked",
+      "category": "UNHANDLED_ERROR",
+      "severity": "HIGH",
+      "vulnerability_pattern": "Critical serialization operation json.Unmarshal error discarded via blank identifier",
+      "code_snippet": "var res map[string]interface{}\n_ = json.Unmarshal(data, &res)\nreturn res",
+      "companion_control": "CTL-EXT2-10 (LoadJSONConfigSafe with error return check)",
+      "pristine_source_modified": false
+    }
+  ]
+}
+

@@ -67,7 +67,13 @@ type CommandEvidence struct {
 
 // CommandAnalyzer performs semantic expression, shell-interpretation, and dataflow analysis on command executions.
 type CommandAnalyzer struct {
-	repoRoot string
+	repoRoot      string
+	summaryEngine *FunctionSummaryEngine
+}
+
+// SetSummaryEngine attaches an interprocedural function summary engine.
+func (a *CommandAnalyzer) SetSummaryEngine(se *FunctionSummaryEngine) {
+	a.summaryEngine = se
 }
 
 // NewCommandAnalyzer creates a new CommandAnalyzer instance.
@@ -432,6 +438,50 @@ func (a *CommandAnalyzer) evaluateShellCallExpr(
 			ev.RootCause = "Formatting user variables into shell interpreter string (-c)."
 			ev.RecommendedAction = "Execute target binary directly without shell interpretation, passing arguments as discrete array."
 			return ev
+		}
+	}
+
+	// Interprocedural Helper Summary Lookup
+	if a.summaryEngine != nil {
+		var calleeSummary *FunctionSummary
+		if hasPkg {
+			calleeSummary = a.summaryEngine.GetSummary(pkgIdent.Name, "", sel.Sel.Name)
+		} else {
+			calleeSummary = a.summaryEngine.GetSummary("", "", sel.Sel.Name)
+		}
+
+		if calleeSummary != nil {
+			var untrusted []string
+			for _, flow := range calleeSummary.ParamReturnFlows {
+				if flow.Effect == EffectTaintTransform || flow.Effect == EffectTaintPassthrough {
+					if flow.ParamIndex < len(call.Args) {
+						arg := call.Args[flow.ParamIndex]
+						if id, isId := arg.(*ast.Ident); isId {
+							if paramType, isParam := paramMap[id.Name]; isParam {
+								untrusted = append(untrusted, fmt.Sprintf("param:%s (%s)", id.Name, paramType))
+							} else {
+								untrusted = append(untrusted, fmt.Sprintf("var:%s", id.Name))
+							}
+						} else {
+							untrusted = append(untrusted, fmt.Sprintf("expr:%s", exprToString(arg, fset)))
+						}
+					}
+				}
+			}
+
+			if len(untrusted) > 0 {
+				ev.Classification = ClassificationUntrustedShellCommand
+				ev.Confidence = 0.98
+				ev.LifecycleState = StateConfirmed
+				ev.Severity = repo_intel.SeverityCritical
+				ev.UntrustedInputs = untrusted
+				ev.Title = "Command Injection Risk via Interprocedural Shell Helper"
+				ev.Description = fmt.Sprintf("Shell command executed via '%s -c' receives shell string from helper '%s' tainted with untrusted input(s): %s.",
+					binName, calleeSummary.FunctionName, strings.Join(untrusted, ", "))
+				ev.RootCause = "Executing dynamic shell command string assembled from untrusted input in helper function."
+				ev.RecommendedAction = "Execute target binary directly without shell interpreter (-c)."
+				return ev
+			}
 		}
 	}
 

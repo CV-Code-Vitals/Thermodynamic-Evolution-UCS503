@@ -1,0 +1,303 @@
+{
+  "milestone": "Milestone 3.5 Phase 1",
+  "evaluation_timestamp": "2026-11-06T16:37:37+05:30",
+  "corpus_name": "benchmarks/cross_package_stress_v1",
+  "configurations": {
+    "config_a_intraprocedural": {
+      "config_name": "Config A (Intraprocedural Only)",
+      "description": "Frozen Milestone 3.4 intraprocedural analyzer without call graph or summaries",
+      "true_positives": 1,
+      "false_positives": 1,
+      "false_negatives": 2,
+      "true_negatives": 18,
+      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "specificity": 0.9473684210526315,
+      "f1_score": 0.4,
+      "correct_ownership_transfers": 0,
+      "correct_taint_dependencies": 0,
+      "correct_error_propagations": 0,
+      "abstentions": 0,
+      "unsupported_cases": 20,
+      "runtime_ms": 8,
+      "heap_allocated_bytes": 1156064,
+      "findings_count": 2,
+      "findings": [
+        {
+          "finding_id": "SEM-SEC-CMD-benchmarks-cross_package_stress_v1-pkg_a-caller_go-L51",
+          "rule_id": "SEMANTIC_COMMAND_INJECTION",
+          "category": "SECURITY",
+          "severity": "",
+          "confidence": 0.85,
+          "finding_state": "PROBABLE",
+          "target_file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+          "line_start": 51,
+          "line_end": 51,
+          "title": "",
+          "description": "",
+          "root_cause": "",
+          "recommended_action": "",
+          "evidence_locations": [
+            {
+              "file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+              "line_start": 51,
+              "line_end": 51,
+              "description": "exec.CommandContext(ctx, \"sh\", \"-c\", shellCmd)"
+            }
+          ],
+          "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+          "provenance": "a64e7632476c1341343481661a3e246c69e5a644",
+          "timestamp": "2026-11-06T16:37:37.8958961+05:30"
+        },
+        {
+          "finding_id": "SEM-REL-RES-benchmarks-cross_package_stress_v1-pkg_a-caller_go-L68",
+          "rule_id": "SEMANTIC_RESOURCE_LEAK",
+          "category": "RELIABILITY",
+          "severity": "HIGH",
+          "confidence": 0.97,
+          "finding_state": "CONFIRMED",
+          "target_file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+          "line_start": 68,
+          "line_end": 68,
+          "title": "Unclosed System Resource Leak (os.File)",
+          "description": "Resource handle 'f' of type os.File acquired in function 'CallerResourceSplit' at line 68 is never closed along normal execution paths.",
+          "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+          "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+          "evidence_locations": [
+            {
+              "file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+              "line_start": 68,
+              "line_end": 68,
+              "description": "os.Open(path)"
+            }
+          ],
+          "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+          "provenance": "a64e7632476c1341343481661a3e246c69e5a644",
+          "timestamp": "2026-11-06T16:37:37.8958961+05:30"
+        }
+      ],
+      "case_decisions": {
+        "CP-CMD-HELPER-16": "TP",
+        "CP-RES-SPLIT-13": "FP",
+        "CP-RES-TRANS-14": "FN",
+        "CP-SQL-HELPER-15": "FN"
+      }
+    },
+    "config_b_callgraph": {
+      "config_name": "Config B (Milestone 3.4 Call Graph)",
+      "description": "Frozen Milestone 3.4 integrated call graph without function summaries",
+      "true_positives": 1,
+      "false_positives": 1,
+      "false_negatives": 2,
+      "true_negatives": 18,
+      "precision": 0.5,
+      "recall": 0.3333333333333333,
+      "specificity": 0.9473684210526315,
+      "f1_score": 0.4,
+      "correct_ownership_transfers": 0,
+      "correct_taint_dependencies": 0,
+      "correct_error_propagations": 0,
+      "abstentions": 0,
+      "unsupported_cases": 20,
+      "runtime_ms": 14,
+      "heap_allocated_bytes": 1775032,
+      "findings_count": 2,
+      "findings": [
+        {
+          "finding_id": "SEM-SEC-CMD-benchmarks-cross_package_stress_v1-pkg_a-caller_go-L51",
+          "rule_id": "SEMANTIC_COMMAND_INJECTION",
+          "category": "SECURITY",
+          "severity": "",
+          "confidence": 0.85,
+          "finding_state": "PROBABLE",
+          "target_file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+          "line_start": 51,
+          "line_end": 51,
+          "title": "",
+          "description": "",
+          "root_cause": "",
+          "recommended_action": "",
+          "evidence_locations": [
+            {
+              "file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+              "line_start": 51,
+              "line_end": 51,
+              "description": "exec.CommandContext(ctx, \"sh\", \"-c\", shellCmd)"
+            }
+          ],
+          "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+          "provenance": "a64e7632476c1341343481661a3e246c69e5a644",
+          "timestamp": "2026-11-06T16:37:37.9024748+05:30"
+        },
+        {
+          "finding_id": "SEM-REL-RES-benchmarks-cross_package_stress_v1-pkg_a-caller_go-L68",
+          "rule_id": "SEMANTIC_RESOURCE_LEAK",
+          "category": "RELIABILITY",
+          "severity": "HIGH",
+          "confidence": 0.97,
+          "finding_state": "CONFIRMED",
+          "target_file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+          "line_start": 68,
+          "line_end": 68,
+          "title": "Unclosed System Resource Leak (os.File)",
+          "description": "Resource handle 'f' of type os.File acquired in function 'CallerResourceSplit' at line 68 is never closed along normal execution paths.",
+          "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+          "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+          "evidence_locations": [
+            {
+              "file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+              "line_start": 68,
+              "line_end": 68,
+              "description": "os.Open(path)"
+            }
+          ],
+          "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+          "provenance": "a64e7632476c1341343481661a3e246c69e5a644",
+          "timestamp": "2026-11-06T16:37:37.9024748+05:30"
+        }
+      ],
+      "case_decisions": {
+        "CP-CMD-HELPER-16": "TP",
+        "CP-RES-SPLIT-13": "FP",
+        "CP-RES-TRANS-14": "FN",
+        "CP-SQL-HELPER-15": "FN"
+      }
+    },
+    "config_c_summary_engine": {
+      "config_name": "Config C (Milestone 3.5 Summary Engine)",
+      "description": "Milestone 3.5 bottom-up function summaries with interprocedural taint and lifecycle propagation",
+      "true_positives": 3,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "true_negatives": 19,
+      "precision": 1,
+      "recall": 1,
+      "specificity": 1,
+      "f1_score": 1,
+      "correct_ownership_transfers": 1,
+      "correct_taint_dependencies": 2,
+      "correct_error_propagations": 1,
+      "abstentions": 0,
+      "unsupported_cases": 16,
+      "runtime_ms": 15,
+      "heap_allocated_bytes": 1844440,
+      "findings_count": 3,
+      "findings": [
+        {
+          "finding_id": "SEM-SEC-SQL-benchmarks-cross_package_stress_v1-pkg_a-caller_go-L44",
+          "rule_id": "SEMANTIC_SQL_INJECTION",
+          "category": "SECURITY",
+          "severity": "CRITICAL",
+          "confidence": 0.96,
+          "finding_state": "CONFIRMED",
+          "target_file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+          "line_start": 44,
+          "line_end": 44,
+          "title": "SQL Injection Risk via Interprocedural Helper Formatting",
+          "description": "SQL query string constructed via helper 'FormatQuery' interpolates untrusted argument(s) [\"users\", \"name\", user] directly into SQL syntax.",
+          "root_cause": "Direct interpolation of dynamic variables into SQL format string inside helper function without parameter placeholders.",
+          "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
+          "evidence_locations": [
+            {
+              "file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+              "line_start": 44,
+              "line_end": 44,
+              "description": "query"
+            }
+          ],
+          "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+          "provenance": "a64e7632476c1341343481661a3e246c69e5a644",
+          "timestamp": "2026-11-06T16:37:37.9183079+05:30"
+        },
+        {
+          "finding_id": "SEM-SEC-CMD-benchmarks-cross_package_stress_v1-pkg_a-caller_go-L51",
+          "rule_id": "SEMANTIC_COMMAND_INJECTION",
+          "category": "SECURITY",
+          "severity": "",
+          "confidence": 0.85,
+          "finding_state": "PROBABLE",
+          "target_file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+          "line_start": 51,
+          "line_end": 51,
+          "title": "",
+          "description": "",
+          "root_cause": "",
+          "recommended_action": "",
+          "evidence_locations": [
+            {
+              "file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+              "line_start": 51,
+              "line_end": 51,
+              "description": "exec.CommandContext(ctx, \"sh\", \"-c\", shellCmd)"
+            }
+          ],
+          "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+          "provenance": "a64e7632476c1341343481661a3e246c69e5a644",
+          "timestamp": "2026-11-06T16:37:37.9183079+05:30"
+        },
+        {
+          "finding_id": "SEM-REL-RES-benchmarks-cross_package_stress_v1-pkg_a-caller_go-L57",
+          "rule_id": "SEMANTIC_RESOURCE_LEAK",
+          "category": "RELIABILITY",
+          "severity": "HIGH",
+          "confidence": 0.97,
+          "finding_state": "CONFIRMED",
+          "target_file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+          "line_start": 57,
+          "line_end": 57,
+          "title": "Unclosed System Resource Leak (os.File)",
+          "description": "Resource handle 'f' of type os.File acquired in function 'CallerResourceTransfer' at line 57 is never closed along normal execution paths.",
+          "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+          "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+          "evidence_locations": [
+            {
+              "file": "benchmarks\\cross_package_stress_v1\\pkg_a\\caller.go",
+              "line_start": 57,
+              "line_end": 57,
+              "description": "pkg_b.AcquireFile(path)"
+            }
+          ],
+          "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+          "provenance": "a64e7632476c1341343481661a3e246c69e5a644",
+          "timestamp": "2026-11-06T16:37:37.9183079+05:30"
+        }
+      ],
+      "case_decisions": {
+        "CP-CMD-HELPER-16": "TP",
+        "CP-RES-SPLIT-13": "TN",
+        "CP-RES-TRANS-14": "TP",
+        "CP-SQL-HELPER-15": "TP"
+      }
+    }
+  },
+  "key_scenario_comparison": {
+    "CP-CMD-HELPER-16": {
+      "Config_A": "TP",
+      "Config_B": "TP",
+      "Config_C": "TP",
+      "Delta": "TP (Heuristic) -\u003e TP (Heuristic) -\u003e TP (Interprocedural Taint)",
+      "GroundTruth": "Defect (Command Injection via helper)"
+    },
+    "CP-RES-SPLIT-13": {
+      "Config_A": "FP",
+      "Config_B": "FP",
+      "Config_C": "TN",
+      "Delta": "FP -\u003e FP -\u003e TN [RESOLVED]",
+      "GroundTruth": "Clean Control (Closed in callee CloserHelper)"
+    },
+    "CP-RES-TRANS-14": {
+      "Config_A": "FN",
+      "Config_B": "FN",
+      "Config_C": "TP",
+      "Delta": "FN -\u003e FN -\u003e TP [RESOLVED]",
+      "GroundTruth": "Defect (Acquired in helper, leaked in caller)"
+    },
+    "CP-SQL-HELPER-15": {
+      "Config_A": "FN",
+      "Config_B": "FN",
+      "Config_C": "TP",
+      "Delta": "FN -\u003e FN -\u003e TP [RESOLVED]",
+      "GroundTruth": "Defect (SQL Injection via helper)"
+    }
+  }
+}

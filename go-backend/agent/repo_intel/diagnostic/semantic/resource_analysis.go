@@ -13,8 +13,14 @@ import (
 
 // ResourceAnalyzer performs CFG-aware, function-scoped resource lifecycle and leak analysis.
 type ResourceAnalyzer struct {
-	repoRoot string
-	registry *ResourceRegistry
+	repoRoot      string
+	registry      *ResourceRegistry
+	summaryEngine *FunctionSummaryEngine
+}
+
+// SetSummaryEngine attaches an interprocedural function summary engine.
+func (a *ResourceAnalyzer) SetSummaryEngine(se *FunctionSummaryEngine) {
+	a.summaryEngine = se
 }
 
 // NewResourceAnalyzer creates a new ResourceAnalyzer instance with the canonical resource registry.
@@ -86,16 +92,44 @@ func (a *ResourceAnalyzer) discoverAcquisitions(fnDecl *ast.FuncDecl, fset *toke
 				continue
 			}
 
+			var resKind ResourceKind
+			var resIdx int
+
 			contract, _, matched := a.registry.MatchAcquisition(call, fset)
+			if matched && contract != nil {
+				resKind = contract.ResourceKind
+				resIdx = contract.ResultIndex
+			} else if a.summaryEngine != nil {
+				var calleeSummary *FunctionSummary
+				if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+					if id, ok := sel.X.(*ast.Ident); ok {
+						calleeSummary = a.summaryEngine.GetSummary(id.Name, "", sel.Sel.Name)
+					}
+				} else if id, ok := call.Fun.(*ast.Ident); ok {
+					calleeSummary = a.summaryEngine.GetSummary("", "", id.Name)
+				}
+
+				if calleeSummary != nil {
+					for _, eff := range calleeSummary.ResourceEffects {
+						if eff.Effect == EffectResourceAcquire {
+							matched = true
+							resKind = eff.ResourceKind
+							resIdx = eff.ReturnIndex
+							break
+						}
+					}
+				}
+			}
+
 			if !matched {
 				continue
 			}
 
-			if contract.ResultIndex >= len(assign.Lhs) {
+			if resIdx >= len(assign.Lhs) {
 				continue
 			}
 
-			lhsIdent, ok := assign.Lhs[contract.ResultIndex].(*ast.Ident)
+			lhsIdent, ok := assign.Lhs[resIdx].(*ast.Ident)
 			if !ok || lhsIdent.Name == "_" {
 				continue
 			}
@@ -105,7 +139,7 @@ func (a *ResourceAnalyzer) discoverAcquisitions(fnDecl *ast.FuncDecl, fset *toke
 
 			inst := ResourceInstance{
 				ID:                 instCounter,
-				Kind:               contract.ResourceKind,
+				Kind:               resKind,
 				VarName:            lhsIdent.Name,
 				Aliases:            make([]string, 0),
 				AcquisitionCall:    exprToString(call, fset),
@@ -404,6 +438,38 @@ func (a *ResourceAnalyzer) hasExplicitReleaseOnPath(
 					if a.registry.IsReleaseCall(call, inst.Kind, inst.VarName, inst.Aliases) {
 						isRel = true
 						return false
+					}
+
+					// Interprocedural Callee Release Check
+					if a.summaryEngine != nil {
+						var calleeSummary *FunctionSummary
+						if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+							if id, ok := sel.X.(*ast.Ident); ok {
+								calleeSummary = a.summaryEngine.GetSummary(id.Name, "", sel.Sel.Name)
+							}
+						} else if id, ok := call.Fun.(*ast.Ident); ok {
+							calleeSummary = a.summaryEngine.GetSummary("", "", id.Name)
+						}
+
+						if calleeSummary != nil {
+							for _, eff := range calleeSummary.ResourceEffects {
+								if eff.Effect == EffectResourceRelease && eff.ParamIndex < len(call.Args) {
+									arg := call.Args[eff.ParamIndex]
+									if argId, ok := arg.(*ast.Ident); ok {
+										if argId.Name == inst.VarName {
+											isRel = true
+											return false
+										}
+										for _, al := range inst.Aliases {
+											if argId.Name == al {
+												isRel = true
+												return false
+											}
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 				return true

@@ -259,14 +259,14 @@ func (ce *ContextEngine) FilterAndEnrich(candidates []repo_intel.Finding, files 
 			evLocs = append(evLocs, tr.Location)
 		}
 
-		// Avoid duplicate findings if already present in filtered
+		// Avoid duplicate findings if already present in filtered on exact anchor
 		alreadyPresent := false
 		for _, ex := range filtered {
 			if ex.FindingID == cf.FindingID {
 				alreadyPresent = true
 				break
 			}
-			if len(ex.AffectedFiles) > 0 && len(cf.AffectedFiles) > 0 && ex.AffectedFiles[0] == cf.AffectedFiles[0] && ex.Category == cf.Category {
+			if len(ex.Evidence) > 0 && len(evLocs) > 0 && ex.Evidence[0].File == evLocs[0].File && ex.Evidence[0].LineStart == evLocs[0].LineStart && ex.Category == cf.Category {
 				alreadyPresent = true
 				break
 			}
