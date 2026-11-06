@@ -20,14 +20,15 @@ type UnifiedDiagnosticReport struct {
 
 // UnifiedOrchestrator coordinates all semantic diagnostic engines with shared AST/CFG caching and isolated execution.
 type UnifiedOrchestrator struct {
-	repoRoot    string
-	semAnalyzer *SemanticAnalyzer
-	resolver    *CallSiteResolver
-	sqlAnalyzer *SQLAnalyzer
-	cmdAnalyzer *CommandAnalyzer
-	resAnalyzer *ResourceAnalyzer
-	errAnalyzer *ErrorAnalyzer
-	reconciler  *FindingReconciler
+	repoRoot      string
+	semAnalyzer   *SemanticAnalyzer
+	resolver      *CallSiteResolver
+	summaryEngine *FunctionSummaryEngine
+	sqlAnalyzer   *SQLAnalyzer
+	cmdAnalyzer   *CommandAnalyzer
+	resAnalyzer   *ResourceAnalyzer
+	errAnalyzer   *ErrorAnalyzer
+	reconciler    *FindingReconciler
 }
 
 // NewUnifiedOrchestrator creates an integrated orchestration instance for a repository.
@@ -37,15 +38,26 @@ func NewUnifiedOrchestrator(repoRoot string) *UnifiedOrchestrator {
 		repoRoot = abs
 	}
 
+	sumEngine := NewFunctionSummaryEngine(repoRoot)
+	sqlAn := NewSQLAnalyzer(repoRoot)
+	sqlAn.SetSummaryEngine(sumEngine)
+
+	cmdAn := NewCommandAnalyzer(repoRoot)
+	cmdAn.SetSummaryEngine(sumEngine)
+
+	resAn := NewResourceAnalyzer(repoRoot)
+	resAn.SetSummaryEngine(sumEngine)
+
 	return &UnifiedOrchestrator{
-		repoRoot:    repoRoot,
-		semAnalyzer: NewSemanticAnalyzer(repoRoot),
-		resolver:    NewCallSiteResolver(repoRoot),
-		sqlAnalyzer: NewSQLAnalyzer(repoRoot),
-		cmdAnalyzer: NewCommandAnalyzer(repoRoot),
-		resAnalyzer: NewResourceAnalyzer(repoRoot),
-		errAnalyzer: NewErrorAnalyzer(repoRoot),
-		reconciler:  NewFindingReconciler(repoRoot),
+		repoRoot:      repoRoot,
+		semAnalyzer:   NewSemanticAnalyzer(repoRoot),
+		resolver:      NewCallSiteResolver(repoRoot),
+		summaryEngine: sumEngine,
+		sqlAnalyzer:   sqlAn,
+		cmdAnalyzer:   cmdAn,
+		resAnalyzer:   resAn,
+		errAnalyzer:   NewErrorAnalyzer(repoRoot),
+		reconciler:    NewFindingReconciler(repoRoot),
 	}
 }
 
@@ -81,6 +93,9 @@ func (u *UnifiedOrchestrator) RunCompleteDiagnostic(files []string, repoCommit s
 			totalCallEdges += len(cg.Edges)
 		}
 	}
+
+	// 2.5 Build and propagate interprocedural function summaries bottom-up
+	u.summaryEngine.BuildSummariesBottomUp(pkgModels, callGraphs)
 
 	// 3. Deterministic Analyzer Execution with Failure Isolation
 	var allSQLEvs []SQLEvidence

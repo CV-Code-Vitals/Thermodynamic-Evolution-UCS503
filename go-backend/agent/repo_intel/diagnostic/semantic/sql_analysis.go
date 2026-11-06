@@ -58,7 +58,13 @@ type SQLEvidence struct {
 
 // SQLAnalyzer performs semantic expression and dataflow analysis on SQL constructions.
 type SQLAnalyzer struct {
-	repoRoot string
+	repoRoot      string
+	summaryEngine *FunctionSummaryEngine
+}
+
+// SetSummaryEngine attaches an interprocedural function summary engine.
+func (a *SQLAnalyzer) SetSummaryEngine(se *FunctionSummaryEngine) {
+	a.summaryEngine = se
 }
 
 // NewSQLAnalyzer creates a new SQLAnalyzer instance.
@@ -458,6 +464,58 @@ func (a *SQLAnalyzer) evaluateCallConstruction(
 		ev.Title = "SQL Clause Constructed via strings.Join"
 		ev.Description = "Dynamic SQL query clause assembled using strings.Join."
 		return ev
+	}
+
+	// 3. Interprocedural Helper Function Summary Lookup
+	if a.summaryEngine != nil {
+		var calleeSummary *FunctionSummary
+		if hasPkg {
+			calleeSummary = a.summaryEngine.GetSummary(pkgIdent.Name, "", callTarget)
+		} else {
+			calleeSummary = a.summaryEngine.GetSummary("", "", callTarget)
+		}
+
+		if calleeSummary != nil {
+			var untrustedArgs []string
+			var dynamicArgs []string
+
+			for _, flow := range calleeSummary.ParamReturnFlows {
+				if flow.Effect == EffectTaintTransform || flow.Effect == EffectTaintPassthrough {
+					if flow.ParamIndex < len(callExpr.Args) {
+						arg := callExpr.Args[flow.ParamIndex]
+						argStr := exprToString(arg, fset)
+						dynamicArgs = append(dynamicArgs, argStr)
+
+						if reachingDefs != nil && block != nil {
+							rootArg, _ := reachingDefs.ResolveRootExpression(arg, block.ID, arg.Pos())
+							if id, ok := rootArg.(*ast.Ident); ok {
+								if paramType, isParam := paramMap[id.Name]; isParam {
+									untrustedArgs = append(untrustedArgs, fmt.Sprintf("param:%s (%s)", id.Name, paramType))
+								} else {
+									untrustedArgs = append(untrustedArgs, fmt.Sprintf("var:%s", id.Name))
+								}
+							} else {
+								untrustedArgs = append(untrustedArgs, fmt.Sprintf("expr:%s", argStr))
+							}
+						}
+					}
+				}
+			}
+
+			if len(untrustedArgs) > 0 {
+				ev.Classification = ClassificationUntrustedSQLStructure
+				ev.Confidence = 0.96
+				ev.LifecycleState = StateConfirmed
+				ev.Severity = repo_intel.SeverityCritical
+				ev.UntrustedInputs = untrustedArgs
+				ev.Title = "SQL Injection Risk via Interprocedural Helper Formatting"
+				ev.Description = fmt.Sprintf("SQL query string constructed via helper '%s' interpolates untrusted argument(s) [%s] directly into SQL syntax.",
+					calleeSummary.FunctionName, strings.Join(dynamicArgs, ", "))
+				ev.RootCause = "Direct interpolation of dynamic variables into SQL format string inside helper function without parameter placeholders."
+				ev.RecommendedAction = "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments."
+				return ev
+			}
+		}
 	}
 
 	ev.Classification = ClassificationUnresolvedSQLConstruction
