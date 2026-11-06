@@ -1,0 +1,169 @@
+{
+  "timestamp": "2026-11-07T01:00:47.3518953+05:30",
+  "detector_commit": "bfcca4f358a89c7554a66709687584ed843391f1",
+  "total_predictions": 9,
+  "predictions": [
+    {
+      "finding_id": "SEM-SEC-SQL-storage-repo_go-L26",
+      "rule_id": "SEMANTIC_SQL_INJECTION",
+      "repo_name": "microservice_api",
+      "target_file": "storage\\repo.go",
+      "line_start": 26,
+      "confidence": 0.97,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)",
+      "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [role] directly into SQL syntax."
+    },
+    {
+      "finding_id": "SEM-REL-RES-api-handler_go-L22",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "repo_name": "microservice_api",
+      "target_file": "api\\handler.go",
+      "line_start": 22,
+      "confidence": 0.97,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unclosed System Resource Leak (os.File)",
+      "description": "Resource handle 'f' of type os.File acquired in function 'ExportReportLeak' at line 22 is never closed along normal execution paths."
+    },
+    {
+      "finding_id": "SEM-REL-ERR-config-config_go-L29",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "repo_name": "microservice_api",
+      "target_file": "config\\config.go",
+      "line_start": 29,
+      "confidence": 0.95,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Explicitly Discarded Critical Error (json.Unmarshal)",
+      "description": "Function 'LoadConfigUnchecked' at line 29 explicitly discards error from critical operation 'json.Unmarshal(data, \u0026cfg)' via blank identifier '_'."
+    },
+    {
+      "finding_id": "SEM-SEC-CMD-exec-runner_go-L16",
+      "rule_id": "SEMANTIC_COMMAND_INJECTION",
+      "repo_name": "stream_ingestor",
+      "target_file": "exec\\runner.go",
+      "line_start": 16,
+      "confidence": 0.98,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Command Injection Risk via Shell String Concatenation",
+      "description": "Shell command executed via 'sh -c' concatenates untrusted input(s): param:topic (string)."
+    },
+    {
+      "finding_id": "SEM-REL-RES-ingest-fetcher_go-L20",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "repo_name": "stream_ingestor",
+      "target_file": "ingest\\fetcher.go",
+      "line_start": 20,
+      "confidence": 0.97,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unclosed System Resource Leak (http.Response.Body)",
+      "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'IngestEventStream' at line 20 is never closed along normal execution paths."
+    },
+    {
+      "finding_id": "SEM-REL-ERR-exec-runner_go-L22",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "repo_name": "stream_ingestor",
+      "target_file": "exec\\runner.go",
+      "line_start": 22,
+      "confidence": 0.96,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unhandled Error Return (os.WriteFile)",
+      "description": "Function 'DumpTelemetryLog' at line 22 invokes error-producing call 'os.WriteFile(path, data, 0644)' but the returned error is discarded."
+    },
+    {
+      "finding_id": "SEM-SEC-SQL-session-store_go-L34",
+      "rule_id": "SEMANTIC_SQL_INJECTION",
+      "repo_name": "auth_broker",
+      "target_file": "session\\store.go",
+      "line_start": 34,
+      "confidence": 0.96,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "SQL Injection Risk via String Concatenation",
+      "description": "SQL query in FindSessionDynamic combines raw SQL literals with dynamic variable(s): rawToken."
+    },
+    {
+      "finding_id": "SEM-REL-RES-audit-logger_go-L21",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "repo_name": "auth_broker",
+      "target_file": "audit\\logger.go",
+      "line_start": 21,
+      "confidence": 0.97,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unclosed System Resource Leak (os.File)",
+      "description": "Resource handle 'f' of type os.File acquired in function 'RotateAuditLog' at line 21 is never closed along normal execution paths."
+    },
+    {
+      "finding_id": "SEM-REL-ERR-session-store_go-L28",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "repo_name": "auth_broker",
+      "target_file": "session\\store.go",
+      "line_start": 28,
+      "confidence": 0.96,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "analysis_completeness": "COMPLETE",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unhandled Error Return (s.db.Exec)",
+      "description": "Function 'InvalidateSessionUnchecked' at line 28 invokes error-producing call 's.db.Exec(\"UPDATE sessions SET active = false WHERE id = ?\", sessionID)' but the returned error is discarded."
+    }
+  ]
+}
