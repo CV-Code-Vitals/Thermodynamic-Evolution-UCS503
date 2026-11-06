@@ -143,3 +143,4 @@ The table below maps all 22 scenarios across Gate 3, Milestone 3.5 Config A, Con
 | **F1 Score** | 0.400 | 0.400 | 0.400 | **1.000** |
 
 Both historical baseline numbers and corrected Milestone 3.5 evaluations are fully preserved, verified, and reconciled with zero remaining discrepancy.
+
