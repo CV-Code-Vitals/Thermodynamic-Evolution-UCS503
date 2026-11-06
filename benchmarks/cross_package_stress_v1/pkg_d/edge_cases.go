@@ -29,3 +29,4 @@ func CleanEdgeControl() string {
 	item := IncompleteType{RawPayload: "safe"}
 	return ProcessUntyped(item)
 }
+

@@ -90,3 +90,4 @@ The empirical evidence resolves the core research questions of Milestone 3.4 Pha
 1. **The Nature of Milestone 3.4 Progress:** Milestone 3.4 succeeded in upgrading the diagnostic engine from fragile regexes to **rigorous, conservative intraprocedural CFG and AST dataflow analysis**.
 2. **The Generalization Illusion:** Claims that Milestone 3.4 achieved "cross-package semantic generalization" are refuted by the ablation study. The engine can *scan* multi-package repositories and *map* call edges, but its *vulnerability reasoning* remains strictly bounded within individual function scopes.
 3. **Future Milestone Roadmap (Milestone 3.5):** True interprocedural analysis will require whole-program call-graph summaries, interprocedural taint propagation, and interprocedural resource escape/ownership tracking.
+

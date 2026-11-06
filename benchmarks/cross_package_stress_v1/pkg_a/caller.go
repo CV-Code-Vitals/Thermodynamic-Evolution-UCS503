@@ -88,3 +88,4 @@ func CallerNamedReturn() (int, error) {
 	}
 	return res, nil
 }
+

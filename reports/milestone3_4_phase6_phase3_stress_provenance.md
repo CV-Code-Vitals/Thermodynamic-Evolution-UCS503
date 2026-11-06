@@ -70,3 +70,4 @@ To evaluate the mechanical reasoning boundaries of the engine, 22 controlled adv
 1. **Constructed Nature:** All 22 cases were constructed specifically for stress testing during Milestone 3.4 Phase 6 Phase 3.
 2. **Real-World Generalization Boundary:** These cases evaluate whether the frozen detector's algorithms satisfy mechanical properties (termination on recursion, alias mapping, receiver estimation). **They do not establish real-world external generalization.**
 3. **No Contamination:** None of these cases or package directories were used during Milestone 3.4 Phase 1–5 development or Gate 2 first-look evaluation.
+

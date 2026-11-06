@@ -33,3 +33,4 @@ func SafeResource(path string) error {
 	defer f.Close()
 	return nil
 }
+

@@ -167,3 +167,4 @@ Gate 3.0 accounting reconciliation is fully satisfied:
 - Stratum D candidates are verified as non-defects.
 - The root cause of the false positive on `CTL-EXT2-02` is thoroughly understood and documented.
 - The detector remains 100% frozen.
+

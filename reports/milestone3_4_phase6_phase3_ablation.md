@@ -72,3 +72,4 @@ The ablation study decisively proves:
 > **In Milestone 3.4, the diagnostic reasoning capabilities of the engine are 100% intraprocedural.**
 
 The cross-package subsystem functions as an **architectural skeleton and call-graph generator**, but does not participate in semantic interprocedural defect detection or false-alarm suppression.
+

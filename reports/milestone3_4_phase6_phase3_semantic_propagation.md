@@ -88,3 +88,4 @@ Empirical execution of the frozen Milestone 3.4 semantic diagnostic engine again
 Semantic propagation across call boundaries is **UNSUPPORTED** in Milestone 3.4 for dataflow and lifecycle tracking.
 
 The engine operates as a suite of **high-precision intraprocedural AST and CFG analyzers**, augmented with an AST-level call-graph representation. Claims of interprocedural taint propagation or cross-function resource lifecycle analysis cannot be scientifically supported.
+

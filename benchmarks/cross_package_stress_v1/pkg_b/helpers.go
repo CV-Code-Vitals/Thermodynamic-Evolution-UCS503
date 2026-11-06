@@ -61,3 +61,4 @@ func NamedReturnCalc(x int) (res int, err error) {
 	res = x * 2
 	return
 }
+

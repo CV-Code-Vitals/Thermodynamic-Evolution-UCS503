@@ -83,3 +83,4 @@ func CleanInterfaceControl() int {
 	proc := &FastProcessor{}
 	return proc.ProcessData([]byte("hello"))
 }
+
