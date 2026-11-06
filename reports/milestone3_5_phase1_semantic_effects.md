@@ -45,3 +45,4 @@
 > **Invariant 4:** *When a call site targets an interface with multiple possible implementations, summaries are merged via conservative join ($\sqcap$).*
 - **Taint:** If *any* implementation exhibits `TAINT_PASSTHROUGH` or `TAINT_TRANSFORM`, the merged effect is tainted.
 - **Resource Cleanup:** A resource is considered released only if *all* possible implementations exhibit `RESOURCE_RELEASE`. If any implementation leaves the resource open, the merged summary reports `EFFECT_UNKNOWN` / unreleased.
+

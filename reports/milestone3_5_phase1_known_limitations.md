@@ -70,3 +70,4 @@ To preserve scientific rigor, this report explicitly documents the known boundar
 1. **Phase 2:** Field-sensitive struct summaries (`StructPath` access paths).
 2. **Phase 3:** Method-value closure analysis for deferred cleanup wrappers (`defer wrapper(f.Close)`).
 3. **Phase 4:** Interface point-to set refinement via local variable type assertions (`v, ok := i.(*Concrete)`).
+

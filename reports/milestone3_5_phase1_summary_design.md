@@ -116,3 +116,4 @@ To ensure incremental compilation and development safety:
 1. **Source Hashing:** Each summary embeds a SHA-256 digest of the function body AST.
 2. **Dependency Tracking:** If a callee's summary changes, all upstream callers in the call graph are invalidated.
 3. **Budget Exhaustion Guard:** If analysis timeout or iteration limit is reached, the summary is marked `IsComplete: false` and defaults to `EFFECT_UNKNOWN` to prevent unsound false negatives.
+

@@ -66,3 +66,4 @@ A controlled three-way ablation study was conducted on `benchmarks/cross_package
 The ablation study decisively demonstrates:
 1. Milestone 3.4 Configuration B (call graph index alone) provided zero semantic improvement over isolated intraprocedural analysis ($\Delta = 0$).
 2. Milestone 3.5 Configuration C (function summaries) converted the call graph into an effective semantic substrate, eliminating 100% of the false negatives and false positives on the interprocedural evaluation corpus while adding negligible runtime (+1 ms) and memory (+16 KB) overhead.
+

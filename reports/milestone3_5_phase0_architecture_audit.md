@@ -139,3 +139,4 @@ To bridge the interprocedural reasoning gap without incurring whole-program comb
 3. **Bounded Fixed-Point Iteration:** Bounded iterative convergence for recursive strongly connected components (SCCs).
 4. **Conservative Merging:** Ambiguous dynamic dispatch must produce a conservative summary union, preserving uncertainty.
 5. **Dataflow Integration:** Expose callee summaries to `ReachingDefinitionsAnalysis`, `SQLAnalyzer`, `CommandAnalyzer`, and `ResourceAnalyzer`.
+
