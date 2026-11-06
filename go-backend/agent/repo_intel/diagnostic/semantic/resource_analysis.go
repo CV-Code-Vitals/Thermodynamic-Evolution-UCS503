@@ -16,11 +16,17 @@ type ResourceAnalyzer struct {
 	repoRoot      string
 	registry      *ResourceRegistry
 	summaryEngine *FunctionSummaryEngine
+	hocAnalyzer   *HigherOrderCleanupAnalyzer
+	fieldTracker  *FieldSensitiveTracker
+	aliasGraph    *AliasGraph
 }
 
 // SetSummaryEngine attaches an interprocedural function summary engine.
 func (a *ResourceAnalyzer) SetSummaryEngine(se *FunctionSummaryEngine) {
 	a.summaryEngine = se
+	if a.hocAnalyzer != nil {
+		a.hocAnalyzer.summaryEngine = se
+	}
 }
 
 // NewResourceAnalyzer creates a new ResourceAnalyzer instance with the canonical resource registry.
@@ -29,9 +35,12 @@ func NewResourceAnalyzer(repoRoot string) *ResourceAnalyzer {
 	if err == nil {
 		repoRoot = abs
 	}
+	reg := DefaultResourceRegistry()
 	return &ResourceAnalyzer{
-		repoRoot: repoRoot,
-		registry: DefaultResourceRegistry(),
+		repoRoot:     repoRoot,
+		registry:     reg,
+		hocAnalyzer:  NewHigherOrderCleanupAnalyzer(reg, nil),
+		fieldTracker: NewFieldSensitiveTracker(3),
 	}
 }
 
@@ -58,12 +67,40 @@ func (a *ResourceAnalyzer) AnalyzeFunction(
 	}
 
 	// 2. Discover variable aliases for each resource
-	a.discoverAliases(fnDecl, instances)
+	a.discoverAliases(fnDecl, fset, instances)
 
-	// 3. Check for deferred releases in the CFG
-	a.evaluateDeferredReleases(cfg, instances)
+	// 3. Register local functions for higher-order wrapper inspection
+	if a.hocAnalyzer != nil {
+		a.hocAnalyzer.RegisterLocalFunc(fnDecl)
+	}
 
-	// 4. CFG Reachability & Release Analysis per instance
+	// 4. Track field-sensitive assignments in function body
+	a.fieldTracker = NewFieldSensitiveTracker(3)
+	knownResources := make(map[string]ResourceKind)
+	for _, inst := range instances {
+		knownResources[inst.VarName] = inst.Kind
+	}
+	ast.Inspect(fnDecl.Body, func(n ast.Node) bool {
+		switch stmt := n.(type) {
+		case *ast.AssignStmt:
+			for i := 0; i < len(stmt.Lhs) && i < len(stmt.Rhs); i++ {
+				a.fieldTracker.TrackAssignment(stmt.Lhs[i], stmt.Rhs[i], fset, knownResources)
+				if lhsId, ok := stmt.Lhs[i].(*ast.Ident); ok {
+					if rhsId, ok := stmt.Rhs[i].(*ast.Ident); ok {
+						a.fieldTracker.TrackStructAlias(lhsId.Name, rhsId.Name)
+					}
+				}
+			}
+		case *ast.ReturnStmt:
+			a.fieldTracker.TrackReturnTransfer(stmt)
+		}
+		return true
+	})
+
+	// 5. Check for deferred releases in the CFG
+	a.evaluateDeferredReleases(cfg, instances, fset)
+
+	// 6. CFG Reachability & Release Analysis per instance
 	for i := range instances {
 		inst := &instances[i]
 		a.evaluateInstanceLifecycle(inst, fnDecl, fset, cfg)
@@ -159,32 +196,26 @@ func (a *ResourceAnalyzer) discoverAcquisitions(fnDecl *ast.FuncDecl, fset *toke
 	return instances
 }
 
-// discoverAliases finds local variable reassignments (e.g. f2 := f).
-func (a *ResourceAnalyzer) discoverAliases(fnDecl *ast.FuncDecl, instances []ResourceInstance) {
-	ast.Inspect(fnDecl.Body, func(n ast.Node) bool {
-		assign, ok := n.(*ast.AssignStmt)
-		if !ok {
-			return true
+// discoverAliases finds multi-hop variable aliases and reassignments using AliasGraph.
+func (a *ResourceAnalyzer) discoverAliases(fnDecl *ast.FuncDecl, fset *token.FileSet, instances []ResourceInstance) {
+	a.aliasGraph = BuildAliasGraphFromAST(fnDecl, fset, 5, 32)
+	for i := range instances {
+		transitiveAliases := a.aliasGraph.GetAliases(instances[i].VarName)
+		seen := make(map[string]bool)
+		for _, al := range instances[i].Aliases {
+			seen[al] = true
 		}
-
-		if len(assign.Lhs) == 1 && len(assign.Rhs) == 1 {
-			lhsId, isLhsId := assign.Lhs[0].(*ast.Ident)
-			rhsId, isRhsId := assign.Rhs[0].(*ast.Ident)
-			if isLhsId && isRhsId && lhsId.Name != "_" {
-				for i := range instances {
-					if instances[i].VarName == rhsId.Name {
-						instances[i].Aliases = append(instances[i].Aliases, lhsId.Name)
-					}
-				}
+		for _, al := range transitiveAliases {
+			if !seen[al] && al != instances[i].VarName {
+				instances[i].Aliases = append(instances[i].Aliases, al)
+				seen[al] = true
 			}
 		}
-
-		return true
-	})
+	}
 }
 
 // evaluateDeferredReleases checks whether defer statements in the function release the resource.
-func (a *ResourceAnalyzer) evaluateDeferredReleases(cfg *ControlFlowGraph, instances []ResourceInstance) {
+func (a *ResourceAnalyzer) evaluateDeferredReleases(cfg *ControlFlowGraph, instances []ResourceInstance, fset *token.FileSet) {
 	for _, deferSite := range cfg.AllDefers {
 		if deferSite.CallExpr == nil {
 			continue
@@ -192,6 +223,8 @@ func (a *ResourceAnalyzer) evaluateDeferredReleases(cfg *ControlFlowGraph, insta
 
 		for i := range instances {
 			inst := &instances[i]
+
+			// 1. Direct release call
 			if a.registry.IsReleaseCall(deferSite.CallExpr, inst.Kind, inst.VarName, inst.Aliases) {
 				if deferSite.InLoop {
 					inst.DeferredInLoop = true
@@ -199,6 +232,38 @@ func (a *ResourceAnalyzer) evaluateDeferredReleases(cfg *ControlFlowGraph, insta
 				} else {
 					inst.IsDeferred = true
 					inst.AddTransition(StateResourceDeferredRelease, "defer "+deferSite.TargetFunc+"()", deferSite.Line, 0, "Scheduled deferred release on function return")
+				}
+				continue
+			}
+
+			// 2. Higher-Order Cleanup / Method Values
+			if a.hocAnalyzer != nil {
+				res := a.hocAnalyzer.AnalyzeDeferredCall(deferSite.CallExpr, inst, fset)
+				if res.IsVerifiedRelease {
+					if deferSite.InLoop {
+						inst.DeferredInLoop = true
+						inst.AddTransition(StateResourceLeakProbable, "defer "+res.WrapperName+"()", deferSite.Line, 0, "Deferred release inside loop delays closure until function exit")
+					} else {
+						inst.IsDeferred = true
+						inst.AddTransition(StateResourceDeferredRelease, "defer "+res.WrapperName+"("+res.MethodName+")", deferSite.Line, 0, res.Evidence)
+					}
+					continue
+				}
+			}
+
+			// 3. Field-sensitive struct release: defer h.file.Close()
+			if a.fieldTracker != nil && a.fieldTracker.TrackReleaseCall(deferSite.CallExpr, fset) {
+				for path, field := range a.fieldTracker.Fields {
+					if field.OriginalVar == inst.VarName && field.State == StateFieldReleased {
+						if deferSite.InLoop {
+							inst.DeferredInLoop = true
+							inst.AddTransition(StateResourceLeakProbable, "defer "+path+".Close()", deferSite.Line, 0, "Deferred release inside loop delays closure until function exit")
+						} else {
+							inst.IsDeferred = true
+							inst.AddTransition(StateResourceDeferredRelease, "defer "+path+".Close()", deferSite.Line, 0, "Deferred struct field release")
+						}
+						break
+					}
 				}
 			}
 		}
@@ -288,8 +353,32 @@ func (a *ResourceAnalyzer) evaluateInstanceLifecycle(
 
 // isResourceTransferredOrStored checks if the resource was passed to a consumer or stored in a struct.
 func (a *ResourceAnalyzer) isResourceTransferredOrStored(fnDecl *ast.FuncDecl, inst *ResourceInstance, fset *token.FileSet) bool {
+	// 1. Check FieldSensitiveTracker for struct field ownership
+	if a.fieldTracker != nil {
+		for path, field := range a.fieldTracker.Fields {
+			if field.OriginalVar == inst.VarName {
+				inst.AccessPath = path
+				if field.State == StateFieldReleased {
+					inst.CurrentState = StateResourceReleased
+					inst.AddTransition(StateResourceReleased, "struct_field_release", field.ReleasedLine, 0, field.Evidence)
+					return true
+				}
+				if field.State == StateOwnedTransferred {
+					inst.CurrentState = StateResourceTransferred
+					inst.AddTransition(StateResourceTransferred, "struct_return_transfer", 0, 0, field.Evidence)
+					return true
+				}
+				if field.State == StateOwnedLocal {
+					// Owned locally in struct; do not abort analysis, allow CFG exit reachability to verify release
+					return false
+				}
+			}
+		}
+	}
+
 	isTransferred := false
 	isStoredInStruct := false
+	isConcurrentEscape := false
 
 	ast.Inspect(fnDecl.Body, func(n ast.Node) bool {
 		switch node := n.(type) {
@@ -303,8 +392,32 @@ func (a *ResourceAnalyzer) isResourceTransferredOrStored(fnDecl *ast.FuncDecl, i
 			if strings.HasPrefix(fnStr, "consume") || strings.HasPrefix(fnStr, "transfer") {
 				for _, arg := range node.Args {
 					if id, ok := arg.(*ast.Ident); ok {
-						if id.Name == inst.VarName {
+						if id.Name == inst.VarName || a.isAliasMatch(id.Name, inst.Aliases) {
 							isTransferred = true
+						}
+					}
+				}
+			}
+
+		case *ast.SendStmt:
+			// Channel send: ch <- f (concurrency ownership boundary)
+			pos := fset.Position(node.Pos())
+			if pos.Line > inst.AcquisitionLine {
+				if id, ok := node.Value.(*ast.Ident); ok {
+					if id.Name == inst.VarName || a.isAliasMatch(id.Name, inst.Aliases) {
+						isConcurrentEscape = true
+					}
+				}
+			}
+
+		case *ast.GoStmt:
+			// Spawning goroutine: go worker(f)
+			pos := fset.Position(node.Pos())
+			if pos.Line > inst.AcquisitionLine {
+				for _, arg := range node.Call.Args {
+					if id, ok := arg.(*ast.Ident); ok {
+						if id.Name == inst.VarName || a.isAliasMatch(id.Name, inst.Aliases) {
+							isConcurrentEscape = true
 						}
 					}
 				}
@@ -318,7 +431,7 @@ func (a *ResourceAnalyzer) isResourceTransferredOrStored(fnDecl *ast.FuncDecl, i
 			// Check if stored into struct
 			for _, elt := range node.Elts {
 				if kv, ok := elt.(*ast.KeyValueExpr); ok {
-					if id, ok := kv.Value.(*ast.Ident); ok && id.Name == inst.VarName {
+					if id, ok := kv.Value.(*ast.Ident); ok && (id.Name == inst.VarName || a.isAliasMatch(id.Name, inst.Aliases)) {
 						isStoredInStruct = true
 					}
 				}
@@ -326,6 +439,14 @@ func (a *ResourceAnalyzer) isResourceTransferredOrStored(fnDecl *ast.FuncDecl, i
 		}
 		return true
 	})
+
+	if isConcurrentEscape {
+		inst.ConcurrencyState = ConcurrencyPossibleEscape
+		inst.CurrentState = StateResourceUnresolved
+		inst.EscapeReason = "Concurrent resource transfer across channel or goroutine boundary (Manual review required)"
+		inst.AddTransition(StateResourceUnresolved, "concurrent_transfer", inst.AcquisitionLine, inst.AcquisitionBlockID, inst.EscapeReason)
+		return true
+	}
 
 	if isStoredInStruct {
 		inst.CurrentState = StateResourceUnresolved
@@ -434,10 +555,33 @@ func (a *ResourceAnalyzer) hasExplicitReleaseOnPath(
 
 			isRel := false
 			ast.Inspect(stmt, func(n ast.Node) bool {
+				if _, isGo := n.(*ast.GoStmt); isGo {
+					// Asynchronous goroutines do not guarantee synchronous cleanup prior to function return
+					return false
+				}
 				if call, ok := n.(*ast.CallExpr); ok {
 					if a.registry.IsReleaseCall(call, inst.Kind, inst.VarName, inst.Aliases) {
 						isRel = true
 						return false
+					}
+
+					// Higher-Order Cleanup / Method Values
+					if a.hocAnalyzer != nil {
+						res := a.hocAnalyzer.AnalyzeDeferredCall(call, inst, fset)
+						if res.IsVerifiedRelease {
+							isRel = true
+							return false
+						}
+					}
+
+					// Field-Sensitive Struct Release: h.file.Close()
+					if a.fieldTracker != nil && a.fieldTracker.TrackReleaseCall(call, fset) {
+						for _, field := range a.fieldTracker.Fields {
+							if field.OriginalVar == inst.VarName && field.State == StateFieldReleased {
+								isRel = true
+								return false
+							}
+						}
 					}
 
 					// Interprocedural Callee Release Check
@@ -593,4 +737,13 @@ func (a *ResourceAnalyzer) constructEvidence(
 	}
 
 	return ev
+}
+
+func (a *ResourceAnalyzer) isAliasMatch(name string, aliases []string) bool {
+	for _, al := range aliases {
+		if name == al {
+			return true
+		}
+	}
+	return false
 }

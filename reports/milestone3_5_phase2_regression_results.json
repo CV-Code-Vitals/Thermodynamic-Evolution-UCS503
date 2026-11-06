@@ -1,0 +1,128 @@
+{
+  "milestone": "Milestone 3.5 Phase 2",
+  "evaluation_timestamp": "2026-11-06T23:15:00+05:30",
+  "candidate_commit": "HEAD",
+  "verified_baseline_commit": "8c38ef926210bd007ddb3dc97f2e77aa4cc4c9c8",
+  "configurations": {
+    "config_0_phase1_1_baseline": {
+      "config_name": "Config 0: Milestone 3.5 Phase 1.1 Baseline",
+      "description": "Intraprocedural analysis with basic function summaries (1-hop aliases, no method values, no struct fields)",
+      "metrics": {
+        "true_positives": 3,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "true_negatives": 19,
+        "precision": 1.0,
+        "recall": 1.0,
+        "specificity": 1.0,
+        "f1_score": 1.0
+      },
+      "adversarial_limitation_results": {
+        "multi_hop_alias_3hop": "FALSE_LEAK_ALARM (FP)",
+        "deferred_method_value": "FALSE_LEAK_ALARM (FP)",
+        "deferred_anon_closure": "FALSE_LEAK_ALARM (FP)",
+        "struct_field_release": "FALSE_LEAK_ALARM (FP)",
+        "struct_return_transfer": "FALSE_LEAK_ALARM (FP)"
+      },
+      "runtime_ms": 6,
+      "heap_allocated_bytes": 1934384
+    },
+    "config_1_alias_only": {
+      "config_name": "Config 1: Bounded Multi-Hop Alias Analysis",
+      "description": "Config 0 plus Bounded Multi-Hop Alias Analysis (worklist fixed-point up to 5 hops, invalidation)",
+      "metrics": {
+        "true_positives": 3,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "true_negatives": 19,
+        "precision": 1.0,
+        "recall": 1.0,
+        "specificity": 1.0,
+        "f1_score": 1.0
+      },
+      "adversarial_limitation_results": {
+        "multi_hop_alias_3hop": "RESOLVED_CLEAN (TN)",
+        "deferred_method_value": "FALSE_LEAK_ALARM (FP)",
+        "deferred_anon_closure": "FALSE_LEAK_ALARM (FP)",
+        "struct_field_release": "FALSE_LEAK_ALARM (FP)",
+        "struct_return_transfer": "FALSE_LEAK_ALARM (FP)"
+      },
+      "runtime_ms": 6,
+      "heap_allocated_bytes": 1948520
+    },
+    "config_2_alias_and_higher_order": {
+      "config_name": "Config 2: Alias + Higher-Order Cleanup",
+      "description": "Config 1 plus Higher-Order Cleanup and Deferred Method Values (defer check(resp.Body.Close), anon closures)",
+      "metrics": {
+        "true_positives": 3,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "true_negatives": 19,
+        "precision": 1.0,
+        "recall": 1.0,
+        "specificity": 1.0,
+        "f1_score": 1.0
+      },
+      "adversarial_limitation_results": {
+        "multi_hop_alias_3hop": "RESOLVED_CLEAN (TN)",
+        "deferred_method_value": "RESOLVED_CLEAN (TN)",
+        "deferred_anon_closure": "RESOLVED_CLEAN (TN)",
+        "struct_field_release": "FALSE_LEAK_ALARM (FP)",
+        "struct_return_transfer": "FALSE_LEAK_ALARM (FP)"
+      },
+      "runtime_ms": 7,
+      "heap_allocated_bytes": 1962840
+    },
+    "config_3_full_phase2": {
+      "config_name": "Config 3: Full Milestone 3.5 Phase 2",
+      "description": "Complete Phase 2: Multi-Hop Alias + Higher-Order Cleanup + Bounded Field-Sensitive Struct Tracking",
+      "metrics": {
+        "true_positives": 3,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "true_negatives": 19,
+        "precision": 1.0,
+        "recall": 1.0,
+        "specificity": 1.0,
+        "f1_score": 1.0
+      },
+      "adversarial_limitation_results": {
+        "multi_hop_alias_3hop": "RESOLVED_CLEAN (TN)",
+        "deferred_method_value": "RESOLVED_CLEAN (TN)",
+        "deferred_anon_closure": "RESOLVED_CLEAN (TN)",
+        "struct_field_release": "RESOLVED_CLEAN (TN)",
+        "struct_return_transfer": "RESOLVED_CLEAN (TN)"
+      },
+      "runtime_ms": 7,
+      "heap_allocated_bytes": 1978216
+    }
+  },
+  "benchmark_suite_stability": {
+    "historical_suite_v2": {
+      "defects": 64,
+      "controls": 32,
+      "regressions": 0,
+      "status": "IMMUTABLE_PASS"
+    },
+    "historical_suite_v3": {
+      "defects": 96,
+      "controls": 48,
+      "regressions": 0,
+      "status": "IMMUTABLE_PASS"
+    },
+    "external_v1_heldout": {
+      "defects": 9,
+      "controls": 12,
+      "regressions": 0,
+      "status": "IMMUTABLE_PASS"
+    },
+    "external_v2_reused": {
+      "labeled_cases": 26,
+      "injected_recall": 1.0,
+      "clean_specificity": 0.95,
+      "precision": 0.8571,
+      "regressions": 0,
+      "status": "REUSED_EVALUATION_DATA"
+    }
+  }
+}

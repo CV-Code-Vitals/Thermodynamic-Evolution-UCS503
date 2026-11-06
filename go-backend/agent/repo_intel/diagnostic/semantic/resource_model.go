@@ -18,6 +18,16 @@ const (
 	ResourceKindTimer    ResourceKind = "time.Timer"
 )
 
+// ConcurrencyOwnershipClass defines ownership boundaries in concurrent contexts.
+type ConcurrencyOwnershipClass string
+
+const (
+	ConcurrencyProvableLocal    ConcurrencyOwnershipClass = "PROVABLE_LOCAL"
+	ConcurrencyProvableTransfer ConcurrencyOwnershipClass = "PROVABLE_TRANSFER"
+	ConcurrencyPossibleEscape   ConcurrencyOwnershipClass = "POSSIBLE_ESCAPE"
+	ConcurrencyUnknownOwnership ConcurrencyOwnershipClass = "UNKNOWN_CONCURRENT_OWNERSHIP"
+)
+
 // ResourceLifecycleState classifies the lifecycle status of a tracked resource handle.
 type ResourceLifecycleState string
 
@@ -59,7 +69,9 @@ type ResourceInstance struct {
 	ReachableExits     int                    `json:"reachable_exits"`
 	CleanExits         int                    `json:"clean_exits"`
 	LeakedExits        int                    `json:"leaked_exits"`
-	EscapeReason       string                 `json:"escape_reason,omitempty"`
+	EscapeReason       string                     `json:"escape_reason,omitempty"`
+	ConcurrencyState   ConcurrencyOwnershipClass  `json:"concurrency_state,omitempty"`
+	AccessPath         string                     `json:"access_path,omitempty"`
 }
 
 // AddTransition appends an event to the resource instance history and updates its current state.
