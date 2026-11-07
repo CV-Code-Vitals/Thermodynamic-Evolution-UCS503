@@ -142,3 +142,4 @@ Unit testing in [`go-backend/agent/repo_intel/execution/synthesis_test.go`](file
 9. `SYNTH-ESCAPING-RETURN-ABSTAIN` (NAT-03 archetype: escaping return) -> **ABSTAINED** (`RESOURCE_ESCAPES_VIA_RETURN`).
 
 Safe intra-procedural cleanups continue to succeed, while unsafe escaping and mutating lifecycles are fail-closed.
+

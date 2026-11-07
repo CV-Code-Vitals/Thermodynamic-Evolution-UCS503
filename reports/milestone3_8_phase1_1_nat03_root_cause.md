@@ -113,3 +113,4 @@ An intra-procedural AST mutator operating without inter-procedural protocol cont
 3. **Corpus Revalidation (Task D):**
    - Update NAT-03 expected outcome from `REPAIR` to `ABSTAIN`.
    - Recompute precision and breadth metrics transparently.
+

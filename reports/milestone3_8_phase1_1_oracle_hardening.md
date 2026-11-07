@@ -75,3 +75,4 @@ When the exact candidate patch generated in Milestone 3.7 Phase 2 for NAT-03 is 
 - **Overall Verdict:** **REJECTED**
 
 The hardened independent oracles now provide a robust secondary safety boundary even in the hypothetical event that a synthesizer proposed an unsound repair.
+
