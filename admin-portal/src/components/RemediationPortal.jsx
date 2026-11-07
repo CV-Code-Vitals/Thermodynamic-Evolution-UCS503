@@ -15,9 +15,27 @@ import {
   runRemediationDemo
 } from '../remediation-api';
 
+function renderVerdictBadge(verdict) {
+  switch (verdict) {
+    case 'INDEPENDENTLY_VERIFIED':
+    case 'VERIFIED':
+      return <span className="remediation-badge badge-verified">VERIFIED</span>;
+    case 'EXPLICITLY_ABSTAINED':
+    case 'ABSTAINED':
+      return <span className="remediation-badge badge-abstain">ABSTAINED</span>;
+    case 'FALSE_POSITIVE':
+      return <span className="remediation-badge badge-false-positive">FALSE_POSITIVE</span>;
+    case 'GROUND_TRUTH_UNVERIFIED':
+    case 'GROUND_TRUTH_DISQUALIFIED':
+      return <span className="remediation-badge badge-unverified">GROUND_TRUTH_UNVERIFIED</span>;
+    default:
+      return <span className="remediation-badge badge-review">{verdict}</span>;
+  }
+}
+
 export default function RemediationPortal({ apiBase = '/api', token = '' }) {
   const [targets, setTargets] = useState([]);
-  const [selectedTarget, setSelectedTarget] = useState('NAT-03');
+  const [selectedTarget, setSelectedTarget] = useState('INJ-EXT2-RES-02');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -45,22 +63,39 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
       // Fallback to pre-configured defaults if offline
       setTargets([
         {
-          target_id: 'NAT-03',
-          repository: 'gorilla_websocket',
+          target_id: 'INJ-EXT2-RES-02',
+          repository: 'fatih_color',
           defect_category: 'RESOURCE_LEAK',
-          description: 'Real-World Bug: Unclosed resp.Body on handshake redirect (Upstream PR #789)',
-        },
-        {
-          target_id: 'INJ-EXT2-CMD-01',
-          repository: 'schollz_progressbar',
-          defect_category: 'COMMAND_INJECTION',
-          description: 'Unsanitized command executed via sh -c (Must safely abstain)',
+          stratum: 'AUTHENTIC_REPO_INJECTED',
+          description: 'Authentic Repo Injected Defect: os.Open file descriptor leak in DumpColorProfile',
         },
         {
           target_id: 'INJ-EXT2-SQL-01',
           repository: 'stretchr_objx',
           defect_category: 'SQL_INJECTION',
-          description: 'Dynamic SQL string formatting via fmt.Sprintf',
+          stratum: 'AUTHENTIC_REPO_INJECTED',
+          description: 'Authentic Repo Injected Defect: Dynamic SQL string formatting via fmt.Sprintf',
+        },
+        {
+          target_id: 'INJ-EXT2-CMD-01',
+          repository: 'schollz_progressbar',
+          defect_category: 'COMMAND_INJECTION',
+          stratum: 'AUTHENTIC_REPO_INJECTED',
+          description: 'Authentic Repo Injected Defect: Unsanitized command executed via sh -c (Must safely abstain)',
+        },
+        {
+          target_id: 'DEF-HOLD-01',
+          repository: 'microservice_api',
+          defect_category: 'UNHANDLED_ERROR',
+          stratum: 'CONSTRUCTED_MICROSERVICE',
+          description: 'Constructed Microservice Defect: json.Unmarshal error discarded in non-error return signature',
+        },
+        {
+          target_id: 'NAT-03',
+          repository: 'gorilla_websocket',
+          defect_category: 'RESOURCE_LEAK',
+          stratum: 'GROUND_TRUTH_DISQUALIFIED',
+          description: 'Disqualified / False Alarm: DialContext manages socket in defer at line 330; response body does not require application close',
         },
       ]);
     }
@@ -160,7 +195,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
       const demoRes = await runRemediationDemo(apiBase, token);
       const audit = await fetchRemediationAuditReport(apiBase, token);
       setAuditReport(audit);
-      setSelectedTarget('NAT-03');
+      setSelectedTarget('INJ-EXT2-RES-02');
       // Trigger normal flow for visual display
       await handleRunAnalysis();
     } catch (err) {
@@ -220,7 +255,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
           >
             {targets.map((t) => (
               <option key={t.target_id} value={t.target_id}>
-                {t.target_id}: {t.repository} — {t.defect_category}
+                {t.target_id}: {t.repository} — {t.defect_category} [{t.stratum || (t.target_id === 'NAT-03' ? 'GROUND_TRUTH_DISQUALIFIED' : (t.target_id.startsWith('DEF-HOLD') ? 'CONSTRUCTED_MICROSERVICE' : 'AUTHENTIC_REPO_INJECTED'))}]
               </option>
             ))}
           </select>
@@ -243,11 +278,17 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '0.5rem' }}>
             <div><strong>Finding ID:</strong> {analysis.finding_id}</div>
             <div><strong>Defect Category:</strong> {analysis.defect_category}</div>
+            <div>
+              <strong>Provenance Stratum:</strong>{' '}
+              <span className={`remediation-badge ${analysis.target_id === 'NAT-03' ? 'badge-abstain' : (analysis.target_id.startsWith('DEF-HOLD') ? 'badge-review' : 'badge-verified')}`}>
+                {analysis.target_id === 'NAT-03' ? 'GROUND_TRUTH_DISQUALIFIED' : (analysis.target_id.startsWith('DEF-HOLD') ? 'CONSTRUCTED_MICROSERVICE' : 'AUTHENTIC_REPO_INJECTED')}
+              </span>
+            </div>
             <div><strong>File & Line:</strong> {analysis.target_file}:{analysis.line_number}</div>
             <div>
               <strong>Automatic Eligibility:</strong>{' '}
               <span className={`remediation-badge ${analysis.automatic_eligibility ? 'badge-verified' : 'badge-abstain'}`}>
-                {analysis.automatic_eligibility ? 'ELIGIBLE' : 'INELIGIBLE (REQUIRES HUMAN REVIEW)'}
+                {analysis.automatic_eligibility ? 'ELIGIBLE' : 'INELIGIBLE (REQUIRES HUMAN REVIEW / ABSTAIN)'}
               </span>
             </div>
             <div><strong>Uncertainty Score:</strong> {(analysis.uncertainty_score * 100).toFixed(1)}%</div>
@@ -370,9 +411,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
 
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.75rem' }}>
             <strong>Overall Verdict:</strong>
-            <span className={`remediation-badge ${execution.all_oracles_passed ? 'badge-verified' : 'badge-abstain'}`}>
-              {execution.verification_verdict}
-            </span>
+            {renderVerdictBadge(execution.verification_verdict)}
             <span>(Verification Latency: {execution.duration_ms} ms)</span>
           </div>
 

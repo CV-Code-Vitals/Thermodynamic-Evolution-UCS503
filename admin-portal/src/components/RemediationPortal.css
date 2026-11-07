@@ -51,6 +51,18 @@
   border: 1px solid #00f3ff;
 }
 
+.badge-false-positive {
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+  border: 1px solid #ff4444;
+}
+
+.badge-unverified {
+  background: rgba(180, 180, 180, 0.2);
+  color: #cccccc;
+  border: 1px solid #888888;
+}
+
 .remediation-step-card {
   background: #11141a;
   border: 1px solid #222938;

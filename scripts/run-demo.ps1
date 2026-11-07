@@ -3,12 +3,13 @@
 #
 # Deterministic Autonomous Code Repair MVP Demonstration
 # Reproduces:
-#   1. Natural Defect (NAT-03) Detection, Genuine AST Synthesis & Approval
-#   2. Isolated Sandbox Execution & Replay Protection
-#   3. Independent 5-Oracle Verification
-#   4. Conservative Abstention (INJ-EXT2-CMD-01)
-#   5. Bitwise Original Source Immutability
-#   6. Full Machine-Readable Audit Report
+#   1. Autonomous AST Repair (INJ-EXT2-RES-02) in Authentic External Repository
+#   2. Isolated Sandbox Execution, Cryptographic Authorization & Replay Protection
+#   3. Multi-Stage Independent 5-Oracle Verification
+#   4. Disqualified / Escaping Return Safe Abstention (NAT-03)
+#   5. Conservative Command Injection Architectural Abstention (INJ-EXT2-CMD-01)
+#   6. Bitwise Original Source Immutability
+#   7. Full Machine-Readable Audit Report
 # =============================================================================
 
 $ErrorActionPreference = "Stop"

@@ -158,27 +158,16 @@ type MVPService struct {
 func DefaultPreconfiguredTargets() []MVPTarget {
 	return []MVPTarget{
 		{
-			TargetID:       "NAT-03",
-			Repository:     "gorilla_websocket",
-			RelativeSource: "benchmarks/external_v2/gorilla_websocket",
-			TargetFile:     "client.go",
+			TargetID:       "INJ-EXT2-RES-02",
+			Repository:     "fatih_color",
+			RelativeSource: "benchmarks/external_v2/fatih_color",
+			TargetFile:     "file_printer.go",
 			DefectCategory: "RESOURCE_LEAK",
-			Stratum:        "NATURAL_CONFIRMED",
-			ExpectedAction: "ABSTAIN",
-			Description:    "Real-World Bug: Unclosed resp.Body on handshake redirect; Escaping return signature requires architectural caller-lifecycle handling (Must safely abstain)",
-			UpstreamCommit: "9111bb834a68b893cebbbaed5060bdbc1d9ab7d2",
-			UpstreamURL:    "https://github.com/gorilla/websocket",
-			VerifiedBy:     "Historical Fix PR #789",
-		},
-		{
-			TargetID:       "INJ-EXT2-CMD-01",
-			Repository:     "schollz_progressbar",
-			RelativeSource: "benchmarks/external_v2/schollz_progressbar",
-			TargetFile:     "cmd_runner.go",
-			DefectCategory: "COMMAND_INJECTION",
-			Stratum:        "CONSTRUCTED_INJECTED",
-			ExpectedAction: "ABSTAIN",
-			Description:    "Unsanitized command executed via sh -c (Must safely abstain)",
+			Stratum:        "AUTHENTIC_REPO_INJECTED",
+			ExpectedAction: "REPAIR",
+			Description:    "Authentic Repo Injected Defect: os.Open file descriptor leak in DumpColorProfile",
+			UpstreamCommit: "12126ed593697635c525b302836b292b657ea573",
+			UpstreamURL:    "https://github.com/fatih/color",
 			VerifiedBy:     "External v2 Injection Ledger",
 		},
 		{
@@ -187,20 +176,24 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 			RelativeSource: "benchmarks/external_v2/stretchr_objx",
 			TargetFile:     "sql_helper.go",
 			DefectCategory: "SQL_INJECTION",
-			Stratum:        "CONSTRUCTED_INJECTED",
+			Stratum:        "AUTHENTIC_REPO_INJECTED",
 			ExpectedAction: "REPAIR",
-			Description:    "Dynamic SQL string formatting via fmt.Sprintf (Requires parameterization)",
+			Description:    "Authentic Repo Injected Defect: Dynamic SQL string formatting via fmt.Sprintf (Requires parameterization)",
+			UpstreamCommit: "753177893c52a48b9487b7a1cf711d948cfbb20e",
+			UpstreamURL:    "https://github.com/stretchr/objx",
 			VerifiedBy:     "External v2 Injection Ledger",
 		},
 		{
-			TargetID:       "INJ-EXT2-RES-02",
-			Repository:     "fatih_color",
-			RelativeSource: "benchmarks/external_v2/fatih_color",
-			TargetFile:     "file_printer.go",
-			DefectCategory: "RESOURCE_LEAK",
-			Stratum:        "CONSTRUCTED_INJECTED",
-			ExpectedAction: "REPAIR",
-			Description:    "os.OpenFile file descriptor leak without deferred Close",
+			TargetID:       "INJ-EXT2-CMD-01",
+			Repository:     "schollz_progressbar",
+			RelativeSource: "benchmarks/external_v2/schollz_progressbar",
+			TargetFile:     "cmd_runner.go",
+			DefectCategory: "COMMAND_INJECTION",
+			Stratum:        "AUTHENTIC_REPO_INJECTED",
+			ExpectedAction: "ABSTAIN",
+			Description:    "Authentic Repo Injected Defect: Unsanitized command executed via sh -c (Must safely abstain)",
+			UpstreamCommit: "17ae25cdf22bc402ef34618a2ddddbfdb832ab81",
+			UpstreamURL:    "https://github.com/schollz/progressbar",
 			VerifiedBy:     "External v2 Injection Ledger",
 		},
 		{
@@ -209,10 +202,23 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 			RelativeSource: "benchmarks/heldout_v1/microservice_api",
 			TargetFile:     "config/config.go",
 			DefectCategory: "UNHANDLED_ERROR",
-			Stratum:        "CONSTRUCTED_INJECTED",
+			Stratum:        "CONSTRUCTED_MICROSERVICE",
 			ExpectedAction: "ABSTAIN",
-			Description:    "json.Unmarshal error discarded in non-error return signature",
+			Description:    "Constructed Microservice Defect: json.Unmarshal error discarded in non-error return signature",
 			VerifiedBy:     "Held-Out Suite Manifest",
+		},
+		{
+			TargetID:       "NAT-03",
+			Repository:     "gorilla_websocket",
+			RelativeSource: "benchmarks/external_v2/gorilla_websocket",
+			TargetFile:     "client.go",
+			DefectCategory: "RESOURCE_LEAK",
+			Stratum:        "GROUND_TRUTH_DISQUALIFIED",
+			ExpectedAction: "ABSTAIN",
+			Description:    "Disqualified / False Alarm: Pristine DialContext manages socket via defer at line 330; response body does not require application close (Safely abstained)",
+			UpstreamCommit: "9111bb834a68b893cebbbaed5060bdbc1d9ab7d2",
+			UpstreamURL:    "https://github.com/gorilla/websocket",
+			VerifiedBy:     "Disqualified in ground_truth_amendment_v2_1.json; Issue #789 unrelated",
 		},
 	}
 }
@@ -283,39 +289,51 @@ func (s *MVPService) AnalyzeTarget(targetID string) (*MVPAnalysisResult, error) 
 	var rationale string
 
 	switch target.TargetID {
-	case "NAT-03":
-		lineNo = 391
-		snippet = "resp, err := d.DialContext(ctx, u.String(), reqHeader)\n...\nio.Copy(buf, resp.Body)\nresp.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))"
+	case "INJ-EXT2-RES-02":
+		lineNo = 21
+		snippet = "f, err := os.Open(profilePath)\nif err != nil {\n    return err\n}\n// Missing defer f.Close() -> RESOURCE_LEAK\ndata, err := io.ReadAll(f)"
 		evidence = []string{
-			"Reaching Definitions: resp.Body handle initialized at client.go:391 via d.DialContext.",
-			"Lifecycle Escape: resp.Body reassigned to io.NopCloser at line 395 without preceding .Close() call.",
-			"Alias Tracking: Original network stream descriptor lost on handshake redirect.",
+			"Reaching Definitions: File handle 'f' allocated via os.Open at line 22.",
+			"Lifecycle Sink: Function exits at lines 25, 30, and 33 without closing file handle 'f'.",
+			"AST Mutator: Insert 'defer f.Close()' immediately following error check at line 25.",
 		}
-		uncertainty = 0.05 // Highly deterministic
+		uncertainty = 0.05
 		autoEligible = true
 		rationale = "Supported deterministic AST mutation: Single-file intra-procedural deferred close."
+	case "INJ-EXT2-SQL-01":
+		lineNo = 25
+		snippet = "query := fmt.Sprintf(\"SELECT id, payload FROM data_store WHERE role = '%s'\", role)\nreturn e.db.QueryContext(ctx, query)"
+		evidence = []string{
+			"Taint Propagation: Function parameter 'role' formatted into raw SQL string via fmt.Sprintf.",
+			"Sink: db.QueryContext executes untrusted dynamic string.",
+			"AST Mutator: Replace fmt.Sprintf with ? placeholder; bind role argument to QueryContext.",
+		}
+		uncertainty = 0.08
+		autoEligible = true
+		rationale = "Supported deterministic AST mutation: SQL placeholder parameterization."
 	case "INJ-EXT2-CMD-01":
-		lineNo = 28
-		snippet = "cmd := exec.Command(\"sh\", \"-c\", customHook)\nreturn cmd.Run()"
+		lineNo = 15
+		snippet = "cmd := exec.Command(\"sh\", \"-c\", \"echo hook: \"+customHook)\nreturn cmd.Run()"
 		evidence = []string{
 			"Taint Sink: exec.Command argument passed directly to shell interpreter 'sh -c'.",
 			"Arbitrary Shell Expansion: customHook allows semicolon/pipe command injection.",
 			"AST Boundary Bound: Parameterizing shell string requires architectural redesign (split args).",
 		}
-		uncertainty = 0.95 // Ambiguous / requires redesign
+		uncertainty = 0.95
 		autoEligible = false
 		rationale = "Unsupported AST repair: Shell command injection requires architectural restructuring. Safe fail-closed."
-	case "INJ-EXT2-SQL-01":
-		lineNo = 35
-		snippet = "query := fmt.Sprintf(\"SELECT * FROM users WHERE tag = '%s'\", tag)\nrows, err := db.Query(query)"
+	case "NAT-03":
+		lineNo = 371
+		snippet = "resp, err := http.ReadResponse(conn.br, req)\nif err != nil {\n    return nil, nil, err\n}"
 		evidence = []string{
-			"Taint Propagation: Function parameter 'tag' formatted into raw SQL string via fmt.Sprintf.",
-			"Sink: db.Query executes untrusted dynamic string.",
-			"AST Mutator: Replace fmt.Sprintf with ? placeholder; bind tag argument to db.Query.",
+			"Ground-Truth Disqualification: Upstream gorilla/websocket#789 is an issue titled 'Investigating Error code 1006', not a resource leak PR.",
+			"Socket Lifecycle: Underline netConn is already managed and closed via defer func() at line 330 on error exits.",
+			"Upstream Contract: Official DialContext docstring explicitly states response body does not need to be closed by application.",
+			"Escaping Return Signature: DialContext returns (*Conn, *http.Response, error); callee cleanup cannot be safely applied.",
 		}
-		uncertainty = 0.08
-		autoEligible = true
-		rationale = "Supported deterministic AST mutation: SQL placeholder parameterization."
+		uncertainty = 0.95
+		autoEligible = false
+		rationale = "Ground-Truth Disqualified: Pristine upstream code manages socket lifecycle via defer at line 330. Callee cleanup on escaping response body safely abstained."
 	default:
 		lineNo = 40
 		snippet = "// Candidate source location"
