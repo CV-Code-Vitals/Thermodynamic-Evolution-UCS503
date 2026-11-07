@@ -719,6 +719,9 @@ func setupEngineWithSnapshots(enginePath string, engineTimeout time.Duration, ma
 	r.GET("/uploads/:filename", tokenMiddleware(analysisToken), serveUploadFileHandler(uploadsDir))
 	r.GET("/api/uploads/:filename", tokenMiddleware(analysisToken), serveUploadFileHandler(uploadsDir))
 
+	// Autonomous Code Repair MVP endpoints
+	setupRemediationRoutes(r, tokenMiddleware(analysisToken))
+
 	return r
 }
 

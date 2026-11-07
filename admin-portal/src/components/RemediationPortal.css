@@ -1,0 +1,242 @@
+/* =============================================================================
+   admin-portal · RemediationPortal.css
+   Cyberpunk styling for Autonomous Code Repair MVP Release Candidate
+   ============================================================================= */
+
+.remediation-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  color: #e0e0e0;
+}
+
+.remediation-header {
+  border-bottom: 1px solid #00f3ff44;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.remediation-header h2 {
+  color: #00f3ff;
+  font-size: 1.6rem;
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.remediation-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.badge-verified {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00ff88;
+  border: 1px solid #00ff88;
+}
+
+.badge-abstain {
+  background: rgba(255, 170, 0, 0.2);
+  color: #ffaa00;
+  border: 1px solid #ffaa00;
+}
+
+.badge-review {
+  background: rgba(0, 243, 255, 0.2);
+  color: #00f3ff;
+  border: 1px solid #00f3ff;
+}
+
+.remediation-step-card {
+  background: #11141a;
+  border: 1px solid #222938;
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+  transition: border-color 0.2s ease;
+}
+
+.remediation-step-card.active {
+  border-color: #00f3ff;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+}
+
+.step-title {
+  color: #00f3ff;
+  font-size: 1rem;
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.step-number {
+  background: #00f3ff;
+  color: #0a0c10;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+.evidence-box {
+  background: #0a0c10;
+  border-left: 3px solid #00f3ff;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  font-family: 'Consolas', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.diff-box {
+  background: #08090d;
+  border: 1px solid #222938;
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-family: 'Consolas', 'Fira Code', monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  color: #c9d1d9;
+  max-height: 350px;
+}
+
+.diff-line-add {
+  color: #7ee787;
+  background: rgba(46, 160, 67, 0.15);
+}
+
+.diff-line-del {
+  color: #ffa198;
+  background: rgba(248, 81, 73, 0.15);
+}
+
+.oracle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.oracle-card {
+  background: #0a0c10;
+  border: 1px solid #222938;
+  border-radius: 4px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.oracle-card.pass {
+  border-left: 3px solid #00ff88;
+}
+
+.oracle-card.fail {
+  border-left: 3px solid #ff4444;
+}
+
+.oracle-name {
+  font-weight: bold;
+  font-size: 0.8rem;
+  color: #e0e0e0;
+}
+
+.oracle-status {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.oracle-status.pass {
+  color: #00ff88;
+}
+
+.oracle-status.fail {
+  color: #ff4444;
+}
+
+.token-box {
+  background: #0a0c10;
+  border: 1px dashed #00f3ff66;
+  border-radius: 4px;
+  padding: 0.75rem;
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #9cdcfe;
+  word-break: break-all;
+}
+
+.btn-group {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  background: #00f3ff;
+  color: #0a0c10;
+  border: none;
+  border-radius: 4px;
+  padding: 0.6rem 1.2rem;
+  font-weight: bold;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: #33f6ff;
+  box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-btn.secondary {
+  background: transparent;
+  color: #00f3ff;
+  border: 1px solid #00f3ff;
+}
+
+.action-btn.secondary:hover:not(:disabled) {
+  background: rgba(0, 243, 255, 0.1);
+}
+
+.action-btn.danger {
+  background: transparent;
+  color: #ff4444;
+  border: 1px solid #ff4444;
+}
+
+.action-btn.danger:hover:not(:disabled) {
+  background: rgba(255, 68, 68, 0.1);
+}
+
+.abstain-banner {
+  background: rgba(255, 170, 0, 0.1);
+  border: 1px solid #ffaa00;
+  border-radius: 4px;
+  padding: 1rem;
+  margin: 1rem 0;
+  color: #ffd280;
+}
+
+.abstain-banner h4 {
+  color: #ffaa00;
+  margin: 0 0 0.5rem 0;
+}
