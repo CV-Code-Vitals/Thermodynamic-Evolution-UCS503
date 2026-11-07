@@ -242,6 +242,20 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
+		// Hardened check: Verify that the enclosing function does not return the resource to callers
+		fset := token.NewFileSet()
+		if fNode, err := parser.ParseFile(fset, targetPath, nil, 0); err == nil {
+			for _, decl := range fNode.Decls {
+				if fn, ok := decl.(*ast.FuncDecl); ok && fn.Body != nil {
+					if fnReturnsResourceType(fn) && funcContainsClose(fn) {
+						res.Passed = false
+						res.FailureReason = "Defect reproducer check failed: function returns resource to caller; callee cleanup violates interface contract"
+						res.DurationMs = time.Since(start).Milliseconds()
+						return res
+					}
+				}
+			}
+		}
 		res.Details = "Explicit or deferred resource cleanup verified along exit paths"
 	} else if strings.Contains(taskType, "sql") {
 		if strings.Contains(src, "fmt.Sprintf") && strings.Contains(src, "%s") {
@@ -324,21 +338,33 @@ func (s *IndependentOracleSuite) verifyNegativeProperties(wsDir string, patch *C
 		return res
 	}
 
-	// Verify syntax integrity across AST
-	ast.Inspect(node, func(n ast.Node) bool {
-		return true
-	})
-
-	// Verify no shadowed 'err' definitions introduced by the candidate patch
+	// 1. Verify no shadowed 'err' definitions introduced by the candidate patch
 	shadowedErr := false
+	invertedErr := false
+	diffAddsClose := false
+	var closedVarNames []string
+
 	if patch != nil && strings.Contains(patch.UnifiedDiff, "+") {
 		for _, line := range strings.Split(patch.UnifiedDiff, "\n") {
 			if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
 				trimmed := strings.TrimSpace(line[1:])
-				// If patch introduces an inner short-variable declaration `err :=` inside a nested block
 				if strings.Contains(trimmed, "err :=") && (strings.HasPrefix(line, "+\t\t\t") || strings.HasPrefix(line, "+            ")) {
 					shadowedErr = true
-					break
+				}
+				if strings.HasPrefix(trimmed, "if err == nil") && strings.Contains(trimmed, "return") {
+					invertedErr = true
+				}
+				if strings.Contains(trimmed, ".Close()") {
+					diffAddsClose = true
+					// Extract variable name, e.g. "resp.Body.Close()" -> "resp", "f.Close()" -> "f"
+					closeCall := strings.TrimPrefix(trimmed, "defer ")
+					parts := strings.Split(closeCall, ".")
+					if len(parts) > 0 {
+						vName := strings.TrimSpace(parts[0])
+						if vName != "" {
+							closedVarNames = append(closedVarNames, vName)
+						}
+					}
 				}
 			}
 		}
@@ -351,7 +377,266 @@ func (s *IndependentOracleSuite) verifyNegativeProperties(wsDir string, patch *C
 		return res
 	}
 
-	res.Details = "Zero shadowed variables or unchecked error anti-patterns detected"
+	if invertedErr {
+		res.Passed = false
+		res.FailureReason = "Negative property check failed: candidate patch introduces inverted error check condition (if err == nil)"
+		res.DurationMs = time.Since(start).Milliseconds()
+		return res
+	}
+
+	// 2. Structural & Semantic Invariants on Patched AST
+	for _, decl := range node.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if !ok || fn.Body == nil {
+			continue
+		}
+
+		// A. Callee Cleanup on Escaping Resource Violation
+		if diffAddsClose && fnReturnsResourceType(fn) {
+			for _, vName := range closedVarNames {
+				if fnBodyReturnsVar(fn, vName) || fnReturnsTypeMatchingVar(fn, vName) {
+					res.Passed = false
+					res.FailureReason = fmt.Sprintf("Negative property check failed: candidate patch introduces callee cleanup on escaping resource %q returned to caller; violates ownership transfer and panics on error returns", vName)
+					res.DurationMs = time.Since(start).Milliseconds()
+					return res
+				}
+			}
+		}
+
+		// B. Pre-Error Check Cleanup Placement (Nil dereference on failure path)
+		if diffAddsClose {
+			for _, vName := range closedVarNames {
+				if isCleanupPlacedBeforeAllocErrorCheck(fn.Body.List, vName) {
+					res.Passed = false
+					res.FailureReason = fmt.Sprintf("Negative property check failed: resource cleanup for %q placed prior to error check; triggers nil pointer dereference panic when allocation fails", vName)
+					res.DurationMs = time.Since(start).Milliseconds()
+					return res
+				}
+			}
+		}
+
+		// C. Redundant or Double Close Detection
+		closeCounts := make(map[string]int)
+		ast.Inspect(fn.Body, func(n ast.Node) bool {
+			if call, ok := n.(*ast.CallExpr); ok {
+				if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Close" {
+					targetStr := formatOracleNode(sel.X)
+					closeCounts[targetStr]++
+				}
+			}
+			return true
+		})
+		for targetStr, count := range closeCounts {
+			if count > 1 {
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("Negative property check failed: multiple Close() calls detected on resource %q without reassignment", targetStr)
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+		}
+	}
+
+	res.Details = "Zero shadowed variables, nil-dereference risk, or ownership violations detected"
 	res.DurationMs = time.Since(start).Milliseconds()
 	return res
+}
+
+func fnReturnsResourceType(fn *ast.FuncDecl) bool {
+	if fn.Type.Results == nil {
+		return false
+	}
+	for _, field := range fn.Type.Results.List {
+		typeStr := formatOracleAstType(field.Type)
+		if isOracleResourceType(typeStr) {
+			return true
+		}
+	}
+	return false
+}
+
+func fnReturnsTypeMatchingVar(fn *ast.FuncDecl, varName string) bool {
+	// If varName is 'resp', check for *http.Response
+	// If varName is 'f', check for *os.File
+	// If varName is 'conn', check for net.Conn
+	if fn.Type.Results == nil {
+		return false
+	}
+	for _, field := range fn.Type.Results.List {
+		typeStr := formatOracleAstType(field.Type)
+		if strings.Contains(varName, "resp") && strings.Contains(typeStr, "Response") {
+			return true
+		}
+		if strings.Contains(varName, "f") && strings.Contains(typeStr, "File") {
+			return true
+		}
+		if strings.Contains(varName, "conn") && strings.Contains(typeStr, "Conn") {
+			return true
+		}
+	}
+	return false
+}
+
+func fnBodyReturnsVar(fn *ast.FuncDecl, varName string) bool {
+	returned := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		ret, ok := n.(*ast.ReturnStmt)
+		if !ok {
+			return true
+		}
+		for _, expr := range ret.Results {
+			if id, ok := expr.(*ast.Ident); ok && id.Name == varName {
+				returned = true
+				return false
+			}
+			if sel, ok := expr.(*ast.SelectorExpr); ok {
+				if id, ok := sel.X.(*ast.Ident); ok && id.Name == varName {
+					returned = true
+					return false
+				}
+			}
+		}
+		return true
+	})
+	return returned
+}
+
+func funcContainsClose(fn *ast.FuncDecl) bool {
+	hasClose := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok && sel.Sel.Name == "Close" {
+			hasClose = true
+			return false
+		}
+		return true
+	})
+	return hasClose
+}
+
+func stmtContainsClose(stmt ast.Stmt) bool {
+	hasClose := false
+	ast.Inspect(stmt, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok && sel.Sel.Name == "Close" {
+			hasClose = true
+			return false
+		}
+		return true
+	})
+	return hasClose
+}
+
+func isCleanupPlacedBeforeAllocErrorCheck(stmts []ast.Stmt, varName string) bool {
+	allocIdx := -1
+	closeIdx := -1
+
+	for i, stmt := range stmts {
+		if allocIdx == -1 && stmtAssignsVar(stmt, varName) {
+			allocIdx = i
+		}
+		if closeIdx == -1 && stmtClosesVar(stmt, varName) {
+			closeIdx = i
+		}
+	}
+
+	if allocIdx >= 0 && closeIdx > allocIdx {
+		// Check if there is an error check between allocIdx and closeIdx
+		hasCheckBetween := false
+		for k := allocIdx + 1; k < closeIdx; k++ {
+			if isErrCheckStmt(stmts[k]) {
+				hasCheckBetween = true
+				break
+			}
+		}
+		// If no check between alloc and close, but an error check follows close:
+		if !hasCheckBetween {
+			for k := closeIdx + 1; k < len(stmts); k++ {
+				if isErrCheckStmt(stmts[k]) {
+					return true // Pre-error check cleanup!
+				}
+			}
+		}
+	}
+	return false
+}
+
+func stmtAssignsVar(stmt ast.Stmt, varName string) bool {
+	if assign, ok := stmt.(*ast.AssignStmt); ok {
+		for _, lhs := range assign.Lhs {
+			if id, ok := lhs.(*ast.Ident); ok && id.Name == varName {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func stmtClosesVar(stmt ast.Stmt, varName string) bool {
+	closes := false
+	ast.Inspect(stmt, func(n ast.Node) bool {
+		if sel, ok := n.(*ast.SelectorExpr); ok && sel.Sel.Name == "Close" {
+			if id, ok := sel.X.(*ast.Ident); ok && id.Name == varName {
+				closes = true
+				return false
+			}
+			if innerSel, ok := sel.X.(*ast.SelectorExpr); ok {
+				if id, ok := innerSel.X.(*ast.Ident); ok && id.Name == varName {
+					closes = true
+					return false
+				}
+			}
+		}
+		return true
+	})
+	return closes
+}
+
+func isErrCheckStmt(stmt ast.Stmt) bool {
+	if ifStmt, ok := stmt.(*ast.IfStmt); ok {
+		if bin, ok := ifStmt.Cond.(*ast.BinaryExpr); ok && bin.Op == token.NEQ {
+			x := fmt.Sprintf("%v", bin.X)
+			y := fmt.Sprintf("%v", bin.Y)
+			return (x == "err" && y == "nil") || (x == "nil" && y == "err")
+		}
+	}
+	return false
+}
+
+func formatOracleNode(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.Ident:
+		return t.Name
+	case *ast.SelectorExpr:
+		return formatOracleNode(t.X) + "." + t.Sel.Name
+	default:
+		return ""
+	}
+}
+
+func formatOracleAstType(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.StarExpr:
+		return "*" + formatOracleAstType(t.X)
+	case *ast.SelectorExpr:
+		if id, ok := t.X.(*ast.Ident); ok {
+			return id.Name + "." + t.Sel.Name
+		}
+		return t.Sel.Name
+	case *ast.Ident:
+		return t.Name
+	default:
+		return ""
+	}
+}
+
+func isOracleResourceType(typeStr string) bool {
+	switch typeStr {
+	case "*http.Response", "http.Response",
+		"*os.File", "os.File",
+		"net.Conn", "*net.Conn",
+		"io.ReadCloser", "io.Closer",
+		"*sql.Rows", "sql.Rows",
+		"*sql.DB", "sql.DB":
+		return true
+	default:
+		return false
+	}
 }

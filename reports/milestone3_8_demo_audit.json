@@ -1,73 +1,71 @@
 {
   "baseline_commit": "de06b6e568e0cce07d20b319d6618c15a9d3c899",
-  "export_timestamp": "2026-11-07T06:46:47Z",
-  "total_sessions_recorded": 2,
+  "export_timestamp": "2026-11-07T14:44:49Z",
+  "total_sessions_recorded": 3,
   "verified_repairs_count": 1,
-  "abstained_repairs_count": 1,
+  "abstained_repairs_count": 2,
   "failed_repairs_count": 0,
   "source_immutability_100_percent": true,
   "audit_records": [
     {
-      "record_id": "AUDIT-NAT-03-225800",
-      "target_id": "NAT-03",
-      "repository": "gorilla_websocket",
+      "record_id": "AUDIT-INJ-EXT2-RES-02-377000",
+      "target_id": "INJ-EXT2-RES-02",
+      "repository": "fatih_color",
       "defect_category": "RESOURCE_LEAK",
       "analysis": {
-        "analysis_id": "ANALYSIS-NAT-03-131500",
-        "target_id": "NAT-03",
-        "repository": "gorilla_websocket",
-        "target_file": "client.go",
+        "analysis_id": "ANALYSIS-INJ-EXT2-RES-02-133600",
+        "target_id": "INJ-EXT2-RES-02",
+        "repository": "fatih_color",
+        "target_file": "file_printer.go",
         "defect_category": "RESOURCE_LEAK",
         "severity": "HIGH",
-        "line_number": 391,
-        "code_snippet": "resp, err := d.DialContext(ctx, u.String(), reqHeader)\n...\nio.Copy(buf, resp.Body)\nresp.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))",
+        "line_number": 40,
+        "code_snippet": "// Candidate source location",
         "semantic_evidence": [
-          "Reaching Definitions: resp.Body handle initialized at client.go:391 via d.DialContext.",
-          "Lifecycle Escape: resp.Body reassigned to io.NopCloser at line 395 without preceding .Close() call.",
-          "Alias Tracking: Original network stream descriptor lost on handshake redirect."
+          "Diagnostic summary confirmed."
         ],
-        "uncertainty_score": 0.05,
+        "uncertainty_score": 0.15,
         "automatic_eligibility": true,
-        "eligibility_rationale": "Supported deterministic AST mutation: Single-file intra-procedural deferred close.",
+        "eligibility_rationale": "Standard candidate finding.",
         "requires_human_review": true,
-        "finding_id": "FIND-NAT-03",
-        "timestamp": "2026-11-07T06:46:46Z"
+        "finding_id": "FIND-INJ-EXT2-RES-02",
+        "timestamp": "2026-11-07T14:44:49Z"
       },
       "proposal": {
-        "proposal_id": "PROP-NAT-03-131500",
-        "analysis_id": "ANALYSIS-NAT-03-131500",
-        "target_id": "NAT-03",
+        "proposal_id": "PROP-INJ-EXT2-RES-02-133600",
+        "analysis_id": "ANALYSIS-INJ-EXT2-RES-02-133600",
+        "target_id": "INJ-EXT2-RES-02",
         "status": "PROPOSED",
         "intent_type": "RESOURCE_CLEANUP",
-        "unified_diff": "--- a/client.go\n+++ b/client.go\n@@ -375,48 +375,49 @@\n-\n-\tif d.Jar != nil {\n-\t\tif rc := resp.Cookies(); len(rc) \u003e 0 {\n-\t\t\td.Jar.SetCookies(u, rc)\n-\t\t}\n-\t}\n-\n-\tif resp.StatusCode != 101 ||\n-\t\t!tokenListContainsValue(resp.Header, \"Upgrade\", \"websocket\") ||\n-\t\t!tokenListContainsValue(resp.Header, \"Connection\", \"upgrade\") ||\n-\t\tresp.Header.Get(\"Sec-Websocket-Accept\") != computeAcceptKey(challengeKey) {\n-\t\t// Before closing the network connection on return from this\n-\t\t// function, slurp up some of the response to aid application\n-\t\t// debugging.\n-\t\tbuf := make([]byte, 1024)\n-\t\tn, _ := io.ReadFull(resp.Body, buf)\n-\t\tresp.Body = ioutil.NopCloser(bytes.NewReader(buf[:n]))\n-\t\treturn nil, resp, ErrBadHandshake\n-\t}\n-\n-\tfor _, ext := range parseExtensions(resp.Header) {\n-\t\tif ext[\"\"] != \"permessage-deflate\" {\n-\t\t\tcontinue\n-\t\t}\n-\t\t_, snct := ext[\"server_no_context_takeover\"]\n-\t\t_, cnct := ext[\"client_no_context_takeover\"]\n-\t\tif !snct || !cnct {\n-\t\t\treturn nil, resp, errInvalidCompression\n-\t\t}\n-\t\tconn.newCompressionWriter = compressNoContextTakeover\n-\t\tconn.newDecompressionReader = decompressNoContextTakeover\n-\t\tbreak\n-\t}\n-\n-\tresp.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))\n-\tconn.subprotocol = resp.Header.Get(\"Sec-Websocket-Protocol\")\n-\n-\tnetConn.SetDeadline(time.Time{})\n-\tnetConn = nil // to avoid close in defer.\n-\treturn conn, resp, nil\n-}\n-\n-func cloneTLSConfig(cfg *tls.Config) *tls.Config {\n-\tif cfg == nil {\n-\t\treturn \u0026tls.Config{}\n-\t}\n-\treturn cfg.Clone()\n-}\n+\tdefer resp.Body.Close()\n+\n+\tif d.Jar != nil {\n+\t\tif rc := resp.Cookies(); len(rc) \u003e 0 {\n+\t\t\td.Jar.SetCookies(u, rc)\n+\t\t}\n+\t}\n+\n+\tif resp.StatusCode != 101 ||\n+\t\t!tokenListContainsValue(resp.Header, \"Upgrade\", \"websocket\") ||\n+\t\t!tokenListContainsValue(resp.Header, \"Connection\", \"upgrade\") ||\n+\t\tresp.Header.Get(\"Sec-Websocket-Accept\") != computeAcceptKey(challengeKey) {\n+\t\t// Before closing the network connection on return from this\n+\t\t// function, slurp up some of the response to aid application\n+\t\t// debugging.\n+\t\tbuf := make([]byte, 1024)\n+\t\tn, _ := io.ReadFull(resp.Body, buf)\n+\t\tresp.Body = ioutil.NopCloser(bytes.NewReader(buf[:n]))\n+\t\treturn nil, resp, ErrBadHandshake\n+\t}\n+\n+\tfor _, ext := range parseExtensions(resp.Header) {\n+\t\tif ext[\"\"] != \"permessage-deflate\" {\n+\t\t\tcontinue\n+\t\t}\n+\t\t_, snct := ext[\"server_no_context_takeover\"]\n+\t\t_, cnct := ext[\"client_no_context_takeover\"]\n+\t\tif !snct || !cnct {\n+\t\t\treturn nil, resp, errInvalidCompression\n+\t\t}\n+\t\tconn.newCompressionWriter = compressNoContextTakeover\n+\t\tconn.newDecompressionReader = decompressNoContextTakeover\n+\t\tbreak\n+\t}\n+\n+\tresp.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))\n+\tconn.subprotocol = resp.Header.Get(\"Sec-Websocket-Protocol\")\n+\n+\tnetConn.SetDeadline(time.Time{})\n+\tnetConn = nil // to avoid close in defer.\n+\treturn conn, resp, nil\n+}\n+\n+func cloneTLSConfig(cfg *tls.Config) *tls.Config {\n+\tif cfg == nil {\n+\t\treturn \u0026tls.Config{}\n+\t}\n+\treturn cfg.Clone()\n+}\n",
-        "diff_hash": "26056c7fbbeb2368a4093446733a983bb111320038e37c9cd87bc5c6d42e27b7",
-        "modified_source": "// Copyright 2013 The Gorilla WebSocket Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage websocket\n\nimport (\n\t\"bytes\"\n\t\"context\"\n\t\"crypto/tls\"\n\t\"errors\"\n\t\"io\"\n\t\"io/ioutil\"\n\t\"net\"\n\t\"net/http\"\n\t\"net/http/httptrace\"\n\t\"net/url\"\n\t\"strings\"\n\t\"time\"\n)\n\n// ErrBadHandshake is returned when the server response to opening handshake is\n// invalid.\nvar ErrBadHandshake = errors.New(\"websocket: bad handshake\")\n\nvar errInvalidCompression = errors.New(\"websocket: invalid compression negotiation\")\n\n// NewClient creates a new client connection using the given net connection.\n// The URL u specifies the host and request URI. Use requestHeader to specify\n// the origin (Origin), subprotocols (Sec-WebSocket-Protocol) and cookies\n// (Cookie). Use the response.Header to get the selected subprotocol\n// (Sec-WebSocket-Protocol) and cookies (Set-Cookie).\n//\n// If the WebSocket handshake fails, ErrBadHandshake is returned along with a\n// non-nil *http.Response so that callers can handle redirects, authentication,\n// etc.\n//\n// Deprecated: Use Dialer instead.\nfunc NewClient(netConn net.Conn, u *url.URL, requestHeader http.Header, readBufSize, writeBufSize int) (c *Conn, response *http.Response, err error) {\n\td := Dialer{\n\t\tReadBufferSize:  readBufSize,\n\t\tWriteBufferSize: writeBufSize,\n\t\tNetDial: func(net, addr string) (net.Conn, error) {\n\t\t\treturn netConn, nil\n\t\t},\n\t}\n\treturn d.Dial(u.String(), requestHeader)\n}\n\n// A Dialer contains options for connecting to WebSocket server.\n//\n// It is safe to call Dialer's methods concurrently.\ntype Dialer struct {\n\t// NetDial specifies the dial function for creating TCP connections. If\n\t// NetDial is nil, net.Dial is used.\n\tNetDial func(network, addr string) (net.Conn, error)\n\n\t// NetDialContext specifies the dial function for creating TCP connections. If\n\t// NetDialContext is nil, NetDial is used.\n\tNetDialContext func(ctx context.Context, network, addr string) (net.Conn, error)\n\n\t// NetDialTLSContext specifies the dial function for creating TLS/TCP connections. If\n\t// NetDialTLSContext is nil, NetDialContext is used.\n\t// If NetDialTLSContext is set, Dial assumes the TLS handshake is done there and\n\t// TLSClientConfig is ignored.\n\tNetDialTLSContext func(ctx context.Context, network, addr string) (net.Conn, error)\n\n\t// Proxy specifies a function to return a proxy for a given\n\t// Request. If the function returns a non-nil error, the\n\t// request is aborted with the provided error.\n\t// If Proxy is nil or returns a nil *URL, no proxy is used.\n\tProxy func(*http.Request) (*url.URL, error)\n\n\t// TLSClientConfig specifies the TLS configuration to use with tls.Client.\n\t// If nil, the default configuration is used.\n\t// If either NetDialTLS or NetDialTLSContext are set, Dial assumes the TLS handshake\n\t// is done there and TLSClientConfig is ignored.\n\tTLSClientConfig *tls.Config\n\n\t// HandshakeTimeout specifies the duration for the handshake to complete.\n\tHandshakeTimeout time.Duration\n\n\t// ReadBufferSize and WriteBufferSize specify I/O buffer sizes in bytes. If a buffer\n\t// size is zero, then a useful default size is used. The I/O buffer sizes\n\t// do not limit the size of the messages that can be sent or received.\n\tReadBufferSize, WriteBufferSize int\n\n\t// WriteBufferPool is a pool of buffers for write operations. If the value\n\t// is not set, then write buffers are allocated to the connection for the\n\t// lifetime of the connection.\n\t//\n\t// A pool is most useful when the application has a modest volume of writes\n\t// across a large number of connections.\n\t//\n\t// Applications should use a single pool for each unique value of\n\t// WriteBufferSize.\n\tWriteBufferPool BufferPool\n\n\t// Subprotocols specifies the client's requested subprotocols.\n\tSubprotocols []string\n\n\t// EnableCompression specifies if the client should attempt to negotiate\n\t// per message compression (RFC 7692). Setting this value to true does not\n\t// guarantee that compression will be supported. Currently only \"no context\n\t// takeover\" modes are supported.\n\tEnableCompression bool\n\n\t// Jar specifies the cookie jar.\n\t// If Jar is nil, cookies are not sent in requests and ignored\n\t// in responses.\n\tJar http.CookieJar\n}\n\n// Dial creates a new client connection by calling DialContext with a background context.\nfunc (d *Dialer) Dial(urlStr string, requestHeader http.Header) (*Conn, *http.Response, error) {\n\treturn d.DialContext(context.Background(), urlStr, requestHeader)\n}\n\nvar errMalformedURL = errors.New(\"malformed ws or wss URL\")\n\nfunc hostPortNoPort(u *url.URL) (hostPort, hostNoPort string) {\n\thostPort = u.Host\n\thostNoPort = u.Host\n\tif i := strings.LastIndex(u.Host, \":\"); i \u003e strings.LastIndex(u.Host, \"]\") {\n\t\thostNoPort = hostNoPort[:i]\n\t} else {\n\t\tswitch u.Scheme {\n\t\tcase \"wss\":\n\t\t\thostPort += \":443\"\n\t\tcase \"https\":\n\t\t\thostPort += \":443\"\n\t\tdefault:\n\t\t\thostPort += \":80\"\n\t\t}\n\t}\n\treturn hostPort, hostNoPort\n}\n\n// DefaultDialer is a dialer with all fields set to the default values.\nvar DefaultDialer = \u0026Dialer{\n\tProxy:            http.ProxyFromEnvironment,\n\tHandshakeTimeout: 45 * time.Second,\n}\n\n// nilDialer is dialer to use when receiver is nil.\nvar nilDialer = *DefaultDialer\n\n// DialContext creates a new client connection. Use requestHeader to specify the\n// origin (Origin), subprotocols (Sec-WebSocket-Protocol) and cookies (Cookie).\n// Use the response.Header to get the selected subprotocol\n// (Sec-WebSocket-Protocol) and cookies (Set-Cookie).\n//\n// The context will be used in the request and in the Dialer.\n//\n// If the WebSocket handshake fails, ErrBadHandshake is returned along with a\n// non-nil *http.Response so that callers can handle redirects, authentication,\n// etcetera. The response body may not contain the entire response and does not\n// need to be closed by the application.\nfunc (d *Dialer) DialContext(ctx context.Context, urlStr string, requestHeader http.Header) (*Conn, *http.Response, error) {\n\tif d == nil {\n\t\td = \u0026nilDialer\n\t}\n\n\tchallengeKey, err := generateChallengeKey()\n\tif err != nil {\n\t\treturn nil, nil, err\n\t}\n\n\tu, err := url.Parse(urlStr)\n\tif err != nil {\n\t\treturn nil, nil, err\n\t}\n\n\tswitch u.Scheme {\n\tcase \"ws\":\n\t\tu.Scheme = \"http\"\n\tcase \"wss\":\n\t\tu.Scheme = \"https\"\n\tdefault:\n\t\treturn nil, nil, errMalformedURL\n\t}\n\n\tif u.User != nil {\n\t\t// User name and password are not allowed in websocket URIs.\n\t\treturn nil, nil, errMalformedURL\n\t}\n\n\treq := \u0026http.Request{\n\t\tMethod:     http.MethodGet,\n\t\tURL:        u,\n\t\tProto:      \"HTTP/1.1\",\n\t\tProtoMajor: 1,\n\t\tProtoMinor: 1,\n\t\tHeader:     make(http.Header),\n\t\tHost:       u.Host,\n\t}\n\treq = req.WithContext(ctx)\n\n\t// Set the cookies present in the cookie jar of the dialer\n\tif d.Jar != nil {\n\t\tfor _, cookie := range d.Jar.Cookies(u) {\n\t\t\treq.AddCookie(cookie)\n\t\t}\n\t}\n\n\t// Set the request headers using the capitalization for names and values in\n\t// RFC examples. Although the capitalization shouldn't matter, there are\n\t// servers that depend on it. The Header.Set method is not used because the\n\t// method canonicalizes the header names.\n\treq.Header[\"Upgrade\"] = []string{\"websocket\"}\n\treq.Header[\"Connection\"] = []string{\"Upgrade\"}\n\treq.Header[\"Sec-WebSocket-Key\"] = []string{challengeKey}\n\treq.Header[\"Sec-WebSocket-Version\"] = []string{\"13\"}\n\tif len(d.Subprotocols) \u003e 0 {\n\t\treq.Header[\"Sec-WebSocket-Protocol\"] = []string{strings.Join(d.Subprotocols, \", \")}\n\t}\n\tfor k, vs := range requestHeader {\n\t\tswitch {\n\t\tcase k == \"Host\":\n\t\t\tif len(vs) \u003e 0 {\n\t\t\t\treq.Host = vs[0]\n\t\t\t}\n\t\tcase k == \"Upgrade\" ||\n\t\t\tk == \"Connection\" ||\n\t\t\tk == \"Sec-Websocket-Key\" ||\n\t\t\tk == \"Sec-Websocket-Version\" ||\n\t\t\tk == \"Sec-Websocket-Extensions\" ||\n\t\t\t(k == \"Sec-Websocket-Protocol\" \u0026\u0026 len(d.Subprotocols) \u003e 0):\n\t\t\treturn nil, nil, errors.New(\"websocket: duplicate header not allowed: \" + k)\n\t\tcase k == \"Sec-Websocket-Protocol\":\n\t\t\treq.Header[\"Sec-WebSocket-Protocol\"] = vs\n\t\tdefault:\n\t\t\treq.Header[k] = vs\n\t\t}\n\t}\n\n\tif d.EnableCompression {\n\t\treq.Header[\"Sec-WebSocket-Extensions\"] = []string{\"permessage-deflate; server_no_context_takeover; client_no_context_takeover\"}\n\t}\n\n\tif d.HandshakeTimeout != 0 {\n\t\tvar cancel func()\n\t\tctx, cancel = context.WithTimeout(ctx, d.HandshakeTimeout)\n\t\tdefer cancel()\n\t}\n\n\t// Get network dial function.\n\tvar netDial func(network, add string) (net.Conn, error)\n\n\tswitch u.Scheme {\n\tcase \"http\":\n\t\tif d.NetDialContext != nil {\n\t\t\tnetDial = func(network, addr string) (net.Conn, error) {\n\t\t\t\treturn d.NetDialContext(ctx, network, addr)\n\t\t\t}\n\t\t} else if d.NetDial != nil {\n\t\t\tnetDial = d.NetDial\n\t\t}\n\tcase \"https\":\n\t\tif d.NetDialTLSContext != nil {\n\t\t\tnetDial = func(network, addr string) (net.Conn, error) {\n\t\t\t\treturn d.NetDialTLSContext(ctx, network, addr)\n\t\t\t}\n\t\t} else if d.NetDialContext != nil {\n\t\t\tnetDial = func(network, addr string) (net.Conn, error) {\n\t\t\t\treturn d.NetDialContext(ctx, network, addr)\n\t\t\t}\n\t\t} else if d.NetDial != nil {\n\t\t\tnetDial = d.NetDial\n\t\t}\n\tdefault:\n\t\treturn nil, nil, errMalformedURL\n\t}\n\n\tif netDial == nil {\n\t\tnetDialer := \u0026net.Dialer{}\n\t\tnetDial = func(network, addr string) (net.Conn, error) {\n\t\t\treturn netDialer.DialContext(ctx, network, addr)\n\t\t}\n\t}\n\n\t// If needed, wrap the dial function to set the connection deadline.\n\tif deadline, ok := ctx.Deadline(); ok {\n\t\tforwardDial := netDial\n\t\tnetDial = func(network, addr string) (net.Conn, error) {\n\t\t\tc, err := forwardDial(network, addr)\n\t\t\tif err != nil {\n\t\t\t\treturn nil, err\n\t\t\t}\n\t\t\terr = c.SetDeadline(deadline)\n\t\t\tif err != nil {\n\t\t\t\tc.Close()\n\t\t\t\treturn nil, err\n\t\t\t}\n\t\t\treturn c, nil\n\t\t}\n\t}\n\n\t// If needed, wrap the dial function to connect through a proxy.\n\tif d.Proxy != nil {\n\t\tproxyURL, err := d.Proxy(req)\n\t\tif err != nil {\n\t\t\treturn nil, nil, err\n\t\t}\n\t\tif proxyURL != nil {\n\t\t\tdialer, err := proxy_FromURL(proxyURL, netDialerFunc(netDial))\n\t\t\tif err != nil {\n\t\t\t\treturn nil, nil, err\n\t\t\t}\n\t\t\tnetDial = dialer.Dial\n\t\t}\n\t}\n\n\thostPort, hostNoPort := hostPortNoPort(u)\n\ttrace := httptrace.ContextClientTrace(ctx)\n\tif trace != nil \u0026\u0026 trace.GetConn != nil {\n\t\ttrace.GetConn(hostPort)\n\t}\n\n\tnetConn, err := netDial(\"tcp\", hostPort)\n\tif trace != nil \u0026\u0026 trace.GotConn != nil {\n\t\ttrace.GotConn(httptrace.GotConnInfo{\n\t\t\tConn: netConn,\n\t\t})\n\t}\n\tif err != nil {\n\t\treturn nil, nil, err\n\t}\n\n\tdefer func() {\n\t\tif netConn != nil {\n\t\t\tnetConn.Close()\n\t\t}\n\t}()\n\n\tif u.Scheme == \"https\" \u0026\u0026 d.NetDialTLSContext == nil {\n\t\t// If NetDialTLSContext is set, assume that the TLS handshake has already been done\n\n\t\tcfg := cloneTLSConfig(d.TLSClientConfig)\n\t\tif cfg.ServerName == \"\" {\n\t\t\tcfg.ServerName = hostNoPort\n\t\t}\n\t\ttlsConn := tls.Client(netConn, cfg)\n\t\tnetConn = tlsConn\n\n\t\tif trace != nil \u0026\u0026 trace.TLSHandshakeStart != nil {\n\t\t\ttrace.TLSHandshakeStart()\n\t\t}\n\t\terr := doHandshake(ctx, tlsConn, cfg)\n\t\tif trace != nil \u0026\u0026 trace.TLSHandshakeDone != nil {\n\t\t\ttrace.TLSHandshakeDone(tlsConn.ConnectionState(), err)\n\t\t}\n\n\t\tif err != nil {\n\t\t\treturn nil, nil, err\n\t\t}\n\t}\n\n\tconn := newConn(netConn, false, d.ReadBufferSize, d.WriteBufferSize, d.WriteBufferPool, nil, nil)\n\n\tif err := req.Write(netConn); err != nil {\n\t\treturn nil, nil, err\n\t}\n\n\tif trace != nil \u0026\u0026 trace.GotFirstResponseByte != nil {\n\t\tif peek, err := conn.br.Peek(1); err == nil \u0026\u0026 len(peek) == 1 {\n\t\t\ttrace.GotFirstResponseByte()\n\t\t}\n\t}\n\n\tresp, err := http.ReadResponse(conn.br, req)\n\tif err != nil {\n\t\treturn nil, nil, err\n\t}\n\tdefer resp.Body.Close()\n\n\tif d.Jar != nil {\n\t\tif rc := resp.Cookies(); len(rc) \u003e 0 {\n\t\t\td.Jar.SetCookies(u, rc)\n\t\t}\n\t}\n\n\tif resp.StatusCode != 101 ||\n\t\t!tokenListContainsValue(resp.Header, \"Upgrade\", \"websocket\") ||\n\t\t!tokenListContainsValue(resp.Header, \"Connection\", \"upgrade\") ||\n\t\tresp.Header.Get(\"Sec-Websocket-Accept\") != computeAcceptKey(challengeKey) {\n\t\t// Before closing the network connection on return from this\n\t\t// function, slurp up some of the response to aid application\n\t\t// debugging.\n\t\tbuf := make([]byte, 1024)\n\t\tn, _ := io.ReadFull(resp.Body, buf)\n\t\tresp.Body = ioutil.NopCloser(bytes.NewReader(buf[:n]))\n\t\treturn nil, resp, ErrBadHandshake\n\t}\n\n\tfor _, ext := range parseExtensions(resp.Header) {\n\t\tif ext[\"\"] != \"permessage-deflate\" {\n\t\t\tcontinue\n\t\t}\n\t\t_, snct := ext[\"server_no_context_takeover\"]\n\t\t_, cnct := ext[\"client_no_context_takeover\"]\n\t\tif !snct || !cnct {\n\t\t\treturn nil, resp, errInvalidCompression\n\t\t}\n\t\tconn.newCompressionWriter = compressNoContextTakeover\n\t\tconn.newDecompressionReader = decompressNoContextTakeover\n\t\tbreak\n\t}\n\n\tresp.Body = ioutil.NopCloser(bytes.NewReader([]byte{}))\n\tconn.subprotocol = resp.Header.Get(\"Sec-Websocket-Protocol\")\n\n\tnetConn.SetDeadline(time.Time{})\n\tnetConn = nil // to avoid close in defer.\n\treturn conn, resp, nil\n}\n\nfunc cloneTLSConfig(cfg *tls.Config) *tls.Config {\n\tif cfg == nil {\n\t\treturn \u0026tls.Config{}\n\t}\n\treturn cfg.Clone()\n}\n",
+        "unified_diff": "--- a/file_printer.go\n+++ b/file_printer.go\n@@ -26,9 +26,11 @@\n-\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n-\tdata, err := io.ReadAll(f)\n-\tif err != nil {\n-\t\treturn err\n-\t}\n-\tfmt.Printf(\"Profile loaded: %d bytes\\n\", len(data))\n-\treturn nil\n-}\n-\n+\tdefer\n+\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n+\tf.Close()\n+\n+\tdata, err := io.ReadAll(f)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tfmt.Printf(\"Profile loaded: %d bytes\\n\", len(data))\n+\treturn nil\n+}\n",
+        "diff_hash": "f54bc2787918df0c47b14e5d6dcc7e330bd86b5bd2a1e0b9c6d7f15309a64c9f",
+        "modified_source": "package color\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n)\n\n// Neg_Control_PrintFileSafe opens and safely defers Close\nfunc PrintFileSafe(path string) error {\n\tf, err := os.Open(path)\n\tif err != nil {\n\t\treturn err\n\t}\n\tdefer f.Close()\n\t_, err = io.ReadAll(f)\n\treturn err\n}\n\n// INJ-EXT2-RES-02: Resource leak - file handle opened without Close\nfunc DumpColorProfile(profilePath string) error {\n\tf, err := os.Open(profilePath)\n\tif err != nil {\n\t\treturn err\n\t}\n\tdefer\n\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n\tf.Close()\n\n\tdata, err := io.ReadAll(f)\n\tif err != nil {\n\t\treturn err\n\t}\n\tfmt.Printf(\"Profile loaded: %d bytes\\n\", len(data))\n\treturn nil\n}\n",
         "requires_human_approval": true,
         "execution_class": "HUMAN_APPROVAL_REQUIRED",
-        "file_hash": "f8a7e6862649ed38a1f5fcc4e44e4de54873518f5b10d90f0d8d8107b1ddc234",
-        "workspace_id": "ws-mvp-NAT-03",
-        "target_abs_path": "E:\\SWE\\.tmp\\mvp-sandbox-3660631675\\client.go",
-        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-3660631675",
-        "duration_ms": 17
+        "file_hash": "f1825a26fe8b75810f6e18d168bab7d3337072872d2a0fb8c019f30ff14c939e",
+        "workspace_id": "ws-mvp-INJ-EXT2-RES-02",
+        "target_abs_path": "E:\\SWE\\.tmp\\mvp-sandbox-1766420137\\file_printer.go",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-1766420137",
+        "duration_ms": 4
       },
       "approval": {
-        "token_id": "9a46e5285c6e7e719bbfdd5721aa3730",
-        "proposal_id": "PROP-NAT-03-131500",
+        "token_id": "36d72b02adfc5fe9129ee226206d444c",
+        "proposal_id": "PROP-INJ-EXT2-RES-02-133600",
         "principal": "lead-sre@code-vitals.internal",
         "role": "Principal Reliability Engineer",
-        "diff_hash": "26056c7fbbeb2368a4093446733a983bb111320038e37c9cd87bc5c6d42e27b7",
+        "diff_hash": "f54bc2787918df0c47b14e5d6dcc7e330bd86b5bd2a1e0b9c6d7f15309a64c9f",
         "risk_tier": "TIER_2_CONTROLLED",
-        "expires_at": "2026-11-07T07:16:46Z",
-        "signature": "efceebfb15ebca083b6cf4f036a9dd55464998ee8593c44b010da146ab6a695c",
+        "expires_at": "2026-11-07T15:14:49Z",
+        "signature": "38f2614d62d017282b4f8172e557e7a9850780831d06908e8bbbb756a38bc902",
         "valid": true,
-        "issued_at": "2026-11-07T06:46:46Z"
+        "issued_at": "2026-11-07T14:44:49Z"
       },
       "execution": {
-        "execution_id": "EXEC-NAT-03-225800",
-        "proposal_id": "PROP-NAT-03-131500",
-        "target_id": "NAT-03",
-        "token_id": "9a46e5285c6e7e719bbfdd5721aa3730",
-        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-3660631675",
+        "execution_id": "EXEC-INJ-EXT2-RES-02-377000",
+        "proposal_id": "PROP-INJ-EXT2-RES-02-133600",
+        "target_id": "INJ-EXT2-RES-02",
+        "token_id": "36d72b02adfc5fe9129ee226206d444c",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-1766420137",
         "applied_in_sandbox": true,
         "token_consumed": true,
         "oracles": {
@@ -85,7 +83,7 @@
           },
           "NEGATIVE_PROPERTIES": {
             "oracle_type": "NEGATIVE_PROPERTIES",
-            "description": "Zero shadowed variables or unchecked error anti-patterns detected",
+            "description": "Zero shadowed variables, nil-dereference risk, or ownership violations detected",
             "passed": true,
             "details": ""
           },
@@ -104,23 +102,67 @@
         },
         "all_oracles_passed": true,
         "verification_verdict": "INDEPENDENTLY_VERIFIED",
-        "original_repo_pre_digest": "6ca6d780fe6dc11db8b640ae9f02af76c237eb709fb8a9ca596b0204452a812b",
-        "original_repo_post_digest": "6ca6d780fe6dc11db8b640ae9f02af76c237eb709fb8a9ca596b0204452a812b",
+        "original_repo_pre_digest": "5ecaebe7ebd8904046e140b42797d836be7ae103b3883328d5478829315659f6",
+        "original_repo_post_digest": "5ecaebe7ebd8904046e140b42797d836be7ae103b3883328d5478829315659f6",
         "original_repo_immutable": true,
         "rollback_available": true,
-        "duration_ms": 1010,
-        "timestamp": "2026-11-07T06:46:47Z"
+        "duration_ms": 411,
+        "timestamp": "2026-11-07T14:44:49Z"
       },
       "final_status": "INDEPENDENTLY_VERIFIED",
-      "timestamp": "2026-11-07T06:46:47Z"
+      "timestamp": "2026-11-07T14:44:49Z"
     },
     {
-      "record_id": "AUDIT-ABSTAIN-INJ-EXT2-CMD-01-606700",
+      "record_id": "AUDIT-ABSTAIN-NAT-03-568900",
+      "target_id": "NAT-03",
+      "repository": "gorilla_websocket",
+      "defect_category": "RESOURCE_LEAK",
+      "analysis": {
+        "analysis_id": "ANALYSIS-NAT-03-377000",
+        "target_id": "NAT-03",
+        "repository": "gorilla_websocket",
+        "target_file": "client.go",
+        "defect_category": "RESOURCE_LEAK",
+        "severity": "HIGH",
+        "line_number": 391,
+        "code_snippet": "resp, err := d.DialContext(ctx, u.String(), reqHeader)\n...\nio.Copy(buf, resp.Body)\nresp.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))",
+        "semantic_evidence": [
+          "Reaching Definitions: resp.Body handle initialized at client.go:391 via d.DialContext.",
+          "Lifecycle Escape: resp.Body reassigned to io.NopCloser at line 395 without preceding .Close() call.",
+          "Alias Tracking: Original network stream descriptor lost on handshake redirect."
+        ],
+        "uncertainty_score": 0.05,
+        "automatic_eligibility": true,
+        "eligibility_rationale": "Supported deterministic AST mutation: Single-file intra-procedural deferred close.",
+        "requires_human_review": true,
+        "finding_id": "FIND-NAT-03",
+        "timestamp": "2026-11-07T14:44:49Z"
+      },
+      "proposal": {
+        "proposal_id": "PROP-NAT-03-377000",
+        "analysis_id": "ANALYSIS-NAT-03-377000",
+        "target_id": "NAT-03",
+        "status": "ABSTAINED",
+        "abstain_category": "RESOURCE_ESCAPES_VIA_RETURN",
+        "abstain_reason": "RESOURCE_ESCAPES_VIA_RETURN: Resource \"resp\" escapes function scope via return signature; callee cannot safely synthesize lifecycle cleanup",
+        "requires_human_approval": false,
+        "execution_class": "HUMAN_APPROVAL_REQUIRED",
+        "file_hash": "",
+        "workspace_id": "",
+        "target_abs_path": "",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-1516756612",
+        "duration_ms": 10
+      },
+      "final_status": "EXPLICITLY_ABSTAINED",
+      "timestamp": "2026-11-07T14:44:49Z"
+    },
+    {
+      "record_id": "AUDIT-ABSTAIN-INJ-EXT2-CMD-01-823900",
       "target_id": "INJ-EXT2-CMD-01",
       "repository": "schollz_progressbar",
       "defect_category": "COMMAND_INJECTION",
       "analysis": {
-        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-800500",
+        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-568900",
         "target_id": "INJ-EXT2-CMD-01",
         "repository": "schollz_progressbar",
         "target_file": "cmd_runner.go",
@@ -138,11 +180,11 @@
         "eligibility_rationale": "Unsupported AST repair: Shell command injection requires architectural restructuring. Safe fail-closed.",
         "requires_human_review": true,
         "finding_id": "FIND-INJ-EXT2-CMD-01",
-        "timestamp": "2026-11-07T06:46:47Z"
+        "timestamp": "2026-11-07T14:44:49Z"
       },
       "proposal": {
-        "proposal_id": "PROP-INJ-EXT2-CMD-01-800500",
-        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-800500",
+        "proposal_id": "PROP-INJ-EXT2-CMD-01-568900",
+        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-568900",
         "target_id": "INJ-EXT2-CMD-01",
         "status": "ABSTAINED",
         "abstain_category": "COMMAND_INJECTION_ARCHITECTURAL_REDESIGN",
@@ -152,11 +194,11 @@
         "file_hash": "",
         "workspace_id": "",
         "target_abs_path": "",
-        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-2155301523",
-        "duration_ms": 14
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-624636655",
+        "duration_ms": 5
       },
       "final_status": "EXPLICITLY_ABSTAINED",
-      "timestamp": "2026-11-07T06:46:47Z"
+      "timestamp": "2026-11-07T14:44:49Z"
     }
   ]
 }

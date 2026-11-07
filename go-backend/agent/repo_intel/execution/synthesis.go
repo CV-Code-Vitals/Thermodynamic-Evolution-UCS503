@@ -36,6 +36,8 @@ const (
 	AbstainCommandInjection    AbstainCategory = "COMMAND_INJECTION_ARCHITECTURAL_REDESIGN"
 	AbstainLoopResource        AbstainCategory = "LOOP_DEFERRED_CLEANUP_ACCUMULATION"
 	AbstainConcurrentEscape    AbstainCategory = "CONCURRENT_OWNERSHIP_ESCAPE"
+	AbstainEscapingResource    AbstainCategory = "RESOURCE_ESCAPES_VIA_RETURN"
+	AbstainUnsafePlacement     AbstainCategory = "UNSAFE_RESOURCE_CLEANUP_LIFECYCLE"
 	AbstainAmbiguousReturn     AbstainCategory = "AMBIGUOUS_RETURN_SIGNATURE"
 	AbstainSyntaxError         AbstainCategory = "SOURCE_SYNTAX_ERROR"
 	AbstainUnrecognizedPattern AbstainCategory = "UNRECOGNIZED_DEFECT_PATTERN"
@@ -388,28 +390,14 @@ func (s *AutonomousPatchSynthesizer) synthesizeResourceCleanup(
 				continue
 			}
 
-			// Check if statement reassigns resp.Body = NopCloser(...) without closing prior (e.g. NAT-03)
+			// If statement reassigns resp.Body or any resource field (e.g. NAT-03 NopCloser reassignment),
+			// intra-procedural deferred cleanup is unsound because resource lifecycle is mutated.
 			if len(assign.Lhs) == 1 && len(assign.Rhs) == 1 {
-				if sel, isSel := assign.Lhs[0].(*ast.SelectorExpr); isSel && sel.Sel.Name == "Body" {
+				if sel, isSel := assign.Lhs[0].(*ast.SelectorExpr); isSel && (sel.Sel.Name == "Body" || sel.Sel.Name == "ReadCloser") {
 					if call, isCall := assign.Rhs[0].(*ast.CallExpr); isCall && isNopCloserCall(call) {
-						if !hasClosePrior(fn.Body.List, i, "Body") {
-							closeStmt := &ast.ExprStmt{
-								X: &ast.CallExpr{
-									Fun: &ast.SelectorExpr{
-										X:   sel,
-										Sel: ast.NewIdent("Close"),
-									},
-								},
-							}
-							newList = append(newList, closeStmt, stmt)
-							varName := "resp"
-							if id, ok := sel.X.(*ast.Ident); ok {
-								varName = id.Name
-							}
-							mutations = append(mutations, fmt.Sprintf("Inserted '%s.Body.Close()' before reassigning body to NopCloser", varName))
-							fn.Body.List = append(newList, fn.Body.List[i+1:]...)
-							modified = true
-							break
+						return "", nil, &abstainError{
+							category: AbstainUnsafePlacement,
+							msg:      "Resource body is mutated or reassigned via NopCloser; autonomous cleanup placement cannot be safely proven",
 						}
 					}
 				}
@@ -430,6 +418,22 @@ func (s *AutonomousPatchSynthesizer) synthesizeResourceCleanup(
 				continue
 			}
 			resVar := resIdent.Name
+
+			// Task B Audit: Check if the resource escapes via return to callers
+			if isResourceEscapingReturn(fn, resVar, resKind) {
+				return "", nil, &abstainError{
+					category: AbstainEscapingResource,
+					msg:      fmt.Sprintf("Resource %q escapes function scope via return signature; callee cannot safely synthesize lifecycle cleanup", resVar),
+				}
+			}
+
+			// Task B Audit: Check if the resource is reassigned downstream
+			if isResourceReassignedAfter(fn.Body.List, i, resVar) {
+				return "", nil, &abstainError{
+					category: AbstainUnsafePlacement,
+					msg:      fmt.Sprintf("Resource %q is reassigned within function body; cleanup placement cannot be safely proven", resVar),
+				}
+			}
 
 			// Verify if the next statement is: if err != nil { return ... }
 			if i+1 >= len(fn.Body.List) {
@@ -557,10 +561,117 @@ func isErrorCheckIfStmt(ifStmt *ast.IfStmt) bool {
 	}
 	xIdent, okX := binary.X.(*ast.Ident)
 	yIdent, okY := binary.Y.(*ast.Ident)
+	isErrNil := false
 	if okX && okY {
-		return (xIdent.Name == "err" && yIdent.Name == "nil") || (xIdent.Name == "nil" && yIdent.Name == "err")
+		isErrNil = (xIdent.Name == "err" && yIdent.Name == "nil") || (xIdent.Name == "nil" && yIdent.Name == "err")
+	}
+	if !isErrNil {
+		return false
+	}
+
+	// Ensure error block actually returns or terminates control flow
+	hasExit := false
+	for _, stmt := range ifStmt.Body.List {
+		if _, isRet := stmt.(*ast.ReturnStmt); isRet {
+			hasExit = true
+			break
+		}
+	}
+	return hasExit
+}
+
+func isResourceEscapingReturn(fn *ast.FuncDecl, resVar string, resKind string) bool {
+	// 1. Check if enclosing function return types include a resource type
+	if fn.Type.Results != nil {
+		for _, field := range fn.Type.Results.List {
+			typeStr := formatAstType(field.Type)
+			if isResourceType(typeStr) {
+				return true
+			}
+		}
+	}
+
+	// 2. Check all return statements in function body for direct or indirect escape
+	returned := false
+	ast.Inspect(fn.Body, func(n ast.Node) bool {
+		ret, ok := n.(*ast.ReturnStmt)
+		if !ok {
+			return true
+		}
+		for _, expr := range ret.Results {
+			if id, ok := expr.(*ast.Ident); ok && id.Name == resVar {
+				returned = true
+				return false
+			}
+			if sel, ok := expr.(*ast.SelectorExpr); ok {
+				if id, ok := sel.X.(*ast.Ident); ok && id.Name == resVar {
+					returned = true
+					return false
+				}
+			}
+		}
+		return true
+	})
+	return returned
+}
+
+func isResourceReassignedAfter(stmts []ast.Stmt, initIdx int, resVar string) bool {
+	for j := initIdx + 1; j < len(stmts); j++ {
+		reassigned := false
+		ast.Inspect(stmts[j], func(n ast.Node) bool {
+			assign, ok := n.(*ast.AssignStmt)
+			if !ok {
+				return true
+			}
+			for _, lhs := range assign.Lhs {
+				if id, ok := lhs.(*ast.Ident); ok && id.Name == resVar {
+					reassigned = true
+					return false
+				}
+				if sel, ok := lhs.(*ast.SelectorExpr); ok {
+					if id, ok := sel.X.(*ast.Ident); ok && id.Name == resVar {
+						reassigned = true
+						return false
+					}
+				}
+			}
+			return true
+		})
+		if reassigned {
+			return true
+		}
 	}
 	return false
+}
+
+func formatAstType(expr ast.Expr) string {
+	switch t := expr.(type) {
+	case *ast.StarExpr:
+		return "*" + formatAstType(t.X)
+	case *ast.SelectorExpr:
+		if id, ok := t.X.(*ast.Ident); ok {
+			return id.Name + "." + t.Sel.Name
+		}
+		return t.Sel.Name
+	case *ast.Ident:
+		return t.Name
+	default:
+		return ""
+	}
+}
+
+func isResourceType(typeStr string) bool {
+	switch typeStr {
+	case "*http.Response", "http.Response",
+		"*os.File", "os.File",
+		"net.Conn", "*net.Conn",
+		"io.ReadCloser", "io.Closer",
+		"*sql.Rows", "sql.Rows",
+		"*sql.DB", "sql.DB":
+		return true
+	default:
+		return false
+	}
 }
 
 func isCleanupStmt(stmt ast.Stmt, varName string) bool {

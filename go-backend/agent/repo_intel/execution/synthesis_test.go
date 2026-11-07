@@ -340,6 +340,41 @@ func RecordEvent(path string) {
 			expectedIntent: IntentHandleError,
 			expectAbstain:  AbstainAmbiguousReturn,
 		},
+
+		// Case 9: Abstain on Escaping Resource Returned to Caller (NAT-03 Class)
+		{
+			caseID:   "SYNTH-ESCAPING-RETURN-ABSTAIN",
+			category: "ESCAPING_RESOURCE",
+			relPath:  "net/client_dial.go",
+			code: `package client
+
+import (
+	"net/http"
+)
+
+func DialServer(url string) (*http.Response, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+`,
+			task: &planning.RemediationTask{
+				TaskID:      "TASK-ESC-01",
+				Title:       "Close Escaping Resource",
+				Description: "Resource leak where allocated http response is returned to caller",
+				TargetFiles: []string{"net/client_dial.go"},
+			},
+			finding: &repo_intel.Finding{
+				FindingID: "FIND-ESC-01",
+				Category:  repo_intel.CategoryMaintainability,
+				Title:     "Resource returned to caller",
+			},
+			expectedStatus: DecisionAbstained,
+			expectedIntent: IntentResourceCleanup,
+			expectAbstain:  AbstainEscapingResource,
+		},
 	}
 
 	var records []SynthesisTrialRecord

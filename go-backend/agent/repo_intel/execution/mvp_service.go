@@ -70,16 +70,16 @@ type MVPProposalResult struct {
 
 // MVPApprovalResult contains the issued cryptographic authorization token.
 type MVPApprovalResult struct {
-	TokenID       string `json:"token_id"`
-	ProposalID    string `json:"proposal_id"`
-	Principal     string `json:"principal"`
-	Role          string `json:"role"`
-	DiffHash      string `json:"diff_hash"`
-	RiskTier      string `json:"risk_tier"`
-	ExpiresAt     string `json:"expires_at"`
-	Signature     string `json:"signature"`
-	Valid         bool   `json:"valid"`
-	IssuedAt      string `json:"issued_at"`
+	TokenID    string `json:"token_id"`
+	ProposalID string `json:"proposal_id"`
+	Principal  string `json:"principal"`
+	Role       string `json:"role"`
+	DiffHash   string `json:"diff_hash"`
+	RiskTier   string `json:"risk_tier"`
+	ExpiresAt  string `json:"expires_at"`
+	Signature  string `json:"signature"`
+	Valid      bool   `json:"valid"`
+	IssuedAt   string `json:"issued_at"`
 }
 
 // MVPOracleOutcome records single-oracle verification details.
@@ -92,48 +92,48 @@ type MVPOracleOutcome struct {
 
 // MVPExecutionResult compiles sandbox execution, multi-oracle checks, and source immutability.
 type MVPExecutionResult struct {
-	ExecutionID           string                      `json:"execution_id"`
-	ProposalID            string                      `json:"proposal_id"`
-	TargetID              string                      `json:"target_id"`
-	TokenID               string                      `json:"token_id"`
-	SandboxDir            string                      `json:"sandbox_dir"`
-	AppliedInSandbox      bool                        `json:"applied_in_sandbox"`
-	TokenConsumed         bool                        `json:"token_consumed"`
-	Oracles               map[string]MVPOracleOutcome `json:"oracles"`
-	AllOraclesPassed      bool                        `json:"all_oracles_passed"`
-	VerificationVerdict   string                      `json:"verification_verdict"`
-	OriginalRepoPreDigest string                      `json:"original_repo_pre_digest"`
-	OriginalRepoPostDigest string                     `json:"original_repo_post_digest"`
-	OriginalRepoImmutable bool                        `json:"original_repo_immutable"`
-	RollbackAvailable     bool                        `json:"rollback_available"`
-	DurationMs            int64                       `json:"duration_ms"`
-	Timestamp             string                      `json:"timestamp"`
+	ExecutionID            string                      `json:"execution_id"`
+	ProposalID             string                      `json:"proposal_id"`
+	TargetID               string                      `json:"target_id"`
+	TokenID                string                      `json:"token_id"`
+	SandboxDir             string                      `json:"sandbox_dir"`
+	AppliedInSandbox       bool                        `json:"applied_in_sandbox"`
+	TokenConsumed          bool                        `json:"token_consumed"`
+	Oracles                map[string]MVPOracleOutcome `json:"oracles"`
+	AllOraclesPassed       bool                        `json:"all_oracles_passed"`
+	VerificationVerdict    string                      `json:"verification_verdict"`
+	OriginalRepoPreDigest  string                      `json:"original_repo_pre_digest"`
+	OriginalRepoPostDigest string                      `json:"original_repo_post_digest"`
+	OriginalRepoImmutable  bool                        `json:"original_repo_immutable"`
+	RollbackAvailable      bool                        `json:"rollback_available"`
+	DurationMs             int64                       `json:"duration_ms"`
+	Timestamp              string                      `json:"timestamp"`
 }
 
 // MVPAuditRecord stores an immutable record of an end-to-end workflow trial.
 type MVPAuditRecord struct {
-	RecordID            string              `json:"record_id"`
-	TargetID            string              `json:"target_id"`
-	Repository          string              `json:"repository"`
-	DefectCategory      string              `json:"defect_category"`
-	Analysis            *MVPAnalysisResult  `json:"analysis"`
-	Proposal            *MVPProposalResult  `json:"proposal"`
-	Approval            *MVPApprovalResult  `json:"approval,omitempty"`
-	Execution           *MVPExecutionResult `json:"execution,omitempty"`
-	FinalStatus         string              `json:"final_status"`
-	Timestamp           string              `json:"timestamp"`
+	RecordID       string              `json:"record_id"`
+	TargetID       string              `json:"target_id"`
+	Repository     string              `json:"repository"`
+	DefectCategory string              `json:"defect_category"`
+	Analysis       *MVPAnalysisResult  `json:"analysis"`
+	Proposal       *MVPProposalResult  `json:"proposal"`
+	Approval       *MVPApprovalResult  `json:"approval,omitempty"`
+	Execution      *MVPExecutionResult `json:"execution,omitempty"`
+	FinalStatus    string              `json:"final_status"`
+	Timestamp      string              `json:"timestamp"`
 }
 
 // MVPAuditReport compiles the complete audit trail.
 type MVPAuditReport struct {
-	BaselineCommit         string           `json:"baseline_commit"`
-	ExportTimestamp        string           `json:"export_timestamp"`
-	TotalSessionsRecorded  int              `json:"total_sessions_recorded"`
-	VerifiedRepairsCount   int              `json:"verified_repairs_count"`
-	AbstainedRepairsCount  int              `json:"abstained_repairs_count"`
-	FailedRepairsCount     int              `json:"failed_repairs_count"`
-	SourceImmutability100  bool             `json:"source_immutability_100_percent"`
-	AuditRecords           []MVPAuditRecord `json:"audit_records"`
+	BaselineCommit        string           `json:"baseline_commit"`
+	ExportTimestamp       string           `json:"export_timestamp"`
+	TotalSessionsRecorded int              `json:"total_sessions_recorded"`
+	VerifiedRepairsCount  int              `json:"verified_repairs_count"`
+	AbstainedRepairsCount int              `json:"abstained_repairs_count"`
+	FailedRepairsCount    int              `json:"failed_repairs_count"`
+	SourceImmutability100 bool             `json:"source_immutability_100_percent"`
+	AuditRecords          []MVPAuditRecord `json:"audit_records"`
 }
 
 // MVPService provides the unified business logic for the Autonomous Repair MVP.
@@ -145,13 +145,13 @@ type MVPService struct {
 	Oracles       *IndependentOracleSuite
 	BaselineSHA   string
 
-	mu          sync.Mutex
-	tokenObjs   map[string]*ApprovalToken
-	analyses    map[string]*MVPAnalysisResult
-	proposals   map[string]*MVPProposalResult
-	approvals   map[string]*MVPApprovalResult
-	executions  map[string]*MVPExecutionResult
-	auditTrail  []MVPAuditRecord
+	mu         sync.Mutex
+	tokenObjs  map[string]*ApprovalToken
+	analyses   map[string]*MVPAnalysisResult
+	proposals  map[string]*MVPProposalResult
+	approvals  map[string]*MVPApprovalResult
+	executions map[string]*MVPExecutionResult
+	auditTrail []MVPAuditRecord
 }
 
 // DefaultPreconfiguredTargets returns the audited pilot corpus targets.
@@ -164,8 +164,8 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 			TargetFile:     "client.go",
 			DefectCategory: "RESOURCE_LEAK",
 			Stratum:        "NATURAL_CONFIRMED",
-			ExpectedAction: "REPAIR",
-			Description:    "Real-World Bug: Unclosed resp.Body on handshake redirect (Upstream PR #789)",
+			ExpectedAction: "ABSTAIN",
+			Description:    "Real-World Bug: Unclosed resp.Body on handshake redirect; Escaping return signature requires architectural caller-lifecycle handling (Must safely abstain)",
 			UpstreamCommit: "9111bb834a68b893cebbbaed5060bdbc1d9ab7d2",
 			UpstreamURL:    "https://github.com/gorilla/websocket",
 			VerifiedBy:     "Historical Fix PR #789",
@@ -796,10 +796,10 @@ func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
 			"abstain_reason":   prop2.AbstainReason,
 		},
 		"audit_summary": map[string]interface{}{
-			"total_sessions": auditReport.TotalSessionsRecorded,
-			"verified_count": auditReport.VerifiedRepairsCount,
+			"total_sessions":  auditReport.TotalSessionsRecorded,
+			"verified_count":  auditReport.VerifiedRepairsCount,
 			"abstained_count": auditReport.AbstainedRepairsCount,
-			"immutability": auditReport.SourceImmutability100,
+			"immutability":    auditReport.SourceImmutability100,
 		},
 	}, nil
 }
