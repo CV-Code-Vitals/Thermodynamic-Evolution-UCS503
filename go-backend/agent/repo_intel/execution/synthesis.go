@@ -388,6 +388,33 @@ func (s *AutonomousPatchSynthesizer) synthesizeResourceCleanup(
 				continue
 			}
 
+			// Check if statement reassigns resp.Body = NopCloser(...) without closing prior (e.g. NAT-03)
+			if len(assign.Lhs) == 1 && len(assign.Rhs) == 1 {
+				if sel, isSel := assign.Lhs[0].(*ast.SelectorExpr); isSel && sel.Sel.Name == "Body" {
+					if call, isCall := assign.Rhs[0].(*ast.CallExpr); isCall && isNopCloserCall(call) {
+						if !hasClosePrior(fn.Body.List, i, "Body") {
+							closeStmt := &ast.ExprStmt{
+								X: &ast.CallExpr{
+									Fun: &ast.SelectorExpr{
+										X:   sel,
+										Sel: ast.NewIdent("Close"),
+									},
+								},
+							}
+							newList = append(newList, closeStmt, stmt)
+							varName := "resp"
+							if id, ok := sel.X.(*ast.Ident); ok {
+								varName = id.Name
+							}
+							mutations = append(mutations, fmt.Sprintf("Inserted '%s.Body.Close()' before reassigning body to NopCloser", varName))
+							fn.Body.List = append(newList, fn.Body.List[i+1:]...)
+							modified = true
+							break
+						}
+					}
+				}
+			}
+
 			call, ok := assign.Rhs[0].(*ast.CallExpr)
 			if !ok {
 				continue
@@ -501,11 +528,14 @@ func detectResourceKind(call *ast.CallExpr) (string, bool) {
 	pkgName := pkgIdent.Name
 	funName := sel.Sel.Name
 
-	if pkgName == "http" && (funName == "Get" || funName == "Post" || funName == "Do") {
+	if pkgName == "http" && (funName == "Get" || funName == "Post" || funName == "Do" || funName == "ReadResponse") {
 		return "http_response", true
 	}
 	if pkgName == "os" && (funName == "Open" || funName == "Create" || funName == "OpenFile") {
 		return "file", true
+	}
+	if pkgName == "net" && (funName == "Dial" || funName == "DialTimeout" || funName == "DialContext") {
+		return "conn", true
 	}
 	if pkgName == "sql" && (funName == "Open") {
 		return "db", true
@@ -545,6 +575,41 @@ func isCleanupStmt(stmt ast.Stmt, varName string) bool {
 		return true
 	})
 	return isClean
+}
+
+func isNopCloserCall(call *ast.CallExpr) bool {
+	sel, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	if sel.Sel.Name != "NopCloser" {
+		return false
+	}
+	if ident, ok := sel.X.(*ast.Ident); ok {
+		return ident.Name == "ioutil" || ident.Name == "io"
+	}
+	return false
+}
+
+func hasClosePrior(stmts []ast.Stmt, currentIndex int, fieldName string) bool {
+	for j := 0; j < currentIndex; j++ {
+		isClosed := false
+		ast.Inspect(stmts[j], func(n ast.Node) bool {
+			if call, ok := n.(*ast.CallExpr); ok {
+				if sel, ok := call.Fun.(*ast.SelectorExpr); ok && sel.Sel.Name == "Close" {
+					if innerSel, ok := sel.X.(*ast.SelectorExpr); ok && innerSel.Sel.Name == fieldName {
+						isClosed = true
+						return false
+					}
+				}
+			}
+			return true
+		})
+		if isClosed {
+			return true
+		}
+	}
+	return false
 }
 
 // -----------------------------------------------------------------------------------------
@@ -741,6 +806,42 @@ func (s *AutonomousPatchSynthesizer) synthesizeSQLParameterization(
 
 			call, ok := assign.Rhs[0].(*ast.CallExpr)
 			if !ok {
+				// Check binary concatenation e.g. "SELECT ... = '" + tag + "'"
+				if bin, isBin := assign.Rhs[0].(*ast.BinaryExpr); isBin && bin.Op == token.ADD {
+					parts := flattenBinaryAdd(bin)
+					if len(parts) >= 2 {
+						if firstLit, ok := parts[0].(*ast.BasicLit); ok && firstLit.Kind == token.STRING {
+							val := firstLit.Value
+							upperVal := strings.ToUpper(val)
+							if strings.Contains(upperVal, "SELECT") || strings.Contains(upperVal, "INSERT") || strings.Contains(upperVal, "UPDATE") || strings.Contains(upperVal, "DELETE") {
+								cleanVal := strings.TrimSuffix(val, "'\"")
+								cleanVal = strings.TrimSuffix(cleanVal, "'")
+								cleanVal = strings.TrimSuffix(cleanVal, " = '")
+								cleanVal = strings.TrimSuffix(cleanVal, "=\"")
+								cleanVal = strings.TrimSuffix(cleanVal, "\"")
+								newQueryStr := cleanVal + " = ?\""
+								if !strings.HasPrefix(newQueryStr, "\"") {
+									newQueryStr = "\"" + newQueryStr
+								}
+
+								assign.Rhs[0] = &ast.BasicLit{
+									Kind:  token.STRING,
+									Value: newQueryStr,
+								}
+
+								identLhs, ok := assign.Lhs[0].(*ast.Ident)
+								if ok {
+									queryVar = identLhs.Name
+								}
+
+								sprintfArgs = []ast.Expr{parts[1]}
+								mutations = append(mutations, fmt.Sprintf("Replaced dynamic concatenated SQL query with parameterized literal %s", newQueryStr))
+								modified = true
+								break
+							}
+						}
+					}
+				}
 				continue
 			}
 
@@ -895,4 +996,15 @@ func cleanUnusedImport(node *ast.File, pkgName string) {
 		}
 	}
 	node.Imports = newImports
+}
+
+func flattenBinaryAdd(bin *ast.BinaryExpr) []ast.Expr {
+	var list []ast.Expr
+	if leftBin, ok := bin.X.(*ast.BinaryExpr); ok && leftBin.Op == token.ADD {
+		list = append(list, flattenBinaryAdd(leftBin)...)
+	} else {
+		list = append(list, bin.X)
+	}
+	list = append(list, bin.Y)
+	return list
 }

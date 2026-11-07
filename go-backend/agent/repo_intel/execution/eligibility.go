@@ -2,6 +2,8 @@ package execution
 
 import (
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/planning"
 )
@@ -59,6 +61,13 @@ func CheckTaskEligibilitySecure(
 		return false, false, "task is nil"
 	}
 
+	// Reject attempts to modify protected infrastructure, test oracles, or path-traverse
+	for _, target := range task.TargetFiles {
+		if isProtectedInfrastructurePath(target) {
+			return false, false, fmt.Sprintf("EXEC_REJECTED_SECURITY: Task %s targets protected infrastructure file %s", task.TaskID, target)
+		}
+	}
+
 	isHumanApprovalRequired := task.HumanApprovalRequired || task.ExecutionClass == planning.ClassHumanApprovalRequired
 
 	if isHumanApprovalRequired {
@@ -91,5 +100,29 @@ func CheckTaskEligibilitySecure(
 	default:
 		return false, false, fmt.Sprintf("EXEC_REJECTED: Task %s has unrecognized execution class %s", task.TaskID, task.ExecutionClass)
 	}
+}
+
+// isProtectedInfrastructurePath detects whether a target file path targets sensitive execution
+// or validation infrastructure (oracles, ledgers, approvals, tests, reports, or directory traversal).
+func isProtectedInfrastructurePath(path string) bool {
+	clean := filepath.ToSlash(strings.ToLower(path))
+	if strings.Contains(clean, "..") {
+		return true
+	}
+	if strings.HasPrefix(clean, ".git/") || strings.Contains(clean, "/.git/") {
+		return true
+	}
+	if strings.HasPrefix(clean, "reports/") || strings.Contains(clean, "/reports/") {
+		return true
+	}
+	if strings.Contains(clean, "approval") || strings.Contains(clean, "eligibility") ||
+		strings.Contains(clean, "validator") || strings.Contains(clean, "oracle") ||
+		strings.Contains(clean, "ledger") || strings.Contains(clean, "sandbox") {
+		return true
+	}
+	if strings.HasSuffix(clean, "_test.go") {
+		return true
+	}
+	return false
 }
 

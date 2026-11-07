@@ -19,6 +19,7 @@ var (
 	ErrTokenForged          = errors.New("FAIL_AUTH: approval token signature is forged or invalid")
 	ErrTokenExpired         = errors.New("FAIL_EXPIRED: approval token has expired")
 	ErrTokenAlreadyConsumed = errors.New("FAIL_REPLAY: approval token has already been consumed")
+	ErrCorruptLedger        = errors.New("FAIL_INTEGRITY: persistent approval ledger corrupted or unreadable")
 	ErrCommitMismatch       = errors.New("FAIL_SCOPE: target commit does not match approval")
 	ErrFileHashMismatch     = errors.New("FAIL_SCOPE: target file modified after approval")
 	ErrPatchHashMismatch    = errors.New("FAIL_SCOPE: patch diff payload modified after approval")
@@ -67,13 +68,26 @@ func NewApprovalConsumptionRegistry(persistPath string) (*ApprovalConsumptionReg
 	if persistPath != "" {
 		if data, err := os.ReadFile(persistPath); err == nil && len(data) > 0 {
 			var loaded map[string]time.Time
-			if err := json.Unmarshal(data, &loaded); err == nil {
-				reg.consumed = loaded
+			if err := json.Unmarshal(data, &loaded); err != nil {
+				return nil, fmt.Errorf("%w: %v", ErrCorruptLedger, err)
 			}
+			reg.consumed = loaded
 		}
 	}
 
 	return reg, nil
+}
+
+// RecoverCorruptLedger safely quarantines a corrupted ledger file and initializes a fresh ledger.
+func RecoverCorruptLedger(persistPath string) (*ApprovalConsumptionRegistry, error) {
+	if persistPath == "" {
+		return NewApprovalConsumptionRegistry("")
+	}
+	backupPath := persistPath + ".corrupt." + time.Now().UTC().Format("20060102150405")
+	if err := os.Rename(persistPath, backupPath); err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to quarantine corrupt ledger: %w", err)
+	}
+	return NewApprovalConsumptionRegistry(persistPath)
 }
 
 // Consume atomically consumes a token ID, preventing concurrent and future replays.

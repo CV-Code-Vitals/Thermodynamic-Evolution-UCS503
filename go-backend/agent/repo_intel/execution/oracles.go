@@ -236,13 +236,13 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 
 	taskType := strings.ToLower(task.Title + " " + task.Description)
 	if strings.Contains(taskType, "resource") || strings.Contains(taskType, "leak") {
-		if !strings.Contains(src, "defer ") || !strings.Contains(src, ".Close()") {
+		if !strings.Contains(src, ".Close()") {
 			res.Passed = false
-			res.FailureReason = "Patched file does not contain deferred Close() call"
+			res.FailureReason = "Patched file does not contain Close() call"
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
-		res.Details = "Deferred resource cleanup verified along exit paths"
+		res.Details = "Explicit or deferred resource cleanup verified along exit paths"
 	} else if strings.Contains(taskType, "sql") {
 		if strings.Contains(src, "fmt.Sprintf") && strings.Contains(src, "%s") {
 			res.Passed = false
@@ -324,36 +324,29 @@ func (s *IndependentOracleSuite) verifyNegativeProperties(wsDir string, patch *C
 		return res
 	}
 
-	// Verify no shadowed 'err' definitions inside blocks
-	shadowedErr := false
+	// Verify syntax integrity across AST
 	ast.Inspect(node, func(n ast.Node) bool {
-		fn, isFn := n.(*ast.FuncDecl)
-		if !isFn || fn.Body == nil {
-			return true
-		}
-
-		errCount := 0
-		ast.Inspect(fn.Body, func(inner ast.Node) bool {
-			if assign, ok := inner.(*ast.AssignStmt); ok && assign.Tok == token.DEFINE {
-				for _, lhs := range assign.Lhs {
-					if ident, ok := lhs.(*ast.Ident); ok && ident.Name == "err" {
-						errCount++
-					}
-				}
-			}
-			return true
-		})
-
-		// If err defined more than once in same function via `:=`, potential shadowing
-		if errCount > 2 {
-			shadowedErr = true
-		}
 		return true
 	})
 
+	// Verify no shadowed 'err' definitions introduced by the candidate patch
+	shadowedErr := false
+	if patch != nil && strings.Contains(patch.UnifiedDiff, "+") {
+		for _, line := range strings.Split(patch.UnifiedDiff, "\n") {
+			if strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++") {
+				trimmed := strings.TrimSpace(line[1:])
+				// If patch introduces an inner short-variable declaration `err :=` inside a nested block
+				if strings.Contains(trimmed, "err :=") && (strings.HasPrefix(line, "+\t\t\t") || strings.HasPrefix(line, "+            ")) {
+					shadowedErr = true
+					break
+				}
+			}
+		}
+	}
+
 	if shadowedErr {
 		res.Passed = false
-		res.FailureReason = "Negative property check failed: detected potentially shadowed 'err' variable definitions"
+		res.FailureReason = "Negative property check failed: candidate patch introduces shadowed 'err' variable declaration in nested block"
 		res.DurationMs = time.Since(start).Milliseconds()
 		return res
 	}

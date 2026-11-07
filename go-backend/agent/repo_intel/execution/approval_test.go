@@ -290,4 +290,83 @@ func TestApprovalSecurityAdversarialVectors(t *testing.T) {
 			t.Fatalf("Expected ErrWorkspaceMismatch, got: %v", err)
 		}
 	})
+
+	// Vector 9: Persistent Ledger Corruption Detection and Quarantine Recovery
+	t.Run("Vector9_CorruptedLedgerRejectionAndRecovery", func(t *testing.T) {
+		corruptPath := filepath.Join(tmpDir, "corrupt_ledger.json")
+		// Write invalid JSON bytes
+		_ = os.WriteFile(corruptPath, []byte("{ malformed json ::: corrupted bytes !!"), 0644)
+
+		_, err := NewApprovalConsumptionRegistry(corruptPath)
+		if err == nil || !errors.Is(err, ErrCorruptLedger) {
+			t.Fatalf("Expected ErrCorruptLedger on malformed ledger, got: %v", err)
+		}
+
+		// Perform quarantine recovery
+		recoveredReg, err := RecoverCorruptLedger(corruptPath)
+		if err != nil {
+			t.Fatalf("RecoverCorruptLedger failed: %v", err)
+		}
+		if recoveredReg == nil {
+			t.Fatalf("Expected recovered registry, got nil")
+		}
+
+		// Verify quarantine file was created
+		matches, err := filepath.Glob(corruptPath + ".corrupt.*")
+		if err != nil || len(matches) == 0 {
+			t.Fatalf("Expected quarantine file for corrupted ledger, found none")
+		}
+	})
+
+	// Vector 10: Infrastructure Protection (Patch cannot target tests, ledgers, or oracles)
+	t.Run("Vector10_ProtectedInfrastructureModificationRejected", func(t *testing.T) {
+		maliciousTargets := []string{
+			"agent/repo_intel/execution/approval.go",
+			"agent/repo_intel/execution/oracles_test.go",
+			"reports/milestone3_7_phase2_repair_ledger.json",
+			"../../etc/passwd",
+			".git/config",
+		}
+
+		for _, malTarget := range maliciousTargets {
+			malTask := &planning.RemediationTask{
+				TaskID:                "TASK-MALICIOUS-INFRA",
+				Title:                 "Tamper with infrastructure",
+				TargetFiles:           []string{malTarget},
+				ExecutionClass:        planning.ClassHumanApprovalRequired,
+				HumanApprovalRequired: true,
+			}
+
+			token, _ := authority.IssueToken(
+				"attacker@fake.local",
+				"attacker",
+				malTask.TaskID,
+				"TIER_2_CONTROLLED",
+				malTask.ExecutionClass,
+				baselineCommit,
+				map[string]string{malTarget: "somehash"},
+				patchHash,
+				"APPLY_PATCH",
+				workspaceID,
+				10*time.Minute,
+			)
+
+			eligible, _, reason := CheckTaskEligibilitySecure(
+				malTask,
+				token,
+				authority,
+				baselineCommit,
+				map[string]string{malTarget: "somehash"},
+				patchHash,
+				workspaceID,
+			)
+
+			if eligible {
+				t.Fatalf("Security failure: execution permitted on protected infrastructure target %s!", malTarget)
+			}
+			if !strings.Contains(reason, "EXEC_REJECTED_SECURITY") {
+				t.Fatalf("Expected EXEC_REJECTED_SECURITY for %s, got: %s", malTarget, reason)
+			}
+		}
+	})
 }
