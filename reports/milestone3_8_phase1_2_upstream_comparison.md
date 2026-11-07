@@ -113,3 +113,4 @@ Why autonomous synthesis must **abstain** on NAT-03:
 1. **Scope Escape via Return:** `resp` is explicitly returned to the caller (`func ... (*Conn, *http.Response, error)`). In Go, an intra-procedural `defer resp.Body.Close()` within `DialContext` would close the response body *before* the caller could ever read headers or body data.
 2. **Defect Absoluteness:** The underlying socket is already cleanly managed by `defer netConn.Close()`, and `resp.Body` is an in-memory `NopCloser`. There is no leak to remediate.
 3. **Fail-Closed Principle:** The synthesizer correctly classifies this target under `RESOURCE_ESCAPES_VIA_RETURN` and issues an autonomous abstention, preventing destructive modifications.
+

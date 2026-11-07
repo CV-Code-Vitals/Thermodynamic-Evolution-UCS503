@@ -128,3 +128,4 @@ When `http.ReadResponse` encountered an invalid handshake, it returned `(nil, er
 2. **Metrics Recalculation:** All claims of natural defect repair have been retracted. The numerator of verified natural repairs is **0**.
 3. **Demo & CLI Alignment:** The demo application (`scripts/run-demo.ps1`, `remediation_mvp.exe`) now uses **`INJ-EXT2-RES-02`** (authentic injected defect in `fatih/color`) for the positive repair demo, and presents `NAT-03` as an audited disqualified candidate where the engine safely **abstains**.
 4. **UI Dashboard Strata Badges:** The React dashboard (`RemediationPortal.jsx`) displays explicit provenance stratum pills: `AUTHENTIC_INJECTED`, `CONSTRUCTED_MICROSERVICE`, `CLEAN_CONTROL`, and `GROUND_TRUTH_DISQUALIFIED`.
+

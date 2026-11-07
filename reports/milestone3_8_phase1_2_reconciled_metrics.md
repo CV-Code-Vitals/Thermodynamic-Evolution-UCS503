@@ -128,3 +128,4 @@ $$\tilde{p} = \frac{n_s + \frac{z^2}{2}}{n + z^2}, \quad \text{Margin} = \frac{z
 | **Fail-Closed Safety** | **DEMONSTRATED (100% Safety)** | 7 of 7 out-of-scope / ambiguous cases safely abstained. |
 | **Single-Use Cryptographic Auth** | **DEMONSTRATED (100% Replay-Proof)**| HMAC-SHA256 tokens bounded to diff hash, expired after use, protected against replay. |
 | **Sandbox Isolation** | **DEMONSTRATED (100% Bitwise Immutability)** | Ephemeral workspaces used; zero original repository modifications. |
+
