@@ -39,37 +39,37 @@ type GroundTruthAmendment struct {
 }
 
 type FirstLookPredictionReport struct {
-	EvaluationRunID      string                          `json:"evaluation_run_id"`
-	Timestamp            string                          `json:"timestamp"`
-	DetectorFrozenCommit string                          `json:"detector_frozen_commit"`
-	RepositoryEvaluations []RepoEvaluationResult          `json:"repository_evaluations"`
-	TotalDurationMs      int64                           `json:"total_duration_ms"`
-	AllRawFindings       []semantic.ReconciledFinding    `json:"all_raw_findings"`
-	ArtifactSHA256       string                          `json:"artifact_sha256,omitempty"`
+	EvaluationRunID       string                       `json:"evaluation_run_id"`
+	Timestamp             string                       `json:"timestamp"`
+	DetectorFrozenCommit  string                       `json:"detector_frozen_commit"`
+	RepositoryEvaluations []RepoEvaluationResult       `json:"repository_evaluations"`
+	TotalDurationMs       int64                        `json:"total_duration_ms"`
+	AllRawFindings        []semantic.ReconciledFinding `json:"all_raw_findings"`
+	ArtifactSHA256        string                       `json:"artifact_sha256,omitempty"`
 }
 
 type RepoEvaluationResult struct {
-	Repository   string                       `json:"repository"`
-	RelativePath string                       `json:"relative_path"`
-	FilesScanned int                          `json:"files_scanned"`
-	PackagesScanned int                       `json:"packages_scanned"`
-	DurationMs   int64                        `json:"duration_ms"`
-	ExitStatus   string                       `json:"exit_status"`
-	FindingsCount int                         `json:"findings_count"`
-	Findings     []semantic.ReconciledFinding `json:"findings"`
+	Repository      string                       `json:"repository"`
+	RelativePath    string                       `json:"relative_path"`
+	FilesScanned    int                          `json:"files_scanned"`
+	PackagesScanned int                          `json:"packages_scanned"`
+	DurationMs      int64                        `json:"duration_ms"`
+	ExitStatus      string                       `json:"exit_status"`
+	FindingsCount   int                          `json:"findings_count"`
+	Findings        []semantic.ReconciledFinding `json:"findings"`
 }
 
 type CaseAuditItem struct {
-	CaseID           string   `json:"case_id"`
-	CaseType         string   `json:"case_type"` // "INJECTED_DEFECT" or "CLEAN_CONTROL"
-	Repository       string   `json:"repository"`
-	File             string   `json:"file"`
-	Line             int      `json:"line"`
-	Symbol           string   `json:"symbol"`
-	GroundTruthClass string   `json:"ground_truth_class"` // Expected Category or "CLEAN"
-	EvaluationOutcome string  `json:"evaluation_outcome"` // "TP", "FN", "TN", "FP"
+	CaseID            string   `json:"case_id"`
+	CaseType          string   `json:"case_type"` // "INJECTED_DEFECT" or "CLEAN_CONTROL"
+	Repository        string   `json:"repository"`
+	File              string   `json:"file"`
+	Line              int      `json:"line"`
+	Symbol            string   `json:"symbol"`
+	GroundTruthClass  string   `json:"ground_truth_class"` // Expected Category or "CLEAN"
+	EvaluationOutcome string   `json:"evaluation_outcome"` // "TP", "FN", "TN", "FP"
 	MatchedFindingIDs []string `json:"matched_finding_ids"`
-	Notes            string   `json:"notes"`
+	Notes             string   `json:"notes"`
 }
 
 type UnadjudicatedFindingItem struct {
@@ -115,13 +115,13 @@ type ConfusionMatrixReport struct {
 	GroundTruthAmendment string                    `json:"ground_truth_amendment"`
 	Strata               map[string]StratumMetrics `json:"strata"`
 	SummaryTable         struct {
-		TotalGroundTruthDefects  int     `json:"total_ground_truth_defects"`
-		TotalCleanControls       int     `json:"total_clean_controls"`
-		TotalUnadjudicatedCode   int     `json:"total_unadjudicated_code"`
-		InjectedDefectRecall     float64 `json:"injected_defect_recall"`
-		CleanControlSpecificity  float64 `json:"clean_control_specificity"`
-		PrimaryPrecision         float64 `json:"primary_precision"`
-		PrimaryF1Score           float64 `json:"primary_f1_score"`
+		TotalGroundTruthDefects int     `json:"total_ground_truth_defects"`
+		TotalCleanControls      int     `json:"total_clean_controls"`
+		TotalUnadjudicatedCode  int     `json:"total_unadjudicated_code"`
+		InjectedDefectRecall    float64 `json:"injected_defect_recall"`
+		CleanControlSpecificity float64 `json:"clean_control_specificity"`
+		PrimaryPrecision        float64 `json:"primary_precision"`
+		PrimaryF1Score          float64 `json:"primary_f1_score"`
 	} `json:"summary_table"`
 }
 
@@ -134,7 +134,7 @@ func computeWilsonCI(k, n int) *WilsonCI {
 	z2 := z * z
 	denom := 1.0 + z2/float64(n)
 	center := (p + z2/(2.0*float64(n))) / denom
-	spread := z * math.Sqrt((p*(1.0-p) + z2/(4.0*float64(n)))/float64(n)) / denom
+	spread := z * math.Sqrt((p*(1.0-p)+z2/(4.0*float64(n)))/float64(n)) / denom
 
 	lower := math.Max(0.0, center-spread)
 	upper := math.Min(1.0, center+spread)
@@ -528,4 +528,3 @@ func fileSHA256(path string) (string, error) {
 	}
 	return hex.EncodeToString(h.Sum(nil)), nil
 }
-
