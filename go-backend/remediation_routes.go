@@ -2,7 +2,6 @@ package main
 
 import (
 	"net/http"
-	"os"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
@@ -10,26 +9,13 @@ import (
 )
 
 func resolveWorkspaceRoot() string {
-	if custom := os.Getenv("WORKSPACE_ROOT"); custom != "" {
-		return custom
-	}
-	// Check parent directory
-	parent := ".."
-	if fi, err := os.Stat(filepath.Join(parent, "benchmarks", "external_v2")); err == nil && fi.IsDir() {
-		abs, _ := filepath.Abs(parent)
-		return abs
-	}
-	// Check current directory
-	if fi, err := os.Stat(filepath.Join(".", "benchmarks", "external_v2")); err == nil && fi.IsDir() {
-		abs, _ := filepath.Abs(".")
-		return abs
-	}
-	return "E:\\SWE"
+	return execution.ResolveWorkspaceRoot()
 }
 
 func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
-	wsRoot := resolveWorkspaceRoot()
-	ledgerPath := filepath.Join(wsRoot, ".tmp", "consumed_approvals_mvp.json")
+	wsRoot := execution.ResolveWorkspaceRoot()
+	tmpDir, _ := execution.EnsureTmpDir(wsRoot)
+	ledgerPath := filepath.Join(tmpDir, "consumed_approvals_mvp.json")
 	mvpService, err := execution.NewMVPService(wsRoot, ledgerPath)
 	if err != nil {
 		// Log error but do not crash server

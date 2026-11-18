@@ -40,7 +40,7 @@ type RevalidationLedger struct {
 }
 
 func TestMilestone3_8_Phase1_1_AutonomousRepairRevalidation(t *testing.T) {
-	workspaceRoot := "E:\\SWE"
+	workspaceRoot := execution.ResolveWorkspaceRoot()
 	ext2Root := filepath.Join(workspaceRoot, "benchmarks", "external_v2")
 	heldoutRoot := filepath.Join(workspaceRoot, "benchmarks", "heldout_v1")
 	reportsDir := filepath.Join(workspaceRoot, "reports")
@@ -59,11 +59,7 @@ func TestMilestone3_8_Phase1_1_AutonomousRepairRevalidation(t *testing.T) {
 	synthesizer := execution.NewAutonomousPatchSynthesizer()
 	oracles := execution.NewIndependentOracleSuite(20)
 
-	tmpDir, err := os.MkdirTemp("E:\\SWE\\.tmp", "phase1_1-reval-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp sandbox: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	persistPath := filepath.Join(tmpDir, "consumed_approvals_reval.json")
 	registry, err := execution.NewApprovalConsumptionRegistry(persistPath)

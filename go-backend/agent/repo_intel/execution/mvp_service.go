@@ -226,10 +226,19 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 // NewMVPService constructs an initialized MVP service instance.
 func NewMVPService(workspaceRoot, persistLedgerPath string) (*MVPService, error) {
 	if workspaceRoot == "" {
-		workspaceRoot = "E:\\SWE"
+		workspaceRoot = ResolveWorkspaceRoot()
 	}
+	tmpDir, err := EnsureTmpDir(workspaceRoot)
+	if err != nil {
+		return nil, fmt.Errorf("failed to ensure tmp directory: %w", err)
+	}
+
 	if persistLedgerPath == "" {
-		persistLedgerPath = filepath.Join(workspaceRoot, ".tmp", "consumed_approvals_mvp.json")
+		persistLedgerPath = filepath.Join(tmpDir, "consumed_approvals_mvp.json")
+	} else {
+		if err := os.MkdirAll(filepath.Dir(persistLedgerPath), 0755); err != nil {
+			persistLedgerPath = filepath.Join(tmpDir, filepath.Base(persistLedgerPath))
+		}
 	}
 
 	registry, err := NewApprovalConsumptionRegistry(persistLedgerPath)
@@ -390,12 +399,23 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 	}
 
 	// Create isolated ephemeral sandbox directory for this proposal
-	tmpSandbox, err := os.MkdirTemp(filepath.Join(s.WorkspaceRoot, ".tmp"), "mvp-sandbox-*")
+	tmpDir, _ := EnsureTmpDir(s.WorkspaceRoot)
+	tmpSandbox, err := os.MkdirTemp(tmpDir, "mvp-sandbox-*")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create sandbox dir: %w", err)
 	}
 
 	srcRepo := filepath.Join(s.WorkspaceRoot, filepath.FromSlash(target.RelativeSource))
+	if fi, err := os.Stat(srcRepo); err != nil || !fi.IsDir() {
+		altRoot := ResolveWorkspaceRoot()
+		altRepo := filepath.Join(altRoot, filepath.FromSlash(target.RelativeSource))
+		if altFi, altErr := os.Stat(altRepo); altErr == nil && altFi.IsDir() {
+			srcRepo = altRepo
+		} else {
+			os.RemoveAll(tmpSandbox)
+			return nil, fmt.Errorf("source repository not found at %s: %w", srcRepo, err)
+		}
+	}
 	if err := CopyDirectory(srcRepo, tmpSandbox); err != nil {
 		os.RemoveAll(tmpSandbox)
 		return nil, fmt.Errorf("failed to clone repo to sandbox: %w", err)
@@ -553,6 +573,15 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	}
 
 	origRepoPath := filepath.Join(s.WorkspaceRoot, filepath.FromSlash(target.RelativeSource))
+	if fi, err := os.Stat(origRepoPath); err != nil || !fi.IsDir() {
+		altRoot := ResolveWorkspaceRoot()
+		altRepo := filepath.Join(altRoot, filepath.FromSlash(target.RelativeSource))
+		if altFi, altErr := os.Stat(altRepo); altErr == nil && altFi.IsDir() {
+			origRepoPath = altRepo
+		} else {
+			return nil, fmt.Errorf("original repository directory %s does not exist: %w", origRepoPath, err)
+		}
+	}
 	preDigest, err := ComputeRepoDigest(origRepoPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compute original repo pre-digest: %w", err)

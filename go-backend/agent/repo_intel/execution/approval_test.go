@@ -18,11 +18,7 @@ import (
 // TestApprovalSecurityAdversarialVectors subjects the approval token engine to 7 adversarial attack vectors.
 func TestApprovalSecurityAdversarialVectors(t *testing.T) {
 	secretKey := []byte("test-super-secret-key-32bytes!!")
-	tmpDir, err := os.MkdirTemp("E:\\SWE\\.tmp", "approval-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	persistPath := filepath.Join(tmpDir, "consumed_approvals.json")
 	registry, err := NewApprovalConsumptionRegistry(persistPath)

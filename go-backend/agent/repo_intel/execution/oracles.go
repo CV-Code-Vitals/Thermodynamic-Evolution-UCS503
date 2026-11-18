@@ -110,6 +110,16 @@ func (s *IndependentOracleSuite) VerifyAll(
 	return report
 }
 
+func getExecutionEnv() []string {
+	env := os.Environ()
+	if os.Getenv("GOTMPDIR") == "" {
+		if fi, err := os.Stat(`E:\SWE\.tmp`); err == nil && fi.IsDir() {
+			env = append(env, `GOTMPDIR=E:\SWE\.tmp`, `TEMP=E:\SWE\.tmp`, `TMP=E:\SWE\.tmp`)
+		}
+	}
+	return env
+}
+
 // -----------------------------------------------------------------------------------------
 // 1. Syntax & Compilation Oracle
 // -----------------------------------------------------------------------------------------
@@ -138,7 +148,7 @@ func (s *IndependentOracleSuite) verifySyntaxCompilation(wsDir string, task *pla
 	pkgDir := filepath.Dir(targetPath)
 	cmd := exec.Command("go", "vet", ".")
 	cmd.Dir = pkgDir
-	cmd.Env = append(os.Environ(), "GOTMPDIR=E:\\SWE\\.tmp", "TEMP=E:\\SWE\\.tmp", "TMP=E:\\SWE\\.tmp")
+	cmd.Env = getExecutionEnv()
 
 	out, err := cmd.CombinedOutput()
 	res.Output = string(out)
@@ -170,7 +180,7 @@ func (s *IndependentOracleSuite) verifyRegressionTests(wsDir string, task *plann
 
 			cmd := exec.Command(parts[0], parts[1:]...)
 			cmd.Dir = wsDir
-			cmd.Env = append(os.Environ(), "GOTMPDIR=E:\\SWE\\.tmp", "TEMP=E:\\SWE\\.tmp", "TMP=E:\\SWE\\.tmp")
+			cmd.Env = getExecutionEnv()
 
 			out, err := cmd.CombinedOutput()
 			if err != nil {
@@ -208,7 +218,7 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 		parts := strings.Fields(reproducerCmd)
 		cmd := exec.Command(parts[0], parts[1:]...)
 		cmd.Dir = wsDir
-		cmd.Env = append(os.Environ(), "GOTMPDIR=E:\\SWE\\.tmp", "TEMP=E:\\SWE\\.tmp", "TMP=E:\\SWE\\.tmp")
+		cmd.Env = getExecutionEnv()
 
 		out, err := cmd.CombinedOutput()
 		res.Output = string(out)
@@ -301,7 +311,7 @@ func (s *IndependentOracleSuite) verifyBehavioralInvariance(
 		parts := strings.Fields(invarianceCmd)
 		cmd := exec.Command(parts[0], parts[1:]...)
 		cmd.Dir = wsDir
-		cmd.Env = append(os.Environ(), "GOTMPDIR=E:\\SWE\\.tmp", "TEMP=E:\\SWE\\.tmp", "TMP=E:\\SWE\\.tmp")
+		cmd.Env = getExecutionEnv()
 
 		out, err := cmd.CombinedOutput()
 		res.Output = string(out)

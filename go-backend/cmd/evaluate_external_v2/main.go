@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/diagnostic/semantic"
+	"github.com/saksham/self-healing-pipeline/agent/repo_intel/execution"
 )
 
 type GroundTruthAmendment struct {
@@ -146,7 +147,7 @@ func computeWilsonCI(k, n int) *WilsonCI {
 }
 
 func main() {
-	repoRoot := "E:\\SWE"
+	repoRoot := execution.ResolveWorkspaceRoot()
 	frozenCommit := "a64e7632476c1341343481661a3e246c69e5a644"
 
 	gtPath := filepath.Join(repoRoot, "benchmarks", "external_v2", "ground_truth_amendment_v2_1.json")

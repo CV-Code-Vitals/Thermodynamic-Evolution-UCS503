@@ -123,7 +123,7 @@ func copyDirectory(srcDir, dstDir string) error {
 }
 
 func TestMilestone3_7_Phase2_ControlledExternalAutonomousRepairPilot(t *testing.T) {
-	workspaceRoot := "E:\\SWE"
+	workspaceRoot := execution.ResolveWorkspaceRoot()
 	ext2Root := filepath.Join(workspaceRoot, "benchmarks", "external_v2")
 	heldoutRoot := filepath.Join(workspaceRoot, "benchmarks", "heldout_v1")
 	reportsDir := filepath.Join(workspaceRoot, "reports")
@@ -141,11 +141,7 @@ func TestMilestone3_7_Phase2_ControlledExternalAutonomousRepairPilot(t *testing.
 	synthesizer := execution.NewAutonomousPatchSynthesizer()
 	oracles := execution.NewIndependentOracleSuite(20)
 
-	tmpDir, err := os.MkdirTemp("E:\\SWE\\.tmp", "phase2-ext-pilot-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp sandbox: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	persistPath := filepath.Join(tmpDir, "consumed_approvals_pilot.json")
 	registry, err := execution.NewApprovalConsumptionRegistry(persistPath)

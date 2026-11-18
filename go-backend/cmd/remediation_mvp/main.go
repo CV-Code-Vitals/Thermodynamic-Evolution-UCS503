@@ -11,9 +11,10 @@ import (
 )
 
 func main() {
+	defaultWs := execution.ResolveWorkspaceRoot()
 	demoMode := flag.Bool("demo", false, "Run deterministic local MVP demonstration (NAT-03 + INJ-EXT2-CMD-01)")
 	targetFlag := flag.String("case", "", "Target case ID to execute (e.g., NAT-03, INJ-EXT2-SQL-01, INJ-EXT2-CMD-01)")
-	workspaceDir := flag.String("workspace", "E:\\SWE", "Root directory of the workspace")
+	workspaceDir := flag.String("workspace", defaultWs, "Root directory of the workspace")
 	auditFlag := flag.Bool("audit", false, "Export and display audit report JSON")
 	outputReport := flag.String("output", "reports/milestone3_8_demo_audit.json", "Path to write machine-readable audit report")
 	flag.Parse()
@@ -24,7 +25,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	persistLedger := filepath.Join(absWorkspace, ".tmp", "consumed_approvals_mvp.json")
+	tmpDir, _ := execution.EnsureTmpDir(absWorkspace)
+	persistLedger := filepath.Join(tmpDir, "consumed_approvals_mvp.json")
 	svc, err := execution.NewMVPService(absWorkspace, persistLedger)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize MVP service: %v\n", err)

@@ -49,11 +49,7 @@ func TestAutonomousPatchSynthesisAndIndependentOracles(t *testing.T) {
 	synthesizer := NewAutonomousPatchSynthesizer()
 	oracles := NewIndependentOracleSuite(15)
 
-	tmpDir, err := os.MkdirTemp("E:\\SWE\\.tmp", "synth-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp fixture directory: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	testCases := []struct {
 		caseID         string
@@ -490,7 +486,9 @@ func DialServer(url string) (*http.Response, error) {
 		t.Fatalf("MarshalIndent failed: %v", err)
 	}
 
-	reportPath := "E:\\SWE\\reports\\milestone3_7_phase1_5_synthesis_results.json"
+	reportDir := filepath.Join(ResolveWorkspaceRoot(), "reports")
+	_ = os.MkdirAll(reportDir, 0755)
+	reportPath := filepath.Join(reportDir, "milestone3_7_phase1_5_synthesis_results.json")
 	if err := os.WriteFile(reportPath, data, 0644); err != nil {
 		t.Fatalf("Failed to write synthesis results json: %v", err)
 	}
@@ -503,11 +501,7 @@ func TestAutonomousEndToEndRemediationPipeline(t *testing.T) {
 	oracles := NewIndependentOracleSuite(15)
 
 	secretKey := []byte("closed-loop-pipeline-secret-key-32b")
-	tmpDir, err := os.MkdirTemp("E:\\SWE\\.tmp", "pipeline-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	persistPath := filepath.Join(tmpDir, "consumed_tokens.json")
 	registry, err := NewApprovalConsumptionRegistry(persistPath)

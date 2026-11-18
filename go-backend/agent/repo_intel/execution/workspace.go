@@ -375,4 +375,96 @@ func copyFile(src, dst string) error {
 	return out.Sync()
 }
 
+// ResolveWorkspaceRoot dynamically detects the workspace or repository root
+// across all platforms (Linux, macOS, Windows) without relying on hardcoded paths.
+func ResolveWorkspaceRoot() string {
+	if custom := os.Getenv("WORKSPACE_ROOT"); custom != "" {
+		if fi, err := os.Stat(custom); err == nil && fi.IsDir() {
+			abs, err := filepath.Abs(custom)
+			if err == nil {
+				return abs
+			}
+			return custom
+		}
+	}
+	if custom := os.Getenv("SWE_WORKSPACE"); custom != "" {
+		if fi, err := os.Stat(custom); err == nil && fi.IsDir() {
+			abs, err := filepath.Abs(custom)
+			if err == nil {
+				return abs
+			}
+			return custom
+		}
+	}
+
+	// 1. Walk upwards from current working directory
+	wd, err := os.Getwd()
+	if err == nil {
+		curr := wd
+		for {
+			if fi, err := os.Stat(filepath.Join(curr, "benchmarks", "external_v2")); err == nil && fi.IsDir() {
+				abs, err := filepath.Abs(curr)
+				if err == nil {
+					return abs
+				}
+				return curr
+			}
+			parent := filepath.Dir(curr)
+			if parent == curr || parent == "" {
+				break
+			}
+			curr = parent
+		}
+	}
+
+	// 2. Check candidate relative directories
+	candidates := []string{
+		".",
+		"..",
+		filepath.Join("..", ".."),
+		filepath.Join("..", "..", ".."),
+		filepath.Join("..", "..", "..", ".."),
+	}
+	for _, cand := range candidates {
+		if fi, err := os.Stat(filepath.Join(cand, "benchmarks", "external_v2")); err == nil && fi.IsDir() {
+			abs, err := filepath.Abs(cand)
+			if err == nil {
+				return abs
+			}
+		}
+	}
+
+	// 3. Fallback to existing Windows directory if present
+	if fi, err := os.Stat("E:\\SWE"); err == nil && fi.IsDir() {
+		return "E:\\SWE"
+	}
+
+	// 4. Fallback to current working directory or system temp
+	if wd != "" {
+		abs, err := filepath.Abs(wd)
+		if err == nil {
+			return abs
+		}
+		return wd
+	}
+	return os.TempDir()
+}
+
+// EnsureTmpDir verifies or creates the temporary directory for sandboxes and ledgers.
+// It tries <root>/.tmp first; if creating or accessing it fails, it safely falls back
+// to os.TempDir()/swe_tmp.
+func EnsureTmpDir(root string) (string, error) {
+	if root != "" {
+		primary := filepath.Join(root, ".tmp")
+		if err := os.MkdirAll(primary, 0755); err == nil {
+			return primary, nil
+		}
+	}
+	fallback := filepath.Join(os.TempDir(), "swe_tmp")
+	if err := os.MkdirAll(fallback, 0755); err != nil {
+		return os.TempDir(), nil
+	}
+	return fallback, nil
+}
+
 

@@ -12,11 +12,7 @@ import (
 func TestHardenedOraclesRejectFlawedNAT03Patch(t *testing.T) {
 	suite := NewIndependentOracleSuite(15)
 
-	tmpDir, err := os.MkdirTemp("E:\\SWE\\.tmp", "oracle-nat03-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp fixture directory: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	// Minimal reproducing client.go with DialContext returning *http.Response
 	clientCode := `package client
@@ -94,11 +90,7 @@ func (d *Dialer) DialContext(urlStr string) (*http.Response, error) {
 func TestHardenedOraclesRejectPreErrorCheckCleanup(t *testing.T) {
 	suite := NewIndependentOracleSuite(15)
 
-	tmpDir, err := os.MkdirTemp("E:\\SWE\\.tmp", "oracle-pre-check-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp fixture directory: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	flawedCode := `package storage
 
@@ -158,11 +150,7 @@ func ReadFile(path string) error {
 func TestHardenedOraclesRejectMultipleCloseCalls(t *testing.T) {
 	suite := NewIndependentOracleSuite(15)
 
-	tmpDir, err := os.MkdirTemp("E:\\SWE\\.tmp", "oracle-multi-close-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp fixture directory: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	flawedCode := `package storage
 

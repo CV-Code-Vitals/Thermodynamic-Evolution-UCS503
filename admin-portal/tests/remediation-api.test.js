@@ -140,4 +140,22 @@ describe('Autonomous Remediation API Client', () => {
     assert.strictEqual(res.baseline_commit, 'de06b6e');
     assert.strictEqual(res.source_immutability_100_percent, true);
   });
+
+  it('runRemediationDemo calls /remediation/demo and returns demo outcome', async () => {
+    const mockFetch = async (url, opts) => {
+      assert.strictEqual(url, 'http://localhost:8080/api/remediation/demo');
+      assert.strictEqual(opts.method, 'POST');
+      return {
+        ok: true,
+        json: async () => ({
+          status: 'DEMO_COMPLETED',
+          natural_defect_repair: { target: 'NAT-03 (gorilla/websocket)' },
+        }),
+      };
+    };
+    globalThis.fetch = mockFetch;
+    const res = await runRemediationDemo('http://localhost:8080/api');
+    assert.strictEqual(res.status, 'DEMO_COMPLETED');
+    assert.strictEqual(res.natural_defect_repair.target, 'NAT-03 (gorilla/websocket)');
+  });
 });
