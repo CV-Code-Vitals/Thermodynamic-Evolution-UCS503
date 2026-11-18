@@ -144,14 +144,18 @@ func TestScheduler(t *testing.T) {
 
 func TestWorkspacePathTraversalProtection(t *testing.T) {
 	repoRoot, _ := filepath.Abs(filepath.Join("..", "..", "..", ".."))
-	wm, err := NewWorkspaceManager(repoRoot, t.TempDir(), false)
+	baseDir := t.TempDir()
+	wm, err := NewWorkspaceManager(repoRoot, baseDir, false)
 	if err != nil {
 		t.Fatalf("Failed to init workspace manager: %v", err)
 	}
 
 	wsDir := filepath.Join(wm.BaseDir, "ws_test")
-	_ = os.MkdirAll(wsDir, 0755)
+	if err := os.MkdirAll(wsDir, 0755); err != nil {
+		t.Fatalf("Failed to create test workspace dir: %v", err)
+	}
 
+	// 1. Mandatory Baseline Regression Checks
 	// Relative escape
 	_, err = wm.ValidateContainedPath(wsDir, "../../etc/passwd")
 	if err == nil {
@@ -163,6 +167,86 @@ func TestWorkspacePathTraversalProtection(t *testing.T) {
 	if err == nil {
 		t.Errorf("Expected path traversal error for absolute path, got nil")
 	}
+
+	// 2. Cross-Platform Windows & Linux Traversal Vector Matrix
+	adversarialVectors := []struct {
+		name string
+		path string
+	}{
+		{"Windows Drive Absolute Backslash", `C:\Windows\System32`},
+		{"Windows Drive Absolute Slash", "C:/Windows/System32"},
+		{"Windows Drive Lowercase", "c:/windows/system32"},
+		{"Windows Drive Relative", "C:relative"},
+		{"Windows Drive Relative Lowercase", "c:relative"},
+		{"Windows UNC Backslash", `\\server\share`},
+		{"Windows UNC Forward Slash", "//server/share"},
+		{"Windows Device Namespace Backslash", `\\?\C:\Windows`},
+		{"Windows Device Namespace Slash", "//?/C:/Windows"},
+		{"POSIX Absolute Root", "/etc/passwd"},
+		{"Root Relative Backslash", `\etc\passwd`},
+		{"Relative Outside Slash", "../../outside"},
+		{"Relative Outside Backslash", `..\..\outside`},
+		{"Mixed Separator Escape", `sub/..\..\outside`},
+		{"Mixed Separator Inverted Escape", `sub\../..\outside`},
+		{"Complex Redundant Traversal", `a/b/../../../etc/shadow`},
+		{"Target Workspace Root", "."},
+		{"Target Empty String", ""},
+		{"Target Sibling Prefix Path", "../ws_test-evil"},
+	}
+
+	for _, tc := range adversarialVectors {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := wm.ValidateContainedPath(wsDir, tc.path)
+			if err == nil {
+				t.Errorf("Expected path traversal rejection for %q, but got nil error", tc.path)
+			}
+		})
+	}
+
+	// 3. Sibling-Prefix Confusion and Root Deletion Protection (workspace-evil)
+	t.Run("Workspace-Evil Sibling and Base Dir Deletion Defense", func(t *testing.T) {
+		// Attempt to destroy base directory itself
+		err := wm.DestroyWorkspace(wm.BaseDir, nil)
+		if err == nil {
+			t.Errorf("Expected DestroyWorkspace to refuse deleting wm.BaseDir, but got nil")
+		}
+
+		// Attempt to destroy sibling with shared prefix (sibling-prefix confusion)
+		evilSiblingDir := wm.BaseDir + "-evil"
+		_ = os.MkdirAll(evilSiblingDir, 0755)
+		defer os.RemoveAll(evilSiblingDir)
+
+		err = wm.DestroyWorkspace(evilSiblingDir, nil)
+		if err == nil {
+			t.Errorf("Expected DestroyWorkspace to refuse deleting sibling %s, but got nil", evilSiblingDir)
+		}
+
+		// Confirm evil sibling was NOT deleted
+		if _, err := os.Stat(evilSiblingDir); os.IsNotExist(err) {
+			t.Errorf("Security boundary violation: evil sibling directory was deleted!")
+		}
+	})
+
+	// 4. Symlink Escape Verification (where supported by OS)
+	t.Run("Symlink Escape Defense", func(t *testing.T) {
+		outsideDir := t.TempDir()
+		outsideFile := filepath.Join(outsideDir, "outside_secret.txt")
+		_ = os.WriteFile(outsideFile, []byte("classified"), 0644)
+
+		symlinkTarget := filepath.Join(wsDir, "symlink_dir")
+		err := os.Symlink(outsideDir, symlinkTarget)
+		if err != nil {
+			t.Skipf("Symlink creation not permitted in this environment (%v); skipping symlink escape test", err)
+			return
+		}
+		defer os.Remove(symlinkTarget)
+
+		// Attempt targeting through symlink escaping workspace
+		_, err = wm.ValidateContainedPath(wsDir, "symlink_dir/outside_secret.txt")
+		if err == nil {
+			t.Errorf("Expected symlink escape to be rejected by ValidateContainedPath, got nil error")
+		}
+	})
 }
 
 func TestPatchGenerationAndScope(t *testing.T) {

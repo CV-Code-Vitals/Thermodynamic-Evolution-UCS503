@@ -1,6 +1,6 @@
 {
   "report_schema_version": "1.0",
-  "report_id": "DR-1793733880",
+  "report_id": "DR-1794982740",
   "repository": {
     "repo_root": "",
     "working_tree_clean": false,
@@ -14,15 +14,15 @@
     "ci_workflows": null
   },
   "analysis": {
-    "timestamp": "2026-11-03T19:24:40.7201075Z",
+    "timestamp": "2026-11-18T06:19:00.9446361Z",
     "files_discovered": 0,
     "files_analysed": 0,
     "analysis_coverage": 100,
-    "execution_duration_ms": 0
+    "execution_duration_ms": 1
   },
   "summary": {
-    "total_findings": 7,
-    "validated": 6,
+    "total_findings": 9,
+    "validated": 8,
     "partially_validated": 0,
     "stale": 1,
     "invalid": 0,
@@ -170,6 +170,47 @@
       "detection_method": "MANIFEST_ANALYSIS"
     },
     {
+      "finding_id": "CTX-REL-ERROR-sharded_go-L31",
+      "source_finding_id": "CTX-REL-ERROR-sharded_go-L31",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unhandled Error Return (h.Write)",
+      "description": "Function 'getShard' at line 31 invokes error-producing call 'h.Write([]byte(key))' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "sharded.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "sharded.go",
+          "line_start": 31,
+          "line_end": 31,
+          "description": "h.Write([]byte(key))"
+        }
+      ],
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+    },
+    {
       "finding_id": "CTX-TST-UNTESTED-SYM-cache_go",
       "source_finding_id": "CTX-TST-UNTESTED-SYM-cache_go",
       "validation_state": "VALIDATED",
@@ -288,6 +329,47 @@
         "Issue resolved verified by contextual inspection"
       ],
       "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+    },
+    {
+      "finding_id": "CTX-DEP-NOLOCK-go_mod",
+      "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "DEPENDENCY",
+      "severity": "MEDIUM",
+      "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+      "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+      "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "go.mod"
+      ],
+      "impact_scope": "Build Pipeline \u0026 Supply Chain",
+      "potential_consequences": [
+        "Non-reproducible CI builds",
+        "Vulnerability to upstream dependency drift"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "go.mod",
+          "line_start": 1,
+          "line_end": 1,
+          "description": "go.mod lacking verified go.sum"
+        }
+      ],
+      "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
     }
   ],
   "correlations": null,

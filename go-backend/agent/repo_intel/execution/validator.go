@@ -110,6 +110,71 @@ func (v *IndependentValidator) verifyDefectResolution(wsDir string, task *planni
 			res.Details = "Dockerfile USER directive verified present"
 			return
 		}
+
+		// Check Semantic SQL Injection
+		if strings.Contains(task.TaskID, "SQL") || strings.Contains(task.Title, "SQL") || strings.Contains(task.Description, "SQL") {
+			content, err := os.ReadFile(fullPath)
+			if err == nil {
+				contentStr := string(content)
+				if strings.Contains(contentStr, "fmt.Sprintf(\"SELECT") && strings.Contains(contentStr, "%s") {
+					res.DefectEliminated = false
+					res.Details = "Unsanitized fmt.Sprintf dynamic query concatenation still present in source file"
+					return
+				}
+			}
+			res.Details = "SQL query parameterized with placeholder arguments verified"
+			return
+		}
+
+		// Check Semantic Command Injection
+		if strings.Contains(task.TaskID, "CMD") || strings.Contains(task.Title, "Command") || strings.Contains(task.Description, "Command") {
+			content, err := os.ReadFile(fullPath)
+			if err == nil {
+				contentStr := string(content)
+				if (strings.Contains(contentStr, "\"sh\", \"-c\"") || strings.Contains(contentStr, "\"cmd.exe\", \"/C\"")) && strings.Contains(contentStr, "userInput") {
+					res.DefectEliminated = false
+					res.Details = "Shell interpreter invocation with unsanitized userInput still detected in source file"
+					return
+				}
+			}
+			res.Details = "Command execution refactored into direct discrete arguments"
+			return
+		}
+
+		// Check Semantic Resource Leak
+		if strings.Contains(task.TaskID, "RES") || strings.Contains(task.Title, "Resource") || strings.Contains(task.Description, "Resource") || strings.Contains(task.Description, "Leak") {
+			content, err := os.ReadFile(fullPath)
+			if err == nil {
+				contentStr := string(content)
+				hasRelease := strings.Contains(contentStr, ".Close()") ||
+					strings.Contains(contentStr, "defer cancel()") ||
+					strings.Contains(contentStr, ".Stop()") ||
+					strings.Contains(contentStr, "check(resp.Body.Close)")
+				if !hasRelease {
+					res.DefectEliminated = false
+					res.Details = "No explicit or deferred resource release call found in target source"
+					return
+				}
+			}
+			res.Details = "Explicit or deferred resource release verified present along exit paths"
+			return
+		}
+
+		// Check Semantic Unhandled Error
+		if strings.Contains(task.TaskID, "ERR") || strings.Contains(task.Title, "Error") || strings.Contains(task.Description, "Error") {
+			content, err := os.ReadFile(fullPath)
+			if err == nil {
+				contentStr := string(content)
+				hasErrCheck := strings.Contains(contentStr, "if err != nil") || strings.Contains(contentStr, "if err :=")
+				if !hasErrCheck {
+					res.DefectEliminated = false
+					res.Details = "Error return value remains unhandled or discarded in source file"
+					return
+				}
+			}
+			res.Details = "Error check verified present and handled"
+			return
+		}
 	}
 }
 

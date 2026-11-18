@@ -1,11 +1,11 @@
 {
   "summary": {
-    "total_findings": 6,
-    "validated": 5,
+    "total_findings": 11,
+    "validated": 9,
     "partially_validated": 0,
     "stale": 1,
     "invalid": 0,
-    "requires_human_review": 0
+    "requires_human_review": 1
   },
   "findings": [
     {
@@ -149,6 +149,171 @@
       "detection_method": "MANIFEST_ANALYSIS"
     },
     {
+      "finding_id": "CTX-REL-ERROR-db_go-L33",
+      "source_finding_id": "CTX-REL-ERROR-db_go-L33",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unchecked Cleanup Error (db.Close)",
+      "description": "Function 'InitDB' at line 33 invokes cleanup call 'db.Close()' without checking returned error.",
+      "root_cause": "Cleanup operation return error ignored.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "db.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "db.go",
+          "line_start": 33,
+          "line_end": 33,
+          "description": "db.Close()"
+        }
+      ],
+      "recommended_action": "Inspect returned error and log if operation fails.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-REL-ERROR-db_go-L57",
+      "source_finding_id": "CTX-REL-ERROR-db_go-L57",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unchecked Cleanup Error (tx.Rollback)",
+      "description": "Function 'WithTransaction' at line 57 invokes cleanup call 'tx.Rollback()' without checking returned error.",
+      "root_cause": "Cleanup operation return error ignored.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "db.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "db.go",
+          "line_start": 57,
+          "line_end": 57,
+          "description": "tx.Rollback()"
+        }
+      ],
+      "recommended_action": "Inspect returned error and log if operation fails.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-SEC-SQL-INJECT-repository_go-L56",
+      "source_finding_id": "CTX-SEC-SQL-INJECT-repository_go-L56",
+      "validation_state": "REQUIRES_HUMAN_REVIEW",
+      "validation_reason": "Heuristic pattern or security finding requires human confirmation",
+      "category": "SECURITY",
+      "severity": "HIGH",
+      "severity_rationale": "HIGH: Dynamic SQL query string concatenation risks unauthenticated database extraction",
+      "calibrated_confidence": 0.45,
+      "confidence_rationale": "0.45: Static SQL string concatenation without dataflow taint proof; requires runtime query inspection",
+      "title": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)",
+      "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [name] directly into SQL syntax.",
+      "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
+      "root_cause_confidence": 0.36000000000000004,
+      "affected_components": [
+        "repository.go"
+      ],
+      "impact_scope": "Database Layer \u0026 Data Confidentiality",
+      "potential_consequences": [
+        "Unauthorized data access",
+        "SQL injection exploitation",
+        "Database corruption"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "repository.go",
+          "line_start": 56,
+          "line_end": 56,
+          "description": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)"
+        }
+      ],
+      "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-REL-RESOURCE-sql.Rows-repository_go-L70",
+      "source_finding_id": "CTX-REL-RESOURCE-sql.Rows-repository_go-L70",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unclosed System Resource Leak (sql.Rows)",
+      "description": "Resource handle 'rows' of type sql.Rows acquired in function 'ListRecentUsers' at line 70 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "repository.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "repository.go",
+          "line_start": 70,
+          "line_end": 70,
+          "description": "r.db.QueryContext(ctx, query, limit)"
+        }
+      ],
+      "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+    },
+    {
       "finding_id": "CTX-TST-UNTESTED-SYM-db_go",
       "source_finding_id": "CTX-TST-UNTESTED-SYM-db_go",
       "validation_state": "VALIDATED",
@@ -227,6 +392,47 @@
         "Issue resolved verified by contextual inspection"
       ],
       "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+    },
+    {
+      "finding_id": "CTX-DEP-NOLOCK-go_mod",
+      "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "DEPENDENCY",
+      "severity": "MEDIUM",
+      "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+      "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+      "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "go.mod"
+      ],
+      "impact_scope": "Build Pipeline \u0026 Supply Chain",
+      "potential_consequences": [
+        "Non-reproducible CI builds",
+        "Vulnerability to upstream dependency drift"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "go.mod",
+          "line_start": 1,
+          "line_end": 1,
+          "description": "go.mod lacking verified go.sum"
+        }
+      ],
+      "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
     }
   ]
 }

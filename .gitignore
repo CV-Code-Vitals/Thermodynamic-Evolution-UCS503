@@ -12,6 +12,8 @@ parser/target/
 uploads/
 *.exe
 .aws-sam/
+.tmp/
+go-backend/bin/
 
 # Local secrets and runtime config
 .env

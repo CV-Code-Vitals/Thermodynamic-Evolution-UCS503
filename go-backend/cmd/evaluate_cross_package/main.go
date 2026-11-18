@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/diagnostic/semantic"
+	"github.com/saksham/self-healing-pipeline/agent/repo_intel/execution"
 )
 
 type GroundTruthCorpus struct {
@@ -106,7 +107,7 @@ type RegressionReport struct {
 }
 
 func main() {
-	repoRoot := "E:\\SWE"
+	repoRoot := execution.ResolveWorkspaceRoot()
 	frozenCommit := "a64e7632476c1341343481661a3e246c69e5a644"
 
 	gtPath := filepath.Join(repoRoot, "benchmarks", "cross_package_stress_v1", "ground_truth.json")

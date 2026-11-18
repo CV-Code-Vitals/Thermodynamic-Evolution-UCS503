@@ -1,10 +1,13 @@
 package semantic
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/saksham/self-healing-pipeline/agent/repo_intel/diagnostic"
 )
 
 // UnifiedDiagnosticReport encapsulates the complete end-to-end diagnostic outcome.
@@ -16,6 +19,18 @@ type UnifiedDiagnosticReport struct {
 	CallGraphSummary     map[string]interface{} `json:"call_graph_summary"`
 	ReconciliationLedger *ReconciliationLedger  `json:"reconciliation_ledger"`
 	DurationMs           int64                  `json:"duration_ms"`
+}
+
+// ToDiagnosticReport converts the UnifiedDiagnosticReport into a standard diagnostic.DiagnosticReport
+// that can be directly ingested and processed by the RemediationPlanner.
+func (u *UnifiedDiagnosticReport) ToDiagnosticReport() *diagnostic.DiagnosticReport {
+	if u == nil || u.ReconciliationLedger == nil {
+		return &diagnostic.DiagnosticReport{
+			ReportSchemaVersion: "1.0",
+			ReportID:            fmt.Sprintf("DIAG-SEM-EMPTY-%d", time.Now().UnixNano()),
+		}
+	}
+	return BuildDiagnosticReportFromContracts(u.RepoRoot, "commit-heldout", u.ReconciliationLedger.Contracts)
 }
 
 // UnifiedOrchestrator coordinates all semantic diagnostic engines with shared AST/CFG caching and isolated execution.

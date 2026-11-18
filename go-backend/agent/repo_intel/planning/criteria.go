@@ -36,12 +36,20 @@ func (cg *CriteriaGenerator) GenerateCriteria(f *diagnostic.ValidatedFinding, ta
 				"Application successfully loads replacement credential via environment variable or secret manager",
 			)
 			commands = append(commands, "git grep -n -i 'AKIA' || true")
-		} else if strings.Contains(f.FindingID, "CMD-INJECT") {
+		} else if strings.Contains(f.FindingID, "CMD-INJECT") || strings.Contains(f.FindingID, "SEM-SEC-CMD") {
 			criteria = append(criteria,
 				"Process execution arguments are passed as isolated tokens without shell string interpolation",
 				"Execution unit test passes with malicious input without shell escape",
+				"Post-patch semantic diagnostic rescan certifies zero command injection vulnerabilities",
 			)
-			commands = append(commands, "go test -v ./...")
+			commands = append(commands, "go vet ./...", "go test -v ./...")
+		} else if strings.Contains(f.FindingID, "SQL") {
+			criteria = append(criteria,
+				"SQL query expression is parameterized with placeholder arguments",
+				"Dynamic string interpolation or concatenation is completely removed from SQL query call",
+				"Post-patch semantic diagnostic rescan certifies zero SQL injection vulnerabilities",
+			)
+			commands = append(commands, "go vet ./...", "go test -v ./...")
 		} else if strings.Contains(f.FindingID, "DOCKER") {
 			criteria = append(criteria,
 				"Dockerfile specifies an unprivileged non-root USER instruction",
@@ -91,11 +99,21 @@ func (cg *CriteriaGenerator) GenerateCriteria(f *diagnostic.ValidatedFinding, ta
 		}
 
 	case repo_intel.CategoryReliability:
-		criteria = append(criteria,
-			"Error return values are handled or propagated rather than discarded",
-			"No silent failure pathways exist in error-handling branch",
-		)
-		commands = append(commands, "go test ./...")
+		if strings.Contains(f.FindingID, "RES") || strings.Contains(f.FindingID, "RESOURCE") {
+			criteria = append(criteria,
+				"Acquired system resource handle has a verified explicit or deferred release call along all exit paths",
+				"Deferred release is placed outside loops to prevent descriptor accumulation",
+				"Post-patch semantic diagnostic rescan certifies zero resource leaks",
+			)
+			commands = append(commands, "go vet ./...", "go test -v ./...")
+		} else {
+			criteria = append(criteria,
+				"Error return values are handled or propagated rather than discarded",
+				"No silent failure pathways exist in error-handling branch",
+				"Post-patch semantic diagnostic rescan certifies zero unhandled errors",
+			)
+			commands = append(commands, "go vet ./...", "go test -v ./...")
+		}
 	}
 
 	if len(criteria) == 0 {

@@ -1,0 +1,207 @@
+{
+  "baseline_commit": "de06b6e568e0cce07d20b319d6618c15a9d3c899",
+  "export_timestamp": "2026-11-18T06:22:52Z",
+  "total_sessions_recorded": 3,
+  "verified_repairs_count": 1,
+  "abstained_repairs_count": 2,
+  "failed_repairs_count": 0,
+  "source_immutability_100_percent": true,
+  "audit_records": [
+    {
+      "record_id": "AUDIT-INJ-EXT2-RES-02-328800",
+      "target_id": "INJ-EXT2-RES-02",
+      "repository": "fatih_color",
+      "defect_category": "RESOURCE_LEAK",
+      "analysis": {
+        "analysis_id": "ANALYSIS-INJ-EXT2-RES-02-782600",
+        "target_id": "INJ-EXT2-RES-02",
+        "repository": "fatih_color",
+        "target_file": "file_printer.go",
+        "defect_category": "RESOURCE_LEAK",
+        "severity": "HIGH",
+        "line_number": 21,
+        "code_snippet": "f, err := os.Open(profilePath)\nif err != nil {\n    return err\n}\n// Missing defer f.Close() -\u003e RESOURCE_LEAK\ndata, err := io.ReadAll(f)",
+        "semantic_evidence": [
+          "Reaching Definitions: File handle 'f' allocated via os.Open at line 22.",
+          "Lifecycle Sink: Function exits at lines 25, 30, and 33 without closing file handle 'f'.",
+          "AST Mutator: Insert 'defer f.Close()' immediately following error check at line 25."
+        ],
+        "uncertainty_score": 0.05,
+        "automatic_eligibility": true,
+        "eligibility_rationale": "Supported deterministic AST mutation: Single-file intra-procedural deferred close.",
+        "requires_human_review": true,
+        "finding_id": "FIND-INJ-EXT2-RES-02",
+        "timestamp": "2026-11-18T06:22:52Z"
+      },
+      "proposal": {
+        "proposal_id": "PROP-INJ-EXT2-RES-02-782600",
+        "analysis_id": "ANALYSIS-INJ-EXT2-RES-02-782600",
+        "target_id": "INJ-EXT2-RES-02",
+        "status": "PROPOSED",
+        "intent_type": "RESOURCE_CLEANUP",
+        "unified_diff": "--- a/file_printer.go\n+++ b/file_printer.go\n@@ -26,9 +26,11 @@\n-\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n-\tdata, err := io.ReadAll(f)\n-\tif err != nil {\n-\t\treturn err\n-\t}\n-\tfmt.Printf(\"Profile loaded: %d bytes\\n\", len(data))\n-\treturn nil\n-}\n-\n+\tdefer\n+\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n+\tf.Close()\n+\n+\tdata, err := io.ReadAll(f)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tfmt.Printf(\"Profile loaded: %d bytes\\n\", len(data))\n+\treturn nil\n+}\n",
+        "diff_hash": "f54bc2787918df0c47b14e5d6dcc7e330bd86b5bd2a1e0b9c6d7f15309a64c9f",
+        "modified_source": "package color\n\nimport (\n\t\"fmt\"\n\t\"io\"\n\t\"os\"\n)\n\n// Neg_Control_PrintFileSafe opens and safely defers Close\nfunc PrintFileSafe(path string) error {\n\tf, err := os.Open(path)\n\tif err != nil {\n\t\treturn err\n\t}\n\tdefer f.Close()\n\t_, err = io.ReadAll(f)\n\treturn err\n}\n\n// INJ-EXT2-RES-02: Resource leak - file handle opened without Close\nfunc DumpColorProfile(profilePath string) error {\n\tf, err := os.Open(profilePath)\n\tif err != nil {\n\t\treturn err\n\t}\n\tdefer\n\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n\tf.Close()\n\n\tdata, err := io.ReadAll(f)\n\tif err != nil {\n\t\treturn err\n\t}\n\tfmt.Printf(\"Profile loaded: %d bytes\\n\", len(data))\n\treturn nil\n}\n",
+        "requires_human_approval": true,
+        "execution_class": "HUMAN_APPROVAL_REQUIRED",
+        "file_hash": "f1825a26fe8b75810f6e18d168bab7d3337072872d2a0fb8c019f30ff14c939e",
+        "workspace_id": "ws-mvp-INJ-EXT2-RES-02",
+        "target_abs_path": "E:\\SWE\\.tmp\\mvp-sandbox-126021144\\file_printer.go",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-126021144",
+        "duration_ms": 6
+      },
+      "approval": {
+        "token_id": "b5c881a068f7c20fab3a471901ee2a30",
+        "proposal_id": "PROP-INJ-EXT2-RES-02-782600",
+        "principal": "lead-sre@code-vitals.internal",
+        "role": "Principal Reliability Engineer",
+        "diff_hash": "f54bc2787918df0c47b14e5d6dcc7e330bd86b5bd2a1e0b9c6d7f15309a64c9f",
+        "risk_tier": "TIER_2_CONTROLLED",
+        "expires_at": "2026-11-18T06:52:52Z",
+        "signature": "6c15b574a4d0a896c755470623402d9d7f0d16b762ef521f1c83b3e6ce407a03",
+        "valid": true,
+        "issued_at": "2026-11-18T06:22:52Z"
+      },
+      "execution": {
+        "execution_id": "EXEC-INJ-EXT2-RES-02-328800",
+        "proposal_id": "PROP-INJ-EXT2-RES-02-782600",
+        "target_id": "INJ-EXT2-RES-02",
+        "token_id": "b5c881a068f7c20fab3a471901ee2a30",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-126021144",
+        "applied_in_sandbox": true,
+        "token_consumed": true,
+        "oracles": {
+          "BEHAVIORAL_INVARIANCE": {
+            "oracle_type": "BEHAVIORAL_INVARIANCE",
+            "description": "Baseline invariant behavior verified",
+            "passed": true,
+            "details": ""
+          },
+          "DEFECT_REPRODUCER": {
+            "oracle_type": "DEFECT_REPRODUCER",
+            "description": "Explicit or deferred resource cleanup verified along exit paths",
+            "passed": true,
+            "details": ""
+          },
+          "NEGATIVE_PROPERTIES": {
+            "oracle_type": "NEGATIVE_PROPERTIES",
+            "description": "Zero shadowed variables, nil-dereference risk, or ownership violations detected",
+            "passed": true,
+            "details": ""
+          },
+          "REGRESSION_TEST": {
+            "oracle_type": "REGRESSION_TEST",
+            "description": "No baseline test regressions detected",
+            "passed": true,
+            "details": ""
+          },
+          "SYNTAX_AND_COMPILATION": {
+            "oracle_type": "SYNTAX_AND_COMPILATION",
+            "description": "Syntax valid and go vet passed with 0 warnings",
+            "passed": true,
+            "details": ""
+          }
+        },
+        "all_oracles_passed": true,
+        "verification_verdict": "INDEPENDENTLY_VERIFIED",
+        "original_repo_pre_digest": "5ecaebe7ebd8904046e140b42797d836be7ae103b3883328d5478829315659f6",
+        "original_repo_post_digest": "5ecaebe7ebd8904046e140b42797d836be7ae103b3883328d5478829315659f6",
+        "original_repo_immutable": true,
+        "rollback_available": true,
+        "duration_ms": 614,
+        "timestamp": "2026-11-18T06:22:52Z"
+      },
+      "final_status": "INDEPENDENTLY_VERIFIED",
+      "timestamp": "2026-11-18T06:22:52Z"
+    },
+    {
+      "record_id": "AUDIT-ABSTAIN-NAT-03-514500",
+      "target_id": "NAT-03",
+      "repository": "gorilla_websocket",
+      "defect_category": "RESOURCE_LEAK",
+      "analysis": {
+        "analysis_id": "ANALYSIS-NAT-03-328800",
+        "target_id": "NAT-03",
+        "repository": "gorilla_websocket",
+        "target_file": "client.go",
+        "defect_category": "RESOURCE_LEAK",
+        "severity": "HIGH",
+        "line_number": 371,
+        "code_snippet": "resp, err := http.ReadResponse(conn.br, req)\nif err != nil {\n    return nil, nil, err\n}",
+        "semantic_evidence": [
+          "Ground-Truth Disqualification: Upstream gorilla/websocket#789 is an issue titled 'Investigating Error code 1006', not a resource leak PR.",
+          "Socket Lifecycle: Underline netConn is already managed and closed via defer func() at line 330 on error exits.",
+          "Upstream Contract: Official DialContext docstring explicitly states response body does not need to be closed by application.",
+          "Escaping Return Signature: DialContext returns (*Conn, *http.Response, error); callee cleanup cannot be safely applied."
+        ],
+        "uncertainty_score": 0.95,
+        "automatic_eligibility": false,
+        "eligibility_rationale": "Ground-Truth Disqualified: Pristine upstream code manages socket lifecycle via defer at line 330. Callee cleanup on escaping response body safely abstained.",
+        "requires_human_review": true,
+        "finding_id": "FIND-NAT-03",
+        "timestamp": "2026-11-18T06:22:52Z"
+      },
+      "proposal": {
+        "proposal_id": "PROP-NAT-03-328800",
+        "analysis_id": "ANALYSIS-NAT-03-328800",
+        "target_id": "NAT-03",
+        "status": "ABSTAINED",
+        "abstain_category": "RESOURCE_ESCAPES_VIA_RETURN",
+        "abstain_reason": "RESOURCE_ESCAPES_VIA_RETURN: Resource \"resp\" escapes function scope via return signature; callee cannot safely synthesize lifecycle cleanup",
+        "requires_human_approval": false,
+        "execution_class": "HUMAN_APPROVAL_REQUIRED",
+        "file_hash": "",
+        "workspace_id": "",
+        "target_abs_path": "",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-227345073",
+        "duration_ms": 22
+      },
+      "final_status": "EXPLICITLY_ABSTAINED",
+      "timestamp": "2026-11-18T06:22:52Z"
+    },
+    {
+      "record_id": "AUDIT-ABSTAIN-INJ-EXT2-CMD-01-655500",
+      "target_id": "INJ-EXT2-CMD-01",
+      "repository": "schollz_progressbar",
+      "defect_category": "COMMAND_INJECTION",
+      "analysis": {
+        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-514500",
+        "target_id": "INJ-EXT2-CMD-01",
+        "repository": "schollz_progressbar",
+        "target_file": "cmd_runner.go",
+        "defect_category": "COMMAND_INJECTION",
+        "severity": "HIGH",
+        "line_number": 15,
+        "code_snippet": "cmd := exec.Command(\"sh\", \"-c\", \"echo hook: \"+customHook)\nreturn cmd.Run()",
+        "semantic_evidence": [
+          "Taint Sink: exec.Command argument passed directly to shell interpreter 'sh -c'.",
+          "Arbitrary Shell Expansion: customHook allows semicolon/pipe command injection.",
+          "AST Boundary Bound: Parameterizing shell string requires architectural redesign (split args)."
+        ],
+        "uncertainty_score": 0.95,
+        "automatic_eligibility": false,
+        "eligibility_rationale": "Unsupported AST repair: Shell command injection requires architectural restructuring. Safe fail-closed.",
+        "requires_human_review": true,
+        "finding_id": "FIND-INJ-EXT2-CMD-01",
+        "timestamp": "2026-11-18T06:22:52Z"
+      },
+      "proposal": {
+        "proposal_id": "PROP-INJ-EXT2-CMD-01-18200",
+        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-514500",
+        "target_id": "INJ-EXT2-CMD-01",
+        "status": "ABSTAINED",
+        "abstain_category": "COMMAND_INJECTION_ARCHITECTURAL_REDESIGN",
+        "abstain_reason": "Shell command execution requires manual architectural redesign to separate executable from arguments safely",
+        "requires_human_approval": false,
+        "execution_class": "HUMAN_APPROVAL_REQUIRED",
+        "file_hash": "",
+        "workspace_id": "",
+        "target_abs_path": "",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-1966036997",
+        "duration_ms": 9
+      },
+      "final_status": "EXPLICITLY_ABSTAINED",
+      "timestamp": "2026-11-18T06:22:52Z"
+    }
+  ]
+}

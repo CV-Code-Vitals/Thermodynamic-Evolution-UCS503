@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -20,24 +21,29 @@ const (
 
 // ReconciledFinding represents a canonically validated defect with full provenance and remediation gating.
 type ReconciledFinding struct {
-	FindingID              string                      `json:"finding_id"`
-	RuleID                 string                      `json:"rule_id"`
-	Category               repo_intel.Category         `json:"category"`
-	Severity               repo_intel.Severity         `json:"severity"`
-	Confidence             float64                     `json:"confidence"`
-	FindingState           FindingState                `json:"finding_state"`
-	TargetFile             string                      `json:"target_file"`
-	LineStart              int                         `json:"line_start"`
-	LineEnd                int                         `json:"line_end"`
-	Title                  string                      `json:"title"`
-	Description            string                      `json:"description"`
-	RootCause              string                      `json:"root_cause"`
-	RecommendedAction      string                      `json:"recommended_action"`
+	FindingID              string                        `json:"finding_id"`
+	RuleID                 string                        `json:"rule_id"`
+	Category               repo_intel.Category           `json:"category"`
+	Severity               repo_intel.Severity           `json:"severity"`
+	Confidence             float64                       `json:"confidence"`
+	FindingState           FindingState                  `json:"finding_state"`
+	TargetFile             string                        `json:"target_file"`
+	LineStart              int                           `json:"line_start"`
+	LineEnd                int                           `json:"line_end"`
+	Title                  string                        `json:"title"`
+	Description            string                        `json:"description"`
+	RootCause              string                        `json:"root_cause"`
+	RecommendedAction      string                        `json:"recommended_action"`
 	EvidenceLocations      []repo_intel.EvidenceLocation `json:"evidence_locations"`
-	CounterEvidences       []string                    `json:"counter_evidences,omitempty"`
-	RemediationEligibility RemediationEligibility      `json:"remediation_eligibility"`
-	Provenance             string                      `json:"provenance"`
-	Timestamp              time.Time                   `json:"timestamp"`
+	CounterEvidences       []string                      `json:"counter_evidences,omitempty"`
+	RemediationEligibility RemediationEligibility        `json:"remediation_eligibility"`
+	ApprovalRationale      string                        `json:"approval_rationale,omitempty"`
+	FileSHA256             string                        `json:"file_sha256,omitempty"`
+	UncertaintyClass       string                        `json:"uncertainty_class,omitempty"`
+	ConcurrencyState       string                        `json:"concurrency_state,omitempty"`
+	AccessPath             string                        `json:"access_path,omitempty"`
+	Provenance             string                        `json:"provenance"`
+	Timestamp              time.Time                     `json:"timestamp"`
 }
 
 // ReconciliationDecision captures an auditable action taken by the reconciliation layer.
@@ -52,13 +58,14 @@ type ReconciliationDecision struct {
 
 // ReconciliationLedger summarizes all retention, merging, and suppression choices.
 type ReconciliationLedger struct {
-	TotalProcessed   int                      `json:"total_processed"`
-	RetainedCount    int                      `json:"retained_count"`
-	MergedCount      int                      `json:"merged_count"`
-	SuppressedCount  int                      `json:"suppressed_count"`
-	QuarantinedCount int                      `json:"quarantined_count"`
-	Decisions        []ReconciliationDecision `json:"decisions"`
-	Findings         []ReconciledFinding      `json:"findings"`
+	TotalProcessed   int                       `json:"total_processed"`
+	RetainedCount    int                       `json:"retained_count"`
+	MergedCount      int                       `json:"merged_count"`
+	SuppressedCount  int                       `json:"suppressed_count"`
+	QuarantinedCount int                       `json:"quarantined_count"`
+	Decisions        []ReconciliationDecision  `json:"decisions"`
+	Findings         []ReconciledFinding       `json:"findings"`
+	Contracts        []SemanticFindingContract `json:"contracts,omitempty"`
 }
 
 // FindingReconciler resolves overlapping findings across regex heuristics, AST contexts, and semantic IR analyzers.
@@ -83,6 +90,7 @@ func (r *FindingReconciler) ReconcileFindings(
 	ledger := &ReconciliationLedger{
 		Decisions: make([]ReconciliationDecision, 0),
 		Findings:  make([]ReconciledFinding, 0),
+		Contracts: make([]SemanticFindingContract, 0),
 	}
 
 	seenAnchors := make(map[string]int) // "file:line:category:rule" -> index in ledger.Findings
@@ -121,6 +129,48 @@ func (r *FindingReconciler) ReconcileFindings(
 			Reason:    reason,
 			Timestamp: time.Now(),
 		})
+
+		// Build and append corresponding versioned contract
+		var fileHash string
+		if r.repoRoot != "" && rf.TargetFile != "" {
+			fullPath := filepath.Join(r.repoRoot, filepath.FromSlash(rf.TargetFile))
+			if h, err := ComputeFileSHA256(fullPath); err == nil {
+				fileHash = h
+				rf.FileSHA256 = h
+			}
+		}
+
+		contract := SemanticFindingContract{
+			SchemaVersion:          "2.0-semantic",
+			FindingID:              rf.FindingID,
+			RuleID:                 ruleID,
+			SourceCommit:           repoCommit,
+			FileSHA256:             fileHash,
+			TargetFile:             rf.TargetFile,
+			LineStart:              rf.LineStart,
+			LineEnd:                rf.LineEnd,
+			Category:               rf.Category,
+			Severity:               rf.Severity,
+			Confidence:             rf.Confidence,
+			AnalysisCompleteness:   CompletenessFull,
+			UncertaintyClass:       UncertaintyDeterministic,
+			RemediationEligibility: rf.RemediationEligibility,
+			HumanApprovalRequired:  rf.RemediationEligibility != EligibleAutonomous,
+			ApprovalRationale:      rf.ApprovalRationale,
+			ValidationRequirements: []string{"SEMANTIC_RESCAN", "COMPILER_GO_VET", "UNIT_TEST_REGRESSION"},
+			CounterEvidences:       rf.CounterEvidences,
+			Title:                  rf.Title,
+			Description:            rf.Description,
+			RootCause:              rf.RootCause,
+			RecommendedAction:      rf.RecommendedAction,
+			GeneratedAt:            time.Now(),
+		}
+		if rf.UncertaintyClass != "" {
+			contract.UncertaintyClass = UncertaintyClassification(rf.UncertaintyClass)
+		}
+		contract.SemanticTrace.ConcurrencyState = rf.ConcurrencyState
+		contract.SemanticTrace.AccessPath = rf.AccessPath
+		ledger.Contracts = append(ledger.Contracts, contract)
 	}
 
 	// 1. Process Semantic SQL Evidence
@@ -193,24 +243,36 @@ func (r *FindingReconciler) ReconcileFindings(
 	for _, ev := range resEvs {
 		if ev.LifecycleState == StateResourceLeakConfirmed || ev.LifecycleState == StateResourceLeakProbable {
 			eligibility := EligibleAutonomous
+			approvalRationale := ""
+			uncertainty := UncertaintyDeterministic
+
 			if ev.LifecycleState == StateResourceLeakProbable {
 				eligibility = EligibleHumanApproval
+				approvalRationale = "Probable resource leak requires human review"
+				uncertainty = UncertaintyBounded
+			}
+
+			// Fail closed on concurrent ownership escape or channel transfer
+			if ev.ConcurrencyState == ConcurrencyPossibleEscape || ev.ConcurrencyState == ConcurrencyUnknownOwnership {
+				eligibility = EligibleHumanApproval
+				approvalRationale = "Resource handle has uncertain concurrent ownership or goroutine escape; autonomous remediation prohibited"
+				uncertainty = UncertaintyPossibleEscape
 			}
 
 			rf := ReconciledFinding{
-				FindingID:         fmt.Sprintf("SEM-REL-RES-%s-L%d", sanitizeRel(ev.FilePath), ev.Line),
-				RuleID:            "SEMANTIC_RESOURCE_LEAK",
-				Category:          repo_intel.CategoryReliability,
-				Severity:          ev.Severity,
-				Confidence:        ev.Confidence,
-				FindingState:      ev.FindingState,
-				TargetFile:        ev.FilePath,
-				LineStart:         ev.Line,
-				LineEnd:           ev.Line,
-				Title:             ev.Title,
-				Description:       ev.Description,
-				RootCause:         ev.RootCause,
-				RecommendedAction: ev.RecommendedAction,
+				FindingID:              fmt.Sprintf("SEM-REL-RES-%s-L%d", sanitizeRel(ev.FilePath), ev.Line),
+				RuleID:                 "SEMANTIC_RESOURCE_LEAK",
+				Category:               repo_intel.CategoryReliability,
+				Severity:               ev.Severity,
+				Confidence:             ev.Confidence,
+				FindingState:           ev.FindingState,
+				TargetFile:             ev.FilePath,
+				LineStart:              ev.Line,
+				LineEnd:                ev.Line,
+				Title:                  ev.Title,
+				Description:            ev.Description,
+				RootCause:              ev.RootCause,
+				RecommendedAction:      ev.RecommendedAction,
 				EvidenceLocations: []repo_intel.EvidenceLocation{
 					{
 						File:        ev.FilePath,
@@ -220,6 +282,10 @@ func (r *FindingReconciler) ReconcileFindings(
 					},
 				},
 				RemediationEligibility: eligibility,
+				ApprovalRationale:      approvalRationale,
+				UncertaintyClass:       string(uncertainty),
+				ConcurrencyState:       string(ev.ConcurrencyState),
+				AccessPath:             ev.AccessPath,
 				Provenance:             repoCommit,
 				Timestamp:              time.Now(),
 			}

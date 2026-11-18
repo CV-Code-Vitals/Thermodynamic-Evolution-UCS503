@@ -10,6 +10,7 @@ import { fetchArchiveDownload } from '../archive-download';
 import { createArchiveApi, getSessionRefreshDelay } from '../archive-api';
 import EvolutionWorkspace from './EvolutionWorkspace';
 import GraphVisualizer from './GraphVisualizer';
+import RemediationPortal from './RemediationPortal';
 
 const apiBase = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 const archiveApi = createArchiveApi(apiBase);
@@ -41,7 +42,7 @@ const AdminPortal = () => {
   // ── Active view: dashboard, upload, archive, or deferred evolution ───────
   const [activeView, setActiveViewState] = useState(() => {
     const requestedView = window.location.hash.slice(1);
-    return ['dashboard', 'evolve', 'graph', 'upload', 'archive'].includes(requestedView)
+    return ['dashboard', 'evolve', 'repair', 'graph', 'upload', 'archive'].includes(requestedView)
       ? requestedView : 'dashboard';
   });
   const setActiveView = useCallback((view) => {
@@ -474,6 +475,12 @@ const AdminPortal = () => {
             <GitBranch size={14} /> SCAN & OPTIMIZE
           </button>
           <button
+            className={`tab-btn ${activeView === 'repair' ? 'active' : ''}`}
+            onClick={() => setActiveView('repair')}
+          >
+            <Shield size={14} /> AUTONOMOUS REPAIR
+          </button>
+          <button
             className={`tab-btn ${activeView === 'graph' ? 'active' : ''}`}
             onClick={() => setActiveView('graph')}
           >
@@ -740,6 +747,13 @@ const AdminPortal = () => {
             )}
           </div>
         )}
+
+        {/* ══════════════════════════════════════════════════════════════ */}
+        {/* REPAIR VIEW (AUTONOMOUS REPAIR MVP)                           */}
+        {/* ══════════════════════════════════════════════════════════════ */}
+        <section hidden={activeView !== 'repair'}>
+          <RemediationPortal apiBase={apiBase} token={token} />
+        </section>
 
         {/* ══════════════════════════════════════════════════════════════ */}
         {/* EVOLUTION VIEW                                                */}

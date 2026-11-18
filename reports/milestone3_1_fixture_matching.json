@@ -162,13 +162,11 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_1_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_1_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_1_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_1_go-L11"
+      "CTX-REL-RESOURCE-os.File-reliability-resource_leak_1_go-L11",
+      "CTX-REL-RESOURCE-os.File-reliability-resource_leak_1_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file reliability/resource_leak_1.go"
+    "rationale": "Matched 2 diagnostic findings on target file reliability/resource_leak_1.go"
   },
   {
     "fixture_id": "FIX-REL-LEAK-02",
@@ -177,13 +175,11 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_2_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_2_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_2_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_2_go-L11"
+      "CTX-REL-RESOURCE-os.File-reliability-resource_leak_2_go-L11",
+      "CTX-REL-RESOURCE-os.File-reliability-resource_leak_2_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file reliability/resource_leak_2.go"
+    "rationale": "Matched 2 diagnostic findings on target file reliability/resource_leak_2.go"
   },
   {
     "fixture_id": "FIX-REL-LEAK-03",
@@ -192,13 +188,11 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_3_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_3_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_3_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_3_go-L11"
+      "CTX-REL-RESOURCE-os.File-reliability-resource_leak_3_go-L11",
+      "CTX-REL-RESOURCE-os.File-reliability-resource_leak_3_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file reliability/resource_leak_3.go"
+    "rationale": "Matched 2 diagnostic findings on target file reliability/resource_leak_3.go"
   },
   {
     "fixture_id": "FIX-REL-LEAK-04",
@@ -207,31 +201,37 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_4_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_4_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_4_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-resource_leak_4_go-L11"
+      "CTX-REL-RESOURCE-os.File-reliability-resource_leak_4_go-L11",
+      "CTX-REL-RESOURCE-os.File-reliability-resource_leak_4_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file reliability/resource_leak_4.go"
+    "rationale": "Matched 2 diagnostic findings on target file reliability/resource_leak_4.go"
   },
   {
     "fixture_id": "FIX-SEC-SECRET-01",
     "target_file": "security/secrets_1.go",
     "is_defect": true,
     "category": "SECURITY",
-    "match_outcome": "FALSE_NEGATIVE",
-    "matching_rule": "NONE",
-    "rationale": "Zero diagnostic findings detected matching defect on security/secrets_1.go"
+    "match_outcome": "TRUE_POSITIVE",
+    "matched_finding_ids": [
+      "RI-SEC-SECRET-SECURITY_SECRETS_1_GO-L4",
+      "RI-SEC-SECRET-SECURITY_SECRETS_1_GO-L4"
+    ],
+    "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
+    "rationale": "Matched 2 diagnostic findings on target file security/secrets_1.go"
   },
   {
     "fixture_id": "FIX-SEC-SECRET-02",
     "target_file": "security/secrets_2.go",
     "is_defect": true,
     "category": "SECURITY",
-    "match_outcome": "FALSE_NEGATIVE",
-    "matching_rule": "NONE",
-    "rationale": "Zero diagnostic findings detected matching defect on security/secrets_2.go"
+    "match_outcome": "TRUE_POSITIVE",
+    "matched_finding_ids": [
+      "RI-SEC-SECRET-SECURITY_SECRETS_2_GO-L4",
+      "RI-SEC-SECRET-SECURITY_SECRETS_2_GO-L4"
+    ],
+    "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
+    "rationale": "Matched 2 diagnostic findings on target file security/secrets_2.go"
   },
   {
     "fixture_id": "FIX-SEC-CMD-01",
@@ -241,12 +241,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-SEC-CMD-INJECT-security-command_exec_1_go-L9",
-      "CTX-SEC-CMD-INJECT-security-command_exec_1_go-L9",
-      "CTX-SEC-CMD-INJECT-security-command_exec_1_go-L9",
       "CTX-SEC-CMD-INJECT-security-command_exec_1_go-L9"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file security/command_exec_1.go"
+    "rationale": "Matched 2 diagnostic findings on target file security/command_exec_1.go"
   },
   {
     "fixture_id": "FIX-SEC-CMD-02",
@@ -256,12 +254,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-SEC-CMD-INJECT-security-command_exec_2_go-L9",
-      "CTX-SEC-CMD-INJECT-security-command_exec_2_go-L9",
-      "CTX-SEC-CMD-INJECT-security-command_exec_2_go-L9",
       "CTX-SEC-CMD-INJECT-security-command_exec_2_go-L9"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file security/command_exec_2.go"
+    "rationale": "Matched 2 diagnostic findings on target file security/command_exec_2.go"
   },
   {
     "fixture_id": "FIX-SEC-CMD-03",
@@ -271,12 +267,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-SEC-CMD-INJECT-security-command_exec_3_go-L9",
-      "CTX-SEC-CMD-INJECT-security-command_exec_3_go-L9",
-      "CTX-SEC-CMD-INJECT-security-command_exec_3_go-L9",
       "CTX-SEC-CMD-INJECT-security-command_exec_3_go-L9"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file security/command_exec_3.go"
+    "rationale": "Matched 2 diagnostic findings on target file security/command_exec_3.go"
   },
   {
     "fixture_id": "FIX-SEC-SQL-01",
@@ -287,8 +281,8 @@
     "matched_finding_ids": [
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_INJECTION_1_GO-L6",
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_INJECTION_1_GO-L6",
-      "CTX-SEC-SQL-INJECT-security-sql_injection_1_go",
-      "CTX-SEC-SQL-INJECT-security-sql_injection_1_go"
+      "CTX-SEC-SQL-INJECT-security-sql_injection_1_go-L7",
+      "CTX-SEC-SQL-INJECT-security-sql_injection_1_go-L7"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 4 diagnostic findings on target file security/sql_injection_1.go"
@@ -302,8 +296,8 @@
     "matched_finding_ids": [
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_INJECTION_2_GO-L6",
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_INJECTION_2_GO-L6",
-      "CTX-SEC-SQL-INJECT-security-sql_injection_2_go",
-      "CTX-SEC-SQL-INJECT-security-sql_injection_2_go"
+      "CTX-SEC-SQL-INJECT-security-sql_injection_2_go-L7",
+      "CTX-SEC-SQL-INJECT-security-sql_injection_2_go-L7"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 4 diagnostic findings on target file security/sql_injection_2.go"
@@ -317,8 +311,8 @@
     "matched_finding_ids": [
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_INJECTION_3_GO-L6",
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_INJECTION_3_GO-L6",
-      "CTX-SEC-SQL-INJECT-security-sql_injection_3_go",
-      "CTX-SEC-SQL-INJECT-security-sql_injection_3_go"
+      "CTX-SEC-SQL-INJECT-security-sql_injection_3_go-L7",
+      "CTX-SEC-SQL-INJECT-security-sql_injection_3_go-L7"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 4 diagnostic findings on target file security/sql_injection_3.go"
@@ -440,8 +434,8 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-LAYER-BYPASS-architecture-api_handler_1_go",
-      "CTX-ARC-LAYER-BYPASS-architecture-api_handler_1_go",
+      "CTX-SEC-SQL-INJECT-architecture-api_handler_1_go-L10",
+      "CTX-SEC-SQL-INJECT-architecture-api_handler_1_go-L10",
       "CTX-ARC-LAYER-BYPASS-architecture-api_handler_1_go",
       "CTX-ARC-LAYER-BYPASS-architecture-api_handler_1_go"
     ],
@@ -455,8 +449,8 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-LAYER-BYPASS-architecture-api_handler_2_go",
-      "CTX-ARC-LAYER-BYPASS-architecture-api_handler_2_go",
+      "CTX-SEC-SQL-INJECT-architecture-api_handler_2_go-L10",
+      "CTX-SEC-SQL-INJECT-architecture-api_handler_2_go-L10",
       "CTX-ARC-LAYER-BYPASS-architecture-api_handler_2_go",
       "CTX-ARC-LAYER-BYPASS-architecture-api_handler_2_go"
     ],
@@ -470,8 +464,8 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-LAYER-BYPASS-architecture-api_handler_3_go",
-      "CTX-ARC-LAYER-BYPASS-architecture-api_handler_3_go",
+      "CTX-SEC-SQL-INJECT-architecture-api_handler_3_go-L10",
+      "CTX-SEC-SQL-INJECT-architecture-api_handler_3_go-L10",
       "CTX-ARC-LAYER-BYPASS-architecture-api_handler_3_go",
       "CTX-ARC-LAYER-BYPASS-architecture-api_handler_3_go"
     ],
@@ -485,8 +479,8 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-LAYER-BYPASS-architecture-api_handler_4_go",
-      "CTX-ARC-LAYER-BYPASS-architecture-api_handler_4_go",
+      "CTX-SEC-SQL-INJECT-architecture-api_handler_4_go-L10",
+      "CTX-SEC-SQL-INJECT-architecture-api_handler_4_go-L10",
       "CTX-ARC-LAYER-BYPASS-architecture-api_handler_4_go",
       "CTX-ARC-LAYER-BYPASS-architecture-api_handler_4_go"
     ],
@@ -502,13 +496,10 @@
     "matched_finding_ids": [
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_1_go-ServiceAlpha1-ServiceBeta1",
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_1_go-ServiceAlpha1-ServiceBeta1",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_1_go-ServiceAlpha1-ServiceBeta1",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_1_go-ServiceAlpha1-ServiceBeta1",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_1_go-ServiceAlpha1-ServiceBeta1",
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_1_go-ServiceAlpha1-ServiceBeta1"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file architecture/cycle_1.go"
+    "rationale": "Matched 3 diagnostic findings on target file architecture/cycle_1.go"
   },
   {
     "fixture_id": "FIX-ARC-CYCLE-02",
@@ -519,13 +510,10 @@
     "matched_finding_ids": [
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_2_go-ServiceAlpha2-ServiceBeta2",
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_2_go-ServiceAlpha2-ServiceBeta2",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_2_go-ServiceAlpha2-ServiceBeta2",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_2_go-ServiceBeta2-ServiceAlpha2",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_2_go-ServiceBeta2-ServiceAlpha2",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_2_go-ServiceBeta2-ServiceAlpha2"
+      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_2_go-ServiceAlpha2-ServiceBeta2"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file architecture/cycle_2.go"
+    "rationale": "Matched 3 diagnostic findings on target file architecture/cycle_2.go"
   },
   {
     "fixture_id": "FIX-ARC-CYCLE-03",
@@ -536,13 +524,10 @@
     "matched_finding_ids": [
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_3_go-ServiceAlpha3-ServiceBeta3",
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_3_go-ServiceAlpha3-ServiceBeta3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_3_go-ServiceAlpha3-ServiceBeta3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_3_go-ServiceAlpha3-ServiceBeta3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_3_go-ServiceAlpha3-ServiceBeta3",
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_3_go-ServiceAlpha3-ServiceBeta3"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file architecture/cycle_3.go"
+    "rationale": "Matched 3 diagnostic findings on target file architecture/cycle_3.go"
   },
   {
     "fixture_id": "FIX-ARC-CYCLE-04",
@@ -553,13 +538,10 @@
     "matched_finding_ids": [
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4",
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4",
       "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file architecture/cycle_4.go"
+    "rationale": "Matched 3 diagnostic findings on target file architecture/cycle_4.go"
   },
   {
     "fixture_id": "FIX-TST-UNTESTED-01",
@@ -569,12 +551,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-TST-UNTESTED-SYM-testing-untested_service_1_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_1_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_1_go",
       "CTX-TST-UNTESTED-SYM-testing-untested_service_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file testing/untested_service_1.go"
+    "rationale": "Matched 2 diagnostic findings on target file testing/untested_service_1.go"
   },
   {
     "fixture_id": "FIX-TST-UNTESTED-02",
@@ -584,12 +564,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-TST-UNTESTED-SYM-testing-untested_service_2_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_2_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_2_go",
       "CTX-TST-UNTESTED-SYM-testing-untested_service_2_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file testing/untested_service_2.go"
+    "rationale": "Matched 2 diagnostic findings on target file testing/untested_service_2.go"
   },
   {
     "fixture_id": "FIX-TST-UNTESTED-03",
@@ -599,12 +577,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-TST-UNTESTED-SYM-testing-untested_service_3_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_3_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_3_go",
       "CTX-TST-UNTESTED-SYM-testing-untested_service_3_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file testing/untested_service_3.go"
+    "rationale": "Matched 2 diagnostic findings on target file testing/untested_service_3.go"
   },
   {
     "fixture_id": "FIX-TST-UNTESTED-04",
@@ -614,12 +590,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-TST-UNTESTED-SYM-testing-untested_service_4_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_4_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_4_go",
       "CTX-TST-UNTESTED-SYM-testing-untested_service_4_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file testing/untested_service_4.go"
+    "rationale": "Matched 2 diagnostic findings on target file testing/untested_service_4.go"
   },
   {
     "fixture_id": "FIX-TST-UNTESTED-05",
@@ -629,12 +603,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-TST-UNTESTED-SYM-testing-untested_service_5_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_5_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_5_go",
       "CTX-TST-UNTESTED-SYM-testing-untested_service_5_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file testing/untested_service_5.go"
+    "rationale": "Matched 2 diagnostic findings on target file testing/untested_service_5.go"
   },
   {
     "fixture_id": "FIX-TST-UNTESTED-06",
@@ -644,12 +616,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-TST-UNTESTED-SYM-testing-untested_service_6_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_6_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_6_go",
       "CTX-TST-UNTESTED-SYM-testing-untested_service_6_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file testing/untested_service_6.go"
+    "rationale": "Matched 2 diagnostic findings on target file testing/untested_service_6.go"
   },
   {
     "fixture_id": "FIX-TST-UNTESTED-07",
@@ -659,12 +629,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-TST-UNTESTED-SYM-testing-untested_service_7_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_7_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_7_go",
       "CTX-TST-UNTESTED-SYM-testing-untested_service_7_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file testing/untested_service_7.go"
+    "rationale": "Matched 2 diagnostic findings on target file testing/untested_service_7.go"
   },
   {
     "fixture_id": "FIX-TST-UNTESTED-08",
@@ -674,12 +642,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-TST-UNTESTED-SYM-testing-untested_service_8_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_8_go",
-      "CTX-TST-UNTESTED-SYM-testing-untested_service_8_go",
       "CTX-TST-UNTESTED-SYM-testing-untested_service_8_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file testing/untested_service_8.go"
+    "rationale": "Matched 2 diagnostic findings on target file testing/untested_service_8.go"
   },
   {
     "fixture_id": "FIX-MNT-DUPLICATE-01",
@@ -690,13 +656,10 @@
     "matched_finding_ids": [
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file maintainability/duplicate_fn_1.go"
+    "rationale": "Matched 3 diagnostic findings on target file maintainability/duplicate_fn_1.go"
   },
   {
     "fixture_id": "FIX-MNT-DUPLICATE-02",
@@ -707,13 +670,10 @@
     "matched_finding_ids": [
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file maintainability/duplicate_fn_2.go"
+    "rationale": "Matched 3 diagnostic findings on target file maintainability/duplicate_fn_2.go"
   },
   {
     "fixture_id": "FIX-MNT-DUPLICATE-03",
@@ -724,13 +684,10 @@
     "matched_finding_ids": [
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file maintainability/duplicate_fn_3.go"
+    "rationale": "Matched 3 diagnostic findings on target file maintainability/duplicate_fn_3.go"
   },
   {
     "fixture_id": "FIX-MNT-DUPLICATE-04",
@@ -741,13 +698,10 @@
     "matched_finding_ids": [
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file maintainability/duplicate_fn_4.go"
+    "rationale": "Matched 3 diagnostic findings on target file maintainability/duplicate_fn_4.go"
   },
   {
     "fixture_id": "FIX-MNT-DUPLICATE-05",
@@ -758,13 +712,10 @@
     "matched_finding_ids": [
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file maintainability/duplicate_fn_5.go"
+    "rationale": "Matched 3 diagnostic findings on target file maintainability/duplicate_fn_5.go"
   },
   {
     "fixture_id": "FIX-MNT-DUPLICATE-06",
@@ -775,13 +726,10 @@
     "matched_finding_ids": [
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file maintainability/duplicate_fn_6.go"
+    "rationale": "Matched 3 diagnostic findings on target file maintainability/duplicate_fn_6.go"
   },
   {
     "fixture_id": "FIX-MNT-DUPLICATE-07",
@@ -792,13 +740,10 @@
     "matched_finding_ids": [
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file maintainability/duplicate_fn_7.go"
+    "rationale": "Matched 3 diagnostic findings on target file maintainability/duplicate_fn_7.go"
   },
   {
     "fixture_id": "FIX-MNT-DUPLICATE-08",
@@ -809,13 +754,10 @@
     "matched_finding_ids": [
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
-      "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go",
       "CTX-MNT-DUPLICATE-FN-maintainability-duplicate_fn_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 6 diagnostic findings on target file maintainability/duplicate_fn_8.go"
+    "rationale": "Matched 3 diagnostic findings on target file maintainability/duplicate_fn_8.go"
   },
   {
     "fixture_id": "FIX-DOC-UNDOC-01",
@@ -825,12 +767,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_1_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_1_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_1_go",
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_1_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file documentation/undocumented_api_1.go"
+    "rationale": "Matched 2 diagnostic findings on target file documentation/undocumented_api_1.go"
   },
   {
     "fixture_id": "FIX-DOC-UNDOC-02",
@@ -840,12 +780,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_2_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_2_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_2_go",
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_2_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file documentation/undocumented_api_2.go"
+    "rationale": "Matched 2 diagnostic findings on target file documentation/undocumented_api_2.go"
   },
   {
     "fixture_id": "FIX-DOC-UNDOC-03",
@@ -855,12 +793,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_3_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_3_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_3_go",
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_3_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file documentation/undocumented_api_3.go"
+    "rationale": "Matched 2 diagnostic findings on target file documentation/undocumented_api_3.go"
   },
   {
     "fixture_id": "FIX-DOC-UNDOC-04",
@@ -870,12 +806,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_4_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_4_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_4_go",
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_4_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file documentation/undocumented_api_4.go"
+    "rationale": "Matched 2 diagnostic findings on target file documentation/undocumented_api_4.go"
   },
   {
     "fixture_id": "FIX-DOC-UNDOC-05",
@@ -885,12 +819,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_5_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_5_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_5_go",
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_5_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file documentation/undocumented_api_5.go"
+    "rationale": "Matched 2 diagnostic findings on target file documentation/undocumented_api_5.go"
   },
   {
     "fixture_id": "FIX-DOC-UNDOC-06",
@@ -900,12 +832,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_6_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_6_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_6_go",
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_6_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file documentation/undocumented_api_6.go"
+    "rationale": "Matched 2 diagnostic findings on target file documentation/undocumented_api_6.go"
   },
   {
     "fixture_id": "FIX-DOC-UNDOC-07",
@@ -915,12 +845,10 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_7_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_7_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_7_go",
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_7_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file documentation/undocumented_api_7.go"
+    "rationale": "Matched 2 diagnostic findings on target file documentation/undocumented_api_7.go"
   },
   {
     "fixture_id": "FIX-DOC-UNDOC-08",
@@ -930,42 +858,28 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_8_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_8_go",
-      "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_8_go",
       "CTX-DOC-MISSING-GODOC-documentation-undocumented_api_8_go"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 4 diagnostic findings on target file documentation/undocumented_api_8.go"
+    "rationale": "Matched 2 diagnostic findings on target file documentation/undocumented_api_8.go"
   },
   {
     "fixture_id": "CLEAN-STR-NEST-01",
     "target_file": "structural/clean_nesting_1.go",
     "is_defect": false,
     "category": "STRUCTURAL",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "CTX-MNT-DUPLICATE-FN-structural-clean_nesting_1_go",
-      "CTX-MNT-DUPLICATE-FN-structural-clean_nesting_1_go",
-      "CTX-MNT-DUPLICATE-FN-structural-clean_nesting_1_go",
-      "CTX-MNT-DUPLICATE-FN-structural-clean_nesting_1_go"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file structural/clean_nesting_1.go was falsely flagged by 4 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file structural/clean_nesting_1.go correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-STR-NEST-02",
     "target_file": "structural/clean_nesting_2.go",
     "is_defect": false,
     "category": "STRUCTURAL",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "CTX-MNT-DUPLICATE-FN-structural-clean_nesting_1_go",
-      "CTX-MNT-DUPLICATE-FN-structural-clean_nesting_1_go",
-      "CTX-MNT-DUPLICATE-FN-structural-clean_nesting_1_go",
-      "CTX-MNT-DUPLICATE-FN-structural-clean_nesting_1_go"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file structural/clean_nesting_2.go was falsely flagged by 4 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file structural/clean_nesting_2.go correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-STR-COMPLEX-01",
@@ -1008,30 +922,18 @@
     "target_file": "reliability/clean_resource_1.go",
     "is_defect": false,
     "category": "RELIABILITY",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "CTX-MNT-DUPLICATE-FN-reliability-clean_resource_1_go",
-      "CTX-MNT-DUPLICATE-FN-reliability-clean_resource_1_go",
-      "CTX-MNT-DUPLICATE-FN-reliability-clean_resource_1_go",
-      "CTX-MNT-DUPLICATE-FN-reliability-clean_resource_1_go"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file reliability/clean_resource_1.go was falsely flagged by 4 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file reliability/clean_resource_1.go correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-REL-RES-02",
     "target_file": "reliability/clean_resource_2.go",
     "is_defect": false,
     "category": "RELIABILITY",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "CTX-MNT-DUPLICATE-FN-reliability-clean_resource_1_go",
-      "CTX-MNT-DUPLICATE-FN-reliability-clean_resource_1_go",
-      "CTX-MNT-DUPLICATE-FN-reliability-clean_resource_1_go",
-      "CTX-MNT-DUPLICATE-FN-reliability-clean_resource_1_go"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file reliability/clean_resource_2.go was falsely flagged by 4 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file reliability/clean_resource_2.go correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-SEC-SECRET-01",
@@ -1092,30 +994,18 @@
     "target_file": "dependency/clean_mod_1/go.mod",
     "is_defect": false,
     "category": "DEPENDENCY",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "RI-DEP-GOSUM-MISSING-ROOT",
-      "RI-DEP-GOSUM-MISSING-ROOT",
-      "CTX-DEP-NOLOCK-go_mod",
-      "CTX-DEP-NOLOCK-go_mod"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file dependency/clean_mod_1/go.mod was falsely flagged by 4 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file dependency/clean_mod_1/go.mod correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-DEP-LOCK-02",
     "target_file": "dependency/clean_mod_2/go.mod",
     "is_defect": false,
     "category": "DEPENDENCY",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "RI-DEP-GOSUM-MISSING-ROOT",
-      "RI-DEP-GOSUM-MISSING-ROOT",
-      "CTX-DEP-NOLOCK-go_mod",
-      "CTX-DEP-NOLOCK-go_mod"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file dependency/clean_mod_2/go.mod was falsely flagged by 4 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file dependency/clean_mod_2/go.mod correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-ARC-LAYER-01",
@@ -1230,65 +1120,35 @@
     "target_file": "documentation/documented_api_1.go",
     "is_defect": false,
     "category": "DOCUMENTATION",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "RI-QUAL-NOTEST-DOCUMENTATION",
-      "RI-QUAL-NOTEST-DOCUMENTATION",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_1_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_1_go"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file documentation/documented_api_1.go was falsely flagged by 4 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file documentation/documented_api_1.go correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-DOC-DOC-02",
     "target_file": "documentation/documented_api_2.go",
     "is_defect": false,
     "category": "DOCUMENTATION",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "RI-QUAL-NOTEST-DOCUMENTATION",
-      "RI-QUAL-NOTEST-DOCUMENTATION",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_2_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_2_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_2_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_2_go"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file documentation/documented_api_2.go was falsely flagged by 6 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file documentation/documented_api_2.go correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-DOC-DOC-03",
     "target_file": "documentation/documented_api_3.go",
     "is_defect": false,
     "category": "DOCUMENTATION",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "RI-QUAL-NOTEST-DOCUMENTATION",
-      "RI-QUAL-NOTEST-DOCUMENTATION",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_3_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_3_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_3_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_3_go"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file documentation/documented_api_3.go was falsely flagged by 6 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file documentation/documented_api_3.go correctly left unflagged (0 findings)"
   },
   {
     "fixture_id": "CLEAN-DOC-DOC-04",
     "target_file": "documentation/documented_api_4.go",
     "is_defect": false,
     "category": "DOCUMENTATION",
-    "match_outcome": "FALSE_POSITIVE",
-    "matched_finding_ids": [
-      "RI-QUAL-NOTEST-DOCUMENTATION",
-      "RI-QUAL-NOTEST-DOCUMENTATION",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_4_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_4_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_4_go",
-      "CTX-TST-UNTESTED-SYM-documentation-documented_api_4_go"
-    ],
-    "matching_rule": "SPURIOUS_FINDING_ON_CONTROL",
-    "rationale": "Clean control file documentation/documented_api_4.go was falsely flagged by 6 findings"
+    "match_outcome": "TRUE_NEGATIVE",
+    "matching_rule": "CLEAN_CONTROL_UNFLAGGED",
+    "rationale": "Clean control file documentation/documented_api_4.go correctly left unflagged (0 findings)"
   }
 ]

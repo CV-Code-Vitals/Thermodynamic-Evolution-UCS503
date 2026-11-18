@@ -1,7 +1,7 @@
 {
   "summary": {
-    "total_findings": 7,
-    "validated": 6,
+    "total_findings": 11,
+    "validated": 10,
     "partially_validated": 0,
     "stale": 1,
     "invalid": 0,
@@ -190,6 +190,129 @@
       "detection_method": "MANIFEST_ANALYSIS"
     },
     {
+      "finding_id": "CTX-REL-ERROR-internal-consumer-consumer_go-L60",
+      "source_finding_id": "CTX-REL-ERROR-internal-consumer-consumer_go-L60",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unhandled Error Return (json.Unmarshal)",
+      "description": "Function 'ParseRawPayload' at line 60 invokes error-producing call 'json.Unmarshal(data, \u0026res)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "internal/consumer/consumer.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "internal/consumer/consumer.go",
+          "line_start": 60,
+          "line_end": 60,
+          "description": "json.Unmarshal(data, \u0026res)"
+        }
+      ],
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-REL-RESOURCE-net.Conn-internal-producer-producer_go-L48",
+      "source_finding_id": "CTX-REL-RESOURCE-net.Conn-internal-producer-producer_go-L48",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unclosed System Resource Leak (net.Conn)",
+      "description": "Resource handle 'conn' of type net.Conn acquired in function 'SendDirect' at line 48 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "internal/producer/producer.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "internal/producer/producer.go",
+          "line_start": 48,
+          "line_end": 48,
+          "description": "net.DialTimeout(\"tcp\", addr, 2*time.Second)"
+        }
+      ],
+      "recommended_action": "Ensure 'defer conn.Close()' is called immediately following successful acquisition error checking.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-REL-RESOURCE-time.Timer-pkg-retry-retry_go-L66",
+      "source_finding_id": "CTX-REL-RESOURCE-time.Timer-pkg-retry-retry_go-L66",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unclosed System Resource Leak (time.Timer)",
+      "description": "Resource handle 'timer' of type time.Timer acquired in function 'RetryWithTimerLeak' at line 66 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "pkg/retry/retry.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "pkg/retry/retry.go",
+          "line_start": 66,
+          "line_end": 66,
+          "description": "time.NewTimer(20 * time.Millisecond)"
+        }
+      ],
+      "recommended_action": "Ensure 'defer timer.Close()' is called immediately following successful acquisition error checking.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+    },
+    {
       "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
       "source_finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
       "validation_state": "VALIDATED",
@@ -268,6 +391,47 @@
         "Issue resolved verified by contextual inspection"
       ],
       "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+    },
+    {
+      "finding_id": "CTX-DEP-NOLOCK-go_mod",
+      "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "DEPENDENCY",
+      "severity": "MEDIUM",
+      "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+      "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+      "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "go.mod"
+      ],
+      "impact_scope": "Build Pipeline \u0026 Supply Chain",
+      "potential_consequences": [
+        "Non-reproducible CI builds",
+        "Vulnerability to upstream dependency drift"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "go.mod",
+          "line_start": 1,
+          "line_end": 1,
+          "description": "go.mod lacking verified go.sum"
+        }
+      ],
+      "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
     }
   ]
 }
