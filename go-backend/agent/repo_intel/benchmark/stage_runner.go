@@ -39,19 +39,7 @@ func (sr *StageRunner) RunStage1RepoIntel(ctx context.Context) (*repo_intel.Inte
 	_ = os.MkdirAll(absOut, 0755)
 
 	// Resolve Rust AST engine binary
-	rustEngine := ""
-	astCandidates := []string{
-		"thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"E:/SWE/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-	}
-	for _, cand := range astCandidates {
-		if _, err := os.Stat(cand); err == nil {
-			rustEngine, _ = filepath.Abs(cand)
-			break
-		}
-	}
+	rustEngine := ResolveRustEngineBinary()
 
 	cfg := repo_intel.OrchestratorConfig{
 		RepoRoot:       absRepo,

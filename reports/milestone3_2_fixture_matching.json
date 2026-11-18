@@ -112,9 +112,9 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-WorkflowGraphV3-StepGraphV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-WorkflowGraphV3-StepGraphV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-WorkflowGraphV3-StepGraphV3"
+      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-StepGraphV3-WorkflowGraphV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-StepGraphV3-WorkflowGraphV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-StepGraphV3-WorkflowGraphV3"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 3 diagnostic findings on target file architecture/workflow_step_cycle.go"
@@ -140,9 +140,9 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-SessionContextV3-DeviceRegistryV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-SessionContextV3-DeviceRegistryV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-SessionContextV3-DeviceRegistryV3"
+      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-DeviceRegistryV3-SessionContextV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-DeviceRegistryV3-SessionContextV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-DeviceRegistryV3-SessionContextV3"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 3 diagnostic findings on target file architecture/session_device_cycle.go"
@@ -169,10 +169,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_AUTH_CLIENT",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_AUTH_CLIENT"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_AUTH_CLIENT",
+      "CTX-DEP-NOLOCK-dependency-auth_client-go_mod",
+      "CTX-DEP-NOLOCK-dependency-auth_client-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/auth_client/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/auth_client/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-02",
@@ -182,10 +184,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_BILLING_CORE",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_BILLING_CORE"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_BILLING_CORE",
+      "CTX-DEP-NOLOCK-dependency-billing_core-go_mod",
+      "CTX-DEP-NOLOCK-dependency-billing_core-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/billing_core/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/billing_core/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-03",
@@ -195,10 +199,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_SHIPPING_CALC",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_SHIPPING_CALC"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_SHIPPING_CALC",
+      "CTX-DEP-NOLOCK-dependency-shipping_calc-go_mod",
+      "CTX-DEP-NOLOCK-dependency-shipping_calc-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/shipping_calc/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/shipping_calc/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-04",
@@ -208,10 +214,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_ANALYTICS_AGG",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_ANALYTICS_AGG"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_ANALYTICS_AGG",
+      "CTX-DEP-NOLOCK-dependency-analytics_agg-go_mod",
+      "CTX-DEP-NOLOCK-dependency-analytics_agg-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/analytics_agg/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/analytics_agg/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-05",
@@ -221,10 +229,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_SEARCH_INDEXER",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_SEARCH_INDEXER"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_SEARCH_INDEXER",
+      "CTX-DEP-NOLOCK-dependency-search_indexer-go_mod",
+      "CTX-DEP-NOLOCK-dependency-search_indexer-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/search_indexer/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/search_indexer/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-06",
@@ -234,10 +244,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_NOTIFICATION_HUB",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_NOTIFICATION_HUB"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_NOTIFICATION_HUB",
+      "CTX-DEP-NOLOCK-dependency-notification_hub-go_mod",
+      "CTX-DEP-NOLOCK-dependency-notification_hub-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/notification_hub/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/notification_hub/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-07",
@@ -247,10 +259,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_ETL_PIPELINE",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_ETL_PIPELINE"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_ETL_PIPELINE",
+      "CTX-DEP-NOLOCK-dependency-etl_pipeline-go_mod",
+      "CTX-DEP-NOLOCK-dependency-etl_pipeline-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/etl_pipeline/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/etl_pipeline/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-08",
@@ -260,10 +274,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_GATEWAY_PROXY",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_GATEWAY_PROXY"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_GATEWAY_PROXY",
+      "CTX-DEP-NOLOCK-dependency-gateway_proxy-go_mod",
+      "CTX-DEP-NOLOCK-dependency-gateway_proxy-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/gateway_proxy/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/gateway_proxy/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-09",
@@ -273,10 +289,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_REPORTING_WORKER",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_REPORTING_WORKER"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_REPORTING_WORKER",
+      "CTX-DEP-NOLOCK-dependency-reporting_worker-go_mod",
+      "CTX-DEP-NOLOCK-dependency-reporting_worker-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/reporting_worker/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/reporting_worker/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-10",
@@ -286,10 +304,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_INGEST_AGENT",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_INGEST_AGENT"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_INGEST_AGENT",
+      "CTX-DEP-NOLOCK-dependency-ingest_agent-go_mod",
+      "CTX-DEP-NOLOCK-dependency-ingest_agent-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/ingest_agent/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/ingest_agent/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-11",
@@ -299,10 +319,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_CACHE_CLUSTER",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_CACHE_CLUSTER"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_CACHE_CLUSTER",
+      "CTX-DEP-NOLOCK-dependency-cache_cluster-go_mod",
+      "CTX-DEP-NOLOCK-dependency-cache_cluster-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/cache_cluster/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/cache_cluster/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DEP-LOCK-12",
@@ -312,10 +334,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-DEP-GOSUM-MISSING-DEPENDENCY_SYNC_DAEMON",
-      "RI-DEP-GOSUM-MISSING-DEPENDENCY_SYNC_DAEMON"
+      "RI-DEP-GOSUM-MISSING-DEPENDENCY_SYNC_DAEMON",
+      "CTX-DEP-NOLOCK-dependency-sync_daemon-go_mod",
+      "CTX-DEP-NOLOCK-dependency-sync_daemon-go_mod"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file dependency/sync_daemon/go.mod"
+    "rationale": "Matched 4 diagnostic findings on target file dependency/sync_daemon/go.mod"
   },
   {
     "fixture_id": "FIX-V3-DOC-UNDOC-01",
@@ -636,8 +660,8 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-LEAK-LOOP-reliability-stream_file_leak_1_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-stream_file_leak_1_go-L11"
+      "CTX-REL-RESOURCE-os.File-reliability-stream_file_leak_1_go-L11",
+      "CTX-REL-RESOURCE-os.File-reliability-stream_file_leak_1_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 2 diagnostic findings on target file reliability/stream_file_leak_1.go"
@@ -649,8 +673,8 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-LEAK-LOOP-reliability-stream_file_leak_2_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-stream_file_leak_2_go-L11"
+      "CTX-REL-RESOURCE-os.File-reliability-stream_file_leak_2_go-L11",
+      "CTX-REL-RESOURCE-os.File-reliability-stream_file_leak_2_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 2 diagnostic findings on target file reliability/stream_file_leak_2.go"
@@ -688,8 +712,8 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-LEAK-LOOP-reliability-socket_drain_leak_1_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-socket_drain_leak_1_go-L11"
+      "CTX-REL-RESOURCE-net.Conn-reliability-socket_drain_leak_1_go-L11",
+      "CTX-REL-RESOURCE-net.Conn-reliability-socket_drain_leak_1_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 2 diagnostic findings on target file reliability/socket_drain_leak_1.go"
@@ -701,8 +725,8 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-LEAK-LOOP-reliability-socket_drain_leak_2_go-L11",
-      "CTX-REL-LEAK-LOOP-reliability-socket_drain_leak_2_go-L11"
+      "CTX-REL-RESOURCE-net.Conn-reliability-socket_drain_leak_2_go-L11",
+      "CTX-REL-RESOURCE-net.Conn-reliability-socket_drain_leak_2_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 2 diagnostic findings on target file reliability/socket_drain_leak_2.go"
@@ -714,8 +738,8 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-DEFER-IN-LOOP-reliability-defer_loop_file_1_go-L11",
-      "CTX-REL-DEFER-IN-LOOP-reliability-defer_loop_file_1_go-L11"
+      "CTX-REL-RESOURCE-os.File-reliability-defer_loop_file_1_go-L11",
+      "CTX-REL-RESOURCE-os.File-reliability-defer_loop_file_1_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 2 diagnostic findings on target file reliability/defer_loop_file_1.go"
@@ -727,8 +751,8 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-DEFER-IN-LOOP-reliability-defer_loop_file_2_go-L11",
-      "CTX-REL-DEFER-IN-LOOP-reliability-defer_loop_file_2_go-L11"
+      "CTX-REL-RESOURCE-os.File-reliability-defer_loop_file_2_go-L11",
+      "CTX-REL-RESOURCE-os.File-reliability-defer_loop_file_2_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 2 diagnostic findings on target file reliability/defer_loop_file_2.go"
@@ -766,8 +790,8 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-DEFER-IN-LOOP-reliability-defer_loop_net_1_go-L11",
-      "CTX-REL-DEFER-IN-LOOP-reliability-defer_loop_net_1_go-L11"
+      "CTX-REL-RESOURCE-net.Conn-reliability-defer_loop_net_1_go-L11",
+      "CTX-REL-RESOURCE-net.Conn-reliability-defer_loop_net_1_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 2 diagnostic findings on target file reliability/defer_loop_net_1.go"
@@ -779,8 +803,8 @@
     "category": "RELIABILITY",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-REL-DEFER-IN-LOOP-reliability-defer_loop_net_2_go-L11",
-      "CTX-REL-DEFER-IN-LOOP-reliability-defer_loop_net_2_go-L11"
+      "CTX-REL-RESOURCE-net.Conn-reliability-defer_loop_net_2_go-L11",
+      "CTX-REL-RESOURCE-net.Conn-reliability-defer_loop_net_2_go-L11"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 2 diagnostic findings on target file reliability/defer_loop_net_2.go"
@@ -793,10 +817,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_USER_LOOKUP_GO-L6",
-      "RI-SEC-SQL-CONCAT-SECURITY_SQL_USER_LOOKUP_GO-L6"
+      "RI-SEC-SQL-CONCAT-SECURITY_SQL_USER_LOOKUP_GO-L6",
+      "CTX-SEC-SQL-INJECT-security-sql_user_lookup_go-L7",
+      "CTX-SEC-SQL-INJECT-security-sql_user_lookup_go-L7"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file security/sql_user_lookup.go"
+    "rationale": "Matched 4 diagnostic findings on target file security/sql_user_lookup.go"
   },
   {
     "fixture_id": "FIX-V3-SEC-SQL-02",
@@ -806,10 +832,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_ORDER_FETCH_GO-L6",
-      "RI-SEC-SQL-CONCAT-SECURITY_SQL_ORDER_FETCH_GO-L6"
+      "RI-SEC-SQL-CONCAT-SECURITY_SQL_ORDER_FETCH_GO-L6",
+      "CTX-SEC-SQL-INJECT-security-sql_order_fetch_go-L7",
+      "CTX-SEC-SQL-INJECT-security-sql_order_fetch_go-L7"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file security/sql_order_fetch.go"
+    "rationale": "Matched 4 diagnostic findings on target file security/sql_order_fetch.go"
   },
   {
     "fixture_id": "FIX-V3-SEC-SQL-03",
@@ -819,10 +847,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_BILLING_SEARCH_GO-L6",
-      "RI-SEC-SQL-CONCAT-SECURITY_SQL_BILLING_SEARCH_GO-L6"
+      "RI-SEC-SQL-CONCAT-SECURITY_SQL_BILLING_SEARCH_GO-L6",
+      "CTX-SEC-SQL-INJECT-security-sql_billing_search_go-L7",
+      "CTX-SEC-SQL-INJECT-security-sql_billing_search_go-L7"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file security/sql_billing_search.go"
+    "rationale": "Matched 4 diagnostic findings on target file security/sql_billing_search.go"
   },
   {
     "fixture_id": "FIX-V3-SEC-SQL-04",
@@ -832,10 +862,12 @@
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
       "RI-SEC-SQL-CONCAT-SECURITY_SQL_AUDIT_FILTER_GO-L6",
-      "RI-SEC-SQL-CONCAT-SECURITY_SQL_AUDIT_FILTER_GO-L6"
+      "RI-SEC-SQL-CONCAT-SECURITY_SQL_AUDIT_FILTER_GO-L6",
+      "CTX-SEC-SQL-INJECT-security-sql_audit_filter_go-L7",
+      "CTX-SEC-SQL-INJECT-security-sql_audit_filter_go-L7"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
-    "rationale": "Matched 2 diagnostic findings on target file security/sql_audit_filter.go"
+    "rationale": "Matched 4 diagnostic findings on target file security/sql_audit_filter.go"
   },
   {
     "fixture_id": "FIX-V3-SEC-CMD-05",

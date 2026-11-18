@@ -1,6 +1,6 @@
 {
   "baseline_commit": "de06b6e568e0cce07d20b319d6618c15a9d3c899",
-  "export_timestamp": "2026-11-07T18:44:02Z",
+  "export_timestamp": "2026-11-18T06:22:52Z",
   "total_sessions_recorded": 3,
   "verified_repairs_count": 1,
   "abstained_repairs_count": 2,
@@ -8,12 +8,12 @@
   "source_immutability_100_percent": true,
   "audit_records": [
     {
-      "record_id": "AUDIT-INJ-EXT2-RES-02-39600",
+      "record_id": "AUDIT-INJ-EXT2-RES-02-328800",
       "target_id": "INJ-EXT2-RES-02",
       "repository": "fatih_color",
       "defect_category": "RESOURCE_LEAK",
       "analysis": {
-        "analysis_id": "ANALYSIS-INJ-EXT2-RES-02-308600",
+        "analysis_id": "ANALYSIS-INJ-EXT2-RES-02-782600",
         "target_id": "INJ-EXT2-RES-02",
         "repository": "fatih_color",
         "target_file": "file_printer.go",
@@ -31,11 +31,11 @@
         "eligibility_rationale": "Supported deterministic AST mutation: Single-file intra-procedural deferred close.",
         "requires_human_review": true,
         "finding_id": "FIND-INJ-EXT2-RES-02",
-        "timestamp": "2026-11-07T18:44:00Z"
+        "timestamp": "2026-11-18T06:22:52Z"
       },
       "proposal": {
-        "proposal_id": "PROP-INJ-EXT2-RES-02-308600",
-        "analysis_id": "ANALYSIS-INJ-EXT2-RES-02-308600",
+        "proposal_id": "PROP-INJ-EXT2-RES-02-782600",
+        "analysis_id": "ANALYSIS-INJ-EXT2-RES-02-782600",
         "target_id": "INJ-EXT2-RES-02",
         "status": "PROPOSED",
         "intent_type": "RESOURCE_CLEANUP",
@@ -46,28 +46,28 @@
         "execution_class": "HUMAN_APPROVAL_REQUIRED",
         "file_hash": "f1825a26fe8b75810f6e18d168bab7d3337072872d2a0fb8c019f30ff14c939e",
         "workspace_id": "ws-mvp-INJ-EXT2-RES-02",
-        "target_abs_path": "E:\\SWE\\.tmp\\mvp-sandbox-343300826\\file_printer.go",
-        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-343300826",
-        "duration_ms": 22
+        "target_abs_path": "E:\\SWE\\.tmp\\mvp-sandbox-126021144\\file_printer.go",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-126021144",
+        "duration_ms": 6
       },
       "approval": {
-        "token_id": "9bdea379492e60b18a9689cb5fae03be",
-        "proposal_id": "PROP-INJ-EXT2-RES-02-308600",
+        "token_id": "b5c881a068f7c20fab3a471901ee2a30",
+        "proposal_id": "PROP-INJ-EXT2-RES-02-782600",
         "principal": "lead-sre@code-vitals.internal",
         "role": "Principal Reliability Engineer",
         "diff_hash": "f54bc2787918df0c47b14e5d6dcc7e330bd86b5bd2a1e0b9c6d7f15309a64c9f",
         "risk_tier": "TIER_2_CONTROLLED",
-        "expires_at": "2026-11-07T19:14:00Z",
-        "signature": "3d3f8e026ef1d4e6945bd1b3e0fafef918830ea887f82c4db3e91b018ffd8873",
+        "expires_at": "2026-11-18T06:52:52Z",
+        "signature": "6c15b574a4d0a896c755470623402d9d7f0d16b762ef521f1c83b3e6ce407a03",
         "valid": true,
-        "issued_at": "2026-11-07T18:44:00Z"
+        "issued_at": "2026-11-18T06:22:52Z"
       },
       "execution": {
-        "execution_id": "EXEC-INJ-EXT2-RES-02-39600",
-        "proposal_id": "PROP-INJ-EXT2-RES-02-308600",
+        "execution_id": "EXEC-INJ-EXT2-RES-02-328800",
+        "proposal_id": "PROP-INJ-EXT2-RES-02-782600",
         "target_id": "INJ-EXT2-RES-02",
-        "token_id": "9bdea379492e60b18a9689cb5fae03be",
-        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-343300826",
+        "token_id": "b5c881a068f7c20fab3a471901ee2a30",
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-126021144",
         "applied_in_sandbox": true,
         "token_consumed": true,
         "oracles": {
@@ -108,19 +108,19 @@
         "original_repo_post_digest": "5ecaebe7ebd8904046e140b42797d836be7ae103b3883328d5478829315659f6",
         "original_repo_immutable": true,
         "rollback_available": true,
-        "duration_ms": 1413,
-        "timestamp": "2026-11-07T18:44:01Z"
+        "duration_ms": 614,
+        "timestamp": "2026-11-18T06:22:52Z"
       },
       "final_status": "INDEPENDENTLY_VERIFIED",
-      "timestamp": "2026-11-07T18:44:01Z"
+      "timestamp": "2026-11-18T06:22:52Z"
     },
     {
-      "record_id": "AUDIT-ABSTAIN-NAT-03-83800",
+      "record_id": "AUDIT-ABSTAIN-NAT-03-514500",
       "target_id": "NAT-03",
       "repository": "gorilla_websocket",
       "defect_category": "RESOURCE_LEAK",
       "analysis": {
-        "analysis_id": "ANALYSIS-NAT-03-611800",
+        "analysis_id": "ANALYSIS-NAT-03-328800",
         "target_id": "NAT-03",
         "repository": "gorilla_websocket",
         "target_file": "client.go",
@@ -139,11 +139,11 @@
         "eligibility_rationale": "Ground-Truth Disqualified: Pristine upstream code manages socket lifecycle via defer at line 330. Callee cleanup on escaping response body safely abstained.",
         "requires_human_review": true,
         "finding_id": "FIND-NAT-03",
-        "timestamp": "2026-11-07T18:44:01Z"
+        "timestamp": "2026-11-18T06:22:52Z"
       },
       "proposal": {
-        "proposal_id": "PROP-NAT-03-611800",
-        "analysis_id": "ANALYSIS-NAT-03-611800",
+        "proposal_id": "PROP-NAT-03-328800",
+        "analysis_id": "ANALYSIS-NAT-03-328800",
         "target_id": "NAT-03",
         "status": "ABSTAINED",
         "abstain_category": "RESOURCE_ESCAPES_VIA_RETURN",
@@ -153,19 +153,19 @@
         "file_hash": "",
         "workspace_id": "",
         "target_abs_path": "",
-        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-3133496218",
-        "duration_ms": 80
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-227345073",
+        "duration_ms": 22
       },
       "final_status": "EXPLICITLY_ABSTAINED",
-      "timestamp": "2026-11-07T18:44:01Z"
+      "timestamp": "2026-11-18T06:22:52Z"
     },
     {
-      "record_id": "AUDIT-ABSTAIN-INJ-EXT2-CMD-01-922400",
+      "record_id": "AUDIT-ABSTAIN-INJ-EXT2-CMD-01-655500",
       "target_id": "INJ-EXT2-CMD-01",
       "repository": "schollz_progressbar",
       "defect_category": "COMMAND_INJECTION",
       "analysis": {
-        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-83800",
+        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-514500",
         "target_id": "INJ-EXT2-CMD-01",
         "repository": "schollz_progressbar",
         "target_file": "cmd_runner.go",
@@ -183,11 +183,11 @@
         "eligibility_rationale": "Unsupported AST repair: Shell command injection requires architectural restructuring. Safe fail-closed.",
         "requires_human_review": true,
         "finding_id": "FIND-INJ-EXT2-CMD-01",
-        "timestamp": "2026-11-07T18:44:01Z"
+        "timestamp": "2026-11-18T06:22:52Z"
       },
       "proposal": {
-        "proposal_id": "PROP-INJ-EXT2-CMD-01-83800",
-        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-83800",
+        "proposal_id": "PROP-INJ-EXT2-CMD-01-18200",
+        "analysis_id": "ANALYSIS-INJ-EXT2-CMD-01-514500",
         "target_id": "INJ-EXT2-CMD-01",
         "status": "ABSTAINED",
         "abstain_category": "COMMAND_INJECTION_ARCHITECTURAL_REDESIGN",
@@ -197,11 +197,11 @@
         "file_hash": "",
         "workspace_id": "",
         "target_abs_path": "",
-        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-137968402",
-        "duration_ms": 35
+        "sandbox_dir": "E:\\SWE\\.tmp\\mvp-sandbox-1966036997",
+        "duration_ms": 9
       },
       "final_status": "EXPLICITLY_ABSTAINED",
-      "timestamp": "2026-11-07T18:44:02Z"
+      "timestamp": "2026-11-18T06:22:52Z"
     }
   ]
 }

@@ -1,11 +1,11 @@
 {
   "summary": {
-    "total_findings": 7,
-    "validated": 6,
+    "total_findings": 12,
+    "validated": 9,
     "partially_validated": 0,
     "stale": 1,
     "invalid": 0,
-    "requires_human_review": 0
+    "requires_human_review": 2
   },
   "findings": [
     {
@@ -149,8 +149,8 @@
       "detection_method": "MANIFEST_ANALYSIS"
     },
     {
-      "finding_id": "CTX-REL-DEFER-IN-LOOP-fs_go-L38",
-      "source_finding_id": "CTX-REL-DEFER-IN-LOOP-fs_go-L38",
+      "finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L38",
+      "source_finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L38",
       "validation_state": "VALIDATED",
       "validation_reason": "All evidence locations verified on disk with accurate line bounds",
       "category": "RELIABILITY",
@@ -158,9 +158,9 @@
       "severity_rationale": "LOW: Repository documentation or licensing omission",
       "calibrated_confidence": 0.5,
       "confidence_rationale": "0.50: Generic heuristic detection",
-      "title": "Resource Defer Statement Inside Loop Body",
-      "description": "Resource os.Open opened at line 38 uses defer inside loop, risking descriptor exhaustion.",
-      "root_cause": "Defer statement within loop boundary postpones resource cleanup until outer function termination.",
+      "title": "Deferred Resource Release Inside Loop (os.File)",
+      "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
+      "root_cause": "Registering deferred cleanup inside loop body.",
       "root_cause_confidence": 0.5,
       "affected_components": [
         "fs.go"
@@ -180,14 +180,180 @@
           "file": "fs.go",
           "line_start": 38,
           "line_end": 38,
-          "description": "defer f.Close() in loop"
+          "description": "os.Open(p)"
         }
       ],
-      "recommended_action": "Wrap iteration in an anonymous function closure or invoke Close() explicitly at loop iteration end.",
+      "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
       "validation_requirements": [
         "Issue resolved verified by contextual inspection"
       ],
-      "detection_method": "AST_LOOP_ANALYSIS"
+      "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L59",
+      "source_finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L59",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unclosed System Resource Leak (os.File)",
+      "description": "Resource handle 'f' of type os.File acquired in function 'SafeInspectFiles' at line 59 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "fs.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "fs.go",
+          "line_start": 59,
+          "line_end": 59,
+          "description": "os.Open(path)"
+        }
+      ],
+      "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-SEC-CMD-INJECT-runner_go-L29",
+      "source_finding_id": "CTX-SEC-CMD-INJECT-runner_go-L29",
+      "validation_state": "REQUIRES_HUMAN_REVIEW",
+      "validation_reason": "Heuristic pattern or security finding requires human confirmation",
+      "category": "SECURITY",
+      "severity": "HIGH",
+      "severity_rationale": "HIGH: Dynamic argument formatting into process execution enables arbitrary command execution",
+      "calibrated_confidence": 0.4,
+      "confidence_rationale": "0.40: Generic heuristic detection; discounted pending human verification",
+      "title": "Command Injection Risk via Shell Interpreter",
+      "description": "Command string in ExecuteShellScript at line 29 is passed directly from function parameter 'userInput' to shell interpreter 'cmd.exe -c'.",
+      "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+      "root_cause_confidence": 0.32000000000000006,
+      "affected_components": [
+        "runner.go"
+      ],
+      "impact_scope": "Host Operating System \u0026 Container Sandbox",
+      "potential_consequences": [
+        "Remote code execution",
+        "Sandbox escape",
+        "Host filesystem compromise"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "runner.go",
+          "line_start": 29,
+          "line_end": 29,
+          "description": "Command Injection Risk via Shell Interpreter"
+        }
+      ],
+      "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-SEC-CMD-INJECT-runner_go-L31",
+      "source_finding_id": "CTX-SEC-CMD-INJECT-runner_go-L31",
+      "validation_state": "REQUIRES_HUMAN_REVIEW",
+      "validation_reason": "Heuristic pattern or security finding requires human confirmation",
+      "category": "SECURITY",
+      "severity": "HIGH",
+      "severity_rationale": "HIGH: Dynamic argument formatting into process execution enables arbitrary command execution",
+      "calibrated_confidence": 0.4,
+      "confidence_rationale": "0.40: Generic heuristic detection; discounted pending human verification",
+      "title": "Command Injection Risk via Shell Interpreter",
+      "description": "Command string in ExecuteShellScript at line 31 is passed directly from function parameter 'userInput' to shell interpreter 'sh -c'.",
+      "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+      "root_cause_confidence": 0.32000000000000006,
+      "affected_components": [
+        "runner.go"
+      ],
+      "impact_scope": "Host Operating System \u0026 Container Sandbox",
+      "potential_consequences": [
+        "Remote code execution",
+        "Sandbox escape",
+        "Host filesystem compromise"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "runner.go",
+          "line_start": 31,
+          "line_end": 31,
+          "description": "Command Injection Risk via Shell Interpreter"
+        }
+      ],
+      "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS"
+    },
+    {
+      "finding_id": "CTX-REL-ERROR-runner_test_go-L31",
+      "source_finding_id": "CTX-REL-ERROR-runner_test_go-L31",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Repository documentation or licensing omission",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Unhandled Error Return (os.WriteFile)",
+      "description": "Function 'TestSafeReadFileFromRoot' at line 31 invokes error-producing call 'os.WriteFile(filePath, []byte(\"hello safe fs\"), 0644)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "runner_test.go"
+      ],
+      "impact_scope": "Repository Engineering Hygiene",
+      "potential_consequences": [
+        "Legal ambiguity",
+        "Developer onboarding confusion"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "runner_test.go",
+          "line_start": 31,
+          "line_end": 31,
+          "description": "os.WriteFile(filePath, []byte(\"hello safe fs\"), 0644)"
+        }
+      ],
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "SEMANTIC_ERROR_ANALYSIS"
     },
     {
       "finding_id": "CTX-TST-UNTESTED-SYM-fs_go",
@@ -268,6 +434,47 @@
         "Issue resolved verified by contextual inspection"
       ],
       "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+    },
+    {
+      "finding_id": "CTX-DEP-NOLOCK-go_mod",
+      "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "DEPENDENCY",
+      "severity": "MEDIUM",
+      "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+      "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+      "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "go.mod"
+      ],
+      "impact_scope": "Build Pipeline \u0026 Supply Chain",
+      "potential_consequences": [
+        "Non-reproducible CI builds",
+        "Vulnerability to upstream dependency drift"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "go.mod",
+          "line_start": 1,
+          "line_end": 1,
+          "description": "go.mod lacking verified go.sum"
+        }
+      ],
+      "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
     }
   ]
 }

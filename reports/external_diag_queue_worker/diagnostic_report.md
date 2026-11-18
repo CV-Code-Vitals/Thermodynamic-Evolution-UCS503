@@ -1,20 +1,20 @@
 # Diagnostic Intelligence & Remediation-Ready Audit Report
 
 **Report Schema Version:** `1.0`  
-**Report ID:** `DR-1793733880`  
-**Timestamp:** 2026-11-03T19:24:40Z  
+**Report ID:** `DR-1794982741`  
+**Timestamp:** 2026-11-18T06:19:01Z  
 **Repository Root:** `` (Branch: ``, Head: ``)  
-**Execution Runtime:** 0 ms  
+**Execution Runtime:** 1 ms  
 
 ## Executive Summary
 
-Phase 2 Diagnostic Intelligence ingested **7 findings** from Phase 1, performed physical disk and source location verification, calibrated independent confidence scores, assessed blast-radius severity, identified correlations, and determined remediation readiness.
+Phase 2 Diagnostic Intelligence ingested **11 findings** from Phase 1, performed physical disk and source location verification, calibrated independent confidence scores, assessed blast-radius severity, identified correlations, and determined remediation readiness.
 
 ### Finding Validation Breakdown
 
 | Validation State | Count | Description |
 |---|---|---|
-| **VALIDATED** | 6 | Source file exists, line bounds match physical content, metadata verified |
+| **VALIDATED** | 10 | Source file exists, line bounds match physical content, metadata verified |
 | **PARTIALLY_VALIDATED** | 0 | Primary evidence verified but secondary reference ambiguous |
 | **STALE** | 1 | Referenced lines out of bounds or condition altered |
 | **INVALID** | 0 | File missing without absence assertion or malformed metadata |
@@ -27,7 +27,7 @@ Phase 2 Diagnostic Intelligence ingested **7 findings** from Phase 1, performed 
 | `AUTOMATION_READY` | 1 | Safe declarative or deterministic changes (e.g. Dockerfile pinning, non-root user, license) |
 | `AUTOMATION_WITH_REVIEW` | 0 | Local refactorings (guard clauses, test scaffolding) verified via test gates |
 | `HUMAN_APPROVAL_REQUIRED` | 0 | High-risk changes (secret rotation, architectural cycle breaking) |
-| `INVESTIGATION_REQUIRED` | 5 | Ambiguous heuristics or complex monolithic functions needing manual review |
+| `INVESTIGATION_REQUIRED` | 9 | Ambiguous heuristics or complex monolithic functions needing manual review |
 | `INFORMATIONAL_ONLY` | 1 | Inactive, stale, or non-actionable observations |
 
 ### Global Architectural & Security Risks
@@ -87,7 +87,119 @@ Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build veri
 
 ---
 
-### 3. [LOW] Exported Symbols Lack Automated Unit Tests (ParseRawPayload) (`CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go`)
+### 3. [MEDIUM] Missing or Empty Cryptographic Lockfile (go.sum) (`CTX-DEP-NOLOCK-go_mod`)
+
+- **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
+- **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
+- **Category:** `DEPENDENCY` | **Detection Method:** `MANIFEST_LOCKFILE_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Build Pipeline & Supply Chain
+- **Severity Rationale:** MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds
+- **Root Cause:** Dependencies not cryptographically pinned with go.sum hashes.
+
+Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.
+
+**Potential Consequences:**
+- Non-reproducible CI builds
+- Vulnerability to upstream dependency drift
+
+**Verified Evidence Locations:**
+
+- `go.mod` (Lines 1-1) — *go.mod lacking verified go.sum*
+
+> [!TIP]
+> **Recommended Action:** Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 4. [LOW] Unhandled Error Return (json.Unmarshal) (`CTX-REL-ERROR-internal-consumer-consumer_go-L60`)
+
+- **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
+- **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
+- **Category:** `RELIABILITY` | **Detection Method:** `SEMANTIC_ERROR_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Repository Engineering Hygiene
+- **Severity Rationale:** LOW: Repository documentation or licensing omission
+- **Root Cause:** Error return value ignored without handling, logging, or propagation.
+
+Function 'ParseRawPayload' at line 60 invokes error-producing call 'json.Unmarshal(data, &res)' but the returned error is discarded.
+
+**Potential Consequences:**
+- Legal ambiguity
+- Developer onboarding confusion
+
+**Verified Evidence Locations:**
+
+- `internal/consumer/consumer.go` (Lines 60-60) — *json.Unmarshal(data, &res)*
+
+> [!TIP]
+> **Recommended Action:** Assign returned error and handle with 'if err != nil { return ... }'.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 5. [LOW] Unclosed System Resource Leak (net.Conn) (`CTX-REL-RESOURCE-net.Conn-internal-producer-producer_go-L48`)
+
+- **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
+- **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
+- **Category:** `RELIABILITY` | **Detection Method:** `SEMANTIC_RESOURCE_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Repository Engineering Hygiene
+- **Severity Rationale:** LOW: Repository documentation or licensing omission
+- **Root Cause:** Resource handle acquired without explicit or deferred release call along reachable exit paths.
+
+Resource handle 'conn' of type net.Conn acquired in function 'SendDirect' at line 48 is never closed along normal execution paths.
+
+**Potential Consequences:**
+- Legal ambiguity
+- Developer onboarding confusion
+
+**Verified Evidence Locations:**
+
+- `internal/producer/producer.go` (Lines 48-48) — *net.DialTimeout("tcp", addr, 2*time.Second)*
+
+> [!TIP]
+> **Recommended Action:** Ensure 'defer conn.Close()' is called immediately following successful acquisition error checking.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 6. [LOW] Unclosed System Resource Leak (time.Timer) (`CTX-REL-RESOURCE-time.Timer-pkg-retry-retry_go-L66`)
+
+- **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
+- **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
+- **Category:** `RELIABILITY` | **Detection Method:** `SEMANTIC_RESOURCE_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Repository Engineering Hygiene
+- **Severity Rationale:** LOW: Repository documentation or licensing omission
+- **Root Cause:** Resource handle acquired without explicit or deferred release call along reachable exit paths.
+
+Resource handle 'timer' of type time.Timer acquired in function 'RetryWithTimerLeak' at line 66 is never closed along normal execution paths.
+
+**Potential Consequences:**
+- Legal ambiguity
+- Developer onboarding confusion
+
+**Verified Evidence Locations:**
+
+- `pkg/retry/retry.go` (Lines 66-66) — *time.NewTimer(20 * time.Millisecond)*
+
+> [!TIP]
+> **Recommended Action:** Ensure 'defer timer.Close()' is called immediately following successful acquisition error checking.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 7. [LOW] Exported Symbols Lack Automated Unit Tests (ParseRawPayload) (`CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go`)
 
 - **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
@@ -114,7 +226,7 @@ Source file internal/consumer/consumer.go defines exported function(s) [ParseRaw
 
 ---
 
-### 4. [LOW] Exported Symbols Lack Automated Unit Tests (RetryWithTimerLeak) (`CTX-TST-UNTESTED-SYM-pkg-retry-retry_go`)
+### 8. [LOW] Exported Symbols Lack Automated Unit Tests (RetryWithTimerLeak) (`CTX-TST-UNTESTED-SYM-pkg-retry-retry_go`)
 
 - **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
@@ -141,7 +253,7 @@ Source file pkg/retry/retry.go defines exported function(s) [RetryWithTimerLeak]
 
 ---
 
-### 5. [LOW] Missing repository LICENSE file (`RI-HYG-MISSING-LICENSE`)
+### 9. [LOW] Missing repository LICENSE file (`RI-HYG-MISSING-LICENSE`)
 
 - **Validation State:** `VALIDATED` (Verified absence of expected file across repository)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
@@ -165,7 +277,7 @@ No software license file (LICENSE or COPYING) was detected in repository root.
 
 ---
 
-### 6. [LOW] Missing README documentation (`RI-HYG-MISSING-README`)
+### 10. [LOW] Missing README documentation (`RI-HYG-MISSING-README`)
 
 - **Validation State:** `VALIDATED` (Verified absence of expected file across repository)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
@@ -189,7 +301,7 @@ No root or top-level README file was detected, hindering developer onboarding an
 
 ---
 
-### 7. [LOW] Ignored function error return value (`RI-REL-IGNORED-ERR-INTERNAL_CONSUMER_CONSUMER_GO-L47`)
+### 11. [LOW] Ignored function error return value (`RI-REL-IGNORED-ERR-INTERNAL_CONSUMER_CONSUMER_GO-L47`)
 
 - **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)

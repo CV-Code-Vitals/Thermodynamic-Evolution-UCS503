@@ -1,5 +1,5 @@
 {
-  "autonomous_ready_tasks": 32,
+  "autonomous_ready_tasks": 22,
   "baseline_remediation_rate": 0.2,
   "evaluation_benchmark": "Suite v1 \u0026 Suite v2",
   "human_approval_required_tasks": 3,

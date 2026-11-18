@@ -31,8 +31,9 @@ func TestRemediationHttpWorkflow(t *testing.T) {
 		t.Fatalf("Failed to parse targets: %v (len: %d)", err, len(targetsResp.Targets))
 	}
 
-	// 2. POST /api/remediation/analyze for NAT-03
-	analyzeBody, _ := json.Marshal(map[string]string{"target_id": "NAT-03"})
+	// 2. POST /api/remediation/analyze for primary verified target (INJ-EXT2-RES-02)
+	targetID := targetsResp.Targets[0].TargetID
+	analyzeBody, _ := json.Marshal(map[string]string{"target_id": targetID})
 	w2 := httptest.NewRecorder()
 	req2, _ := http.NewRequest(http.MethodPost, "/api/remediation/analyze", bytes.NewReader(analyzeBody))
 	req2.Header.Set("Content-Type", "application/json")

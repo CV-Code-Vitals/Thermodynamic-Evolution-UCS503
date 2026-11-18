@@ -1,24 +1,24 @@
 # Diagnostic Intelligence & Remediation-Ready Audit Report
 
 **Report Schema Version:** `1.0`  
-**Report ID:** `DR-1793733880`  
-**Timestamp:** 2026-11-03T19:24:40Z  
+**Report ID:** `DR-1794982740`  
+**Timestamp:** 2026-11-18T06:19:00Z  
 **Repository Root:** `` (Branch: ``, Head: ``)  
-**Execution Runtime:** 0 ms  
+**Execution Runtime:** 7 ms  
 
 ## Executive Summary
 
-Phase 2 Diagnostic Intelligence ingested **6 findings** from Phase 1, performed physical disk and source location verification, calibrated independent confidence scores, assessed blast-radius severity, identified correlations, and determined remediation readiness.
+Phase 2 Diagnostic Intelligence ingested **11 findings** from Phase 1, performed physical disk and source location verification, calibrated independent confidence scores, assessed blast-radius severity, identified correlations, and determined remediation readiness.
 
 ### Finding Validation Breakdown
 
 | Validation State | Count | Description |
 |---|---|---|
-| **VALIDATED** | 5 | Source file exists, line bounds match physical content, metadata verified |
+| **VALIDATED** | 9 | Source file exists, line bounds match physical content, metadata verified |
 | **PARTIALLY_VALIDATED** | 0 | Primary evidence verified but secondary reference ambiguous |
 | **STALE** | 1 | Referenced lines out of bounds or condition altered |
 | **INVALID** | 0 | File missing without absence assertion or malformed metadata |
-| **REQUIRES_HUMAN_REVIEW** | 0 | Heuristic pattern match or security taint requiring manual validation |
+| **REQUIRES_HUMAN_REVIEW** | 1 | Heuristic pattern match or security taint requiring manual validation |
 
 ### Remediation Readiness Classification
 
@@ -27,7 +27,7 @@ Phase 2 Diagnostic Intelligence ingested **6 findings** from Phase 1, performed 
 | `AUTOMATION_READY` | 1 | Safe declarative or deterministic changes (e.g. Dockerfile pinning, non-root user, license) |
 | `AUTOMATION_WITH_REVIEW` | 0 | Local refactorings (guard clauses, test scaffolding) verified via test gates |
 | `HUMAN_APPROVAL_REQUIRED` | 0 | High-risk changes (secret rotation, architectural cycle breaking) |
-| `INVESTIGATION_REQUIRED` | 4 | Ambiguous heuristics or complex monolithic functions needing manual review |
+| `INVESTIGATION_REQUIRED` | 9 | Ambiguous heuristics or complex monolithic functions needing manual review |
 | `INFORMATIONAL_ONLY` | 1 | Inactive, stale, or non-actionable observations |
 
 ### Global Architectural & Security Risks
@@ -36,7 +36,36 @@ Phase 2 Diagnostic Intelligence ingested **6 findings** from Phase 1, performed 
 
 ## Prioritized Diagnostic Findings
 
-### 1. [HIGH] No continuous integration (CI) workflows detected (`RI-QUAL-NOCI-WORKFLOWS`)
+### 1. [HIGH] SQL Injection Risk via Dynamic Formatting (fmt.Sprintf) (`CTX-SEC-SQL-INJECT-repository_go-L56`)
+
+- **Validation State:** `REQUIRES_HUMAN_REVIEW` (Heuristic pattern or security finding requires human confirmation)
+- **Calibrated Confidence:** `0.45` (0.45: Static SQL string concatenation without dataflow taint proof; requires runtime query inspection)
+- **Category:** `SECURITY` | **Detection Method:** `SEMANTIC_DATAFLOW_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Database Layer & Data Confidentiality
+- **Severity Rationale:** HIGH: Dynamic SQL query string concatenation risks unauthenticated database extraction
+- **Root Cause:** Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.
+
+SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [name] directly into SQL syntax.
+
+**Potential Consequences:**
+- Unauthorized data access
+- SQL injection exploitation
+- Database corruption
+
+**Verified Evidence Locations:**
+
+- `repository.go` (Lines 56-56) — *SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)*
+
+> [!TIP]
+> **Recommended Action:** Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 2. [HIGH] No continuous integration (CI) workflows detected (`RI-QUAL-NOCI-WORKFLOWS`)
 
 - **Validation State:** `STALE` (Referenced file does not exist: .github/workflows)
 - **Calibrated Confidence:** `0.15` (0.15: Generic heuristic detection; severely discounted: finding references stale source state)
@@ -59,7 +88,7 @@ The repository contains no CI workflows in .github/workflows, leaving code chang
 
 ---
 
-### 2. [MEDIUM] Missing go.sum lockfile (`RI-DEP-GOSUM-MISSING-ROOT`)
+### 3. [MEDIUM] Missing go.sum lockfile (`RI-DEP-GOSUM-MISSING-ROOT`)
 
 - **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
 - **Calibrated Confidence:** `0.92` (0.92: Deterministic package manifest parser)
@@ -87,7 +116,119 @@ Go module at go.mod lacks a go.sum lockfile, preventing cryptographic build veri
 
 ---
 
-### 3. [LOW] Exported Symbols Lack Automated Unit Tests (InitDB, WithTransaction) (`CTX-TST-UNTESTED-SYM-db_go`)
+### 4. [MEDIUM] Missing or Empty Cryptographic Lockfile (go.sum) (`CTX-DEP-NOLOCK-go_mod`)
+
+- **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
+- **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
+- **Category:** `DEPENDENCY` | **Detection Method:** `MANIFEST_LOCKFILE_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Build Pipeline & Supply Chain
+- **Severity Rationale:** MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds
+- **Root Cause:** Dependencies not cryptographically pinned with go.sum hashes.
+
+Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.
+
+**Potential Consequences:**
+- Non-reproducible CI builds
+- Vulnerability to upstream dependency drift
+
+**Verified Evidence Locations:**
+
+- `go.mod` (Lines 1-1) — *go.mod lacking verified go.sum*
+
+> [!TIP]
+> **Recommended Action:** Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 5. [LOW] Unchecked Cleanup Error (db.Close) (`CTX-REL-ERROR-db_go-L33`)
+
+- **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
+- **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
+- **Category:** `RELIABILITY` | **Detection Method:** `SEMANTIC_ERROR_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Repository Engineering Hygiene
+- **Severity Rationale:** LOW: Repository documentation or licensing omission
+- **Root Cause:** Cleanup operation return error ignored.
+
+Function 'InitDB' at line 33 invokes cleanup call 'db.Close()' without checking returned error.
+
+**Potential Consequences:**
+- Legal ambiguity
+- Developer onboarding confusion
+
+**Verified Evidence Locations:**
+
+- `db.go` (Lines 33-33) — *db.Close()*
+
+> [!TIP]
+> **Recommended Action:** Inspect returned error and log if operation fails.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 6. [LOW] Unchecked Cleanup Error (tx.Rollback) (`CTX-REL-ERROR-db_go-L57`)
+
+- **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
+- **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
+- **Category:** `RELIABILITY` | **Detection Method:** `SEMANTIC_ERROR_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Repository Engineering Hygiene
+- **Severity Rationale:** LOW: Repository documentation or licensing omission
+- **Root Cause:** Cleanup operation return error ignored.
+
+Function 'WithTransaction' at line 57 invokes cleanup call 'tx.Rollback()' without checking returned error.
+
+**Potential Consequences:**
+- Legal ambiguity
+- Developer onboarding confusion
+
+**Verified Evidence Locations:**
+
+- `db.go` (Lines 57-57) — *tx.Rollback()*
+
+> [!TIP]
+> **Recommended Action:** Inspect returned error and log if operation fails.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 7. [LOW] Unclosed System Resource Leak (sql.Rows) (`CTX-REL-RESOURCE-sql.Rows-repository_go-L70`)
+
+- **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
+- **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
+- **Category:** `RELIABILITY` | **Detection Method:** `SEMANTIC_RESOURCE_ANALYSIS`
+- **Remediation Readiness:** `INVESTIGATION_REQUIRED` (Complexity: `MEDIUM`)
+- **Readiness Rationale:** Heuristic finding with confidence below automation threshold; manual code review required to verify true positive
+- **Impact Scope:** Repository Engineering Hygiene
+- **Severity Rationale:** LOW: Repository documentation or licensing omission
+- **Root Cause:** Resource handle acquired without explicit or deferred release call along reachable exit paths.
+
+Resource handle 'rows' of type sql.Rows acquired in function 'ListRecentUsers' at line 70 is never closed along normal execution paths.
+
+**Potential Consequences:**
+- Legal ambiguity
+- Developer onboarding confusion
+
+**Verified Evidence Locations:**
+
+- `repository.go` (Lines 70-70) — *r.db.QueryContext(ctx, query, limit)*
+
+> [!TIP]
+> **Recommended Action:** Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.
+>
+> **Expected Benefit:** Resolves contextual structural or reliability defect.
+
+---
+
+### 8. [LOW] Exported Symbols Lack Automated Unit Tests (InitDB, WithTransaction) (`CTX-TST-UNTESTED-SYM-db_go`)
 
 - **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
@@ -114,7 +255,7 @@ Source file db.go defines exported function(s) [InitDB, WithTransaction] with 0 
 
 ---
 
-### 4. [LOW] Exported Symbols Lack Automated Unit Tests (NewUserRepository, CreateUser, GetUserByID, FindUserByNameRaw, ListRecentUsers) (`CTX-TST-UNTESTED-SYM-repository_go`)
+### 9. [LOW] Exported Symbols Lack Automated Unit Tests (NewUserRepository, CreateUser, GetUserByID, FindUserByNameRaw, ListRecentUsers) (`CTX-TST-UNTESTED-SYM-repository_go`)
 
 - **Validation State:** `VALIDATED` (All evidence locations verified on disk with accurate line bounds)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
@@ -141,7 +282,7 @@ Source file repository.go defines exported function(s) [NewUserRepository, Creat
 
 ---
 
-### 5. [LOW] Missing repository LICENSE file (`RI-HYG-MISSING-LICENSE`)
+### 10. [LOW] Missing repository LICENSE file (`RI-HYG-MISSING-LICENSE`)
 
 - **Validation State:** `VALIDATED` (Verified absence of expected file across repository)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)
@@ -165,7 +306,7 @@ No software license file (LICENSE or COPYING) was detected in repository root.
 
 ---
 
-### 6. [LOW] Missing README documentation (`RI-HYG-MISSING-README`)
+### 11. [LOW] Missing README documentation (`RI-HYG-MISSING-README`)
 
 - **Validation State:** `VALIDATED` (Verified absence of expected file across repository)
 - **Calibrated Confidence:** `0.50` (0.50: Generic heuristic detection)

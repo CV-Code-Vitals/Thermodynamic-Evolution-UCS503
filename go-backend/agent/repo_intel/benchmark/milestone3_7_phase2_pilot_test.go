@@ -167,7 +167,7 @@ func TestMilestone3_7_Phase2_ControlledExternalAutonomousRepairPilot(t *testing.
 			TargetFile:     "client.go",
 			DefectCategory: "RESOURCE_LEAK",
 			Stratum:        "NATURAL_CONFIRMED",
-			ExpectedAction: "REPAIR",
+			ExpectedAction: "ABSTAIN", // Milestone 3.8 Corrected: Escaping return requires caller-lifecycle handling; synthesizer safely abstains
 			Description:    "HTTP response body unclosed along handshake failure redirect path (Upstream PR #789)",
 			UpstreamCommit: "9111bb834a68b893cebbbaed5060bdbc1d9ab7d2",
 			UpstreamURL:    "https://github.com/gorilla/websocket",

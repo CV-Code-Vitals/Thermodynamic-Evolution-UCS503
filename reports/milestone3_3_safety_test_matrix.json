@@ -13,7 +13,7 @@
       "error_message": "Source report provenance verification failed",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 540
+      "duration_ms": 265
     },
     {
       "test_id": "MODIFIED_SOURCE",
@@ -26,7 +26,7 @@
       "error_message": "Target file was missing or hash deviated from plan snapshot",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 566
+      "duration_ms": 237
     },
     {
       "test_id": "PATH_TRAVERSAL",
@@ -36,10 +36,10 @@
       "expected_action": "Reject path, raise security violation, refuse execution",
       "actual_action": "Path boundary validation threw security violation",
       "error_code": "ERR_PATH_TRAVERSAL_DETECTED",
-      "error_message": "security violation: path traverses outside workspace: ../../etc/passwd",
+      "error_message": "security violation: path traverses outside workspace (traversal segment '..'): ../../etc/passwd",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 23
+      "duration_ms": 12
     },
     {
       "test_id": "SYMLINK_ESCAPE",
@@ -52,7 +52,7 @@
       "error_message": "Target path resolves outside workspace boundary",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 25
+      "duration_ms": 9
     },
     {
       "test_id": "CIRCULAR_DEPENDENCY",
@@ -117,7 +117,7 @@
       "error_message": "go build failed in isolated workspace",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 1326
+      "duration_ms": 581
     },
     {
       "test_id": "TEST_REGRESSION",
@@ -130,7 +130,7 @@
       "error_message": "go test failed in isolated workspace",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 5102
+      "duration_ms": 2495
     },
     {
       "test_id": "DIAGNOSTIC_REGRESSION",
@@ -143,7 +143,7 @@
       "error_message": "New diagnostic defects introduced: 1",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 117
+      "duration_ms": 84
     },
     {
       "test_id": "EXECUTION_TIMEOUT",
@@ -182,7 +182,7 @@
       "error_message": "Zero race conditions or file locking conflicts detected",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 274
+      "duration_ms": 184
     },
     {
       "test_id": "WORKSPACE_POLLUTION",
@@ -195,7 +195,7 @@
       "error_message": "Zero residual files persisted after destruction",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 128
+      "duration_ms": 72
     },
     {
       "test_id": "MALFORMED_PLAN",
@@ -221,9 +221,9 @@
       "error_message": "File E:\\SWE\\benchmarks\\external_v1\\cli_tooling\\main.go hash mismatch: expected 0000000000000000000000000000000000000000000000000000000000000000",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 1
+      "duration_ms": 6
     }
   ],
-  "timestamp": "2026-11-04T01:14:18.7380999+05:30",
+  "timestamp": "2026-11-18T11:48:59.4534908+05:30",
   "total_tests": 17
 }

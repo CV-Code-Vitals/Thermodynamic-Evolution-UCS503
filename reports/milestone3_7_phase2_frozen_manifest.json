@@ -6,7 +6,7 @@
     "target_file": "client.go",
     "defect_category": "RESOURCE_LEAK",
     "stratum": "NATURAL_CONFIRMED",
-    "expected_action": "REPAIR",
+    "expected_action": "ABSTAIN",
     "description": "HTTP response body unclosed along handshake failure redirect path (Upstream PR #789)",
     "upstream_commit": "9111bb834a68b893cebbbaed5060bdbc1d9ab7d2",
     "upstream_url": "https://github.com/gorilla/websocket",

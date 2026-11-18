@@ -196,6 +196,146 @@
         "verification_status": "CONFIRMED"
       },
       {
+        "finding_id": "CTX-REL-ERROR-context_go-L61",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.96,
+        "title": "Unhandled Error Return (json.NewEncoder.Encode)",
+        "description": "Function 'JSON' at line 61 invokes error-producing call 'json.NewEncoder(c.Writer).Encode(data)' but the returned error is discarded.",
+        "root_cause": "Error return value ignored without handling, logging, or propagation.",
+        "affected_files": [
+          "context.go"
+        ],
+        "evidence": [
+          {
+            "file": "context.go",
+            "line_start": 61,
+            "line_end": 61,
+            "description": "json.NewEncoder(c.Writer).Encode(data)"
+          }
+        ],
+        "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-RESOURCE-http.Response.Body-middleware_go-L37",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.97,
+        "title": "Unclosed System Resource Leak (http.Response.Body)",
+        "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'UpstreamProbe' at line 37 is never closed along normal execution paths.",
+        "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+        "affected_files": [
+          "middleware.go"
+        ],
+        "evidence": [
+          {
+            "file": "middleware.go",
+            "line_start": 37,
+            "line_end": 37,
+            "description": "http.Get(probeURL)"
+          }
+        ],
+        "recommended_action": "Ensure 'defer resp.Close()' is called immediately following successful acquisition error checking.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_RESOURCE_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-ERROR-middleware_go-L27",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.96,
+        "title": "Unhandled Error Return (c.Writer.Write)",
+        "description": "Function 'Recovery' at line 27 invokes error-producing call 'c.Writer.Write([]byte(\"Internal Server Error\"))' but the returned error is discarded.",
+        "root_cause": "Error return value ignored without handling, logging, or propagation.",
+        "affected_files": [
+          "middleware.go"
+        ],
+        "evidence": [
+          {
+            "file": "middleware.go",
+            "line_start": 27,
+            "line_end": 27,
+            "description": "c.Writer.Write([]byte(\"Internal Server Error\"))"
+          }
+        ],
+        "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-ERROR-router_go-L78",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.96,
+        "title": "Unhandled Error Return (w.Write)",
+        "description": "Function 'ServeHTTP' at line 78 invokes error-producing call 'w.Write([]byte(\"404 page not found\\n\"))' but the returned error is discarded.",
+        "root_cause": "Error return value ignored without handling, logging, or propagation.",
+        "affected_files": [
+          "router.go"
+        ],
+        "evidence": [
+          {
+            "file": "router.go",
+            "line_start": 78,
+            "line_end": 78,
+            "description": "w.Write([]byte(\"404 page not found\\n\"))"
+          }
+        ],
+        "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-ERROR-router_test_go-L17",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.96,
+        "title": "Unhandled Error Return (c.Writer.Write)",
+        "description": "Function 'TestRouterBasicRoute' at line 17 invokes error-producing call 'c.Writer.Write([]byte(\"world\"))' but the returned error is discarded.",
+        "root_cause": "Error return value ignored without handling, logging, or propagation.",
+        "affected_files": [
+          "router_test.go"
+        ],
+        "evidence": [
+          {
+            "file": "router_test.go",
+            "line_start": 17,
+            "line_end": 17,
+            "description": "c.Writer.Write([]byte(\"world\"))"
+          }
+        ],
+        "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
         "finding_id": "CTX-TST-UNTESTED-SYM-context_go",
         "category": "TEST_QUALITY",
         "severity": "MEDIUM",
@@ -306,11 +446,39 @@
         ],
         "detection_method": "AST_SYMBOL_TEST_CORRELATION",
         "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-DEP-NOLOCK-go_mod",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.96,
+        "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+        "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+        "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "line_start": 1,
+            "line_end": 1,
+            "description": "go.mod lacking verified go.sum"
+          }
+        ],
+        "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "MANIFEST_LOCKFILE_ANALYSIS",
+        "verification_status": "CONFIRMED"
       }
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1793733880",
+      "report_id": "DR-1794982740",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -324,15 +492,15 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-03T19:24:40.7002117Z",
+        "timestamp": "2026-11-18T06:19:00.5757234Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 0
+        "execution_duration_ms": 2
       },
       "summary": {
-        "total_findings": 8,
-        "validated": 7,
+        "total_findings": 14,
+        "validated": 13,
         "partially_validated": 0,
         "stale": 1,
         "invalid": 0,
@@ -478,6 +646,211 @@
             "go.sum exists adjacent to go.mod"
           ],
           "detection_method": "MANIFEST_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-ERROR-context_go-L61",
+          "source_finding_id": "CTX-REL-ERROR-context_go-L61",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unhandled Error Return (json.NewEncoder.Encode)",
+          "description": "Function 'JSON' at line 61 invokes error-producing call 'json.NewEncoder(c.Writer).Encode(data)' but the returned error is discarded.",
+          "root_cause": "Error return value ignored without handling, logging, or propagation.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "context.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "context.go",
+              "line_start": 61,
+              "line_end": 61,
+              "description": "json.NewEncoder(c.Writer).Encode(data)"
+            }
+          ],
+          "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-RESOURCE-http.Response.Body-middleware_go-L37",
+          "source_finding_id": "CTX-REL-RESOURCE-http.Response.Body-middleware_go-L37",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unclosed System Resource Leak (http.Response.Body)",
+          "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'UpstreamProbe' at line 37 is never closed along normal execution paths.",
+          "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "middleware.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "middleware.go",
+              "line_start": 37,
+              "line_end": 37,
+              "description": "http.Get(probeURL)"
+            }
+          ],
+          "recommended_action": "Ensure 'defer resp.Close()' is called immediately following successful acquisition error checking.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-ERROR-middleware_go-L27",
+          "source_finding_id": "CTX-REL-ERROR-middleware_go-L27",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unhandled Error Return (c.Writer.Write)",
+          "description": "Function 'Recovery' at line 27 invokes error-producing call 'c.Writer.Write([]byte(\"Internal Server Error\"))' but the returned error is discarded.",
+          "root_cause": "Error return value ignored without handling, logging, or propagation.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "middleware.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "middleware.go",
+              "line_start": 27,
+              "line_end": 27,
+              "description": "c.Writer.Write([]byte(\"Internal Server Error\"))"
+            }
+          ],
+          "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-ERROR-router_go-L78",
+          "source_finding_id": "CTX-REL-ERROR-router_go-L78",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unhandled Error Return (w.Write)",
+          "description": "Function 'ServeHTTP' at line 78 invokes error-producing call 'w.Write([]byte(\"404 page not found\\n\"))' but the returned error is discarded.",
+          "root_cause": "Error return value ignored without handling, logging, or propagation.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "router.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "router.go",
+              "line_start": 78,
+              "line_end": 78,
+              "description": "w.Write([]byte(\"404 page not found\\n\"))"
+            }
+          ],
+          "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-ERROR-router_test_go-L17",
+          "source_finding_id": "CTX-REL-ERROR-router_test_go-L17",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unhandled Error Return (c.Writer.Write)",
+          "description": "Function 'TestRouterBasicRoute' at line 17 invokes error-producing call 'c.Writer.Write([]byte(\"world\"))' but the returned error is discarded.",
+          "root_cause": "Error return value ignored without handling, logging, or propagation.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "router_test.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "router_test.go",
+              "line_start": 17,
+              "line_end": 17,
+              "description": "c.Writer.Write([]byte(\"world\"))"
+            }
+          ],
+          "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
         },
         {
           "finding_id": "CTX-TST-UNTESTED-SYM-context_go",
@@ -638,6 +1011,47 @@
             "Issue resolved verified by contextual inspection"
           ],
           "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+        },
+        {
+          "finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "DEPENDENCY",
+          "severity": "MEDIUM",
+          "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+          "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+          "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "go.mod"
+          ],
+          "impact_scope": "Build Pipeline \u0026 Supply Chain",
+          "potential_consequences": [
+            "Non-reproducible CI builds",
+            "Vulnerability to upstream dependency drift"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "go.mod",
+              "line_start": 1,
+              "line_end": 1,
+              "description": "go.mod lacking verified go.sum"
+            }
+          ],
+          "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
         }
       ],
       "correlations": null,
@@ -656,9 +1070,9 @@
         "Diagnostic reporting is strictly read-only and does not mutate source code or execute remediation patches"
       ]
     },
-    "suppressed_count": -4,
+    "suppressed_count": -10,
     "suppressions": null,
-    "duration_ms": 12
+    "duration_ms": 131
   },
   {
     "repo_id": "ext-repo-02",
@@ -857,6 +1271,118 @@
         "verification_status": "CONFIRMED"
       },
       {
+        "finding_id": "CTX-REL-ERROR-db_go-L33",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 0.96,
+        "title": "Unchecked Cleanup Error (db.Close)",
+        "description": "Function 'InitDB' at line 33 invokes cleanup call 'db.Close()' without checking returned error.",
+        "root_cause": "Cleanup operation return error ignored.",
+        "affected_files": [
+          "db.go"
+        ],
+        "evidence": [
+          {
+            "file": "db.go",
+            "line_start": 33,
+            "line_end": 33,
+            "description": "db.Close()"
+          }
+        ],
+        "recommended_action": "Inspect returned error and log if operation fails.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-ERROR-db_go-L57",
+        "category": "RELIABILITY",
+        "severity": "LOW",
+        "confidence": 0.96,
+        "title": "Unchecked Cleanup Error (tx.Rollback)",
+        "description": "Function 'WithTransaction' at line 57 invokes cleanup call 'tx.Rollback()' without checking returned error.",
+        "root_cause": "Cleanup operation return error ignored.",
+        "affected_files": [
+          "db.go"
+        ],
+        "evidence": [
+          {
+            "file": "db.go",
+            "line_start": 57,
+            "line_end": 57,
+            "description": "tx.Rollback()"
+          }
+        ],
+        "recommended_action": "Inspect returned error and log if operation fails.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-SEC-SQL-INJECT-repository_go-L56",
+        "category": "SECURITY",
+        "severity": "HIGH",
+        "confidence": 0.97,
+        "title": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)",
+        "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [name] directly into SQL syntax.",
+        "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
+        "affected_files": [
+          "repository.go"
+        ],
+        "evidence": [
+          {
+            "file": "repository.go",
+            "line_start": 56,
+            "line_end": 56,
+            "description": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)"
+          }
+        ],
+        "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-RESOURCE-sql.Rows-repository_go-L70",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.97,
+        "title": "Unclosed System Resource Leak (sql.Rows)",
+        "description": "Resource handle 'rows' of type sql.Rows acquired in function 'ListRecentUsers' at line 70 is never closed along normal execution paths.",
+        "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+        "affected_files": [
+          "repository.go"
+        ],
+        "evidence": [
+          {
+            "file": "repository.go",
+            "line_start": 70,
+            "line_end": 70,
+            "description": "r.db.QueryContext(ctx, query, limit)"
+          }
+        ],
+        "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_RESOURCE_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
         "finding_id": "CTX-TST-UNTESTED-SYM-db_go",
         "category": "TEST_QUALITY",
         "severity": "MEDIUM",
@@ -911,11 +1437,39 @@
         ],
         "detection_method": "AST_SYMBOL_TEST_CORRELATION",
         "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-DEP-NOLOCK-go_mod",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.96,
+        "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+        "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+        "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "line_start": 1,
+            "line_end": 1,
+            "description": "go.mod lacking verified go.sum"
+          }
+        ],
+        "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "MANIFEST_LOCKFILE_ANALYSIS",
+        "verification_status": "CONFIRMED"
       }
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1793733880",
+      "report_id": "DR-1794982740",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -929,19 +1483,19 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-03T19:24:40.7108044Z",
+        "timestamp": "2026-11-18T06:19:00.8188729Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 0
+        "execution_duration_ms": 7
       },
       "summary": {
-        "total_findings": 6,
-        "validated": 5,
+        "total_findings": 11,
+        "validated": 9,
         "partially_validated": 0,
         "stale": 1,
         "invalid": 0,
-        "requires_human_review": 0
+        "requires_human_review": 1
       },
       "findings": [
         {
@@ -1085,6 +1639,171 @@
           "detection_method": "MANIFEST_ANALYSIS"
         },
         {
+          "finding_id": "CTX-REL-ERROR-db_go-L33",
+          "source_finding_id": "CTX-REL-ERROR-db_go-L33",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unchecked Cleanup Error (db.Close)",
+          "description": "Function 'InitDB' at line 33 invokes cleanup call 'db.Close()' without checking returned error.",
+          "root_cause": "Cleanup operation return error ignored.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "db.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "db.go",
+              "line_start": 33,
+              "line_end": 33,
+              "description": "db.Close()"
+            }
+          ],
+          "recommended_action": "Inspect returned error and log if operation fails.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-ERROR-db_go-L57",
+          "source_finding_id": "CTX-REL-ERROR-db_go-L57",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unchecked Cleanup Error (tx.Rollback)",
+          "description": "Function 'WithTransaction' at line 57 invokes cleanup call 'tx.Rollback()' without checking returned error.",
+          "root_cause": "Cleanup operation return error ignored.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "db.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "db.go",
+              "line_start": 57,
+              "line_end": 57,
+              "description": "tx.Rollback()"
+            }
+          ],
+          "recommended_action": "Inspect returned error and log if operation fails.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-SEC-SQL-INJECT-repository_go-L56",
+          "source_finding_id": "CTX-SEC-SQL-INJECT-repository_go-L56",
+          "validation_state": "REQUIRES_HUMAN_REVIEW",
+          "validation_reason": "Heuristic pattern or security finding requires human confirmation",
+          "category": "SECURITY",
+          "severity": "HIGH",
+          "severity_rationale": "HIGH: Dynamic SQL query string concatenation risks unauthenticated database extraction",
+          "calibrated_confidence": 0.45,
+          "confidence_rationale": "0.45: Static SQL string concatenation without dataflow taint proof; requires runtime query inspection",
+          "title": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)",
+          "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [name] directly into SQL syntax.",
+          "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
+          "root_cause_confidence": 0.36000000000000004,
+          "affected_components": [
+            "repository.go"
+          ],
+          "impact_scope": "Database Layer \u0026 Data Confidentiality",
+          "potential_consequences": [
+            "Unauthorized data access",
+            "SQL injection exploitation",
+            "Database corruption"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "repository.go",
+              "line_start": 56,
+              "line_end": 56,
+              "description": "SQL Injection Risk via Dynamic Formatting (fmt.Sprintf)"
+            }
+          ],
+          "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-RESOURCE-sql.Rows-repository_go-L70",
+          "source_finding_id": "CTX-REL-RESOURCE-sql.Rows-repository_go-L70",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unclosed System Resource Leak (sql.Rows)",
+          "description": "Resource handle 'rows' of type sql.Rows acquired in function 'ListRecentUsers' at line 70 is never closed along normal execution paths.",
+          "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "repository.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "repository.go",
+              "line_start": 70,
+              "line_end": 70,
+              "description": "r.db.QueryContext(ctx, query, limit)"
+            }
+          ],
+          "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+        },
+        {
           "finding_id": "CTX-TST-UNTESTED-SYM-db_go",
           "source_finding_id": "CTX-TST-UNTESTED-SYM-db_go",
           "validation_state": "VALIDATED",
@@ -1163,6 +1882,47 @@
             "Issue resolved verified by contextual inspection"
           ],
           "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+        },
+        {
+          "finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "DEPENDENCY",
+          "severity": "MEDIUM",
+          "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+          "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+          "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "go.mod"
+          ],
+          "impact_scope": "Build Pipeline \u0026 Supply Chain",
+          "potential_consequences": [
+            "Non-reproducible CI builds",
+            "Vulnerability to upstream dependency drift"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "go.mod",
+              "line_start": 1,
+              "line_end": 1,
+              "description": "go.mod lacking verified go.sum"
+            }
+          ],
+          "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
         }
       ],
       "correlations": null,
@@ -1181,9 +1941,9 @@
         "Diagnostic reporting is strictly read-only and does not mutate source code or execute remediation patches"
       ]
     },
-    "suppressed_count": -2,
+    "suppressed_count": -7,
     "suppressions": null,
-    "duration_ms": 9
+    "duration_ms": 237
   },
   {
     "repo_id": "ext-repo-03",
@@ -1382,6 +2142,34 @@
         "verification_status": "CONFIRMED"
       },
       {
+        "finding_id": "CTX-REL-ERROR-sharded_go-L31",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.96,
+        "title": "Unhandled Error Return (h.Write)",
+        "description": "Function 'getShard' at line 31 invokes error-producing call 'h.Write([]byte(key))' but the returned error is discarded.",
+        "root_cause": "Error return value ignored without handling, logging, or propagation.",
+        "affected_files": [
+          "sharded.go"
+        ],
+        "evidence": [
+          {
+            "file": "sharded.go",
+            "line_start": 31,
+            "line_end": 31,
+            "description": "h.Write([]byte(key))"
+          }
+        ],
+        "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
         "finding_id": "CTX-TST-UNTESTED-SYM-cache_go",
         "category": "TEST_QUALITY",
         "severity": "MEDIUM",
@@ -1464,11 +2252,39 @@
         ],
         "detection_method": "AST_SYMBOL_TEST_CORRELATION",
         "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-DEP-NOLOCK-go_mod",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.96,
+        "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+        "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+        "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "line_start": 1,
+            "line_end": 1,
+            "description": "go.mod lacking verified go.sum"
+          }
+        ],
+        "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "MANIFEST_LOCKFILE_ANALYSIS",
+        "verification_status": "CONFIRMED"
       }
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1793733880",
+      "report_id": "DR-1794982740",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -1482,15 +2298,15 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-03T19:24:40.7201075Z",
+        "timestamp": "2026-11-18T06:19:00.9446361Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 0
+        "execution_duration_ms": 1
       },
       "summary": {
-        "total_findings": 7,
-        "validated": 6,
+        "total_findings": 9,
+        "validated": 8,
         "partially_validated": 0,
         "stale": 1,
         "invalid": 0,
@@ -1638,6 +2454,47 @@
           "detection_method": "MANIFEST_ANALYSIS"
         },
         {
+          "finding_id": "CTX-REL-ERROR-sharded_go-L31",
+          "source_finding_id": "CTX-REL-ERROR-sharded_go-L31",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unhandled Error Return (h.Write)",
+          "description": "Function 'getShard' at line 31 invokes error-producing call 'h.Write([]byte(key))' but the returned error is discarded.",
+          "root_cause": "Error return value ignored without handling, logging, or propagation.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "sharded.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "sharded.go",
+              "line_start": 31,
+              "line_end": 31,
+              "description": "h.Write([]byte(key))"
+            }
+          ],
+          "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+        },
+        {
           "finding_id": "CTX-TST-UNTESTED-SYM-cache_go",
           "source_finding_id": "CTX-TST-UNTESTED-SYM-cache_go",
           "validation_state": "VALIDATED",
@@ -1756,6 +2613,47 @@
             "Issue resolved verified by contextual inspection"
           ],
           "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+        },
+        {
+          "finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "DEPENDENCY",
+          "severity": "MEDIUM",
+          "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+          "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+          "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "go.mod"
+          ],
+          "impact_scope": "Build Pipeline \u0026 Supply Chain",
+          "potential_consequences": [
+            "Non-reproducible CI builds",
+            "Vulnerability to upstream dependency drift"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "go.mod",
+              "line_start": 1,
+              "line_end": 1,
+              "description": "go.mod lacking verified go.sum"
+            }
+          ],
+          "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
         }
       ],
       "correlations": null,
@@ -1774,9 +2672,9 @@
         "Diagnostic reporting is strictly read-only and does not mutate source code or execute remediation patches"
       ]
     },
-    "suppressed_count": -3,
+    "suppressed_count": -5,
     "suppressions": null,
-    "duration_ms": 9
+    "duration_ms": 127
   },
   {
     "repo_id": "ext-repo-04",
@@ -1975,13 +2873,13 @@
         "verification_status": "CONFIRMED"
       },
       {
-        "finding_id": "CTX-REL-DEFER-IN-LOOP-fs_go-L38",
+        "finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L38",
         "category": "RELIABILITY",
         "severity": "MEDIUM",
-        "confidence": 0.92,
-        "title": "Resource Defer Statement Inside Loop Body",
-        "description": "Resource os.Open opened at line 38 uses defer inside loop, risking descriptor exhaustion.",
-        "root_cause": "Defer statement within loop boundary postpones resource cleanup until outer function termination.",
+        "confidence": 0.9,
+        "title": "Deferred Resource Release Inside Loop (os.File)",
+        "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
+        "root_cause": "Registering deferred cleanup inside loop body.",
         "affected_files": [
           "fs.go"
         ],
@@ -1990,16 +2888,128 @@
             "file": "fs.go",
             "line_start": 38,
             "line_end": 38,
-            "description": "defer f.Close() in loop"
+            "description": "os.Open(p)"
           }
         ],
-        "recommended_action": "Wrap iteration in an anonymous function closure or invoke Close() explicitly at loop iteration end.",
+        "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
         "expected_benefit": "Resolves contextual structural or reliability defect.",
         "regression_risk": "LOW",
         "validation_requirements": [
           "Issue resolved verified by contextual inspection"
         ],
-        "detection_method": "AST_LOOP_ANALYSIS",
+        "detection_method": "SEMANTIC_RESOURCE_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L59",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.97,
+        "title": "Unclosed System Resource Leak (os.File)",
+        "description": "Resource handle 'f' of type os.File acquired in function 'SafeInspectFiles' at line 59 is never closed along normal execution paths.",
+        "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+        "affected_files": [
+          "fs.go"
+        ],
+        "evidence": [
+          {
+            "file": "fs.go",
+            "line_start": 59,
+            "line_end": 59,
+            "description": "os.Open(path)"
+          }
+        ],
+        "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_RESOURCE_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-SEC-CMD-INJECT-runner_go-L29",
+        "category": "SECURITY",
+        "severity": "HIGH",
+        "confidence": 0.98,
+        "title": "Command Injection Risk via Shell Interpreter",
+        "description": "Command string in ExecuteShellScript at line 29 is passed directly from function parameter 'userInput' to shell interpreter 'cmd.exe -c'.",
+        "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+        "affected_files": [
+          "runner.go"
+        ],
+        "evidence": [
+          {
+            "file": "runner.go",
+            "line_start": 29,
+            "line_end": 29,
+            "description": "Command Injection Risk via Shell Interpreter"
+          }
+        ],
+        "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-SEC-CMD-INJECT-runner_go-L31",
+        "category": "SECURITY",
+        "severity": "HIGH",
+        "confidence": 0.98,
+        "title": "Command Injection Risk via Shell Interpreter",
+        "description": "Command string in ExecuteShellScript at line 31 is passed directly from function parameter 'userInput' to shell interpreter 'sh -c'.",
+        "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+        "affected_files": [
+          "runner.go"
+        ],
+        "evidence": [
+          {
+            "file": "runner.go",
+            "line_start": 31,
+            "line_end": 31,
+            "description": "Command Injection Risk via Shell Interpreter"
+          }
+        ],
+        "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-ERROR-runner_test_go-L31",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.96,
+        "title": "Unhandled Error Return (os.WriteFile)",
+        "description": "Function 'TestSafeReadFileFromRoot' at line 31 invokes error-producing call 'os.WriteFile(filePath, []byte(\"hello safe fs\"), 0644)' but the returned error is discarded.",
+        "root_cause": "Error return value ignored without handling, logging, or propagation.",
+        "affected_files": [
+          "runner_test.go"
+        ],
+        "evidence": [
+          {
+            "file": "runner_test.go",
+            "line_start": 31,
+            "line_end": 31,
+            "description": "os.WriteFile(filePath, []byte(\"hello safe fs\"), 0644)"
+          }
+        ],
+        "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
         "verification_status": "CONFIRMED"
       },
       {
@@ -2057,11 +3067,39 @@
         ],
         "detection_method": "AST_SYMBOL_TEST_CORRELATION",
         "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-DEP-NOLOCK-go_mod",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.96,
+        "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+        "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+        "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "line_start": 1,
+            "line_end": 1,
+            "description": "go.mod lacking verified go.sum"
+          }
+        ],
+        "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "MANIFEST_LOCKFILE_ANALYSIS",
+        "verification_status": "CONFIRMED"
       }
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1793733880",
+      "report_id": "DR-1794982741",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -2075,19 +3113,19 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-03T19:24:40.728093Z",
+        "timestamp": "2026-11-18T06:19:01.0283454Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 0
+        "execution_duration_ms": 2
       },
       "summary": {
-        "total_findings": 7,
-        "validated": 6,
+        "total_findings": 12,
+        "validated": 9,
         "partially_validated": 0,
         "stale": 1,
         "invalid": 0,
-        "requires_human_review": 0
+        "requires_human_review": 2
       },
       "findings": [
         {
@@ -2231,8 +3269,8 @@
           "detection_method": "MANIFEST_ANALYSIS"
         },
         {
-          "finding_id": "CTX-REL-DEFER-IN-LOOP-fs_go-L38",
-          "source_finding_id": "CTX-REL-DEFER-IN-LOOP-fs_go-L38",
+          "finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L38",
+          "source_finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L38",
           "validation_state": "VALIDATED",
           "validation_reason": "All evidence locations verified on disk with accurate line bounds",
           "category": "RELIABILITY",
@@ -2240,9 +3278,9 @@
           "severity_rationale": "LOW: Repository documentation or licensing omission",
           "calibrated_confidence": 0.5,
           "confidence_rationale": "0.50: Generic heuristic detection",
-          "title": "Resource Defer Statement Inside Loop Body",
-          "description": "Resource os.Open opened at line 38 uses defer inside loop, risking descriptor exhaustion.",
-          "root_cause": "Defer statement within loop boundary postpones resource cleanup until outer function termination.",
+          "title": "Deferred Resource Release Inside Loop (os.File)",
+          "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
+          "root_cause": "Registering deferred cleanup inside loop body.",
           "root_cause_confidence": 0.5,
           "affected_components": [
             "fs.go"
@@ -2262,14 +3300,180 @@
               "file": "fs.go",
               "line_start": 38,
               "line_end": 38,
-              "description": "defer f.Close() in loop"
+              "description": "os.Open(p)"
             }
           ],
-          "recommended_action": "Wrap iteration in an anonymous function closure or invoke Close() explicitly at loop iteration end.",
+          "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
           "validation_requirements": [
             "Issue resolved verified by contextual inspection"
           ],
-          "detection_method": "AST_LOOP_ANALYSIS"
+          "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L59",
+          "source_finding_id": "CTX-REL-RESOURCE-os.File-fs_go-L59",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unclosed System Resource Leak (os.File)",
+          "description": "Resource handle 'f' of type os.File acquired in function 'SafeInspectFiles' at line 59 is never closed along normal execution paths.",
+          "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "fs.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "fs.go",
+              "line_start": 59,
+              "line_end": 59,
+              "description": "os.Open(path)"
+            }
+          ],
+          "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-SEC-CMD-INJECT-runner_go-L29",
+          "source_finding_id": "CTX-SEC-CMD-INJECT-runner_go-L29",
+          "validation_state": "REQUIRES_HUMAN_REVIEW",
+          "validation_reason": "Heuristic pattern or security finding requires human confirmation",
+          "category": "SECURITY",
+          "severity": "HIGH",
+          "severity_rationale": "HIGH: Dynamic argument formatting into process execution enables arbitrary command execution",
+          "calibrated_confidence": 0.4,
+          "confidence_rationale": "0.40: Generic heuristic detection; discounted pending human verification",
+          "title": "Command Injection Risk via Shell Interpreter",
+          "description": "Command string in ExecuteShellScript at line 29 is passed directly from function parameter 'userInput' to shell interpreter 'cmd.exe -c'.",
+          "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+          "root_cause_confidence": 0.32000000000000006,
+          "affected_components": [
+            "runner.go"
+          ],
+          "impact_scope": "Host Operating System \u0026 Container Sandbox",
+          "potential_consequences": [
+            "Remote code execution",
+            "Sandbox escape",
+            "Host filesystem compromise"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "runner.go",
+              "line_start": 29,
+              "line_end": 29,
+              "description": "Command Injection Risk via Shell Interpreter"
+            }
+          ],
+          "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-SEC-CMD-INJECT-runner_go-L31",
+          "source_finding_id": "CTX-SEC-CMD-INJECT-runner_go-L31",
+          "validation_state": "REQUIRES_HUMAN_REVIEW",
+          "validation_reason": "Heuristic pattern or security finding requires human confirmation",
+          "category": "SECURITY",
+          "severity": "HIGH",
+          "severity_rationale": "HIGH: Dynamic argument formatting into process execution enables arbitrary command execution",
+          "calibrated_confidence": 0.4,
+          "confidence_rationale": "0.40: Generic heuristic detection; discounted pending human verification",
+          "title": "Command Injection Risk via Shell Interpreter",
+          "description": "Command string in ExecuteShellScript at line 31 is passed directly from function parameter 'userInput' to shell interpreter 'sh -c'.",
+          "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+          "root_cause_confidence": 0.32000000000000006,
+          "affected_components": [
+            "runner.go"
+          ],
+          "impact_scope": "Host Operating System \u0026 Container Sandbox",
+          "potential_consequences": [
+            "Remote code execution",
+            "Sandbox escape",
+            "Host filesystem compromise"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "runner.go",
+              "line_start": 31,
+              "line_end": 31,
+              "description": "Command Injection Risk via Shell Interpreter"
+            }
+          ],
+          "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_DATAFLOW_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-ERROR-runner_test_go-L31",
+          "source_finding_id": "CTX-REL-ERROR-runner_test_go-L31",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unhandled Error Return (os.WriteFile)",
+          "description": "Function 'TestSafeReadFileFromRoot' at line 31 invokes error-producing call 'os.WriteFile(filePath, []byte(\"hello safe fs\"), 0644)' but the returned error is discarded.",
+          "root_cause": "Error return value ignored without handling, logging, or propagation.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "runner_test.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "runner_test.go",
+              "line_start": 31,
+              "line_end": 31,
+              "description": "os.WriteFile(filePath, []byte(\"hello safe fs\"), 0644)"
+            }
+          ],
+          "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
         },
         {
           "finding_id": "CTX-TST-UNTESTED-SYM-fs_go",
@@ -2350,6 +3554,47 @@
             "Issue resolved verified by contextual inspection"
           ],
           "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+        },
+        {
+          "finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "DEPENDENCY",
+          "severity": "MEDIUM",
+          "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+          "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+          "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "go.mod"
+          ],
+          "impact_scope": "Build Pipeline \u0026 Supply Chain",
+          "potential_consequences": [
+            "Non-reproducible CI builds",
+            "Vulnerability to upstream dependency drift"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "go.mod",
+              "line_start": 1,
+              "line_end": 1,
+              "description": "go.mod lacking verified go.sum"
+            }
+          ],
+          "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
         }
       ],
       "correlations": null,
@@ -2368,9 +3613,9 @@
         "Diagnostic reporting is strictly read-only and does not mutate source code or execute remediation patches"
       ]
     },
-    "suppressed_count": -3,
+    "suppressed_count": -8,
     "suppressions": null,
-    "duration_ms": 8
+    "duration_ms": 85
   },
   {
     "repo_id": "ext-repo-05",
@@ -2625,6 +3870,90 @@
         "verification_status": "CONFIRMED"
       },
       {
+        "finding_id": "CTX-REL-ERROR-internal-consumer-consumer_go-L60",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.96,
+        "title": "Unhandled Error Return (json.Unmarshal)",
+        "description": "Function 'ParseRawPayload' at line 60 invokes error-producing call 'json.Unmarshal(data, \u0026res)' but the returned error is discarded.",
+        "root_cause": "Error return value ignored without handling, logging, or propagation.",
+        "affected_files": [
+          "internal/consumer/consumer.go"
+        ],
+        "evidence": [
+          {
+            "file": "internal/consumer/consumer.go",
+            "line_start": 60,
+            "line_end": 60,
+            "description": "json.Unmarshal(data, \u0026res)"
+          }
+        ],
+        "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_ERROR_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-RESOURCE-net.Conn-internal-producer-producer_go-L48",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.97,
+        "title": "Unclosed System Resource Leak (net.Conn)",
+        "description": "Resource handle 'conn' of type net.Conn acquired in function 'SendDirect' at line 48 is never closed along normal execution paths.",
+        "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+        "affected_files": [
+          "internal/producer/producer.go"
+        ],
+        "evidence": [
+          {
+            "file": "internal/producer/producer.go",
+            "line_start": 48,
+            "line_end": 48,
+            "description": "net.DialTimeout(\"tcp\", addr, 2*time.Second)"
+          }
+        ],
+        "recommended_action": "Ensure 'defer conn.Close()' is called immediately following successful acquisition error checking.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_RESOURCE_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-REL-RESOURCE-time.Timer-pkg-retry-retry_go-L66",
+        "category": "RELIABILITY",
+        "severity": "HIGH",
+        "confidence": 0.97,
+        "title": "Unclosed System Resource Leak (time.Timer)",
+        "description": "Resource handle 'timer' of type time.Timer acquired in function 'RetryWithTimerLeak' at line 66 is never closed along normal execution paths.",
+        "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+        "affected_files": [
+          "pkg/retry/retry.go"
+        ],
+        "evidence": [
+          {
+            "file": "pkg/retry/retry.go",
+            "line_start": 66,
+            "line_end": 66,
+            "description": "time.NewTimer(20 * time.Millisecond)"
+          }
+        ],
+        "recommended_action": "Ensure 'defer timer.Close()' is called immediately following successful acquisition error checking.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "SEMANTIC_RESOURCE_ANALYSIS",
+        "verification_status": "CONFIRMED"
+      },
+      {
         "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
         "category": "TEST_QUALITY",
         "severity": "MEDIUM",
@@ -2679,11 +4008,39 @@
         ],
         "detection_method": "AST_SYMBOL_TEST_CORRELATION",
         "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-DEP-NOLOCK-go_mod",
+        "category": "DEPENDENCY",
+        "severity": "MEDIUM",
+        "confidence": 0.96,
+        "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+        "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+        "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+        "affected_files": [
+          "go.mod"
+        ],
+        "evidence": [
+          {
+            "file": "go.mod",
+            "line_start": 1,
+            "line_end": 1,
+            "description": "go.mod lacking verified go.sum"
+          }
+        ],
+        "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "MANIFEST_LOCKFILE_ANALYSIS",
+        "verification_status": "CONFIRMED"
       }
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1793733880",
+      "report_id": "DR-1794982741",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -2697,15 +4054,15 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-03T19:24:40.739081Z",
+        "timestamp": "2026-11-18T06:19:01.2412677Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 0
+        "execution_duration_ms": 1
       },
       "summary": {
-        "total_findings": 7,
-        "validated": 6,
+        "total_findings": 11,
+        "validated": 10,
         "partially_validated": 0,
         "stale": 1,
         "invalid": 0,
@@ -2894,6 +4251,129 @@
           "detection_method": "MANIFEST_ANALYSIS"
         },
         {
+          "finding_id": "CTX-REL-ERROR-internal-consumer-consumer_go-L60",
+          "source_finding_id": "CTX-REL-ERROR-internal-consumer-consumer_go-L60",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unhandled Error Return (json.Unmarshal)",
+          "description": "Function 'ParseRawPayload' at line 60 invokes error-producing call 'json.Unmarshal(data, \u0026res)' but the returned error is discarded.",
+          "root_cause": "Error return value ignored without handling, logging, or propagation.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "internal/consumer/consumer.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "internal/consumer/consumer.go",
+              "line_start": 60,
+              "line_end": 60,
+              "description": "json.Unmarshal(data, \u0026res)"
+            }
+          ],
+          "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_ERROR_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-RESOURCE-net.Conn-internal-producer-producer_go-L48",
+          "source_finding_id": "CTX-REL-RESOURCE-net.Conn-internal-producer-producer_go-L48",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unclosed System Resource Leak (net.Conn)",
+          "description": "Resource handle 'conn' of type net.Conn acquired in function 'SendDirect' at line 48 is never closed along normal execution paths.",
+          "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "internal/producer/producer.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "internal/producer/producer.go",
+              "line_start": 48,
+              "line_end": 48,
+              "description": "net.DialTimeout(\"tcp\", addr, 2*time.Second)"
+            }
+          ],
+          "recommended_action": "Ensure 'defer conn.Close()' is called immediately following successful acquisition error checking.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+        },
+        {
+          "finding_id": "CTX-REL-RESOURCE-time.Timer-pkg-retry-retry_go-L66",
+          "source_finding_id": "CTX-REL-RESOURCE-time.Timer-pkg-retry-retry_go-L66",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "RELIABILITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Repository documentation or licensing omission",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Unclosed System Resource Leak (time.Timer)",
+          "description": "Resource handle 'timer' of type time.Timer acquired in function 'RetryWithTimerLeak' at line 66 is never closed along normal execution paths.",
+          "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "pkg/retry/retry.go"
+          ],
+          "impact_scope": "Repository Engineering Hygiene",
+          "potential_consequences": [
+            "Legal ambiguity",
+            "Developer onboarding confusion"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "pkg/retry/retry.go",
+              "line_start": 66,
+              "line_end": 66,
+              "description": "time.NewTimer(20 * time.Millisecond)"
+            }
+          ],
+          "recommended_action": "Ensure 'defer timer.Close()' is called immediately following successful acquisition error checking.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
+        },
+        {
           "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
           "source_finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
           "validation_state": "VALIDATED",
@@ -2972,6 +4452,47 @@
             "Issue resolved verified by contextual inspection"
           ],
           "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+        },
+        {
+          "finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "source_finding_id": "CTX-DEP-NOLOCK-go_mod",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "DEPENDENCY",
+          "severity": "MEDIUM",
+          "severity_rationale": "MEDIUM: Missing lockfile compromises deterministic and tamper-proof builds",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Missing or Empty Cryptographic Lockfile (go.sum)",
+          "description": "Module go.mod lacks cryptographic checksum entries in go.sum, leaving dependency resolution unpinned.",
+          "root_cause": "Dependencies not cryptographically pinned with go.sum hashes.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "go.mod"
+          ],
+          "impact_scope": "Build Pipeline \u0026 Supply Chain",
+          "potential_consequences": [
+            "Non-reproducible CI builds",
+            "Vulnerability to upstream dependency drift"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "go.mod",
+              "line_start": 1,
+              "line_end": 1,
+              "description": "go.mod lacking verified go.sum"
+            }
+          ],
+          "recommended_action": "Execute 'go mod download' or 'go mod tidy' to generate cryptographic checksums.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "MANIFEST_LOCKFILE_ANALYSIS"
         }
       ],
       "correlations": null,
@@ -2990,8 +4511,8 @@
         "Diagnostic reporting is strictly read-only and does not mutate source code or execute remediation patches"
       ]
     },
-    "suppressed_count": -2,
+    "suppressed_count": -6,
     "suppressions": null,
-    "duration_ms": 9
+    "duration_ms": 218
   }
 ]

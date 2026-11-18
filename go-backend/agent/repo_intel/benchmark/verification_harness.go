@@ -13,6 +13,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -133,6 +134,64 @@ func ComputeWilsonScoreInterval(k, n int) MetricWithCI {
 	}
 }
 
+// ResolveRustEngineBinary locates the compiled thermodynamic-ast-engine binary
+// checking ENGINE_PATH first, then cross-platform candidate paths across release and debug targets.
+func ResolveRustEngineBinary() string {
+	if custom := os.Getenv("ENGINE_PATH"); custom != "" {
+		if fi, err := os.Stat(custom); err == nil && !fi.IsDir() {
+			if abs, err := filepath.Abs(custom); err == nil {
+				return abs
+			}
+			return custom
+		}
+	}
+
+	binNames := []string{"thermodynamic-ast-engine"}
+	if runtime.GOOS == "windows" {
+		binNames = []string{"thermodynamic-ast-engine.exe", "thermodynamic-ast-engine"}
+	} else {
+		binNames = []string{"thermodynamic-ast-engine", "thermodynamic-ast-engine.exe"}
+	}
+
+	var candidates []string
+	relPrefixes := []string{
+		"",
+		".",
+		"..",
+		filepath.Join("..", ".."),
+		filepath.Join("..", "..", ".."),
+		filepath.Join("..", "..", "..", ".."),
+		filepath.Join("..", "..", "..", "..", ".."),
+	}
+
+	// Prioritize target/release, then target/debug in thermodynamic-ast-engine repository
+	for _, pfx := range relPrefixes {
+		for _, bin := range binNames {
+			candidates = append(candidates,
+				filepath.Join(pfx, "thermodynamic-ast-engine", "target", "release", bin),
+			)
+		}
+	}
+	for _, pfx := range relPrefixes {
+		for _, bin := range binNames {
+			candidates = append(candidates,
+				filepath.Join(pfx, "thermodynamic-ast-engine", "target", "debug", bin),
+			)
+		}
+	}
+
+	for _, cand := range candidates {
+		if fi, err := os.Stat(cand); err == nil && !fi.IsDir() {
+			if abs, err := filepath.Abs(cand); err == nil {
+				return abs
+			}
+			return cand
+		}
+	}
+
+	return ""
+}
+
 // RunPhase1MetricIntegrityAudit independently evaluates detection metrics on the benchmark suite.
 func RunPhase1MetricIntegrityAudit(manifestPath, suitePath, outDir string) (*IndependentMetricsReport, error) {
 	manifest, _, err := LoadGroundTruthManifest(manifestPath)
@@ -164,23 +223,10 @@ func RunPhase1MetricIntegrityAudit(manifestPath, suitePath, outDir string) (*Ind
 	allFindings = append(allFindings, baseQualFindings...)
 	allFindings = append(allFindings, baseManFindings...)
 
-	rustCandidates := []string{
-		"thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../../../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../../../../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"E:/SWE/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"E:/SWE/thermodynamic-ast-engine/target/debug/thermodynamic-ast-engine.exe",
-	}
-	for _, cand := range rustCandidates {
-		if _, err := os.Stat(cand); err == nil {
-			absP, _ := filepath.Abs(cand)
-			structuralAnalyzer := repo_intel.NewStructuralAnalyzer(absP, suitePath)
-			_, strFindings, _ := structuralAnalyzer.AnalyzeStructural(context.Background(), 30*time.Second)
-			allFindings = append(allFindings, strFindings...)
-			break
-		}
+	if rustEngine := ResolveRustEngineBinary(); rustEngine != "" {
+		structuralAnalyzer := repo_intel.NewStructuralAnalyzer(rustEngine, suitePath)
+		_, strFindings, _ := structuralAnalyzer.AnalyzeStructural(context.Background(), 30*time.Second)
+		allFindings = append(allFindings, strFindings...)
 	}
 
 	ce := diagcontext.NewContextEngine(suitePath)
@@ -488,23 +534,10 @@ func RunMilestone32Evaluation(manifestPath, suitePath, outDir string) (*Independ
 	allFindings = append(allFindings, baseQualFindings...)
 	allFindings = append(allFindings, baseManFindings...)
 
-	rustCandidates := []string{
-		"thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../../../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"../../../../thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"E:/SWE/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine.exe",
-		"E:/SWE/thermodynamic-ast-engine/target/debug/thermodynamic-ast-engine.exe",
-	}
-	for _, cand := range rustCandidates {
-		if _, err := os.Stat(cand); err == nil {
-			absP, _ := filepath.Abs(cand)
-			structuralAnalyzer := repo_intel.NewStructuralAnalyzer(absP, suitePath)
-			_, strFindings, _ := structuralAnalyzer.AnalyzeStructural(context.Background(), 30*time.Second)
-			allFindings = append(allFindings, strFindings...)
-			break
-		}
+	if rustEngine := ResolveRustEngineBinary(); rustEngine != "" {
+		structuralAnalyzer := repo_intel.NewStructuralAnalyzer(rustEngine, suitePath)
+		_, strFindings, _ := structuralAnalyzer.AnalyzeStructural(context.Background(), 30*time.Second)
+		allFindings = append(allFindings, strFindings...)
 	}
 
 	// 3. Context Engine Filter and Enrich
