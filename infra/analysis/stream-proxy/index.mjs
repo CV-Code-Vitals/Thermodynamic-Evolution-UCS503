@@ -12,6 +12,11 @@ const allowedRoutes = new Map([
   ['/api/scan', 'scan'],
   ['/api/evolve', 'evolve'],
 ]);
+const remediationMethods = new Map([
+  ['/api/remediation/targets', 'GET'],
+  ['/api/remediation/audit', 'GET'],
+  ...['analyze', 'propose', 'approve', 'execute', 'rollback', 'demo'].map((name) => [`/api/remediation/${name}`, 'POST']),
+]);
 
 function isPrivateIPv4(address) {
   const octets = address.split('.').map(Number);
@@ -157,7 +162,7 @@ function responseMetadata(statusCode, headers = {}, frontendOrigin) {
       ...(frontendOrigin ? {
         'Access-Control-Allow-Origin': frontendOrigin,
         'Access-Control-Allow-Headers': 'Authorization,Content-Type',
-        'Access-Control-Allow-Methods': 'OPTIONS,POST',
+        'Access-Control-Allow-Methods': 'OPTIONS,GET,POST',
         Vary: 'Origin',
       } : {}),
     },
@@ -238,11 +243,39 @@ export function createProxyHandler(dependencies = {}) {
     };
 
     try {
+      const path = event.path ?? event.rawPath;
+      const repairMethod = remediationMethods.get(path);
+      if (repairMethod) {
+        if (event.httpMethod !== repairMethod) {
+          await sendError(405, 'method_not_allowed');
+          return;
+        }
+        const analysisToken = event.requestContext?.authorizer?.analysisApiToken;
+        if (typeof analysisToken !== 'string' || analysisToken.length === 0) {
+          await sendError(401, 'unauthorized');
+          return;
+        }
+        const payload = repairMethod === 'POST' && event.body ? parseRequestBody(event, maxRequestBytes) : {};
+        const base = validateAnalysisBaseURL(baseValue);
+        const upstreamURL = new URL(`${base.pathname.replace(/\/+$/, '')}${path}`, base.origin);
+        const upstream = await fetchImpl(upstreamURL, {
+          method: repairMethod,
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-API-Token': analysisToken },
+          ...(repairMethod === 'POST' ? { body: JSON.stringify(payload) } : {}),
+          signal: abortController.signal,
+        });
+        const body = await readBoundedBody(upstream.body, maxScanResponseBytes);
+        responseStarted = true;
+        await writeBuffer(rawResponseStream, buildResponseMetadata(upstream.status, {
+          'Content-Type': upstream.headers.get('content-type') ?? 'application/json',
+        }), body, responseStreamFactory);
+        responseFinished = true;
+        return;
+      }
       if (event.httpMethod !== 'POST') {
         await sendError(405, 'method_not_allowed');
         return;
       }
-      const path = event.path ?? event.rawPath;
       const route = allowedRoutes.get(path);
       if (!route) {
         await sendError(404, 'route_not_found');

@@ -38,11 +38,27 @@ test('cloud scans use the separate streaming gateway and retain selectable targe
   let request;
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     request = {url,options};
-    return Response.json({report:{files_analyzed:1},workspace_id:'snapshot-id',targets:[]});
+    return Response.json({report:{files_analyzed:1,file_reports:[]},workspace_id:'snapshot-id',targets:[]});
   });
   const scan = await scanEvolutionRepository('https://archive.example/api', 'test-token', 'https://github.com/example/repo', undefined, 'https://analysis.example/prod');
   assert.equal(request.url, 'https://analysis.example/prod/api/scan');
   assert.equal(request.options.headers.Authorization,'Bearer test-token');
   assert.deepEqual(JSON.parse(request.options.body), {repo_url:'https://github.com/example/repo',retain_workspace:true});
   assert.equal(scan.repo_url,'https://github.com/example/repo');
+});
+
+test('scans can show a report when the service does not return an optimization workspace', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({files_analyzed: 1, file_reports: [{file_path: 'main.go'}]}));
+  const result = await scanEvolutionRepository('/api', 'token', 'https://github.com/example/repo');
+  assert.equal(result.report.files_analyzed, 1);
+  assert.equal(result.workspace_id, null);
+  assert.deepEqual(result.targets, []);
+});
+
+test('scan rejects malformed reports and ignores targets without a workspace', async (t) => {
+  const fetch = t.mock.method(globalThis, 'fetch', async () => Response.json({report: {file_reports: []}, targets: [{file_path: 'main.go'}]}));
+  const result = await scanEvolutionRepository('/api', 'token', 'https://github.com/example/repo');
+  assert.deepEqual(result.targets, []);
+  fetch.mock.mockImplementation(async () => Response.json({report: {files_analyzed: 1}}));
+  await assert.rejects(scanEvolutionRepository('/api', 'token', 'https://github.com/example/repo'), /valid repository report/);
 });

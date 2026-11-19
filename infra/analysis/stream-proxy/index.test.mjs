@@ -82,6 +82,42 @@ test('reads the configured scan token parameter', async () => {
   }
 });
 
+test('repair routes require the gateway authorizer and forward only its service token', async () => {
+  let upstream;
+  let staged = false;
+  const proxy = createProxyHandler(dependencies({
+    stager: async () => { staged = true; },
+    fetchImpl: async (url, options) => { upstream = { url: url.toString(), ...options }; return Response.json({ targets: [] }); },
+  }));
+  const request = event({ path: '/api/remediation/targets', authorizer: {} });
+  request.httpMethod = 'GET';
+  assert.equal((await invoke(proxy, request)).metadata.statusCode, 401);
+  request.requestContext.authorizer.analysisApiToken = 'trusted-service-token';
+  request.headers['X-API-Token'] = 'attacker-token';
+  const response = await invoke(proxy, request);
+  assert.equal(response.metadata.statusCode, 200);
+  assert.equal(upstream.url, 'http://127.0.0.1:8080/api/remediation/targets');
+  assert.equal(upstream.headers['X-API-Token'], 'trusted-service-token');
+  assert.equal(staged, false);
+  request.httpMethod = 'POST';
+  assert.equal((await invoke(proxy, request)).metadata.statusCode, 405);
+  assert.equal((await invoke(proxy, event({ path: '/api/remediation/unknown', authorizer: { analysisApiToken: 'token' } }))).metadata.statusCode, 404);
+});
+
+test('repair demo accepts an empty POST and forwards server errors', async () => {
+  const proxy = createProxyHandler(dependencies({
+    fetchImpl: async (_url, options) => {
+      assert.equal(options.body, '{}');
+      return Response.json({ error: 'unavailable' }, { status: 503 });
+    },
+  }));
+  const request = event({ path: '/api/remediation/demo', authorizer: { analysisApiToken: 'trusted' } });
+  request.body = null;
+  const response = await invoke(proxy, request);
+  assert.equal(response.metadata.statusCode, 503);
+  assert.equal(JSON.parse(response.body).error, 'unavailable');
+});
+
 test('rejects oversized and malformed request bodies', async () => {
   const proxy = createProxyHandler(dependencies({ maxRequestBytes: 64 }));
   const oversized = await invoke(proxy, event({ rawBody: 'x'.repeat(65) }));

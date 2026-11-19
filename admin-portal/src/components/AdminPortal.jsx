@@ -752,7 +752,7 @@ const AdminPortal = () => {
         {/* REPAIR VIEW (AUTONOMOUS REPAIR MVP)                           */}
         {/* ══════════════════════════════════════════════════════════════ */}
         <section hidden={activeView !== 'repair'}>
-          <RemediationPortal apiBase={apiBase} token={token} />
+          <RemediationPortal apiBase={analysisApiBase ? `${analysisApiBase}/api` : apiBase} token={token} />
         </section>
 
         {/* ══════════════════════════════════════════════════════════════ */}

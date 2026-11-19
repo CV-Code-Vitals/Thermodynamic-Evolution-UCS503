@@ -176,6 +176,15 @@ stop, stale-lease recovery, backup snapshot, and a tested data-volume restore.
 Review CloudWatch logs and alarms without logging authorization headers,
 request bodies, internal tokens, signing keys, or authorizer context.
 
+The admin portal's repair workflow also requires the current analysis image,
+the updated analysis SAM stack (including the proxy Lambda and remediation API
+resources), and the matching portal build. The image deployment workflow
+updates the hosts; it does not apply SAM template changes. Apply the template
+through the separately authorized infrastructure deployment process, then
+deploy the image and portal before checking repair targets and the demo. Repair
+uses the bundled pilot fixtures; oracle results can remain unverified when a
+required regression or invariance check is not configured.
+
 ## Retained-resource cleanup
 
 The retained S3 buckets, lifecycle table, analysis data volume, tagged

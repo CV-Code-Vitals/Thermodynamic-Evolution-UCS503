@@ -6,6 +6,8 @@ on:
     paths:
       - 'api/**'
       - 'go-backend/**'
+      - 'benchmarks/external_v2/**'
+      - 'benchmarks/heldout_v1/microservice_api/**'
       - 'thermodynamic-ast-engine/**'
       - 'docker/**'
       - '.dockerignore'
@@ -24,6 +26,8 @@ on:
     paths:
       - 'api/**'
       - 'go-backend/**'
+      - 'benchmarks/external_v2/**'
+      - 'benchmarks/heldout_v1/microservice_api/**'
       - 'thermodynamic-ast-engine/**'
       - 'docker/**'
       - '.dockerignore'

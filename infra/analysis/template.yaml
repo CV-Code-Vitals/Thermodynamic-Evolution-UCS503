@@ -1511,6 +1511,59 @@ Resources:
       ParentId: !Ref AnalysisApiResource
       PathPart: evolve
 
+  RemediationApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ParentId: !Ref AnalysisApiResource
+      PathPart: remediation
+
+  RemediationProxyResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ParentId: !Ref RemediationApiResource
+      PathPart: '{proxy+}'
+
+  RemediationOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResourceId: !Ref RemediationProxyResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+        IntegrationResponses:
+          - StatusCode: '200'
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Authorization,Content-Type'"
+              method.response.header.Access-Control-Allow-Methods: "'OPTIONS,GET,POST'"
+              method.response.header.Access-Control-Allow-Origin: !Sub "'${FrontendOrigin}'"
+      MethodResponses:
+        - StatusCode: '200'
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+
+  RemediationApiMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResourceId: !Ref RemediationProxyResource
+      HttpMethod: ANY
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AnalysisAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        ResponseTransferMode: STREAM
+        TimeoutInMillis: 900000
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2021-11-15/functions/${ProxyFunction.Arn}/response-streaming-invocations'
+
   ScanOptionsMethod:
     Type: AWS::ApiGateway::Method
     Properties:
@@ -1627,13 +1680,15 @@ Resources:
       LogGroupName: !Sub ['/aws/apigateway/${ResourcePrefix}-analysis-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: 365
 
-  AnalysisApiDeploymentCorsV2:
+  AnalysisApiDeploymentRemediationV1:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
       - ScanApiMethod
       - ScanOptionsMethod
       - EvolveApiMethod
       - EvolveOptionsMethod
+      - RemediationApiMethod
+      - RemediationOptionsMethod
       - AnalysisApiDefault4xxCors
       - AnalysisApiDefault5xxCors
     Properties:
@@ -1646,7 +1701,7 @@ Resources:
       - ApiGatewayAccount
     Properties:
       RestApiId: !Ref AnalysisApi
-      DeploymentId: !Ref AnalysisApiDeploymentCorsV2
+      DeploymentId: !Ref AnalysisApiDeploymentRemediationV1
       StageName: !Ref ApiStageName
       AccessLogSetting:
         DestinationArn: !GetAtt AnalysisApiAccessLogGroup.Arn
@@ -1731,6 +1786,14 @@ Resources:
       FunctionName: !Ref ProxyFunction
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${AnalysisApi}/*/POST/api/*'
+
+  ProxyApiGetInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref ProxyFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${AnalysisApi}/*/GET/api/remediation/*'
 
   AuthorizerApiInvokePermission:
     Type: AWS::Lambda::Permission

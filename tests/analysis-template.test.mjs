@@ -307,6 +307,16 @@ test('configures anonymous scan and protected streaming Evolution routes', () =>
   assert.match(resource('ProxyFunction'), /FRONTEND_ORIGIN: !Ref FrontendOrigin/);
 });
 
+test('protects repair routes and redeploys the gateway with CORS', () => {
+  assert.match(resource('RemediationApiMethod'), /AuthorizationType: CUSTOM/);
+  assert.match(resource('RemediationApiMethod'), /AuthorizerId: !Ref AnalysisAuthorizer/);
+  assert.match(resource('RemediationOptionsMethod'), /AuthorizationType: NONE/);
+  assert.match(resource('RemediationOptionsMethod'), /OPTIONS,GET,POST/);
+  assert.match(resource('ProxyApiGetInvokePermission'), /GET\/api\/remediation\/\*/);
+  assert.match(resource('AnalysisApiDeploymentRemediationV1'), /RemediationApiMethod/);
+  assert.match(resource('AnalysisApiStage'), /DeploymentId: !Ref AnalysisApiDeploymentRemediationV1/);
+});
+
 test('omits credentials from logs and archive resources', () => {
   const accessLog = resource('AnalysisApiStage');
   assert.match(accessLog, /AccessLogSetting:/);
