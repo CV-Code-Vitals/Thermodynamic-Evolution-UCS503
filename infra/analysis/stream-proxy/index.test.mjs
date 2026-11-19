@@ -64,6 +64,24 @@ async function invoke(proxy, requestEvent) {
   return { metadata: stream.output.metadata, body: stream.body() };
 }
 
+test('reads the configured scan token parameter', async () => {
+  const previous = process.env.API_TOKEN_PARAMETER_NAME;
+  process.env.API_TOKEN_PARAMETER_NAME = '/custom/scan-token';
+  try {
+    let name;
+    const proxy = createProxyHandler(dependencies({
+      getScanToken: undefined,
+      ssmClient: { send: async (command) => { name = command.input.Name; return { Parameter: { Value: 'token' } }; } },
+    }));
+    const response = await invoke(proxy, event());
+    assert.equal(response.metadata.statusCode, 200);
+    assert.equal(name, '/custom/scan-token');
+  } finally {
+    if (previous === undefined) delete process.env.API_TOKEN_PARAMETER_NAME;
+    else process.env.API_TOKEN_PARAMETER_NAME = previous;
+  }
+});
+
 test('rejects oversized and malformed request bodies', async () => {
   const proxy = createProxyHandler(dependencies({ maxRequestBytes: 64 }));
   const oversized = await invoke(proxy, event({ rawBody: 'x'.repeat(65) }));

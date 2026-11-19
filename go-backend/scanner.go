@@ -156,8 +156,13 @@ func workspaceScanTargets(report *ThermodynamicReport, targetDir string) []evolu
 				continue
 			}
 		}
+		filePath = filepath.ToSlash(filePath)
+		findTarget, err := loadWorkspaceTargets(targetDir, filePath)
+		if err != nil {
+			continue
+		}
 		for _, hotspot := range file.Hotspots {
-			target, err := readWorkspaceTarget(targetDir, filePath, hotspot.FunctionName, hotspot.ByteRange[0])
+			target, err := findTarget(hotspot.FunctionName, hotspot.ByteRange[0])
 			if err != nil {
 				continue
 			}

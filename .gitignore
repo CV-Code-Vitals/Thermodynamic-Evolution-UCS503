@@ -14,6 +14,8 @@ uploads/
 .aws-sam/
 .tmp/
 go-backend/bin/
+/go-backend/main
+/api/data/accounts.json
 
 # Local secrets and runtime config
 .env
@@ -29,3 +31,10 @@ GITHUB_SECRETS_COPY.txt
 
 *.key
 *.pem
+
+
+# AI agent files
+.claude/
+.claude-flow/
+.superpowers/
+.swarm/

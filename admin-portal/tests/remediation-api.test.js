@@ -66,13 +66,12 @@ describe('Autonomous Remediation API Client', () => {
     assert.strictEqual(res.status, 'PROPOSED');
   });
 
-  it('approveRemediationRepair sends proposal_id, principal, and role', async () => {
+  it('approveRemediationRepair sends the proposal ID', async () => {
     const mockFetch = async (url, opts) => {
       assert.strictEqual(url, 'http://localhost:8080/api/remediation/approve');
       const body = JSON.parse(opts.body);
       assert.strictEqual(body.proposal_id, 'PROP-NAT-03-123');
-      assert.strictEqual(body.principal, 'operator@internal');
-      assert.strictEqual(body.role, 'Lead SRE');
+      assert.deepStrictEqual(body, { proposal_id: 'PROP-NAT-03-123' });
       return {
         ok: true,
         json: async () => ({
@@ -82,7 +81,7 @@ describe('Autonomous Remediation API Client', () => {
       };
     };
     globalThis.fetch = mockFetch;
-    const res = await approveRemediationRepair('http://localhost:8080/api', '', 'PROP-NAT-03-123', 'operator@internal', 'Lead SRE');
+    const res = await approveRemediationRepair('http://localhost:8080/api', '', 'PROP-NAT-03-123');
     assert.strictEqual(res.token_id, 'tok-abc-123');
     assert.strictEqual(res.valid, true);
   });

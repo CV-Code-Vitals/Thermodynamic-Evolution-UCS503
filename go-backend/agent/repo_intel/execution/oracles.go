@@ -1,6 +1,8 @@
 package execution
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -14,15 +16,53 @@ import (
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/planning"
 )
 
+type oracleOutput struct{ buffer bytes.Buffer }
+
+func (b *oracleOutput) Write(p []byte) (int, error) {
+	const limit = 64 << 10
+	remaining := limit - b.buffer.Len()
+	if remaining > 0 {
+		if len(p) < remaining {
+			remaining = len(p)
+		}
+		_, _ = b.buffer.Write(p[:remaining])
+	}
+	return len(p), nil
+}
+
+func (s *IndependentOracleSuite) runCommand(dir string, args []string) (string, error) {
+	if len(args) == 0 {
+		return "", fmt.Errorf("empty command")
+	}
+	timeout := time.Duration(s.TimeoutSec) * time.Second
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+	cmd.Dir = dir
+	cmd.Env = getExecutionEnv()
+	cmd.WaitDelay = time.Second
+	var output oracleOutput
+	cmd.Stdout = &output
+	cmd.Stderr = &output
+	err := cmd.Run()
+	if ctx.Err() != nil {
+		return output.buffer.String(), fmt.Errorf("command timed out: %w", ctx.Err())
+	}
+	return output.buffer.String(), err
+}
+
 // OracleType identifies each independent verification oracle.
 type OracleType string
 
 const (
-	OracleSyntaxCompilation   OracleType = "SYNTAX_AND_COMPILATION"
-	OracleRegressionTest      OracleType = "REGRESSION_TEST"
-	OracleDefectReproducer    OracleType = "DEFECT_REPRODUCER"
+	OracleSyntaxCompilation    OracleType = "SYNTAX_AND_COMPILATION"
+	OracleRegressionTest       OracleType = "REGRESSION_TEST"
+	OracleDefectReproducer     OracleType = "DEFECT_REPRODUCER"
 	OracleBehavioralInvariance OracleType = "BEHAVIORAL_INVARIANCE"
-	OracleNegativeProperties  OracleType = "NEGATIVE_PROPERTIES"
+	OracleNegativeProperties   OracleType = "NEGATIVE_PROPERTIES"
 )
 
 // OracleResult holds the outcome of a single oracle check.
@@ -37,10 +77,10 @@ type OracleResult struct {
 
 // MultiOracleReport aggregates results across all five independent oracles.
 type MultiOracleReport struct {
-	PatchID         string                    `json:"patch_id"`
-	AllPassed       bool                      `json:"all_passed"`
+	PatchID         string                       `json:"patch_id"`
+	AllPassed       bool                         `json:"all_passed"`
 	OracleResults   map[OracleType]*OracleResult `json:"oracle_results"`
-	TotalDurationMs int64                     `json:"total_duration_ms"`
+	TotalDurationMs int64                        `json:"total_duration_ms"`
 }
 
 // IndependentOracleSuite executes five distinct oracles to verify patch correctness.
@@ -146,15 +186,11 @@ func (s *IndependentOracleSuite) verifySyntaxCompilation(wsDir string, task *pla
 
 	// Execute `go vet` in target package directory
 	pkgDir := filepath.Dir(targetPath)
-	cmd := exec.Command("go", "vet", ".")
-	cmd.Dir = pkgDir
-	cmd.Env = getExecutionEnv()
-
-	out, err := cmd.CombinedOutput()
-	res.Output = string(out)
+	out, err := s.runCommand(pkgDir, []string{"go", "vet", "."})
+	res.Output = out
 	if err != nil {
 		res.Passed = false
-		res.FailureReason = fmt.Sprintf("go vet failed: %s", string(out))
+		res.FailureReason = fmt.Sprintf("go vet failed: %v: %s", err, out)
 	} else {
 		res.Details = "Syntax valid and go vet passed with 0 warnings"
 	}
@@ -178,14 +214,10 @@ func (s *IndependentOracleSuite) verifyRegressionTests(wsDir string, task *plann
 				continue
 			}
 
-			cmd := exec.Command(parts[0], parts[1:]...)
-			cmd.Dir = wsDir
-			cmd.Env = getExecutionEnv()
-
-			out, err := cmd.CombinedOutput()
+			out, err := s.runCommand(wsDir, parts)
 			if err != nil {
 				res.Passed = false
-				res.Output = string(out)
+				res.Output = out
 				res.FailureReason = fmt.Sprintf("Regression command %q failed: %v", cmdStr, err)
 				res.DurationMs = time.Since(start).Milliseconds()
 				return res
@@ -193,7 +225,8 @@ func (s *IndependentOracleSuite) verifyRegressionTests(wsDir string, task *plann
 		}
 		res.Details = fmt.Sprintf("All %d validation commands executed successfully", len(task.ValidationCommands))
 	} else {
-		res.Details = "No baseline test regressions detected"
+		res.Passed = false
+		res.Details = "NOT_RUN: no regression commands configured"
 	}
 
 	res.DurationMs = time.Since(start).Milliseconds()
@@ -216,15 +249,11 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 	// If explicit reproducer command provided, execute it
 	if reproducerCmd != "" {
 		parts := strings.Fields(reproducerCmd)
-		cmd := exec.Command(parts[0], parts[1:]...)
-		cmd.Dir = wsDir
-		cmd.Env = getExecutionEnv()
-
-		out, err := cmd.CombinedOutput()
-		res.Output = string(out)
+		out, err := s.runCommand(wsDir, parts)
+		res.Output = out
 		if err != nil {
 			res.Passed = false
-			res.FailureReason = fmt.Sprintf("Defect reproducer test failed: %v\n%s", err, string(out))
+			res.FailureReason = fmt.Sprintf("Defect reproducer test failed: %v\n%s", err, out)
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
@@ -309,12 +338,8 @@ func (s *IndependentOracleSuite) verifyBehavioralInvariance(
 
 	if invarianceCmd != "" {
 		parts := strings.Fields(invarianceCmd)
-		cmd := exec.Command(parts[0], parts[1:]...)
-		cmd.Dir = wsDir
-		cmd.Env = getExecutionEnv()
-
-		out, err := cmd.CombinedOutput()
-		res.Output = string(out)
+		out, err := s.runCommand(wsDir, parts)
+		res.Output = out
 		if err != nil {
 			res.Passed = false
 			res.FailureReason = fmt.Sprintf("Behavioral invariance test failed: %v", err)
@@ -323,7 +348,8 @@ func (s *IndependentOracleSuite) verifyBehavioralInvariance(
 		}
 		res.Details = "Non-defective execution paths produce identical invariant behavior"
 	} else {
-		res.Details = "Baseline invariant behavior verified"
+		res.Passed = false
+		res.Details = "NOT_RUN: no behavioral invariance command configured"
 	}
 
 	res.DurationMs = time.Since(start).Milliseconds()

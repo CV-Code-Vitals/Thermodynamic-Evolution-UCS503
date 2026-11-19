@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,6 +12,33 @@ import (
 
 	"github.com/saksham/self-healing-pipeline/agent"
 )
+
+func TestWorkingTreeCleanDetectsChanges(t *testing.T) {
+	dir := t.TempDir()
+	run := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+	}
+	run("init")
+	if err := os.WriteFile(filepath.Join(dir, "source.txt"), []byte("original"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", "source.txt")
+	run("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "commit", "-m", "initial")
+	if !detectWorkingTreeClean(dir) {
+		t.Fatal("clean checkout reported dirty")
+	}
+	if err := os.WriteFile(filepath.Join(dir, "source.txt"), []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if detectWorkingTreeClean(dir) {
+		t.Fatal("modified checkout reported clean")
+	}
+}
 
 // setupMockRepository creates an isolated temporary directory simulating a multi-ecosystem repository.
 func setupMockRepository(t *testing.T) string {

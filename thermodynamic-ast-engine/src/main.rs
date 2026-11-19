@@ -795,30 +795,28 @@ pub fn scan_file(
 
             let metrics = visitor.into_metrics();
 
-            if metrics.energy < min_score {
-                return;
+            if metrics.energy >= min_score {
+                // Determine primary entropy driver
+                let (vuln_type, description) = determine_primary_driver(
+                    &metrics,
+                    visitor_has_recursive_call(&node, source, lang, &func_name),
+                    visitor_blocking_io_count(&node, source, lang),
+                    visitor_allocation_in_loop(&node, source, lang),
+                    energy_threshold,
+                );
+
+                hotspots.push(Hotspot {
+                    function_name: func_name,
+                    calls: relationships::calls(node, source, lang),
+                    line_number: start_line,
+                    byte_range,
+                    source_snippet: snippet,
+                    entropy_score: metrics.energy,
+                    vulnerability_type: vuln_type,
+                    description,
+                    metrics,
+                });
             }
-
-            // Determine primary entropy driver
-            let (vuln_type, description) = determine_primary_driver(
-                &metrics,
-                visitor_has_recursive_call(&node, source, lang, &func_name),
-                visitor_blocking_io_count(&node, source, lang),
-                visitor_allocation_in_loop(&node, source, lang),
-                energy_threshold,
-            );
-
-            hotspots.push(Hotspot {
-                function_name: func_name,
-                calls: relationships::calls(node, source, lang),
-                line_number: start_line,
-                byte_range,
-                source_snippet: snippet,
-                entropy_score: metrics.energy,
-                vulnerability_type: vuln_type,
-                description,
-                metrics,
-            });
         }
 
         // Recurse into children to find nested function definitions
@@ -1366,6 +1364,19 @@ mod tests {
         let e = compute_energy(&m);
         // E = 0.45*1 + 0 + 0 + 0 = 0.45
         assert!((e - 0.45).abs() < 0.01, "Expected ~0.45, got {}", e);
+    }
+
+    #[test]
+    fn nested_functions_are_checked_when_parent_is_filtered() {
+        let path = std::env::temp_dir().join(format!("ucs503-nested-{}.py", std::process::id()));
+        fs::write(&path, "def outer():\n    def inner(x):\n        if x:\n            if x > 1:\n                return 1\n        return 0\n    return inner\n").unwrap();
+        let full = scan_file(&path, 0.0, 10.0).unwrap().unwrap();
+        let outer = full.hotspots.iter().find(|h| h.function_name == "outer").unwrap().entropy_score;
+        let inner = full.hotspots.iter().find(|h| h.function_name == "inner").unwrap().entropy_score;
+        assert!(inner > outer);
+        let filtered = scan_file(&path, (inner + outer) / 2.0, 10.0).unwrap().unwrap();
+        assert!(filtered.hotspots.iter().any(|h| h.function_name == "inner"));
+        fs::remove_file(path).unwrap();
     }
 
     #[test]

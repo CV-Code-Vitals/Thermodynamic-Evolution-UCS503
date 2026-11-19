@@ -20,6 +20,17 @@ import (
 
 const testSigningKey = "test-signing-key-with-at-least-32-bytes"
 
+func TestAuthorizerUsesConfiguredParameterNames(t *testing.T) {
+	t.Setenv("SIGNING_KEY_PARAMETER_NAME", "/custom/signing")
+	t.Setenv("API_TOKEN_PARAMETER_NAME", "/custom/api")
+	store := &fakeSecretStore{values: map[string]string{"/custom/signing": testSigningKey, "/custom/api": "custom-token"}}
+	handler := NewAuthorizerHandler(store, func() time.Time { return testNow })
+	result, err := handler(context.Background(), AuthorizerRequest{MethodArn: "arn:test", Headers: map[string]string{"Authorization": "Bearer " + makeTestToken(t, testSigningKey, testNow.Add(time.Minute))}})
+	if err != nil || result.Context["analysisApiToken"] != "custom-token" {
+		t.Fatalf("custom secret lookup failed: %+v %v", result, err)
+	}
+}
+
 var testNow = time.Date(2026, time.October, 24, 12, 0, 0, 0, time.UTC)
 
 func TestVerifyArchiveBearer_AcceptsValidToken(t *testing.T) {

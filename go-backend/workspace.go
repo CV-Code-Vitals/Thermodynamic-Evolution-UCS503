@@ -143,6 +143,14 @@ func (s *workspaceStore) acquire(id string) (string, func(), error) {
 }
 
 func readWorkspaceTarget(root, relativePath, functionName string, startByte int) (*evolutionTarget, error) {
+	findTarget, err := loadWorkspaceTargets(root, relativePath)
+	if err != nil {
+		return nil, err
+	}
+	return findTarget(functionName, startByte)
+}
+
+func loadWorkspaceTargets(root, relativePath string) (func(string, int) (*evolutionTarget, error), error) {
 	if filepath.Ext(relativePath) != ".go" || strings.HasSuffix(relativePath, "_test.go") || filepath.IsAbs(relativePath) || strings.Contains(relativePath, "\\") {
 		return nil, errors.New("select a Go function from the scan results")
 	}
@@ -167,30 +175,30 @@ func readWorkspaceTarget(root, relativePath, functionName string, startByte int)
 	if err != nil {
 		return nil, err
 	}
-	matchingNames := 0
+	hash := fmt.Sprintf("%x", sha256.Sum256(source))
+	functions := make(map[string][]*ast.FuncDecl)
 	for _, declaration := range file.Decls {
-		if function, ok := declaration.(*ast.FuncDecl); ok && function.Name.Name == functionName {
-			matchingNames++
+		if function, ok := declaration.(*ast.FuncDecl); ok {
+			functions[function.Name.Name] = append(functions[function.Name.Name], function)
 		}
 	}
-	if matchingNames != 1 {
-		return nil, errors.New("energy analysis requires an unambiguous function name within the file")
-	}
-	for _, declaration := range file.Decls {
-		function, ok := declaration.(*ast.FuncDecl)
-		if !ok || function.Name.Name != functionName || function.Body == nil {
-			continue
+	return func(functionName string, startByte int) (*evolutionTarget, error) {
+		matches := functions[functionName]
+		if len(matches) != 1 {
+			return nil, errors.New("energy analysis requires an unambiguous function name within the file")
 		}
-		start := fset.Position(function.Pos()).Offset
-		end := fset.Position(function.End()).Offset
-		if start != startByte {
-			continue
+		function := matches[0]
+		if function.Body != nil {
+			start := fset.Position(function.Pos()).Offset
+			end := fset.Position(function.End()).Offset
+			if start == startByte {
+				return &evolutionTarget{FilePath: filepath.ToSlash(rel), FunctionName: functionName,
+					StartByte: start, EndByte: end, BaseCode: string(source[start:end]),
+					SourceHash: hash}, nil
+			}
 		}
-		return &evolutionTarget{FilePath: filepath.ToSlash(rel), FunctionName: functionName,
-			StartByte: start, EndByte: end, BaseCode: string(source[start:end]),
-			SourceHash: fmt.Sprintf("%x", sha256.Sum256(source))}, nil
-	}
-	return nil, fmt.Errorf("function changed or was not found; scan the repository again")
+		return nil, fmt.Errorf("function changed or was not found; scan the repository again")
+	}, nil
 }
 
 func workspaceModule(root, filePath string) (string, string, error) {

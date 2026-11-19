@@ -189,7 +189,7 @@ async function invokeStager(lambdaClient, repositoryURL) {
 
 async function getScanToken(ssmClient) {
   const result = await ssmClient.send(new GetParameterCommand({
-    Name: scanTokenParameter,
+    Name: process.env.API_TOKEN_PARAMETER_NAME?.trim() || scanTokenParameter,
     WithDecryption: true,
   }));
   const token = result.Parameter?.Value;

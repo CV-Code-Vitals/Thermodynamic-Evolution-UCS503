@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/saksham/self-healing-pipeline/agent"
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel"
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/planning"
 )
@@ -145,13 +146,14 @@ type MVPService struct {
 	Oracles       *IndependentOracleSuite
 	BaselineSHA   string
 
-	mu         sync.Mutex
-	tokenObjs  map[string]*ApprovalToken
-	analyses   map[string]*MVPAnalysisResult
-	proposals  map[string]*MVPProposalResult
-	approvals  map[string]*MVPApprovalResult
-	executions map[string]*MVPExecutionResult
-	auditTrail []MVPAuditRecord
+	mu              sync.Mutex
+	tokenObjs       map[string]*ApprovalToken
+	analyses        map[string]*MVPAnalysisResult
+	proposals       map[string]*MVPProposalResult
+	approvals       map[string]*MVPApprovalResult
+	executions      map[string]*MVPExecutionResult
+	activeProposals map[string]bool
+	auditTrail      []MVPAuditRecord
 }
 
 // DefaultPreconfiguredTargets returns the audited pilot corpus targets.
@@ -548,18 +550,38 @@ func (s *MVPService) ApproveRepair(proposalID, principal, role string) (*MVPAppr
 // ExecuteRepair applies the patch in sandbox, consumes the token atomically, and runs 5 independent oracles.
 func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	start := time.Now()
 	approval, exists := s.approvals[tokenID]
 	if !exists {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("approval token %q not found", tokenID)
 	}
 
 	proposal, exists := s.proposals[approval.ProposalID]
 	if !exists {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("associated proposal %q not found", approval.ProposalID)
 	}
+	if s.activeProposals == nil {
+		s.activeProposals = make(map[string]bool)
+	}
+	if s.activeProposals[proposal.ProposalID] {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("proposal %q is already executing", proposal.ProposalID)
+	}
+	tokenObj, ok := s.tokenObjs[tokenID]
+	if !ok {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("token object missing from authority memory")
+	}
+	s.activeProposals[proposal.ProposalID] = true
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		delete(s.activeProposals, proposal.ProposalID)
+		s.mu.Unlock()
+	}()
 
 	var target *MVPTarget
 	for _, t := range DefaultPreconfiguredTargets() {
@@ -587,10 +609,6 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		return nil, fmt.Errorf("failed to compute original repo pre-digest: %w", err)
 	}
 
-	fileHashes := map[string]string{
-		filepath.Base(proposal.TargetAbsPath): proposal.FileHash,
-	}
-
 	task := &planning.RemediationTask{
 		TaskID:                fmt.Sprintf("TASK-MVP-%s", proposal.TargetID),
 		Title:                 fmt.Sprintf("Remediate %s in %s", target.DefectCategory, target.TargetFile),
@@ -600,11 +618,12 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		HumanApprovalRequired: true,
 	}
 
-	tokenObj, ok := s.tokenObjs[tokenID]
-	if !ok {
-		return nil, fmt.Errorf("token object missing from authority memory")
+	currentSource, err := os.ReadFile(proposal.TargetAbsPath)
+	if err != nil {
+		return nil, fmt.Errorf("read approved file: %w", err)
 	}
-
+	currentHash := sha256.Sum256(currentSource)
+	fileHashes := map[string]string{filepath.Base(proposal.TargetAbsPath): hex.EncodeToString(currentHash[:])}
 	eligible, _, rejectReason := CheckTaskEligibilitySecure(
 		task,
 		tokenObj,
@@ -619,7 +638,7 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	}
 
 	// Apply patch inside sandbox ONLY
-	if err := os.WriteFile(proposal.TargetAbsPath, []byte(proposal.ModifiedSource), 0644); err != nil {
+	if err := agent.AtomicWriteFileWithConflictDetection(proposal.TargetAbsPath, []byte(proposal.ModifiedSource), proposal.FileHash, 0644); err != nil {
 		return nil, fmt.Errorf("failed to write patched file to sandbox: %w", err)
 	}
 
@@ -678,6 +697,8 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		Timestamp:              time.Now().UTC().Format(time.RFC3339),
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.executions[executionID] = res
 
 	// Append to audit trail
