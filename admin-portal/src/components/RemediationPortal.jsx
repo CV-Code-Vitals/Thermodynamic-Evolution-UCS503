@@ -47,8 +47,6 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
   const [rollbackStatus, setRollbackStatus] = useState('');
 
   // Human approval form state
-  const [operatorPrincipal, setOperatorPrincipal] = useState('lead-sre@code-vitals.internal');
-  const [operatorRole, setOperatorRole] = useState('Principal Reliability Engineer');
 
   useEffect(() => {
     let isMounted = true;
@@ -153,9 +151,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
       const res = await approveRemediationRepair(
         apiBase,
         token,
-        proposal.proposal_id,
-        operatorPrincipal,
-        operatorRole
+        proposal.proposal_id
       );
       setApproval(res);
     } catch (err) {
@@ -354,26 +350,10 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
 
               {!approval && (
                 <div style={{ marginTop: '1rem' }}>
-                  <h4>Human Authorization Sign-Off Gate</h4>
-                  <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
-                    <input
-                      className="cyber-input"
-                      type="text"
-                      placeholder="Approver Principal ID"
-                      value={operatorPrincipal}
-                      onChange={(e) => setOperatorPrincipal(e.target.value)}
-                    />
-                    <input
-                      className="cyber-input"
-                      type="text"
-                      placeholder="Operator Role"
-                      value={operatorRole}
-                      onChange={(e) => setOperatorRole(e.target.value)}
-                    />
-                  </div>
+                  <h4>Authorize repair</h4>
                   <button className="action-btn" onClick={handleApproveRepair} disabled={loading}>
                     <Lock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                    SIGN & AUTHORIZE CRYPTOGRAPHIC TOKEN
+                    AUTHORIZE REPAIR
                   </button>
                 </div>
               )}

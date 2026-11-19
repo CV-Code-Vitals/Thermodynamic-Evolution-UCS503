@@ -48,11 +48,11 @@ export async function proposeRemediationRepair(apiBase = '/api', token = '', ana
   return res.json();
 }
 
-export async function approveRemediationRepair(apiBase = '/api', token = '', proposalId, principal = '', role = '') {
+export async function approveRemediationRepair(apiBase = '/api', token = '', proposalId) {
   const res = await fetch(`${apiBase}/remediation/approve`, {
     method: 'POST',
     headers: authHeaders(token),
-    body: JSON.stringify({ proposal_id: proposalId, principal, role }),
+    body: JSON.stringify({ proposal_id: proposalId }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
