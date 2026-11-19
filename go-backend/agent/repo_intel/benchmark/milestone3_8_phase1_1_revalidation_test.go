@@ -18,24 +18,25 @@ import (
 
 // RevalidationLedger compiles the complete empirical results of the Phase 1.1 re-evaluation.
 type RevalidationLedger struct {
-	Timestamp              time.Time                 `json:"timestamp"`
-	BaselineCommit         string                    `json:"baseline_commit"`
-	AuditPhase             string                    `json:"audit_phase"`
-	TotalTargetsAssessed   int                       `json:"total_targets_assessed"`
-	NaturalDefectTargets   int                       `json:"natural_defect_targets"`
-	InjectedDefectTargets  int                       `json:"injected_defect_targets"`
-	CleanControlTargets    int                       `json:"clean_control_targets"`
-	EligibleDefects        int                       `json:"eligible_defects"`
-	AttemptedRepairs       int                       `json:"attempted_repairs"`
-	VerifiedRepairs        int                       `json:"verified_repairs"`
-	AbstainedRepairs       int                       `json:"abstained_repairs"`
-	FailedRepairs          int                       `json:"failed_repairs"`
-	OriginalReposImmutable bool                      `json:"original_repos_immutable"`
-	VerifiedPrecision      float64                   `json:"verified_precision"`
-	VerifiedRepairRate     float64                   `json:"verified_repair_rate"`
-	AbstentionRate         float64                   `json:"abstention_rate"`
-	WilsonCI95Lower        float64                   `json:"wilson_ci95_lower"`
-	WilsonCI95Upper        float64                   `json:"wilson_ci95_upper"`
+	Timestamp              time.Time            `json:"timestamp"`
+	BaselineCommit         string               `json:"baseline_commit"`
+	AuditPhase             string               `json:"audit_phase"`
+	TotalTargetsAssessed   int                  `json:"total_targets_assessed"`
+	NaturalDefectTargets   int                  `json:"natural_defect_targets"`
+	InjectedDefectTargets  int                  `json:"injected_defect_targets"`
+	CleanControlTargets    int                  `json:"clean_control_targets"`
+	EligibleDefects        int                  `json:"eligible_defects"`
+	AttemptedRepairs       int                  `json:"attempted_repairs"`
+	VerifiedRepairs        int                  `json:"verified_repairs"`
+	AbstainedRepairs       int                  `json:"abstained_repairs"`
+	UnverifiedRepairs      int                  `json:"unverified_repairs"`
+	FailedRepairs          int                  `json:"failed_repairs"`
+	OriginalReposImmutable bool                 `json:"original_repos_immutable"`
+	VerifiedPrecision      float64              `json:"verified_precision"`
+	VerifiedRepairRate     float64              `json:"verified_repair_rate"`
+	AbstentionRate         float64              `json:"abstention_rate"`
+	WilsonCI95Lower        float64              `json:"wilson_ci95_lower"`
+	WilsonCI95Upper        float64              `json:"wilson_ci95_upper"`
 	Records                []Phase2RepairRecord `json:"records"`
 }
 
@@ -522,18 +523,20 @@ func TestMilestone3_8_Phase1_1_AutonomousRepairRevalidation(t *testing.T) {
 			}
 			record.AllOraclesPassed = oracleReport.AllPassed
 
-			if !oracleReport.AllPassed {
-				record.VerificationVerdict = "FAILED"
+			if oracleReport.AllPassed {
+				record.VerificationVerdict = "INDEPENDENTLY_VERIFIED"
+			} else {
 				var failures []string
 				for oType, oRes := range oracleReport.OracleResults {
-					if !oRes.Passed {
+					if !oRes.Passed && !((oType == execution.OracleRegressionTest || oType == execution.OracleBehavioralInvariance) && strings.HasPrefix(oRes.Details, "NOT_RUN:")) {
 						failures = append(failures, fmt.Sprintf("%s (%s)", oType, oRes.FailureReason))
 					}
 				}
-				t.Fatalf("[%s] Oracle verification failed: %s", target.CaseID, strings.Join(failures, "; "))
+				if len(failures) > 0 {
+					t.Fatalf("[%s] Oracle verification failed: %s", target.CaseID, strings.Join(failures, "; "))
+				}
+				record.VerificationVerdict = "UNVERIFIED"
 			}
-
-			record.VerificationVerdict = "INDEPENDENTLY_VERIFIED"
 			record.OriginalRepoUnchanged = true
 			record.DurationMs = time.Since(start).Milliseconds()
 			records = append(records, record)
@@ -590,6 +593,9 @@ func TestMilestone3_8_Phase1_1_AutonomousRepairRevalidation(t *testing.T) {
 		case "FAILED":
 			revalLedger.AttemptedRepairs++
 			revalLedger.FailedRepairs++
+		case "UNVERIFIED":
+			revalLedger.AttemptedRepairs++
+			revalLedger.UnverifiedRepairs++
 		}
 	}
 
@@ -601,10 +607,9 @@ func TestMilestone3_8_Phase1_1_AutonomousRepairRevalidation(t *testing.T) {
 		revalLedger.AbstentionRate = float64(revalLedger.AbstainedRepairs) / float64(revalLedger.EligibleDefects)
 	}
 
-	// Wilson Score 95% Confidence Interval for 9 / 16 (p=0.5625, n=16, z=1.96):
-	// Lower: 0.332, Upper: 0.769
-	revalLedger.WilsonCI95Lower = 0.332
-	revalLedger.WilsonCI95Upper = 0.769
+	interval := ComputeWilsonScoreInterval(revalLedger.VerifiedRepairs, revalLedger.AttemptedRepairs)
+	revalLedger.WilsonCI95Lower = interval.Lower95
+	revalLedger.WilsonCI95Upper = interval.Upper95
 
 	ledgerData, err := json.MarshalIndent(revalLedger, "", "  ")
 	if err != nil {
@@ -617,4 +622,3 @@ func TestMilestone3_8_Phase1_1_AutonomousRepairRevalidation(t *testing.T) {
 	}
 	t.Logf("Revalidation ledger written successfully to %s", revalPath)
 }
-

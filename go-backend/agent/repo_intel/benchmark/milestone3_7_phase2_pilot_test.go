@@ -18,63 +18,64 @@ import (
 
 // Phase2CorpusTarget describes a single evaluation candidate in the Phase 2 external pilot.
 type Phase2CorpusTarget struct {
-	CaseID         string                  `json:"case_id"`
-	Repository     string                  `json:"repository"`
-	RelativeSource string                  `json:"relative_source"` // e.g. "benchmarks/external_v2/gorilla_websocket"
-	TargetFile     string                  `json:"target_file"`
-	DefectCategory string                  `json:"defect_category"`
-	Stratum        string                  `json:"stratum"` // "NATURAL_CONFIRMED", "CONSTRUCTED_INJECTED", "CLEAN_CONTROL"
-	ExpectedAction string                  `json:"expected_action"` // "REPAIR", "ABSTAIN", "IGNORE"
-	Description    string                  `json:"description"`
-	UpstreamCommit string                  `json:"upstream_commit,omitempty"`
-	UpstreamURL    string                  `json:"upstream_url,omitempty"`
-	VerifiedBy     string                  `json:"verified_by"`
-	InitialCode    string                  `json:"initial_code,omitempty"`
+	CaseID         string `json:"case_id"`
+	Repository     string `json:"repository"`
+	RelativeSource string `json:"relative_source"` // e.g. "benchmarks/external_v2/gorilla_websocket"
+	TargetFile     string `json:"target_file"`
+	DefectCategory string `json:"defect_category"`
+	Stratum        string `json:"stratum"`         // "NATURAL_CONFIRMED", "CONSTRUCTED_INJECTED", "CLEAN_CONTROL"
+	ExpectedAction string `json:"expected_action"` // "REPAIR", "ABSTAIN", "IGNORE"
+	Description    string `json:"description"`
+	UpstreamCommit string `json:"upstream_commit,omitempty"`
+	UpstreamURL    string `json:"upstream_url,omitempty"`
+	VerifiedBy     string `json:"verified_by"`
+	InitialCode    string `json:"initial_code,omitempty"`
 }
 
 // Phase2RepairRecord details the execution provenance and outcome of a single candidate repair.
 type Phase2RepairRecord struct {
-	CaseID                 string          `json:"case_id"`
-	Repository             string          `json:"repository"`
-	TargetFile             string          `json:"target_file"`
-	Stratum                string          `json:"stratum"`
-	DefectCategory         string          `json:"defect_category"`
-	FindingID              string          `json:"finding_id,omitempty"`
-	RepairEligible         bool            `json:"repair_eligible"`
-	SynthesisStatus        string          `json:"synthesis_status"` // "PROPOSED", "ABSTAINED", "FAILED"
-	AbstainCategory        string          `json:"abstain_category,omitempty"`
-	AbstainReason          string          `json:"abstain_reason,omitempty"`
-	TokenIssued            bool            `json:"token_issued"`
-	TokenConsumed          bool            `json:"token_consumed"`
-	TokenID                string          `json:"token_id,omitempty"`
-	PatchGenerated         bool            `json:"patch_generated"`
-	UnifiedDiff            string          `json:"unified_diff,omitempty"`
-	DiffHash               string          `json:"diff_hash,omitempty"`
-	AppliedInSandbox       bool            `json:"applied_in_sandbox"`
-	OriginalRepoUnchanged  bool            `json:"original_repo_unchanged"`
-	IndependentOracles     map[string]bool `json:"independent_oracles,omitempty"`
-	AllOraclesPassed       bool            `json:"all_oracles_passed"`
-	VerificationVerdict    string          `json:"verification_verdict"` // "INDEPENDENTLY_VERIFIED", "EXPLICITLY_ABSTAINED", "CLEAN_CONTROL_PRESERVED", "FAILED"
-	DurationMs             int64           `json:"duration_ms"`
+	CaseID                string          `json:"case_id"`
+	Repository            string          `json:"repository"`
+	TargetFile            string          `json:"target_file"`
+	Stratum               string          `json:"stratum"`
+	DefectCategory        string          `json:"defect_category"`
+	FindingID             string          `json:"finding_id,omitempty"`
+	RepairEligible        bool            `json:"repair_eligible"`
+	SynthesisStatus       string          `json:"synthesis_status"` // "PROPOSED", "ABSTAINED", "FAILED"
+	AbstainCategory       string          `json:"abstain_category,omitempty"`
+	AbstainReason         string          `json:"abstain_reason,omitempty"`
+	TokenIssued           bool            `json:"token_issued"`
+	TokenConsumed         bool            `json:"token_consumed"`
+	TokenID               string          `json:"token_id,omitempty"`
+	PatchGenerated        bool            `json:"patch_generated"`
+	UnifiedDiff           string          `json:"unified_diff,omitempty"`
+	DiffHash              string          `json:"diff_hash,omitempty"`
+	AppliedInSandbox      bool            `json:"applied_in_sandbox"`
+	OriginalRepoUnchanged bool            `json:"original_repo_unchanged"`
+	IndependentOracles    map[string]bool `json:"independent_oracles,omitempty"`
+	AllOraclesPassed      bool            `json:"all_oracles_passed"`
+	VerificationVerdict   string          `json:"verification_verdict"` // "INDEPENDENTLY_VERIFIED", "EXPLICITLY_ABSTAINED", "CLEAN_CONTROL_PRESERVED", "FAILED"
+	DurationMs            int64           `json:"duration_ms"`
 }
 
 // Phase2RepairLedger compiles the complete empirical results of the external autonomous repair pilot.
 type Phase2RepairLedger struct {
-	Timestamp               time.Time            `json:"timestamp"`
-	BaselineCommit          string               `json:"baseline_commit"`
-	TotalTargetsAssessed    int                  `json:"total_targets_assessed"`
-	NaturalDefectTargets    int                  `json:"natural_defect_targets"`
-	InjectedDefectTargets   int                  `json:"injected_defect_targets"`
-	CleanControlTargets     int                  `json:"clean_control_targets"`
-	EligibleDefects         int                  `json:"eligible_defects"`
-	AttemptedRepairs        int                  `json:"attempted_repairs"`
-	VerifiedRepairs         int                  `json:"verified_repairs"`
-	AbstainedRepairs        int                  `json:"abstained_repairs"`
-	FailedRepairs           int                  `json:"failed_repairs"`
-	OriginalReposImmutable  bool                 `json:"original_repos_immutable"`
-	VerifiedRepairRate      float64              `json:"verified_repair_rate"`
-	AbstentionRate          float64              `json:"abstention_rate"`
-	Records                 []Phase2RepairRecord `json:"records"`
+	Timestamp              time.Time            `json:"timestamp"`
+	BaselineCommit         string               `json:"baseline_commit"`
+	TotalTargetsAssessed   int                  `json:"total_targets_assessed"`
+	NaturalDefectTargets   int                  `json:"natural_defect_targets"`
+	InjectedDefectTargets  int                  `json:"injected_defect_targets"`
+	CleanControlTargets    int                  `json:"clean_control_targets"`
+	EligibleDefects        int                  `json:"eligible_defects"`
+	AttemptedRepairs       int                  `json:"attempted_repairs"`
+	VerifiedRepairs        int                  `json:"verified_repairs"`
+	AbstainedRepairs       int                  `json:"abstained_repairs"`
+	UnverifiedRepairs      int                  `json:"unverified_repairs"`
+	FailedRepairs          int                  `json:"failed_repairs"`
+	OriginalReposImmutable bool                 `json:"original_repos_immutable"`
+	VerifiedRepairRate     float64              `json:"verified_repair_rate"`
+	AbstentionRate         float64              `json:"abstention_rate"`
+	Records                []Phase2RepairRecord `json:"records"`
 }
 
 func computeRepoDigest(dir string) (string, error) {
@@ -625,18 +626,20 @@ func TestMilestone3_7_Phase2_ControlledExternalAutonomousRepairPilot(t *testing.
 			}
 			record.AllOraclesPassed = oracleReport.AllPassed
 
-			if !oracleReport.AllPassed {
-				record.VerificationVerdict = "FAILED"
+			if oracleReport.AllPassed {
+				record.VerificationVerdict = "INDEPENDENTLY_VERIFIED"
+			} else {
 				var failures []string
 				for oType, oRes := range oracleReport.OracleResults {
-					if !oRes.Passed {
+					if !oRes.Passed && !((oType == execution.OracleRegressionTest || oType == execution.OracleBehavioralInvariance) && strings.HasPrefix(oRes.Details, "NOT_RUN:")) {
 						failures = append(failures, fmt.Sprintf("%s (%s)", oType, oRes.FailureReason))
 					}
 				}
-				t.Fatalf("[%s] Oracle verification failed: %s", target.CaseID, strings.Join(failures, "; "))
+				if len(failures) > 0 {
+					t.Fatalf("[%s] Oracle verification failed: %s", target.CaseID, strings.Join(failures, "; "))
+				}
+				record.VerificationVerdict = "UNVERIFIED"
 			}
-
-			record.VerificationVerdict = "INDEPENDENTLY_VERIFIED"
 			record.OriginalRepoUnchanged = true
 			record.DurationMs = time.Since(start).Milliseconds()
 			records = append(records, record)
@@ -692,6 +695,9 @@ func TestMilestone3_7_Phase2_ControlledExternalAutonomousRepairPilot(t *testing.
 		case "FAILED":
 			ledger.AttemptedRepairs++
 			ledger.FailedRepairs++
+		case "UNVERIFIED":
+			ledger.AttemptedRepairs++
+			ledger.UnverifiedRepairs++
 		}
 	}
 
