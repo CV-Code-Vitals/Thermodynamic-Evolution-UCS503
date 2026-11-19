@@ -256,6 +256,9 @@ window.addEventListener('message', event => {
   loadReport(event.data.report);
 });
 const embedded = new URLSearchParams(location.search).get('embedded') === 'true';
+if (embedded && parent !== window) {
+  parent.postMessage({ type: 'ucs503:graph-ready' }, location.origin);
+}
 $('public-tools').hidden = embedded;
 $('public-nav').hidden = embedded;
 if (!embedded) {

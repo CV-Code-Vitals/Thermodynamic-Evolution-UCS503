@@ -16,6 +16,16 @@ export default function GraphVisualizer({ report }) {
     if (readyRef.current) sendReport();
   }, [report, sendReport]);
 
+  useEffect(() => {
+    const handleReady = (event) => {
+      if (event.origin !== window.location.origin || event.source !== frameRef.current?.contentWindow || event.data?.type !== 'ucs503:graph-ready') return;
+      readyRef.current = true;
+      sendReport();
+    };
+    window.addEventListener('message', handleReady);
+    return () => window.removeEventListener('message', handleReady);
+  }, [sendReport]);
+
   return (
     <iframe
       ref={frameRef}
