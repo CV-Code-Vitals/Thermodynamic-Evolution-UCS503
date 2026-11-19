@@ -168,3 +168,30 @@ func TestRemediationRoutesRequireToken(t *testing.T) {
 		}
 	}
 }
+
+func TestRemediationDemoRunsRepairCandidateAndAbstention(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	setupRemediationRoutes(r, func(c *gin.Context) { c.Next() })
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/remediation/demo", nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("demo returned %d: %s", w.Code, w.Body.String())
+	}
+	var result struct {
+		Status string `json:"status"`
+		Repair struct {
+			Target       string `json:"target"`
+			Verification string `json:"verification_verdict"`
+		} `json:"repair_candidate"`
+		Abstention struct {
+			Status string `json:"abstain_status"`
+		} `json:"conservative_abstention"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+		t.Fatal(err)
+	}
+	if result.Status != "DEMO_COMPLETED" || result.Repair.Target == "" || result.Repair.Verification == "INDEPENDENTLY_VERIFIED" || result.Abstention.Status != "ABSTAINED" {
+		t.Fatalf("unexpected demo result: %+v", result)
+	}
+}

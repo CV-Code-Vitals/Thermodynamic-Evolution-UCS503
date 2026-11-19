@@ -25,7 +25,11 @@ func newAnalysisProxy(address, token string) (http.Handler, error) {
 	proxy := &httputil.ReverseProxy{
 		Rewrite: func(request *httputil.ProxyRequest) {
 			request.SetURL(target)
-			request.Out.URL.Path = "/api/" + strings.TrimPrefix(request.In.URL.Path, "/api/analysis/")
+			if strings.HasPrefix(request.In.URL.Path, "/api/analysis/") {
+				request.Out.URL.Path = "/api/" + strings.TrimPrefix(request.In.URL.Path, "/api/analysis/")
+			} else {
+				request.Out.URL.Path = request.In.URL.Path
+			}
 			request.Out.Header.Set("X-API-Token", token)
 			request.Out.Header.Del("Authorization")
 			request.Out.Header.Del("Cookie")
@@ -37,6 +41,38 @@ func newAnalysisProxy(address, token string) (http.Handler, error) {
 		},
 	}
 	return proxy, nil
+}
+
+func registerRemediationRoutes(mux *http.ServeMux, deps Dependencies) {
+	allowed := map[string]string{
+		"/api/remediation/targets":  http.MethodGet,
+		"/api/remediation/audit":    http.MethodGet,
+		"/api/remediation/analyze":  http.MethodPost,
+		"/api/remediation/propose":  http.MethodPost,
+		"/api/remediation/approve":  http.MethodPost,
+		"/api/remediation/execute":  http.MethodPost,
+		"/api/remediation/rollback": http.MethodPost,
+		"/api/remediation/demo":     http.MethodPost,
+	}
+	mux.HandleFunc("/api/remediation/", func(w http.ResponseWriter, r *http.Request) {
+		if !routeAuthorized(r, deps.Auth) {
+			writeJSONError(w, http.StatusUnauthorized, "unauthorized")
+			return
+		}
+		if method, ok := allowed[r.URL.Path]; !ok || method != r.Method {
+			writeJSONError(w, http.StatusNotFound, "remediation_route_not_found")
+			return
+		}
+		if r.Method == http.MethodPost && !requireTrustedOrigin(w, r) {
+			return
+		}
+		if deps.Analysis == nil {
+			writeJSONError(w, http.StatusServiceUnavailable, "remediation_not_configured")
+			return
+		}
+		r.Body = http.MaxBytesReader(w, r.Body, 16<<10)
+		deps.Analysis.ServeHTTP(w, r)
+	})
 }
 
 func registerAnalysisRoutes(mux *http.ServeMux, deps Dependencies) {

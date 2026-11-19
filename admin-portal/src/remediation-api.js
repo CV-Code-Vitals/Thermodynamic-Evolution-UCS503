@@ -11,12 +11,20 @@ function authHeaders(token) {
   return headers;
 }
 
+async function responseError(res, operation) {
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 404 || data.error === 'remediation_not_configured') {
+    return new Error('Autonomous Repair is unavailable on this server.');
+  }
+  return new Error(data.error || `${operation} failed (HTTP ${res.status}).`);
+}
+
 export async function fetchRemediationTargets(apiBase = '/api', token = '') {
   const res = await fetch(`${apiBase}/remediation/targets`, {
     headers: authHeaders(token),
   });
   if (!res.ok) {
-    throw new Error(`Failed to fetch targets: ${res.statusText}`);
+    throw await responseError(res, 'Loading targets');
   }
   const data = await res.json();
   return data.targets || [];
@@ -29,8 +37,7 @@ export async function analyzeRemediationTarget(apiBase = '/api', token = '', tar
     body: JSON.stringify({ target_id: targetId }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Analysis failed: ${res.statusText}`);
+    throw await responseError(res, 'Analysis');
   }
   return res.json();
 }
@@ -42,8 +49,7 @@ export async function proposeRemediationRepair(apiBase = '/api', token = '', ana
     body: JSON.stringify({ analysis_id: analysisId }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Proposal failed: ${res.statusText}`);
+    throw await responseError(res, 'Proposal');
   }
   return res.json();
 }
@@ -55,8 +61,7 @@ export async function approveRemediationRepair(apiBase = '/api', token = '', pro
     body: JSON.stringify({ proposal_id: proposalId }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Approval failed: ${res.statusText}`);
+    throw await responseError(res, 'Approval');
   }
   return res.json();
 }
@@ -68,8 +73,7 @@ export async function executeRemediationRepair(apiBase = '/api', token = '', tok
     body: JSON.stringify({ token_id: tokenId }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Execution failed: ${res.statusText}`);
+    throw await responseError(res, 'Execution');
   }
   return res.json();
 }
@@ -81,8 +85,7 @@ export async function rollbackRemediationSandbox(apiBase = '/api', token = '', e
     body: JSON.stringify({ execution_id: executionId }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Rollback failed: ${res.statusText}`);
+    throw await responseError(res, 'Rollback');
   }
   return res.json();
 }
@@ -92,7 +95,7 @@ export async function fetchRemediationAuditReport(apiBase = '/api', token = '') 
     headers: authHeaders(token),
   });
   if (!res.ok) {
-    throw new Error(`Failed to fetch audit report: ${res.statusText}`);
+    throw await responseError(res, 'Loading audit report');
   }
   return res.json();
 }
@@ -103,8 +106,7 @@ export async function runRemediationDemo(apiBase = '/api', token = '') {
     headers: authHeaders(token),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || `Demo run failed: ${res.statusText}`);
+    throw await responseError(res, 'Demo');
   }
   return res.json();
 }

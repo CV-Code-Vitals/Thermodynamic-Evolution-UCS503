@@ -794,10 +794,10 @@ func (s *MVPService) ExportAuditReport() *MVPAuditReport {
 	}
 }
 
-// RunDeterministicDemo runs the complete workflow for NAT-03 and an abstention case INJ-EXT2-CMD-01.
+// RunDeterministicDemo runs a repair candidate and an abstention case.
 func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
-	// 1. Natural Defect Repair Demo (NAT-03)
-	analysis1, err := s.AnalyzeTarget("NAT-03")
+	// 1. Injected resource leak repair candidate.
+	analysis1, err := s.AnalyzeTarget("INJ-EXT2-RES-02")
 	if err != nil {
 		return nil, fmt.Errorf("demo analysis failed: %w", err)
 	}
@@ -846,15 +846,16 @@ func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
 
 	return map[string]interface{}{
 		"status": "DEMO_COMPLETED",
-		"natural_defect_repair": map[string]interface{}{
-			"target":             "NAT-03 (gorilla/websocket)",
-			"defect":             "Resource Leak (resp.Body unclosed along redirect)",
-			"unified_diff":       prop1.UnifiedDiff,
-			"diff_hash":          prop1.DiffHash,
-			"approval_token":     appr1.TokenID,
-			"all_oracles_passed": exec1.AllOraclesPassed,
-			"oracles_evaluated":  exec1.Oracles,
-			"source_immutable":   exec1.OriginalRepoImmutable,
+		"repair_candidate": map[string]interface{}{
+			"target":               "INJ-EXT2-RES-02 (fatih/color)",
+			"defect":               "Injected resource leak",
+			"unified_diff":         prop1.UnifiedDiff,
+			"diff_hash":            prop1.DiffHash,
+			"approval_token":       appr1.TokenID,
+			"all_oracles_passed":   exec1.AllOraclesPassed,
+			"verification_verdict": exec1.VerificationVerdict,
+			"oracles_evaluated":    exec1.Oracles,
+			"source_immutable":     exec1.OriginalRepoImmutable,
 		},
 		"conservative_abstention": map[string]interface{}{
 			"target":           "INJ-EXT2-CMD-01 (schollz/progressbar)",
