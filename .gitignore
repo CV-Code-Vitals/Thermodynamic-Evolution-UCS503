@@ -29,3 +29,16 @@ GITHUB_SECRETS_COPY.txt
 
 *.key
 *.pem
+
+
+# AWS SAM build artifacts
+.aws-sam/
+
+# AI agent files
+.claude/
+.claude-flow/
+.superpowers/
+.swarm/
+
+# Temporary files
+.tmp/

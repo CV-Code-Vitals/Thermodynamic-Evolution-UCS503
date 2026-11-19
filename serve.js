@@ -36,13 +36,21 @@ function getFilePath(urlPath) {
 
   if (urlPath.startsWith('/admin-portal/')) {
     const subPath = urlPath.replace('/admin-portal/', '');
+    if (adminRoot === ADMIN_SOURCE && subPath &&
+        !/^(?:(?:index\.html|favicon\.svg|icons\.svg)$|(?:src|public)\/)/.test(subPath)) return {};
     const safePath = subPath ? path.normalize(subPath) : 'index.html';
     const targetPath = path.join(adminRoot, safePath);
-    return { file: targetPath };
+    return { file: targetPath, root: adminRoot };
   }
 
-  const safePath = urlPath === '/' ? 'index.html' : path.normalize(urlPath.replace(/^\//, ''));
-  return { file: path.join(ROOT_DIR, safePath) };
+  if (urlPath === '/' || urlPath === '/index.html') return { file: path.join(ROOT_DIR, 'index.html'), root: ROOT_DIR };
+  for (const prefix of ['assets', 'graph-visualizer']) {
+    if (urlPath === `/${prefix}` || urlPath.startsWith(`/${prefix}/`)) {
+      const root = path.join(ROOT_DIR, prefix);
+      return { file: path.join(root, urlPath.slice(prefix.length + 1)), root };
+    }
+  }
+  return {};
 }
 
 function sendFile(res, filePath) {
@@ -124,7 +132,7 @@ const server = http.createServer((req, res) => {
     res.end('404 Not Found');
     return;
   }
-  const { redirect, file } = getFilePath(requestUrl);
+  const { redirect, file, root } = getFilePath(requestUrl);
 
   if (redirect) {
     res.writeHead(302, { Location: redirect });
@@ -133,7 +141,7 @@ const server = http.createServer((req, res) => {
   }
 
   const resolvedPath = file && path.resolve(file);
-  const allowedRoot = requestUrl.startsWith('/admin-portal/') ? getAdminRoot() : ROOT_DIR;
+  const allowedRoot = root;
   if (!resolvedPath || (resolvedPath !== allowedRoot && !resolvedPath.startsWith(allowedRoot + path.sep))) {
     res.writeHead(400, { 'Content-Type': 'text/plain' });
     res.end('400 Bad Request');
@@ -147,15 +155,21 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    if (stats.isDirectory()) {
-      sendFile(res, path.join(resolvedPath, 'index.html'));
-    } else {
-      sendFile(res, resolvedPath);
-    }
+    const target = stats.isDirectory() ? path.join(resolvedPath, 'index.html') : resolvedPath;
+    fs.realpath(target, (realErr, realTarget) => {
+      fs.realpath(allowedRoot, (rootErr, realRoot) => {
+        if (realErr || rootErr || (realTarget !== realRoot && !realTarget.startsWith(realRoot + path.sep))) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('404 Not Found');
+          return;
+        }
+        sendFile(res, realTarget);
+      });
+    });
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Static server running at http://localhost:${PORT}`);
   console.log(`Root site: http://localhost:${PORT}/`);
   console.log(`Admin portal: http://localhost:${PORT}/admin-portal/`);

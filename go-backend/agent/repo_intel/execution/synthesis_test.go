@@ -17,32 +17,32 @@ import (
 
 // SynthesisTrialRecord records empirical evidence for a single synthesis target.
 type SynthesisTrialRecord struct {
-	CaseID                 string                 `json:"case_id"`
-	Category               string                 `json:"category"`
-	TargetFile             string                 `json:"target_file"`
-	ExpectedIntent         string                 `json:"expected_intent"`
-	ActualStatus           string                 `json:"actual_status"` // PROPOSED, ABSTAINED, FAILED
-	AbstainReason          string                 `json:"abstain_reason,omitempty"`
-	PatchGenerated         bool                   `json:"patch_generated"`
-	UnifiedDiff            string                 `json:"unified_diff,omitempty"`
-	DiffHash               string                 `json:"diff_hash,omitempty"`
-	IndependentValidations map[string]bool        `json:"independent_validations,omitempty"`
-	AllOraclesPassed       bool                   `json:"all_oracles_passed"`
-	DurationMs             int64                  `json:"duration_ms"`
+	CaseID                 string          `json:"case_id"`
+	Category               string          `json:"category"`
+	TargetFile             string          `json:"target_file"`
+	ExpectedIntent         string          `json:"expected_intent"`
+	ActualStatus           string          `json:"actual_status"` // PROPOSED, ABSTAINED, FAILED
+	AbstainReason          string          `json:"abstain_reason,omitempty"`
+	PatchGenerated         bool            `json:"patch_generated"`
+	UnifiedDiff            string          `json:"unified_diff,omitempty"`
+	DiffHash               string          `json:"diff_hash,omitempty"`
+	IndependentValidations map[string]bool `json:"independent_validations,omitempty"`
+	AllOraclesPassed       bool            `json:"all_oracles_passed"`
+	DurationMs             int64           `json:"duration_ms"`
 }
 
 // SynthesisBenchmarkReport aggregates Phase 1.5 synthesis trial results.
 type SynthesisBenchmarkReport struct {
-	Timestamp          time.Time              `json:"timestamp"`
-	TotalCases         int                    `json:"total_cases"`
-	SynthesizedCount   int                    `json:"synthesized_count"`
-	AbstainedCount     int                    `json:"abstained_count"`
-	FailedCount        int                    `json:"failed_count"`
-	VerifiedCount      int                    `json:"verified_count"`
-	SynthesisRate      float64                `json:"synthesis_rate"`
-	AbstentionRate     float64                `json:"abstention_rate"`
-	OracleSuccessRate  float64                `json:"oracle_success_rate"`
-	Records            []SynthesisTrialRecord `json:"records"`
+	Timestamp         time.Time              `json:"timestamp"`
+	TotalCases        int                    `json:"total_cases"`
+	SynthesizedCount  int                    `json:"synthesized_count"`
+	AbstainedCount    int                    `json:"abstained_count"`
+	FailedCount       int                    `json:"failed_count"`
+	VerifiedCount     int                    `json:"verified_count"`
+	SynthesisRate     float64                `json:"synthesis_rate"`
+	AbstentionRate    float64                `json:"abstention_rate"`
+	OracleSuccessRate float64                `json:"oracle_success_rate"`
+	Records           []SynthesisTrialRecord `json:"records"`
 }
 
 func TestAutonomousPatchSynthesisAndIndependentOracles(t *testing.T) {
@@ -437,14 +437,19 @@ func DialServer(url string) (*http.Response, error) {
 			}
 			record.AllOraclesPassed = oracleReport.AllPassed
 
-			if !oracleReport.AllPassed {
+			if oracleReport.AllPassed {
+				t.Fatal("missing regression and invariance checks must prevent verification")
+			}
+			{
 				var failed []string
 				for oType, oRes := range oracleReport.OracleResults {
-					if !oRes.Passed {
+					if !oRes.Passed && oType != OracleRegressionTest && oType != OracleBehavioralInvariance {
 						failed = append(failed, fmt.Sprintf("%s: %s", oType, oRes.FailureReason))
 					}
 				}
-				t.Fatalf("[%s] Oracle verification failed: %s", tc.caseID, strings.Join(failed, "; "))
+				if len(failed) > 0 {
+					t.Fatalf("[%s] Oracle verification failed: %s", tc.caseID, strings.Join(failed, "; "))
+				}
 			}
 
 			records = append(records, record)
@@ -602,8 +607,8 @@ func DoFetch(endpoint string) ([]byte, error) {
 
 	// 6. Independent Multi-Oracle Verification
 	oracleReport := oracles.VerifyAll(tmpDir, task, decision.Patch, "", "")
-	if !oracleReport.AllPassed {
-		t.Fatalf("Oracles failed after patch application: %+v", oracleReport)
+	if oracleReport.AllPassed || oracleReport.OracleResults[OracleRegressionTest].Passed || oracleReport.OracleResults[OracleBehavioralInvariance].Passed {
+		t.Fatalf("Missing checks must prevent verification: %+v", oracleReport)
 	}
 
 	// 7. Verify Replay Attack Prevention

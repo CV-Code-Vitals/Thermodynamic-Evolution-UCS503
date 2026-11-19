@@ -1203,6 +1203,7 @@ Resources:
         - arm64
       MemorySize: 1024
       Timeout: 120
+      ReservedConcurrentExecutions: 2
       Role: !GetAtt SourceStagerExecutionRole.Arn
       Environment:
         Variables:
@@ -1654,6 +1655,49 @@ Resources:
       Tags:
         - Key: AnalysisStack
           Value: !Ref ResourcePrefix
+
+  PublicScanWebAcl:
+    Type: AWS::WAFv2::WebACL
+    Properties:
+      Scope: REGIONAL
+      DefaultAction:
+        Allow: {}
+      VisibilityConfig:
+        CloudWatchMetricsEnabled: true
+        MetricName: !Sub '${ResourcePrefix}-public-scan'
+        SampledRequestsEnabled: false
+      Rules:
+        - Name: PublicScanRateLimit
+          Priority: 0
+          Action:
+            Block:
+              CustomResponse:
+                ResponseCode: 429
+          VisibilityConfig:
+            CloudWatchMetricsEnabled: true
+            MetricName: PublicScanRateLimit
+            SampledRequestsEnabled: false
+          Statement:
+            RateBasedStatement:
+              Limit: 10
+              EvaluationWindowSec: 60
+              AggregateKeyType: IP
+              ScopeDownStatement:
+                ByteMatchStatement:
+                  FieldToMatch:
+                    UriPath: {}
+                  PositionalConstraint: ENDS_WITH
+                  SearchString: /api/scan
+                  TextTransformations:
+                    - Priority: 0
+                      Type: NONE
+
+  PublicScanWebAclAssociation:
+    Type: AWS::WAFv2::WebACLAssociation
+    DependsOn: AnalysisApiStage
+    Properties:
+      ResourceArn: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}::/restapis/${AnalysisApi}/stages/${ApiStageName}'
+      WebACLArn: !GetAtt PublicScanWebAcl.Arn
 
   AnalysisApiDefault4xxCors:
     Type: AWS::ApiGateway::GatewayResponse

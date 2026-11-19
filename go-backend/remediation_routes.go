@@ -62,14 +62,12 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
 	approveHandler := func(c *gin.Context) {
 		var req struct {
 			ProposalID string `json:"proposal_id"`
-			Principal  string `json:"principal"`
-			Role       string `json:"role"`
 		}
 		if err := c.ShouldBindJSON(&req); err != nil || req.ProposalID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "proposal_id is required"})
 			return
 		}
-		approval, err := mvpService.ApproveRepair(req.ProposalID, req.Principal, req.Role)
+		approval, err := mvpService.ApproveRepair(req.ProposalID, "authenticated-analysis-client", "analysis-operator")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -124,27 +122,27 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
 	}
 
 	// Register with and without /api prefix
-	r.GET("/api/remediation/targets", targetsHandler)
-	r.GET("/remediation/targets", targetsHandler)
+	r.GET("/api/remediation/targets", tokenMiddleware, targetsHandler)
+	r.GET("/remediation/targets", tokenMiddleware, targetsHandler)
 
-	r.POST("/api/remediation/analyze", analyzeHandler)
-	r.POST("/remediation/analyze", analyzeHandler)
+	r.POST("/api/remediation/analyze", tokenMiddleware, analyzeHandler)
+	r.POST("/remediation/analyze", tokenMiddleware, analyzeHandler)
 
-	r.POST("/api/remediation/propose", proposeHandler)
-	r.POST("/remediation/propose", proposeHandler)
+	r.POST("/api/remediation/propose", tokenMiddleware, proposeHandler)
+	r.POST("/remediation/propose", tokenMiddleware, proposeHandler)
 
-	r.POST("/api/remediation/approve", approveHandler)
-	r.POST("/remediation/approve", approveHandler)
+	r.POST("/api/remediation/approve", tokenMiddleware, approveHandler)
+	r.POST("/remediation/approve", tokenMiddleware, approveHandler)
 
-	r.POST("/api/remediation/execute", executeHandler)
-	r.POST("/remediation/execute", executeHandler)
+	r.POST("/api/remediation/execute", tokenMiddleware, executeHandler)
+	r.POST("/remediation/execute", tokenMiddleware, executeHandler)
 
-	r.POST("/api/remediation/rollback", rollbackHandler)
-	r.POST("/remediation/rollback", rollbackHandler)
+	r.POST("/api/remediation/rollback", tokenMiddleware, rollbackHandler)
+	r.POST("/remediation/rollback", tokenMiddleware, rollbackHandler)
 
-	r.GET("/api/remediation/audit", auditHandler)
-	r.GET("/remediation/audit", auditHandler)
+	r.GET("/api/remediation/audit", tokenMiddleware, auditHandler)
+	r.GET("/remediation/audit", tokenMiddleware, auditHandler)
 
-	r.POST("/api/remediation/demo", demoHandler)
-	r.POST("/remediation/demo", demoHandler)
+	r.POST("/api/remediation/demo", tokenMiddleware, demoHandler)
+	r.POST("/remediation/demo", tokenMiddleware, demoHandler)
 }

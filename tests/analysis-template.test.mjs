@@ -11,6 +11,12 @@ const template = await read('infra/analysis/template.yaml');
 const archiveTemplate = await read('template.yaml');
 const workflow = await read('.github/workflows/deploy-analysis.yml');
 
+test('limits anonymous scans before staging and caps staging concurrency', () => {
+  assert.match(resource('PublicScanWebAcl'), /RateBasedStatement:[\s\S]*Limit: 10[\s\S]*EvaluationWindowSec: 60[\s\S]*AggregateKeyType: IP[\s\S]*SearchString: \/api\/scan/);
+  assert.match(resource('PublicScanWebAclAssociation'), /AnalysisApi[\s\S]*ApiStageName/);
+  assert.match(resource('SourceStagerFunction'), /ReservedConcurrentExecutions: 2/);
+});
+
 function resource(name) {
   const marker = new RegExp(`^  ${name}:\\r?\\n`, 'm').exec(template);
   assert.ok(marker, `template is missing resource ${name}`);

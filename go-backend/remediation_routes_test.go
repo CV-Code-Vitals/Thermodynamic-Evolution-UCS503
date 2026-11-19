@@ -81,11 +81,16 @@ func TestRemediationHttpWorkflow(t *testing.T) {
 		t.Fatalf("POST /api/remediation/approve returned %d: %s", w4.Code, w4.Body.String())
 	}
 	var apprResp struct {
-		TokenID string `json:"token_id"`
-		Valid   bool   `json:"valid"`
+		TokenID   string `json:"token_id"`
+		Valid     bool   `json:"valid"`
+		Principal string `json:"principal"`
+		Role      string `json:"role"`
 	}
 	if err := json.Unmarshal(w4.Body.Bytes(), &apprResp); err != nil || !apprResp.Valid {
 		t.Fatalf("Approval failed: %v", err)
+	}
+	if apprResp.Principal != "authenticated-analysis-client" || apprResp.Role != "analysis-operator" {
+		t.Fatalf("caller supplied approval identity: %+v", apprResp)
 	}
 
 	// 5. POST /api/remediation/execute
@@ -102,8 +107,8 @@ func TestRemediationHttpWorkflow(t *testing.T) {
 		AllOraclesPassed    bool   `json:"all_oracles_passed"`
 		VerificationVerdict string `json:"verification_verdict"`
 	}
-	if err := json.Unmarshal(w5.Body.Bytes(), &execResp); err != nil || !execResp.AllOraclesPassed {
-		t.Fatalf("Execution oracles failed: %v (verdict: %s)", err, execResp.VerificationVerdict)
+	if err := json.Unmarshal(w5.Body.Bytes(), &execResp); err != nil || execResp.AllOraclesPassed || execResp.VerificationVerdict == "INDEPENDENTLY_VERIFIED" {
+		t.Fatalf("Missing checks must prevent verification: %v (verdict: %s)", err, execResp.VerificationVerdict)
 	}
 
 	// 6. GET /api/remediation/audit
@@ -142,5 +147,24 @@ func TestRemediationHttpWorkflow(t *testing.T) {
 	_ = json.Unmarshal(w8.Body.Bytes(), &absProp)
 	if absProp.Status != "ABSTAINED" {
 		t.Fatalf("Expected ABSTAINED, got %s", absProp.Status)
+	}
+}
+
+func TestRemediationRoutesRequireToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	setupRemediationRoutes(r, tokenMiddleware("test-secret"))
+	for _, prefix := range []string{"/api/remediation", "/remediation"} {
+		for _, route := range []struct{ method, path string }{
+			{"GET", "/targets"}, {"GET", "/audit"}, {"POST", "/analyze"},
+			{"POST", "/propose"}, {"POST", "/approve"}, {"POST", "/execute"},
+			{"POST", "/rollback"}, {"POST", "/demo"},
+		} {
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest(route.method, prefix+route.path, nil))
+			if w.Code != http.StatusUnauthorized {
+				t.Errorf("%s %s: got %d", route.method, prefix+route.path, w.Code)
+			}
+		}
 	}
 }

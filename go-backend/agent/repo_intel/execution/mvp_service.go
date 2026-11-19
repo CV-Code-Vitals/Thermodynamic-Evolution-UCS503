@@ -145,13 +145,14 @@ type MVPService struct {
 	Oracles       *IndependentOracleSuite
 	BaselineSHA   string
 
-	mu         sync.Mutex
-	tokenObjs  map[string]*ApprovalToken
-	analyses   map[string]*MVPAnalysisResult
-	proposals  map[string]*MVPProposalResult
-	approvals  map[string]*MVPApprovalResult
-	executions map[string]*MVPExecutionResult
-	auditTrail []MVPAuditRecord
+	mu              sync.Mutex
+	tokenObjs       map[string]*ApprovalToken
+	analyses        map[string]*MVPAnalysisResult
+	proposals       map[string]*MVPProposalResult
+	approvals       map[string]*MVPApprovalResult
+	executions      map[string]*MVPExecutionResult
+	activeProposals map[string]bool
+	auditTrail      []MVPAuditRecord
 }
 
 // DefaultPreconfiguredTargets returns the audited pilot corpus targets.
@@ -548,18 +549,38 @@ func (s *MVPService) ApproveRepair(proposalID, principal, role string) (*MVPAppr
 // ExecuteRepair applies the patch in sandbox, consumes the token atomically, and runs 5 independent oracles.
 func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 
 	start := time.Now()
 	approval, exists := s.approvals[tokenID]
 	if !exists {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("approval token %q not found", tokenID)
 	}
 
 	proposal, exists := s.proposals[approval.ProposalID]
 	if !exists {
+		s.mu.Unlock()
 		return nil, fmt.Errorf("associated proposal %q not found", approval.ProposalID)
 	}
+	if s.activeProposals == nil {
+		s.activeProposals = make(map[string]bool)
+	}
+	if s.activeProposals[proposal.ProposalID] {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("proposal %q is already executing", proposal.ProposalID)
+	}
+	tokenObj, ok := s.tokenObjs[tokenID]
+	if !ok {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("token object missing from authority memory")
+	}
+	s.activeProposals[proposal.ProposalID] = true
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		delete(s.activeProposals, proposal.ProposalID)
+		s.mu.Unlock()
+	}()
 
 	var target *MVPTarget
 	for _, t := range DefaultPreconfiguredTargets() {
@@ -598,11 +619,6 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		TargetFiles:           []string{target.TargetFile},
 		ExecutionClass:        planning.ExecutionClass(proposal.ExecutionClass),
 		HumanApprovalRequired: true,
-	}
-
-	tokenObj, ok := s.tokenObjs[tokenID]
-	if !ok {
-		return nil, fmt.Errorf("token object missing from authority memory")
 	}
 
 	eligible, _, rejectReason := CheckTaskEligibilitySecure(
@@ -678,6 +694,8 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		Timestamp:              time.Now().UTC().Format(time.RFC3339),
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.executions[executionID] = res
 
 	// Append to audit trail
