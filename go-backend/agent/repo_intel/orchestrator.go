@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -284,8 +285,10 @@ func detectHeadCommit(repoRoot string) string {
 }
 
 func detectWorkingTreeClean(repoRoot string) bool {
-	// Simple check: if git index exists
-	indexPath := filepath.Join(repoRoot, ".git", "index")
-	_, err := os.Stat(indexPath)
-	return err == nil
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "git", "status", "--porcelain", "--untracked-files=normal")
+	cmd.Dir = repoRoot
+	output, err := cmd.Output()
+	return err == nil && len(output) == 0
 }

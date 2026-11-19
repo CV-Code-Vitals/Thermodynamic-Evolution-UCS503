@@ -1167,6 +1167,7 @@ Resources:
           ANALYSIS_API_BASE: !Sub 'http://${AnalysisPrivateIp}:8080'
           FRONTEND_ORIGIN: !Ref FrontendOrigin
           SOURCE_STAGER_FUNCTION: !Ref SourceStagerFunction
+          API_TOKEN_PARAMETER_NAME: !Ref ApiTokenParameterName
       Tags:
         AnalysisStack: !Ref ResourcePrefix
 
@@ -1184,6 +1185,10 @@ Resources:
       MemorySize: 128
       Timeout: 10
       Role: !GetAtt AuthorizerExecutionRole.Arn
+      Environment:
+        Variables:
+          API_TOKEN_PARAMETER_NAME: !Ref ApiTokenParameterName
+          SIGNING_KEY_PARAMETER_NAME: !Ref SigningKeyParameterName
       Tags:
         AnalysisStack: !Ref ResourcePrefix
     Metadata:

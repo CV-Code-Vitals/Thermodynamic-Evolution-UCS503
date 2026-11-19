@@ -28,22 +28,22 @@ type TrialPatchDefinition struct {
 }
 
 type TrialResult struct {
-	CandidateID       string `json:"candidate_id"`
-	RepoName          string `json:"repo_name"`
-	TargetFile        string `json:"target_file"`
-	RiskTier          string `json:"risk_tier"`
-	Status            string `json:"status"`
-	PreBuildPassed    bool   `json:"pre_build_passed"`
-	PreTestPassed     bool   `json:"pre_test_passed"`
-	PatchApplied      bool   `json:"patch_applied"`
-	PostBuildPassed   bool   `json:"post_build_passed"`
-	PostTestPassed    bool   `json:"post_test_passed"`
-	DiffHash          string `json:"diff_hash"`
-	UnifiedDiff       string `json:"unified_diff"`
-	DurationMs        int64  `json:"duration_ms"`
+	CandidateID        string `json:"candidate_id"`
+	RepoName           string `json:"repo_name"`
+	TargetFile         string `json:"target_file"`
+	RiskTier           string `json:"risk_tier"`
+	Status             string `json:"status"`
+	PreBuildPassed     bool   `json:"pre_build_passed"`
+	PreTestPassed      bool   `json:"pre_test_passed"`
+	PatchApplied       bool   `json:"patch_applied"`
+	PostBuildPassed    bool   `json:"post_build_passed"`
+	PostTestPassed     bool   `json:"post_test_passed"`
+	DiffHash           string `json:"diff_hash"`
+	UnifiedDiff        string `json:"unified_diff"`
+	DurationMs         int64  `json:"duration_ms"`
 	SourceImmutability bool   `json:"source_immutability_verified"`
-	WorkspaceDisposed bool   `json:"workspace_disposed"`
-	TraceFile         string `json:"trace_file"`
+	WorkspaceDisposed  bool   `json:"workspace_disposed"`
+	TraceFile          string `json:"trace_file"`
 }
 
 func TestExecuteExternalRemediationTrials(t *testing.T) {
@@ -197,7 +197,7 @@ func TestExecuteExternalRemediationTrials(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to read target file in workspace: %v", err)
 		}
-		content := string(fileData)
+		content := strings.ReplaceAll(string(fileData), "\r\n", "\n")
 		if !strings.Contains(content, trial.OriginalText) {
 			t.Fatalf("target text not found in %s", trial.TargetFile)
 		}

@@ -11,6 +11,12 @@ const template = await read('infra/analysis/template.yaml');
 const archiveTemplate = await read('template.yaml');
 const workflow = await read('.github/workflows/deploy-analysis.yml');
 
+test('passes configured secret parameter names to the proxy and authorizer', () => {
+  assert.match(resource('ProxyFunction'), /API_TOKEN_PARAMETER_NAME: !Ref ApiTokenParameterName/);
+  assert.match(resource('AuthorizerFunction'), /API_TOKEN_PARAMETER_NAME: !Ref ApiTokenParameterName/);
+  assert.match(resource('AuthorizerFunction'), /SIGNING_KEY_PARAMETER_NAME: !Ref SigningKeyParameterName/);
+});
+
 test('limits anonymous scans before staging and caps staging concurrency', () => {
   assert.match(resource('PublicScanWebAcl'), /RateBasedStatement:[\s\S]*Limit: 10[\s\S]*EvaluationWindowSec: 60[\s\S]*AggregateKeyType: IP[\s\S]*SearchString: \/api\/scan/);
   assert.match(resource('PublicScanWebAclAssociation'), /AnalysisApi[\s\S]*ApiStageName/);

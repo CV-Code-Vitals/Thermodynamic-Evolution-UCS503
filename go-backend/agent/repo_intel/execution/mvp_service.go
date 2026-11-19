@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/saksham/self-healing-pipeline/agent"
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel"
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/planning"
 )
@@ -608,10 +609,6 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		return nil, fmt.Errorf("failed to compute original repo pre-digest: %w", err)
 	}
 
-	fileHashes := map[string]string{
-		filepath.Base(proposal.TargetAbsPath): proposal.FileHash,
-	}
-
 	task := &planning.RemediationTask{
 		TaskID:                fmt.Sprintf("TASK-MVP-%s", proposal.TargetID),
 		Title:                 fmt.Sprintf("Remediate %s in %s", target.DefectCategory, target.TargetFile),
@@ -621,6 +618,12 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		HumanApprovalRequired: true,
 	}
 
+	currentSource, err := os.ReadFile(proposal.TargetAbsPath)
+	if err != nil {
+		return nil, fmt.Errorf("read approved file: %w", err)
+	}
+	currentHash := sha256.Sum256(currentSource)
+	fileHashes := map[string]string{filepath.Base(proposal.TargetAbsPath): hex.EncodeToString(currentHash[:])}
 	eligible, _, rejectReason := CheckTaskEligibilitySecure(
 		task,
 		tokenObj,
@@ -635,7 +638,7 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	}
 
 	// Apply patch inside sandbox ONLY
-	if err := os.WriteFile(proposal.TargetAbsPath, []byte(proposal.ModifiedSource), 0644); err != nil {
+	if err := agent.AtomicWriteFileWithConflictDetection(proposal.TargetAbsPath, []byte(proposal.ModifiedSource), proposal.FileHash, 0644); err != nil {
 		return nil, fmt.Errorf("failed to write patched file to sandbox: %w", err)
 	}
 

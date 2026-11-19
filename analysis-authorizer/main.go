@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -116,7 +117,11 @@ func NewAuthorizerHandler(store SecretStore, now func() time.Time) func(context.
 			return deny, nil
 		}
 
-		signingKey, err := store.Get(ctx, tokenHMACKeyParameter)
+		signingKeyName := strings.TrimSpace(os.Getenv("SIGNING_KEY_PARAMETER_NAME"))
+		if signingKeyName == "" {
+			signingKeyName = tokenHMACKeyParameter
+		}
+		signingKey, err := store.Get(ctx, signingKeyName)
 		if err != nil {
 			return AuthorizerResponse{}, fmt.Errorf("read token signing key: %w", err)
 		}
@@ -124,7 +129,11 @@ func NewAuthorizerHandler(store SecretStore, now func() time.Time) func(context.
 			return deny, nil
 		}
 
-		analysisToken, err := store.Get(ctx, analysisAPITokenParameter)
+		apiTokenName := strings.TrimSpace(os.Getenv("API_TOKEN_PARAMETER_NAME"))
+		if apiTokenName == "" {
+			apiTokenName = analysisAPITokenParameter
+		}
+		analysisToken, err := store.Get(ctx, apiTokenName)
 		if err != nil {
 			return AuthorizerResponse{}, fmt.Errorf("read analysis API token: %w", err)
 		}
