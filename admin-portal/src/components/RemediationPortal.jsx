@@ -46,59 +46,19 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
   const [auditReport, setAuditReport] = useState(null);
   const [rollbackStatus, setRollbackStatus] = useState('');
 
-  // Human approval form state
-
   useEffect(() => {
     let isMounted = true;
     async function loadTargets() {
       try {
         const list = await fetchRemediationTargets(apiBase, token);
-        if (isMounted) setTargets(list);
-      } catch {
-        // Fallback to pre-configured defaults if offline
         if (isMounted) {
-          setTargets([
-            {
-              target_id: 'INJ-EXT2-RES-02',
-              repository: 'fatih_color',
-              defect_category: 'RESOURCE_LEAK',
-              stratum: 'AUTHENTIC_REPO_INJECTED',
-              description: 'Authentic Repo Injected Defect: os.Open file descriptor leak in DumpColorProfile',
-              expected_action: 'REPAIR',
-            },
-            {
-              target_id: 'INJ-EXT2-SQL-01',
-              repository: 'stretchr_objx',
-              defect_category: 'SQL_INJECTION',
-              stratum: 'AUTHENTIC_REPO_INJECTED',
-              description: 'Authentic Repo Injected Defect: Dynamic SQL string formatting via fmt.Sprintf',
-              expected_action: 'REPAIR',
-            },
-            {
-              target_id: 'INJ-EXT2-CMD-01',
-              repository: 'schollz_progressbar',
-              defect_category: 'COMMAND_INJECTION',
-              stratum: 'AUTHENTIC_REPO_INJECTED',
-              description: 'Authentic Repo Injected Defect: Unsanitized command executed via sh -c (Must safely abstain)',
-              expected_action: 'ABSTAIN',
-            },
-            {
-              target_id: 'DEF-HOLD-01',
-              repository: 'microservice_api',
-              defect_category: 'UNHANDLED_ERROR',
-              stratum: 'CONSTRUCTED_MICROSERVICE',
-              description: 'Constructed Microservice Defect: json.Unmarshal error discarded in non-error return signature',
-              expected_action: 'REPAIR',
-            },
-            {
-              target_id: 'NAT-03',
-              repository: 'gorilla_websocket',
-              defect_category: 'RESOURCE_LEAK',
-              stratum: 'GROUND_TRUTH_DISQUALIFIED',
-              description: 'Disqualified / False Alarm: DialContext manages socket in defer at line 330; response body does not require application close',
-              expected_action: 'ABSTAIN',
-            },
-          ]);
+          setTargets(list);
+          setError('');
+        }
+      } catch (loadError) {
+        if (isMounted) {
+          setTargets([]);
+          setError(loadError.message);
         }
       }
     }
@@ -198,9 +158,6 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
       await runRemediationDemo(apiBase, token);
       const audit = await fetchRemediationAuditReport(apiBase, token);
       setAuditReport(audit);
-      setSelectedTarget('INJ-EXT2-RES-02');
-      // Trigger normal flow for visual display
-      await handleRunAnalysis();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -253,7 +210,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
               setSelectedTarget(e.target.value);
               resetPipeline();
             }}
-            disabled={loading}
+            disabled={loading || targets.length === 0}
             style={{ minWidth: '320px' }}
           >
             {targets.map((t) => (
@@ -262,10 +219,10 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
               </option>
             ))}
           </select>
-          <button className="action-btn" onClick={handleRunAnalysis} disabled={loading}>
+          <button className="action-btn" onClick={handleRunAnalysis} disabled={loading || targets.length === 0}>
             {loading ? 'ANALYZING...' : 'RUN SEMANTIC ANALYSIS'}
           </button>
-          <button className="action-btn secondary" onClick={handleQuickDemo} disabled={loading}>
+          <button className="action-btn secondary" onClick={handleQuickDemo} disabled={loading || targets.length === 0}>
             RUN ONE-CLICK DETERMINISTIC DEMO
           </button>
         </div>

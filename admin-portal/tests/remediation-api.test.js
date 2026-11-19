@@ -12,6 +12,11 @@ import {
 } from '../src/remediation-api.js';
 
 describe('Autonomous Remediation API Client', () => {
+  it('reports an unavailable repair service when the response has no status text', async () => {
+    globalThis.fetch = async () => ({ ok: false, status: 404, statusText: '', json: async () => { throw new Error('not json'); } });
+    await assert.rejects(fetchRemediationTargets('/api'), /Autonomous Repair is unavailable/);
+    await assert.rejects(runRemediationDemo('/api'), /Autonomous Repair is unavailable/);
+  });
   it('fetchRemediationTargets calls /remediation/targets and returns targets array', async () => {
     const mockFetch = async (url) => {
       assert.strictEqual(url, 'http://localhost:8080/api/remediation/targets');
@@ -148,13 +153,13 @@ describe('Autonomous Remediation API Client', () => {
         ok: true,
         json: async () => ({
           status: 'DEMO_COMPLETED',
-          natural_defect_repair: { target: 'NAT-03 (gorilla/websocket)' },
+          repair_candidate: { target: 'INJ-EXT2-RES-02 (fatih/color)' },
         }),
       };
     };
     globalThis.fetch = mockFetch;
     const res = await runRemediationDemo('http://localhost:8080/api');
     assert.strictEqual(res.status, 'DEMO_COMPLETED');
-    assert.strictEqual(res.natural_defect_repair.target, 'NAT-03 (gorilla/websocket)');
+    assert.strictEqual(res.repair_candidate.target, 'INJ-EXT2-RES-02 (fatih/color)');
   });
 });

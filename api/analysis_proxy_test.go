@@ -72,6 +72,49 @@ func TestAnalysisProxyUsesPortalAuthAndKeepsServiceTokenServerSide(t *testing.T)
 	}
 }
 
+func TestRemediationProxyRequiresAdminAndForwardsServiceToken(t *testing.T) {
+	t.Setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/api/remediation/demo" || r.Header.Get("X-API-Token") != "internal-token" || r.Header.Get("Authorization") != "" {
+			t.Errorf("unexpected upstream request: %s", r.URL.Path)
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer upstream.Close()
+	proxy, err := newAnalysisProxy(upstream.URL, "internal-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := newRouter(Dependencies{Analysis: proxy, Auth: &testAuthenticator{validToken: "portal-token"}})
+	for _, tc := range []struct {
+		token, origin string
+		want          int
+	}{
+		{"", "http://localhost:5173", http.StatusUnauthorized},
+		{"portal-token", "https://untrusted.example", http.StatusForbidden},
+		{"portal-token", "http://localhost:5173", http.StatusNoContent},
+	} {
+		r := httptest.NewRequest(http.MethodPost, "/api/remediation/demo", nil)
+		if tc.token != "" {
+			r.Header.Set("Authorization", "Bearer "+tc.token)
+		}
+		r.Header.Set("Origin", tc.origin)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, r)
+		if w.Code != tc.want {
+			t.Errorf("got %d, want %d", w.Code, tc.want)
+		}
+	}
+	missing := newRouter(Dependencies{Auth: &testAuthenticator{validToken: "portal-token"}})
+	r := httptest.NewRequest(http.MethodGet, "/api/remediation/targets", nil)
+	r.Header.Set("Authorization", "Bearer portal-token")
+	w := httptest.NewRecorder()
+	missing.ServeHTTP(w, r)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatalf("unconfigured repair returned %d", w.Code)
+	}
+}
+
 func TestAnalysisProxyFlushesBeforeUpstreamCompletion(t *testing.T) {
 	t.Setenv("CORS_ALLOWED_ORIGINS", "https://portal.example")
 	release := make(chan struct{})

@@ -224,6 +224,7 @@ func registerArchiveServiceRoutes(mux *http.ServeMux, deps Dependencies) {
 func newRouter(deps Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	registerAnalysisRoutes(mux, deps)
+	registerRemediationRoutes(mux, deps)
 	registerAccountRoutes(mux, deps.Accounts)
 
 	statusHandler := func(w http.ResponseWriter, r *http.Request) {
