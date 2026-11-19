@@ -62,8 +62,17 @@ export const scanEvolutionRepository = async (apiBase, token, repoURL, signal, a
   if (!response.ok) {
     throw new Error(analysisErrorMessage(payload, 'Repository scan failed.'));
   }
-  if (!payload.workspace_id || !Array.isArray(payload.targets)) {
-    throw new Error('The analysis service did not return a usable workspace.');
+  const report = payload?.report ?? payload;
+  if (!Array.isArray(report?.file_reports)) {
+    throw new Error('The analysis service did not return a valid repository report.');
   }
-  return { ...payload, repo_url: repoURL };
+  const workspaceAvailable = typeof payload?.workspace_id === 'string' &&
+    payload.workspace_id.trim() !== '' && Array.isArray(payload.targets);
+  return {
+    ...payload,
+    report,
+    workspace_id: workspaceAvailable ? payload.workspace_id : null,
+    targets: workspaceAvailable ? payload.targets : [],
+    repo_url: repoURL,
+  };
 };

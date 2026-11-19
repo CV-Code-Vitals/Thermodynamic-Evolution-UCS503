@@ -56,7 +56,7 @@ export default function EvolutionWorkspace({ apiBase, analysisApiBase = '', toke
       {error && <p className="error-text" role="alert">{error}</p>}
       {scan && (
         <div className="input-group">
-          <p>Analyzed {scan.report.files_analyzed} files. {scan.expires_at ? `The scanned copy expires at ${new Date(scan.expires_at).toLocaleTimeString()}.` : 'Source fingerprints are checked again before optimization.'}</p>
+          <p>Analyzed {scan.report.files_analyzed} files. {scan.workspace_id && (scan.expires_at ? `The scanned copy expires at ${new Date(scan.expires_at).toLocaleTimeString()}.` : 'Source fingerprints are checked again before optimization.')}</p>
           {scan.targets.length ? (
             <>
               <label className="input-label" htmlFor="evolution-function">Go function</label>
@@ -74,7 +74,7 @@ export default function EvolutionWorkspace({ apiBase, analysisApiBase = '', toke
                 repo_url: scan.repo_url,
               })}>REVIEW FUNCTION</button>
             </>
-          ) : <p>Open the Graph tab to explore the scan. No eligible Go functions were found for automated optimization.</p>}
+          ) : <p>Open the Graph tab to explore the scan. {scan.workspace_id ? 'No eligible Go functions were found for automated optimization.' : 'Optimization is unavailable because the analysis service did not provide a workspace.'}</p>}
         </div>
       )}
     </div>
