@@ -308,13 +308,23 @@ test('configures anonymous scan and protected streaming Evolution routes', () =>
 });
 
 test('protects repair routes and redeploys the gateway with CORS', () => {
-  assert.match(resource('RemediationApiMethod'), /AuthorizationType: CUSTOM/);
-  assert.match(resource('RemediationApiMethod'), /AuthorizerId: !Ref AnalysisAuthorizer/);
+  const deployment = resource('AnalysisApiDeploymentRemediationV2');
+  for (const [name, method] of [['RemediationGetMethod', 'GET'], ['RemediationPostMethod', 'POST']]) {
+    const route = resource(name);
+    assert.match(route, new RegExp(`\\bHttpMethod: ${method}\\b`));
+    assert.match(route, /ResourceId: !Ref RemediationProxyResource/);
+    assert.match(route, /AuthorizationType: CUSTOM/);
+    assert.match(route, /AuthorizerId: !Ref AnalysisAuthorizer/);
+    assert.match(route, /response-streaming-invocations/);
+    assert.ok(deployment.includes(`- ${name}`));
+  }
   assert.match(resource('RemediationOptionsMethod'), /AuthorizationType: NONE/);
   assert.match(resource('RemediationOptionsMethod'), /OPTIONS,GET,POST/);
   assert.match(resource('ProxyApiGetInvokePermission'), /GET\/api\/remediation\/\*/);
-  assert.match(resource('AnalysisApiDeploymentRemediationV1'), /RemediationApiMethod/);
-  assert.match(resource('AnalysisApiStage'), /DeploymentId: !Ref AnalysisApiDeploymentRemediationV1/);
+  assert.match(resource('ProxyApiInvokePermission'), /POST\/api\/\*/);
+  assert.match(deployment, /- ProxyApiGetInvokePermission/);
+  assert.match(deployment, /- ProxyApiInvokePermission/);
+  assert.match(resource('AnalysisApiStage'), /DeploymentId: !Ref AnalysisApiDeploymentRemediationV2/);
 });
 
 test('omits credentials from logs and archive resources', () => {

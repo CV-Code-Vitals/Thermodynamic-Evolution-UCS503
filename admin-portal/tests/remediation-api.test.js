@@ -17,16 +17,37 @@ describe('Autonomous Remediation API Client', () => {
     await assert.rejects(fetchRemediationTargets('/api'), /Autonomous Repair is unavailable/);
     await assert.rejects(runRemediationDemo('/api'), /Autonomous Repair is unavailable/);
   });
+  it('shows the gateway status for a target-loading failure with a non-JSON response', async () => {
+    globalThis.fetch = async () => new Response('Internal Server Error', { status: 500 });
+    await assert.rejects(fetchRemediationTargets('/api'), /Loading targets failed.*HTTP 500.*Try again/);
+  });
+
+  it('prompts the administrator to sign in again when the session is rejected', async () => {
+    globalThis.fetch = async () => new Response(null, { status: 403 });
+    await assert.rejects(runRemediationDemo('/api'), /administrator session.*Sign in again/);
+  });
+
+  it('reports a network failure for the affected operation', async () => {
+    globalThis.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    await assert.rejects(analyzeRemediationTarget('/api', '', 'NAT-03'), /Analysis failed.*could not be reached/);
+  });
+
+  it('rejects a malformed target list returned with HTTP 200', async () => {
+    globalThis.fetch = async () => Response.json({ targets: {} });
+    await assert.rejects(fetchRemediationTargets('/api'), /invalid repository target list/);
+  });
+
   it('fetchRemediationTargets calls /remediation/targets and returns targets array', async () => {
-    const mockFetch = async (url) => {
+    const mockFetch = async (url, options) => {
       assert.strictEqual(url, 'http://localhost:8080/api/remediation/targets');
+      assert.strictEqual(options.headers.Authorization, 'Bearer admin-session');
       return {
         ok: true,
         json: async () => ({ targets: [{ target_id: 'NAT-03', defect_category: 'RESOURCE_LEAK' }] }),
       };
     };
     globalThis.fetch = mockFetch;
-    const res = await fetchRemediationTargets('http://localhost:8080/api');
+    const res = await fetchRemediationTargets('http://localhost:8080/api', 'admin-session');
     assert.strictEqual(res.length, 1);
     assert.strictEqual(res[0].target_id, 'NAT-03');
   });
