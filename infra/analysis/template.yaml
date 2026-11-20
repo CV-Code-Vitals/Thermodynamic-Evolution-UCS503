@@ -1549,12 +1549,27 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: true
             method.response.header.Access-Control-Allow-Origin: true
 
-  RemediationApiMethod:
+  RemediationGetMethod:
     Type: AWS::ApiGateway::Method
     Properties:
       RestApiId: !Ref AnalysisApi
       ResourceId: !Ref RemediationProxyResource
-      HttpMethod: ANY
+      HttpMethod: GET
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref AnalysisAuthorizer
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        ResponseTransferMode: STREAM
+        TimeoutInMillis: 900000
+        Uri: !Sub 'arn:${AWS::Partition}:apigateway:${AWS::Region}:lambda:path/2021-11-15/functions/${ProxyFunction.Arn}/response-streaming-invocations'
+
+  RemediationPostMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref AnalysisApi
+      ResourceId: !Ref RemediationProxyResource
+      HttpMethod: POST
       AuthorizationType: CUSTOM
       AuthorizerId: !Ref AnalysisAuthorizer
       Integration:
@@ -1680,15 +1695,18 @@ Resources:
       LogGroupName: !Sub ['/aws/apigateway/${ResourcePrefix}-analysis-${StackSuffix}', {StackSuffix: !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]}]
       RetentionInDays: 365
 
-  AnalysisApiDeploymentRemediationV1:
+  AnalysisApiDeploymentRemediationV2:
     Type: AWS::ApiGateway::Deployment
     DependsOn:
       - ScanApiMethod
       - ScanOptionsMethod
       - EvolveApiMethod
       - EvolveOptionsMethod
-      - RemediationApiMethod
+      - RemediationGetMethod
+      - RemediationPostMethod
       - RemediationOptionsMethod
+      - ProxyApiGetInvokePermission
+      - ProxyApiInvokePermission
       - AnalysisApiDefault4xxCors
       - AnalysisApiDefault5xxCors
     Properties:
@@ -1701,7 +1719,7 @@ Resources:
       - ApiGatewayAccount
     Properties:
       RestApiId: !Ref AnalysisApi
-      DeploymentId: !Ref AnalysisApiDeploymentRemediationV1
+      DeploymentId: !Ref AnalysisApiDeploymentRemediationV2
       StageName: !Ref ApiStageName
       AccessLogSetting:
         DestinationArn: !GetAtt AnalysisApiAccessLogGroup.Arn

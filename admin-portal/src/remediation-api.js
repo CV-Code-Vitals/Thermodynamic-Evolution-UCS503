@@ -11,102 +11,91 @@ function authHeaders(token) {
   return headers;
 }
 
-async function responseError(res, operation) {
-  const data = await res.json().catch(() => ({}));
-  if (res.status === 404 || data.error === 'remediation_not_configured') {
-    return new Error('Autonomous Repair is unavailable on this server.');
+async function request(url, options, operation) {
+  let res;
+  try {
+    res = await fetch(url, options);
+  } catch {
+    throw new Error(`${operation} failed because the repair service could not be reached. Try again.`);
   }
-  return new Error(data.error || `${operation} failed (HTTP ${res.status}).`);
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    if (res.status === 404 || data?.error === 'remediation_not_configured') {
+      throw new Error('Autonomous Repair is unavailable on this server.');
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error(`${operation} requires an active administrator session. Sign in again.`);
+    }
+    if (res.status >= 500) {
+      throw new Error(`${operation} failed because the repair service returned HTTP ${res.status}. Try again.`);
+    }
+    throw new Error((typeof data?.error === 'string' && data.error.trim()) || `${operation} failed (HTTP ${res.status}).`);
+  }
+  if (data === null) {
+    throw new Error(`${operation} returned an invalid response from the repair service.`);
+  }
+  return data;
 }
 
 export async function fetchRemediationTargets(apiBase = '/api', token = '') {
-  const res = await fetch(`${apiBase}/remediation/targets`, {
+  const data = await request(`${apiBase}/remediation/targets`, {
     headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    throw await responseError(res, 'Loading targets');
+  }, 'Loading targets');
+  if (!Array.isArray(data.targets)) {
+    throw new Error('The repair service returned an invalid repository target list.');
   }
-  const data = await res.json();
-  return data.targets || [];
+  return data.targets;
 }
 
 export async function analyzeRemediationTarget(apiBase = '/api', token = '', targetId) {
-  const res = await fetch(`${apiBase}/remediation/analyze`, {
+  return request(`${apiBase}/remediation/analyze`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify({ target_id: targetId }),
-  });
-  if (!res.ok) {
-    throw await responseError(res, 'Analysis');
-  }
-  return res.json();
+  }, 'Analysis');
 }
 
 export async function proposeRemediationRepair(apiBase = '/api', token = '', analysisId) {
-  const res = await fetch(`${apiBase}/remediation/propose`, {
+  return request(`${apiBase}/remediation/propose`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify({ analysis_id: analysisId }),
-  });
-  if (!res.ok) {
-    throw await responseError(res, 'Proposal');
-  }
-  return res.json();
+  }, 'Proposal');
 }
 
 export async function approveRemediationRepair(apiBase = '/api', token = '', proposalId) {
-  const res = await fetch(`${apiBase}/remediation/approve`, {
+  return request(`${apiBase}/remediation/approve`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify({ proposal_id: proposalId }),
-  });
-  if (!res.ok) {
-    throw await responseError(res, 'Approval');
-  }
-  return res.json();
+  }, 'Approval');
 }
 
 export async function executeRemediationRepair(apiBase = '/api', token = '', tokenId) {
-  const res = await fetch(`${apiBase}/remediation/execute`, {
+  return request(`${apiBase}/remediation/execute`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify({ token_id: tokenId }),
-  });
-  if (!res.ok) {
-    throw await responseError(res, 'Execution');
-  }
-  return res.json();
+  }, 'Execution');
 }
 
 export async function rollbackRemediationSandbox(apiBase = '/api', token = '', executionId) {
-  const res = await fetch(`${apiBase}/remediation/rollback`, {
+  return request(`${apiBase}/remediation/rollback`, {
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify({ execution_id: executionId }),
-  });
-  if (!res.ok) {
-    throw await responseError(res, 'Rollback');
-  }
-  return res.json();
+  }, 'Rollback');
 }
 
 export async function fetchRemediationAuditReport(apiBase = '/api', token = '') {
-  const res = await fetch(`${apiBase}/remediation/audit`, {
+  return request(`${apiBase}/remediation/audit`, {
     headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    throw await responseError(res, 'Loading audit report');
-  }
-  return res.json();
+  }, 'Loading audit report');
 }
 
 export async function runRemediationDemo(apiBase = '/api', token = '') {
-  const res = await fetch(`${apiBase}/remediation/demo`, {
+  return request(`${apiBase}/remediation/demo`, {
     method: 'POST',
     headers: authHeaders(token),
-  });
-  if (!res.ok) {
-    throw await responseError(res, 'Demo');
-  }
-  return res.json();
+  }, 'Demo');
 }
