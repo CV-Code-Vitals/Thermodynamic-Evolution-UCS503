@@ -32,7 +32,7 @@ function renderVerdictBadge(verdict) {
   }
 }
 
-export default function RemediationPortal({ apiBase = '/api', token = '' }) {
+export default function RemediationPortal({ apiBase = '/api', token = '', latestScan = null, onNavigateToScan = null }) {
   const [targets, setTargets] = useState([]);
   const [selectedTarget, setSelectedTarget] = useState('INJ-EXT2-RES-02');
   const [loading, setLoading] = useState(false);
@@ -54,8 +54,14 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
     let isMounted = true;
     async function loadTargets() {
       try {
-        const list = await fetchRemediationTargets(apiBase, token);
-        if (isMounted) setTargets(list);
+        const workspaceId = latestScan?.workspace_id || '';
+        const list = await fetchRemediationTargets(apiBase, token, workspaceId);
+        if (isMounted) {
+          setTargets(list);
+          if (list.length > 0) {
+            setSelectedTarget(prev => (list.some(t => t.target_id === prev) ? prev : list[0].target_id));
+          }
+        }
       } catch {
         // Fallback to pre-configured defaults if offline
         if (isMounted) {
@@ -65,40 +71,45 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
               repository: 'fatih_color',
               defect_category: 'RESOURCE_LEAK',
               stratum: 'AUTHENTIC_REPO_INJECTED',
-              description: 'Authentic Repo Injected Defect: os.Open file descriptor leak in DumpColorProfile',
+              description: '[DEMO] Authentic Repo Injected Defect: os.Open file descriptor leak in DumpColorProfile',
               expected_action: 'REPAIR',
+              is_demo_target: true,
             },
             {
               target_id: 'INJ-EXT2-SQL-01',
               repository: 'stretchr_objx',
               defect_category: 'SQL_INJECTION',
               stratum: 'AUTHENTIC_REPO_INJECTED',
-              description: 'Authentic Repo Injected Defect: Dynamic SQL string formatting via fmt.Sprintf',
+              description: '[DEMO] Authentic Repo Injected Defect: Dynamic SQL string formatting via fmt.Sprintf',
               expected_action: 'REPAIR',
+              is_demo_target: true,
             },
             {
               target_id: 'INJ-EXT2-CMD-01',
               repository: 'schollz_progressbar',
               defect_category: 'COMMAND_INJECTION',
               stratum: 'AUTHENTIC_REPO_INJECTED',
-              description: 'Authentic Repo Injected Defect: Unsanitized command executed via sh -c (Must safely abstain)',
+              description: '[DEMO] Authentic Repo Injected Defect: Unsanitized command executed via sh -c (Must safely abstain)',
               expected_action: 'ABSTAIN',
+              is_demo_target: true,
             },
             {
               target_id: 'DEF-HOLD-01',
               repository: 'microservice_api',
               defect_category: 'UNHANDLED_ERROR',
               stratum: 'CONSTRUCTED_MICROSERVICE',
-              description: 'Constructed Microservice Defect: json.Unmarshal error discarded in non-error return signature',
+              description: '[DEMO] Constructed Microservice Defect: json.Unmarshal error discarded in non-error return signature',
               expected_action: 'REPAIR',
+              is_demo_target: true,
             },
             {
               target_id: 'NAT-03',
               repository: 'gorilla_websocket',
               defect_category: 'RESOURCE_LEAK',
               stratum: 'GROUND_TRUTH_DISQUALIFIED',
-              description: 'Disqualified / False Alarm: DialContext manages socket in defer at line 330; response body does not require application close',
+              description: '[DEMO] Disqualified / False Alarm: DialContext manages socket in defer at line 330; response body does not require application close',
               expected_action: 'ABSTAIN',
+              is_demo_target: true,
             },
           ]);
         }
@@ -106,7 +117,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
     }
     void loadTargets();
     return () => { isMounted = false; };
-  }, [apiBase, token]);
+  }, [apiBase, token, latestScan?.workspace_id]);
 
   const resetPipeline = () => {
     setAnalysis(null);
@@ -223,6 +234,9 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
     URL.revokeObjectURL(url);
   };
 
+  const scannedTargets = targets.filter(t => !t.is_demo_target && (t.stratum === 'SCANNED_REPOSITORY' || t.target_id.startsWith('SCAN-')));
+  const demoTargets = targets.filter(t => t.is_demo_target || (t.stratum !== 'SCANNED_REPOSITORY' && !t.target_id.startsWith('SCAN-')));
+
   return (
     <div className="remediation-container">
       <div className="remediation-header">
@@ -234,6 +248,45 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
           <span className="remediation-badge badge-abstain">FAIL-CLOSED SAFETY ACTIVE</span>
         </div>
       </div>
+
+      {/* CONNECTED WORKSPACE BANNER */}
+      {latestScan ? (
+        <div className="connected-repo-banner" style={{ background: 'rgba(0, 255, 136, 0.08)', border: '1px solid rgba(0, 255, 136, 0.3)', borderRadius: '6px', padding: '0.75rem 1rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <div style={{ fontSize: '0.75rem', color: '#00ff88', fontWeight: 600, letterSpacing: '0.05em' }}>CONNECTED SCANNED REPOSITORY</div>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#e0e6ed', marginTop: '2px' }}>
+                {latestScan.repo_url || 'Active Workspace'}
+                <span style={{ fontSize: '0.8rem', color: '#8892b0', marginLeft: '0.5rem', fontWeight: 400 }}>
+                  (Workspace: {latestScan.workspace_id ? `${latestScan.workspace_id.slice(0, 8)}...` : 'retained'})
+                </span>
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#8892b0', marginTop: '2px' }}>
+                {latestScan.report?.files_analyzed ?? '—'} files analyzed · {latestScan.report?.total_hotspots ?? '—'} hotspots detected · {scannedTargets.length} findings available for remediation
+              </div>
+            </div>
+            {onNavigateToScan && (
+              <button type="button" className="action-btn secondary" style={{ fontSize: '0.75rem', padding: '4px 10px' }} onClick={onNavigateToScan}>
+                CHANGE / RE-SCAN
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="connected-repo-banner" style={{ background: 'rgba(56, 189, 248, 0.05)', border: '1px solid rgba(56, 189, 248, 0.2)', borderRadius: '6px', padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>NO LIVE REPOSITORY SCANNED</div>
+            <div style={{ fontSize: '0.8rem', color: '#8892b0' }}>
+              Scan a GitHub repository in <strong>Scan & Optimize</strong> to discover and repair live findings, or test using the preconfigured demo targets below.
+            </div>
+          </div>
+          {onNavigateToScan && (
+            <button type="button" className="action-btn" style={{ fontSize: '0.75rem', padding: '4px 10px' }} onClick={onNavigateToScan}>
+              GO TO SCAN & OPTIMIZE
+            </button>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="abstain-banner" style={{ borderColor: '#ff4444', color: '#ffaaaa' }}>
@@ -248,7 +301,11 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
           <span className="step-number">1</span>
           Repository Target Selection
         </h3>
-        <p>Select a candidate defect target from the verified external pilot corpus:</p>
+        <p>
+          {scannedTargets.length > 0
+            ? 'Select a diagnostic finding from the scanned repository or a preconfigured demo target:'
+            : 'Select a candidate defect target from the verified external pilot corpus:'}
+        </p>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <select
             className="cyber-input"
@@ -258,13 +315,24 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
               resetPipeline();
             }}
             disabled={loading}
-            style={{ minWidth: '320px' }}
+            style={{ minWidth: '340px', maxWidth: '100%' }}
           >
-            {targets.map((t) => (
-              <option key={t.target_id} value={t.target_id}>
-                {t.target_id}: {t.repository} — {t.defect_category} [{t.stratum || (t.target_id === 'NAT-03' ? 'GROUND_TRUTH_DISQUALIFIED' : (t.target_id.startsWith('DEF-HOLD') ? 'CONSTRUCTED_MICROSERVICE' : 'AUTHENTIC_REPO_INJECTED'))}]
-              </option>
-            ))}
+            {scannedTargets.length > 0 && (
+              <optgroup label="Scanned Repository Findings">
+                {scannedTargets.map((t) => (
+                  <option key={t.target_id} value={t.target_id}>
+                    {t.target_id}: {t.description || `${t.target_file} (${t.defect_category})`}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <optgroup label="Preconfigured Deterministic Demo Targets">
+              {demoTargets.map((t) => (
+                <option key={t.target_id} value={t.target_id}>
+                  {t.target_id}: {t.repository} — {t.defect_category} [{t.stratum || (t.target_id === 'NAT-03' ? 'GROUND_TRUTH_DISQUALIFIED' : 'DEMO_FIXTURE')}]
+                </option>
+              ))}
+            </optgroup>
           </select>
           <button className="action-btn" onClick={handleRunAnalysis} disabled={loading}>
             {loading ? 'ANALYZING...' : 'RUN SEMANTIC ANALYSIS'}
@@ -287,8 +355,8 @@ export default function RemediationPortal({ apiBase = '/api', token = '' }) {
             <div><strong>Defect Category:</strong> {analysis.defect_category}</div>
             <div>
               <strong>Provenance Stratum:</strong>{' '}
-              <span className={`remediation-badge ${analysis.target_id === 'NAT-03' ? 'badge-abstain' : (analysis.target_id.startsWith('DEF-HOLD') ? 'badge-review' : 'badge-verified')}`}>
-                {analysis.target_id === 'NAT-03' ? 'GROUND_TRUTH_DISQUALIFIED' : (analysis.target_id.startsWith('DEF-HOLD') ? 'CONSTRUCTED_MICROSERVICE' : 'AUTHENTIC_REPO_INJECTED')}
+              <span className={`remediation-badge ${analysis.stratum === 'SCANNED_REPOSITORY' || analysis.target_id.startsWith('SCAN-') ? 'badge-verified' : (analysis.target_id === 'NAT-03' ? 'badge-abstain' : (analysis.target_id.startsWith('DEF-HOLD') ? 'badge-review' : 'badge-verified'))}`}>
+                {analysis.stratum || (analysis.target_id === 'NAT-03' ? 'GROUND_TRUTH_DISQUALIFIED' : (analysis.target_id.startsWith('DEF-HOLD') ? 'CONSTRUCTED_MICROSERVICE' : (analysis.target_id.startsWith('SCAN-') ? 'SCANNED_REPOSITORY' : 'AUTHENTIC_REPO_INJECTED')))}
               </span>
             </div>
             <div><strong>File & Line:</strong> {analysis.target_file}:{analysis.line_number}</div>

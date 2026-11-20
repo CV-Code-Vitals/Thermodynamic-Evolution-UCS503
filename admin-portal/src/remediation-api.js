@@ -11,8 +11,11 @@ function authHeaders(token) {
   return headers;
 }
 
-export async function fetchRemediationTargets(apiBase = '/api', token = '') {
-  const res = await fetch(`${apiBase}/remediation/targets`, {
+export async function fetchRemediationTargets(apiBase = '/api', token = '', workspaceId = '') {
+  const url = workspaceId
+    ? `${apiBase}/remediation/targets?workspace_id=${encodeURIComponent(workspaceId)}`
+    : `${apiBase}/remediation/targets`;
+  const res = await fetch(url, {
     headers: authHeaders(token),
   });
   if (!res.ok) {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,6 +27,9 @@ type MVPTarget struct {
 	UpstreamCommit string `json:"upstream_commit,omitempty"`
 	UpstreamURL    string `json:"upstream_url,omitempty"`
 	VerifiedBy     string `json:"verified_by"`
+	WorkspaceID    string `json:"workspace_id,omitempty"`
+	LineNumber     int    `json:"line_number,omitempty"`
+	IsDemoTarget   bool   `json:"is_demo_target"`
 }
 
 // MVPAnalysisResult stores diagnostic and semantic findings for a target.
@@ -138,20 +142,22 @@ type MVPAuditReport struct {
 
 // MVPService provides the unified business logic for the Autonomous Repair MVP.
 type MVPService struct {
-	WorkspaceRoot string
-	Authority     *ApprovalAuthority
-	Registry      *ApprovalConsumptionRegistry
-	Synthesizer   *AutonomousPatchSynthesizer
-	Oracles       *IndependentOracleSuite
-	BaselineSHA   string
+	WorkspaceRoot     string
+	Authority         *ApprovalAuthority
+	Registry          *ApprovalConsumptionRegistry
+	Synthesizer       *AutonomousPatchSynthesizer
+	Oracles           *IndependentOracleSuite
+	BaselineSHA       string
+	WorkspaceResolver func(workspaceID string) (string, error)
 
-	mu         sync.Mutex
-	tokenObjs  map[string]*ApprovalToken
-	analyses   map[string]*MVPAnalysisResult
-	proposals  map[string]*MVPProposalResult
-	approvals  map[string]*MVPApprovalResult
-	executions map[string]*MVPExecutionResult
-	auditTrail []MVPAuditRecord
+	mu             sync.Mutex
+	dynamicTargets map[string]*MVPTarget
+	tokenObjs      map[string]*ApprovalToken
+	analyses       map[string]*MVPAnalysisResult
+	proposals      map[string]*MVPProposalResult
+	approvals      map[string]*MVPApprovalResult
+	executions     map[string]*MVPExecutionResult
+	auditTrail     []MVPAuditRecord
 }
 
 // DefaultPreconfiguredTargets returns the audited pilot corpus targets.
@@ -165,10 +171,11 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 			DefectCategory: "RESOURCE_LEAK",
 			Stratum:        "AUTHENTIC_REPO_INJECTED",
 			ExpectedAction: "REPAIR",
-			Description:    "Authentic Repo Injected Defect: os.Open file descriptor leak in DumpColorProfile",
+			Description:    "[DEMO] Authentic Repo Injected Defect: os.Open file descriptor leak in DumpColorProfile",
 			UpstreamCommit: "12126ed593697635c525b302836b292b657ea573",
 			UpstreamURL:    "https://github.com/fatih/color",
 			VerifiedBy:     "External v2 Injection Ledger",
+			IsDemoTarget:   true,
 		},
 		{
 			TargetID:       "INJ-EXT2-SQL-01",
@@ -178,10 +185,11 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 			DefectCategory: "SQL_INJECTION",
 			Stratum:        "AUTHENTIC_REPO_INJECTED",
 			ExpectedAction: "REPAIR",
-			Description:    "Authentic Repo Injected Defect: Dynamic SQL string formatting via fmt.Sprintf (Requires parameterization)",
+			Description:    "[DEMO] Authentic Repo Injected Defect: Dynamic SQL string formatting via fmt.Sprintf (Requires parameterization)",
 			UpstreamCommit: "753177893c52a48b9487b7a1cf711d948cfbb20e",
 			UpstreamURL:    "https://github.com/stretchr/objx",
 			VerifiedBy:     "External v2 Injection Ledger",
+			IsDemoTarget:   true,
 		},
 		{
 			TargetID:       "INJ-EXT2-CMD-01",
@@ -191,10 +199,11 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 			DefectCategory: "COMMAND_INJECTION",
 			Stratum:        "AUTHENTIC_REPO_INJECTED",
 			ExpectedAction: "ABSTAIN",
-			Description:    "Authentic Repo Injected Defect: Unsanitized command executed via sh -c (Must safely abstain)",
+			Description:    "[DEMO] Authentic Repo Injected Defect: Unsanitized command executed via sh -c (Must safely abstain)",
 			UpstreamCommit: "17ae25cdf22bc402ef34618a2ddddbfdb832ab81",
 			UpstreamURL:    "https://github.com/schollz/progressbar",
 			VerifiedBy:     "External v2 Injection Ledger",
+			IsDemoTarget:   true,
 		},
 		{
 			TargetID:       "DEF-HOLD-01",
@@ -204,8 +213,9 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 			DefectCategory: "UNHANDLED_ERROR",
 			Stratum:        "CONSTRUCTED_MICROSERVICE",
 			ExpectedAction: "ABSTAIN",
-			Description:    "Constructed Microservice Defect: json.Unmarshal error discarded in non-error return signature",
+			Description:    "[DEMO] Constructed Microservice Defect: json.Unmarshal error discarded in non-error return signature",
 			VerifiedBy:     "Held-Out Suite Manifest",
+			IsDemoTarget:   true,
 		},
 		{
 			TargetID:       "NAT-03",
@@ -215,10 +225,11 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 			DefectCategory: "RESOURCE_LEAK",
 			Stratum:        "GROUND_TRUTH_DISQUALIFIED",
 			ExpectedAction: "ABSTAIN",
-			Description:    "Disqualified / False Alarm: Pristine DialContext manages socket via defer at line 330; response body does not require application close (Safely abstained)",
+			Description:    "[DEMO] Disqualified / False Alarm: Pristine DialContext manages socket via defer at line 330; response body does not require application close (Safely abstained)",
 			UpstreamCommit: "9111bb834a68b893cebbbaed5060bdbc1d9ab7d2",
 			UpstreamURL:    "https://github.com/gorilla/websocket",
 			VerifiedBy:     "Disqualified in ground_truth_amendment_v2_1.json; Issue #789 unrelated",
+			IsDemoTarget:   true,
 		},
 	}
 }
@@ -252,24 +263,75 @@ func NewMVPService(workspaceRoot, persistLedgerPath string) (*MVPService, error)
 	oracles := NewIndependentOracleSuite(20)
 
 	return &MVPService{
-		WorkspaceRoot: workspaceRoot,
-		Authority:     authority,
-		Registry:      registry,
-		Synthesizer:   synthesizer,
-		Oracles:       oracles,
-		BaselineSHA:   "de06b6e568e0cce07d20b319d6618c15a9d3c899",
-		tokenObjs:     make(map[string]*ApprovalToken),
-		analyses:      make(map[string]*MVPAnalysisResult),
-		proposals:     make(map[string]*MVPProposalResult),
-		approvals:     make(map[string]*MVPApprovalResult),
-		executions:    make(map[string]*MVPExecutionResult),
-		auditTrail:    make([]MVPAuditRecord, 0),
+		WorkspaceRoot:  workspaceRoot,
+		Authority:      authority,
+		Registry:       registry,
+		Synthesizer:    synthesizer,
+		Oracles:        oracles,
+		BaselineSHA:    "de06b6e568e0cce07d20b319d6618c15a9d3c899",
+		dynamicTargets: make(map[string]*MVPTarget),
+		tokenObjs:      make(map[string]*ApprovalToken),
+		analyses:       make(map[string]*MVPAnalysisResult),
+		proposals:      make(map[string]*MVPProposalResult),
+		approvals:      make(map[string]*MVPApprovalResult),
+		executions:     make(map[string]*MVPExecutionResult),
+		auditTrail:     make([]MVPAuditRecord, 0),
 	}, nil
 }
 
-// ListTargets returns available demo targets.
-func (s *MVPService) ListTargets() []MVPTarget {
-	return DefaultPreconfiguredTargets()
+// SetWorkspaceResolver configures the callback used to locate retained workspace directories.
+func (s *MVPService) SetWorkspaceResolver(resolver func(workspaceID string) (string, error)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.WorkspaceResolver = resolver
+}
+
+func (s *MVPService) resolveWorkspaceDirLocked(workspaceID string) (string, error) {
+	if s.WorkspaceResolver != nil && workspaceID != "" {
+		dir, err := s.WorkspaceResolver(workspaceID)
+		if err == nil && dir != "" {
+			if fi, statErr := os.Stat(dir); statErr == nil && fi.IsDir() {
+				return dir, nil
+			}
+		}
+	}
+	if workspaceID != "" {
+		if fi, err := os.Stat(workspaceID); err == nil && fi.IsDir() {
+			return workspaceID, nil
+		}
+		candidate := filepath.Join(s.WorkspaceRoot, "uploads", workspaceID)
+		if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
+			return candidate, nil
+		}
+	}
+	return "", fmt.Errorf("workspace %q cannot be resolved or is not a directory", workspaceID)
+}
+
+// ListTargets returns available demo targets and any discovered dynamic targets for workspaceID.
+func (s *MVPService) ListTargets(workspaceID ...string) []MVPTarget {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	var targets []MVPTarget
+	wsID := ""
+	if len(workspaceID) > 0 {
+		wsID = strings.TrimSpace(workspaceID[0])
+	}
+
+	if wsID != "" {
+		discovered, err := s.discoverWorkspaceTargetsLocked(wsID)
+		if err == nil {
+			targets = append(targets, discovered...)
+		}
+	} else {
+		for _, t := range s.dynamicTargets {
+			targets = append(targets, *t)
+		}
+	}
+
+	// Always append preconfigured demo fixtures
+	targets = append(targets, DefaultPreconfiguredTargets()...)
+	return targets
 }
 
 // AnalyzeTarget inspects a target and returns diagnostic findings with semantic evidence.
@@ -278,10 +340,14 @@ func (s *MVPService) AnalyzeTarget(targetID string) (*MVPAnalysisResult, error) 
 	defer s.mu.Unlock()
 
 	var target *MVPTarget
-	for _, t := range DefaultPreconfiguredTargets() {
-		if t.TargetID == targetID {
-			target = &t
-			break
+	if dyn, ok := s.dynamicTargets[targetID]; ok {
+		target = dyn
+	} else {
+		for _, t := range DefaultPreconfiguredTargets() {
+			if t.TargetID == targetID {
+				target = &t
+				break
+			}
 		}
 	}
 	if target == nil {
@@ -297,59 +363,153 @@ func (s *MVPService) AnalyzeTarget(targetID string) (*MVPAnalysisResult, error) 
 	var autoEligible bool
 	var rationale string
 
-	switch target.TargetID {
-	case "INJ-EXT2-RES-02":
-		lineNo = 21
-		snippet = "f, err := os.Open(profilePath)\nif err != nil {\n    return err\n}\n// Missing defer f.Close() -> RESOURCE_LEAK\ndata, err := io.ReadAll(f)"
-		evidence = []string{
-			"Reaching Definitions: File handle 'f' allocated via os.Open at line 22.",
-			"Lifecycle Sink: Function exits at lines 25, 30, and 33 without closing file handle 'f'.",
-			"AST Mutator: Insert 'defer f.Close()' immediately following error check at line 25.",
+	if target.IsDemoTarget {
+		switch target.TargetID {
+		case "INJ-EXT2-RES-02":
+			lineNo = 21
+			snippet = "f, err := os.Open(profilePath)\nif err != nil {\n    return err\n}\n// Missing defer f.Close() -> RESOURCE_LEAK\ndata, err := io.ReadAll(f)"
+			evidence = []string{
+				"Reaching Definitions: File handle 'f' allocated via os.Open at line 22.",
+				"Lifecycle Sink: Function exits at lines 25, 30, and 33 without closing file handle 'f'.",
+				"AST Mutator: Insert 'defer f.Close()' immediately following error check at line 25.",
+			}
+			uncertainty = 0.05
+			autoEligible = true
+			rationale = "Supported deterministic AST mutation: Single-file intra-procedural deferred close."
+		case "INJ-EXT2-SQL-01":
+			lineNo = 25
+			snippet = "query := fmt.Sprintf(\"SELECT id, payload FROM data_store WHERE role = '%s'\", role)\nreturn e.db.QueryContext(ctx, query)"
+			evidence = []string{
+				"Taint Propagation: Function parameter 'role' formatted into raw SQL string via fmt.Sprintf.",
+				"Sink: db.QueryContext executes untrusted dynamic string.",
+				"AST Mutator: Replace fmt.Sprintf with ? placeholder; bind role argument to QueryContext.",
+			}
+			uncertainty = 0.08
+			autoEligible = true
+			rationale = "Supported deterministic AST mutation: SQL placeholder parameterization."
+		case "INJ-EXT2-CMD-01":
+			lineNo = 15
+			snippet = "cmd := exec.Command(\"sh\", \"-c\", \"echo hook: \"+customHook)\nreturn cmd.Run()"
+			evidence = []string{
+				"Taint Sink: exec.Command argument passed directly to shell interpreter 'sh -c'.",
+				"Arbitrary Shell Expansion: customHook allows semicolon/pipe command injection.",
+				"AST Boundary Bound: Parameterizing shell string requires architectural redesign (split args).",
+			}
+			uncertainty = 0.95
+			autoEligible = false
+			rationale = "Unsupported AST repair: Shell command injection requires architectural restructuring. Safe fail-closed."
+		case "NAT-03":
+			lineNo = 371
+			snippet = "resp, err := http.ReadResponse(conn.br, req)\nif err != nil {\n    return nil, nil, err\n}"
+			evidence = []string{
+				"Ground-Truth Disqualification: Upstream gorilla/websocket#789 is an issue titled 'Investigating Error code 1006', not a resource leak PR.",
+				"Socket Lifecycle: Underline netConn is already managed and closed via defer func() at line 330 on error exits.",
+				"Upstream Contract: Official DialContext docstring explicitly states response body does not need to be closed by application.",
+				"Escaping Return Signature: DialContext returns (*Conn, *http.Response, error); callee cleanup cannot be safely applied.",
+			}
+			uncertainty = 0.95
+			autoEligible = false
+			rationale = "Ground-Truth Disqualified: Pristine upstream code manages socket lifecycle via defer at line 330. Callee cleanup on escaping response body safely abstained."
+		default:
+			lineNo = 40
+			snippet = "// Candidate source location"
+			evidence = []string{"Diagnostic summary confirmed."}
+			uncertainty = 0.15
+			autoEligible = (target.ExpectedAction == "REPAIR")
+			rationale = "Standard candidate finding."
 		}
-		uncertainty = 0.05
-		autoEligible = true
-		rationale = "Supported deterministic AST mutation: Single-file intra-procedural deferred close."
-	case "INJ-EXT2-SQL-01":
-		lineNo = 25
-		snippet = "query := fmt.Sprintf(\"SELECT id, payload FROM data_store WHERE role = '%s'\", role)\nreturn e.db.QueryContext(ctx, query)"
-		evidence = []string{
-			"Taint Propagation: Function parameter 'role' formatted into raw SQL string via fmt.Sprintf.",
-			"Sink: db.QueryContext executes untrusted dynamic string.",
-			"AST Mutator: Replace fmt.Sprintf with ? placeholder; bind role argument to QueryContext.",
+	} else {
+		lineNo = target.LineNumber
+		if lineNo <= 0 {
+			lineNo = 1
 		}
-		uncertainty = 0.08
-		autoEligible = true
-		rationale = "Supported deterministic AST mutation: SQL placeholder parameterization."
-	case "INJ-EXT2-CMD-01":
-		lineNo = 15
-		snippet = "cmd := exec.Command(\"sh\", \"-c\", \"echo hook: \"+customHook)\nreturn cmd.Run()"
-		evidence = []string{
-			"Taint Sink: exec.Command argument passed directly to shell interpreter 'sh -c'.",
-			"Arbitrary Shell Expansion: customHook allows semicolon/pipe command injection.",
-			"AST Boundary Bound: Parameterizing shell string requires architectural redesign (split args).",
+
+		wsDir, wsErr := s.resolveWorkspaceDirLocked(target.WorkspaceID)
+		if wsErr != nil {
+			uncertainty = 0.99
+			autoEligible = false
+			rationale = fmt.Sprintf("Workspace resolution failed: %v. Safe fail-closed.", wsErr)
+			evidence = []string{"Workspace unavailable or expired."}
+			snippet = "// Source code unavailable"
+		} else {
+			fileAbs := filepath.Join(wsDir, filepath.FromSlash(target.TargetFile))
+			if content, readErr := os.ReadFile(fileAbs); readErr == nil {
+				snippet = extractSourceSnippet(string(content), lineNo)
+			} else {
+				snippet = fmt.Sprintf("// Target file %s could not be read: %v", target.TargetFile, readErr)
+			}
+
+			switch target.DefectCategory {
+			case "COMMAND_INJECTION":
+				evidence = []string{
+					fmt.Sprintf("Taint Sink: Arbitrary command execution pattern identified in %s:%d.", target.TargetFile, lineNo),
+					"Architectural Constraint: Splitting command into discrete arguments requires semantic understanding of invocation intent.",
+					"Safety Policy: Autonomous modification of shell execution boundaries is strictly prohibited.",
+				}
+				uncertainty = 0.95
+				autoEligible = false
+				rationale = "Unsupported AST repair: Arbitrary shell execution requires human architectural review. Conservative fail-closed abstention."
+
+			case "HIGH_COMPLEXITY":
+				evidence = []string{
+					fmt.Sprintf("Cognitive/Cyclomatic Complexity Hotspot in %s:%d.", target.TargetFile, lineNo),
+					"Metric Alert: Function exceeds maintainability threshold (Cyclomatic Complexity >= 15).",
+					"Refactoring Requirement: Method extraction and state decomposition cannot be reliably automated without specification.",
+				}
+				uncertainty = 0.85
+				autoEligible = false
+				rationale = "High complexity hotspot requires decomposition and human architectural review. Safe fail-closed abstention."
+
+			case "RESOURCE_LEAK":
+				escapes := checkResourceEscapes(wsDir, target.TargetFile, lineNo)
+				if escapes {
+					evidence = []string{
+						fmt.Sprintf("Resource handle allocated at %s:%d.", target.TargetFile, lineNo),
+						"Escaping Lifecycle: Resource is returned to caller or transferred across functional boundary.",
+						"Safety Policy: Callee cannot insert defer close when caller takes ownership of resource.",
+					}
+					uncertainty = 0.90
+					autoEligible = false
+					rationale = "Resource handle escapes enclosing function; caller owns lifecycle. Conservative fail-closed abstention."
+				} else {
+					evidence = []string{
+						fmt.Sprintf("Reaching Definitions: Resource handle allocated at %s:%d.", target.TargetFile, lineNo),
+						"Intra-procedural Sink: Resource handle does not escape enclosing function.",
+						"AST Mutator: Candidate for deterministic deferred Close() insertion following acquisition check.",
+					}
+					uncertainty = 0.05
+					autoEligible = true
+					rationale = "Supported deterministic AST mutation: Single-file intra-procedural deferred cleanup."
+				}
+
+			case "SQL_INJECTION":
+				evidence = []string{
+					fmt.Sprintf("Taint Propagation: Dynamic SQL string constructed at %s:%d.", target.TargetFile, lineNo),
+					"Sink: Database query execution function invoked with dynamically formatted query string.",
+					"AST Mutator: Replace dynamic formatting with parameter placeholder binding.",
+				}
+				uncertainty = 0.08
+				autoEligible = true
+				rationale = "Supported deterministic AST mutation: SQL placeholder parameterization."
+
+			case "UNHANDLED_ERROR":
+				evidence = []string{
+					fmt.Sprintf("Error Discarded: Return error ignored or assigned to blank identifier at %s:%d.", target.TargetFile, lineNo),
+					"Control Flow: Propagating error requires modifying function return signature or error handling strategy.",
+				}
+				uncertainty = 0.60
+				autoEligible = false
+				rationale = "Unhandled error propagation requires signature or control flow changes. Human review required."
+
+			default:
+				evidence = []string{
+					fmt.Sprintf("Diagnostic finding in %s:%d (%s).", target.TargetFile, lineNo, target.DefectCategory),
+				}
+				uncertainty = 0.50
+				autoEligible = (target.ExpectedAction == "REPAIR")
+				rationale = fmt.Sprintf("Candidate finding in category %s.", target.DefectCategory)
+			}
 		}
-		uncertainty = 0.95
-		autoEligible = false
-		rationale = "Unsupported AST repair: Shell command injection requires architectural restructuring. Safe fail-closed."
-	case "NAT-03":
-		lineNo = 371
-		snippet = "resp, err := http.ReadResponse(conn.br, req)\nif err != nil {\n    return nil, nil, err\n}"
-		evidence = []string{
-			"Ground-Truth Disqualification: Upstream gorilla/websocket#789 is an issue titled 'Investigating Error code 1006', not a resource leak PR.",
-			"Socket Lifecycle: Underline netConn is already managed and closed via defer func() at line 330 on error exits.",
-			"Upstream Contract: Official DialContext docstring explicitly states response body does not need to be closed by application.",
-			"Escaping Return Signature: DialContext returns (*Conn, *http.Response, error); callee cleanup cannot be safely applied.",
-		}
-		uncertainty = 0.95
-		autoEligible = false
-		rationale = "Ground-Truth Disqualified: Pristine upstream code manages socket lifecycle via defer at line 330. Callee cleanup on escaping response body safely abstained."
-	default:
-		lineNo = 40
-		snippet = "// Candidate source location"
-		evidence = []string{"Diagnostic summary confirmed."}
-		uncertainty = 0.15
-		autoEligible = (target.ExpectedAction == "REPAIR")
-		rationale = "Standard candidate finding."
 	}
 
 	res := &MVPAnalysisResult{
@@ -388,10 +548,14 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 	proposalID := fmt.Sprintf("PROP-%s-%d", analysis.TargetID, time.Now().UnixNano()%1000000)
 
 	var target *MVPTarget
-	for _, t := range DefaultPreconfiguredTargets() {
-		if t.TargetID == analysis.TargetID {
-			target = &t
-			break
+	if dyn, ok := s.dynamicTargets[analysis.TargetID]; ok {
+		target = dyn
+	} else {
+		for _, t := range DefaultPreconfiguredTargets() {
+			if t.TargetID == analysis.TargetID {
+				target = &t
+				break
+			}
 		}
 	}
 	if target == nil {
@@ -405,15 +569,25 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 		return nil, fmt.Errorf("failed to create sandbox dir: %w", err)
 	}
 
-	srcRepo := filepath.Join(s.WorkspaceRoot, filepath.FromSlash(target.RelativeSource))
-	if fi, err := os.Stat(srcRepo); err != nil || !fi.IsDir() {
-		altRoot := ResolveWorkspaceRoot()
-		altRepo := filepath.Join(altRoot, filepath.FromSlash(target.RelativeSource))
-		if altFi, altErr := os.Stat(altRepo); altErr == nil && altFi.IsDir() {
-			srcRepo = altRepo
-		} else {
+	var srcRepo string
+	if target.WorkspaceID != "" {
+		resolved, wsErr := s.resolveWorkspaceDirLocked(target.WorkspaceID)
+		if wsErr != nil {
 			os.RemoveAll(tmpSandbox)
-			return nil, fmt.Errorf("source repository not found at %s: %w", srcRepo, err)
+			return nil, fmt.Errorf("cannot resolve workspace %s: %w", target.WorkspaceID, wsErr)
+		}
+		srcRepo = resolved
+	} else {
+		srcRepo = filepath.Join(s.WorkspaceRoot, filepath.FromSlash(target.RelativeSource))
+		if fi, err := os.Stat(srcRepo); err != nil || !fi.IsDir() {
+			altRoot := ResolveWorkspaceRoot()
+			altRepo := filepath.Join(altRoot, filepath.FromSlash(target.RelativeSource))
+			if altFi, altErr := os.Stat(altRepo); altErr == nil && altFi.IsDir() {
+				srcRepo = altRepo
+			} else {
+				os.RemoveAll(tmpSandbox)
+				return nil, fmt.Errorf("source repository not found at %s: %w", srcRepo, err)
+			}
 		}
 	}
 	if err := CopyDirectory(srcRepo, tmpSandbox); err != nil {
@@ -562,24 +736,37 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	}
 
 	var target *MVPTarget
-	for _, t := range DefaultPreconfiguredTargets() {
-		if t.TargetID == proposal.TargetID {
-			target = &t
-			break
+	if dyn, ok := s.dynamicTargets[proposal.TargetID]; ok {
+		target = dyn
+	} else {
+		for _, t := range DefaultPreconfiguredTargets() {
+			if t.TargetID == proposal.TargetID {
+				target = &t
+				break
+			}
 		}
 	}
 	if target == nil {
 		return nil, fmt.Errorf("target %q not recognized", proposal.TargetID)
 	}
 
-	origRepoPath := filepath.Join(s.WorkspaceRoot, filepath.FromSlash(target.RelativeSource))
-	if fi, err := os.Stat(origRepoPath); err != nil || !fi.IsDir() {
-		altRoot := ResolveWorkspaceRoot()
-		altRepo := filepath.Join(altRoot, filepath.FromSlash(target.RelativeSource))
-		if altFi, altErr := os.Stat(altRepo); altErr == nil && altFi.IsDir() {
-			origRepoPath = altRepo
-		} else {
-			return nil, fmt.Errorf("original repository directory %s does not exist: %w", origRepoPath, err)
+	var origRepoPath string
+	if target.WorkspaceID != "" {
+		resolved, wsErr := s.resolveWorkspaceDirLocked(target.WorkspaceID)
+		if wsErr != nil {
+			return nil, fmt.Errorf("cannot resolve workspace %s: %w", target.WorkspaceID, wsErr)
+		}
+		origRepoPath = resolved
+	} else {
+		origRepoPath = filepath.Join(s.WorkspaceRoot, filepath.FromSlash(target.RelativeSource))
+		if fi, err := os.Stat(origRepoPath); err != nil || !fi.IsDir() {
+			altRoot := ResolveWorkspaceRoot()
+			altRepo := filepath.Join(altRoot, filepath.FromSlash(target.RelativeSource))
+			if altFi, altErr := os.Stat(altRepo); altErr == nil && altFi.IsDir() {
+				origRepoPath = altRepo
+			} else {
+				return nil, fmt.Errorf("original repository directory %s does not exist: %w", origRepoPath, err)
+			}
 		}
 	}
 	preDigest, err := ComputeRepoDigest(origRepoPath)
@@ -859,6 +1046,10 @@ func ComputeRepoDigest(dir string) (string, error) {
 			return err
 		}
 		if info.IsDir() {
+			base := filepath.Base(path)
+			if base == ".git" || base == "node_modules" || base == "vendor" || base == ".tmp" || base == "uploads" {
+				return filepath.SkipDir
+			}
 			return nil
 		}
 		data, err := os.ReadFile(path)
@@ -888,6 +1079,10 @@ func CopyDirectory(srcDir, dstDir string) error {
 		}
 		target := filepath.Join(dstDir, rel)
 		if info.IsDir() {
+			base := filepath.Base(path)
+			if base == ".git" || base == "node_modules" || base == "vendor" || base == ".tmp" || base == "uploads" {
+				return filepath.SkipDir
+			}
 			return os.MkdirAll(target, 0755)
 		}
 		data, err := os.ReadFile(path)

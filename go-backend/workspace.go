@@ -142,6 +142,16 @@ func (s *workspaceStore) acquire(id string) (string, func(), error) {
 	}, nil
 }
 
+func (s *workspaceStore) get(id string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	w := s.entries[id]
+	if w == nil || !w.expiresAt.After(time.Now()) {
+		return "", errors.New("workspace expired or unavailable; scan the repository again")
+	}
+	return w.path, nil
+}
+
 func readWorkspaceTarget(root, relativePath, functionName string, startByte int) (*evolutionTarget, error) {
 	if filepath.Ext(relativePath) != ".go" || strings.HasSuffix(relativePath, "_test.go") || filepath.IsAbs(relativePath) || strings.Contains(relativePath, "\\") {
 		return nil, errors.New("select a Go function from the scan results")

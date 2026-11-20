@@ -12,7 +12,7 @@ func resolveWorkspaceRoot() string {
 	return execution.ResolveWorkspaceRoot()
 }
 
-func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
+func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, workspaces ...*workspaceStore) {
 	wsRoot := execution.ResolveWorkspaceRoot()
 	tmpDir, _ := execution.EnsureTmpDir(wsRoot)
 	ledgerPath := filepath.Join(tmpDir, "consumed_approvals_mvp.json")
@@ -22,8 +22,21 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
 		return
 	}
 
+	if len(workspaces) > 0 && workspaces[0] != nil {
+		mvpService.SetWorkspaceResolver(workspaces[0].get)
+	}
+
 	targetsHandler := func(c *gin.Context) {
-		targets := mvpService.ListTargets()
+		workspaceID := c.Query("workspace_id")
+		if workspaceID == "" && c.Request.Method == http.MethodPost {
+			var bodyReq struct {
+				WorkspaceID string `json:"workspace_id"`
+			}
+			if err := c.ShouldBindJSON(&bodyReq); err == nil && bodyReq.WorkspaceID != "" {
+				workspaceID = bodyReq.WorkspaceID
+			}
+		}
+		targets := mvpService.ListTargets(workspaceID)
 		c.JSON(http.StatusOK, gin.H{"targets": targets})
 	}
 
@@ -126,6 +139,8 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
 	// Register with and without /api prefix
 	r.GET("/api/remediation/targets", targetsHandler)
 	r.GET("/remediation/targets", targetsHandler)
+	r.POST("/api/remediation/targets", targetsHandler)
+	r.POST("/remediation/targets", targetsHandler)
 
 	r.POST("/api/remediation/analyze", analyzeHandler)
 	r.POST("/remediation/analyze", analyzeHandler)
