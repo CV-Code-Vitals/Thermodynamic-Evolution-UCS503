@@ -101,24 +101,8 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 	// Helper to bind snapshot details to discovered target
 	bindTargetSnapshot := func(target *MVPTarget) error {
 		target.SnapshotID = snapshotID
-		targetRel := target.TargetFile
-		if filepath.IsAbs(targetRel) {
-			if rel, err := filepath.Rel(wsDir, targetRel); err == nil {
-				targetRel = rel
-				target.TargetFile = filepath.ToSlash(rel)
-			}
-		}
-		targetAbs := filepath.Join(wsDir, filepath.FromSlash(targetRel))
+		targetAbs := filepath.Join(wsDir, filepath.FromSlash(target.TargetFile))
 		fb, fbErr := os.ReadFile(targetAbs)
-		if fbErr != nil && filepath.IsAbs(target.TargetFile) {
-			if fb2, err2 := os.ReadFile(target.TargetFile); err2 == nil {
-				fb = fb2
-				fbErr = nil
-				if rel, rErr := filepath.Rel(wsDir, target.TargetFile); rErr == nil {
-					target.TargetFile = filepath.ToSlash(rel)
-				}
-			}
-		}
 		if fbErr != nil {
 			return fmt.Errorf("SNAPSHOT_SOURCE_HASH_FAILED: cannot read source file %s for target %s: %w", target.TargetFile, target.TargetID, fbErr)
 		}
@@ -155,23 +139,15 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 					categoryStr = "UNHANDLED_ERROR"
 				}
 
-				relTarget := f.TargetFile
-				if filepath.IsAbs(relTarget) {
-					if r, err := filepath.Rel(wsDir, relTarget); err == nil {
-						relTarget = r
-					}
-				}
-				relTarget = filepath.ToSlash(relTarget)
-
 				target := MVPTarget{
 					TargetID:       targetID,
 					Repository:     repoName,
-					RelativeSource: relTarget,
-					TargetFile:     relTarget,
+					RelativeSource: f.TargetFile,
+					TargetFile:     f.TargetFile,
 					DefectCategory: categoryStr,
 					Stratum:        "SCANNED_REPOSITORY",
 					ExpectedAction: expectedAction,
-					Description:    fmt.Sprintf("%s in %s:%d", f.Title, relTarget, f.LineStart),
+					Description:    fmt.Sprintf("%s in %s:%d", f.Title, f.TargetFile, f.LineStart),
 					WorkspaceID:    workspaceID,
 					LineNumber:     f.LineStart,
 					IsDemoTarget:   false,
