@@ -4,7 +4,7 @@
 **Target System:** Enterprise Order Fulfillment Microservice  
 **Filesystem Path:** `E:/SWE/pilots/order_fulfillment_service`  
 **Execution Mode:** Read-Only Analysis (Enforcing Invariant INV-1)  
-**Audit Timestamp:** 2026-11-18T11:49:40+05:30  
+**Audit Timestamp:** 2026-11-22T00:31:07+05:30  
 
 ---
 
@@ -16,7 +16,7 @@ The autonomous diagnostic pipeline executed a complete whole-repository discover
 | :--- | :---: | :--- |
 | **Total Files Discovered** | 9 | Full repository inventory parsed |
 | **Go Source Code Files** | 7 | Abstract syntax trees analyzed |
-| **Discovery & Diagnostic Time** | 135 ms | Sub-second analysis latency |
+| **Discovery & Diagnostic Time** | 314 ms | Sub-second analysis latency |
 | **Raw Heuristic Candidates** | 3 | Filtered through ContextEngine |
 | **Suppressed / Pruned Candidates** | 0 | False positives actively suppressed |
 | **Confirmed Actionable Findings** | 4 | Evidence-backed confirmed defects |

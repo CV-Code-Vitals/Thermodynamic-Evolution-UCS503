@@ -616,16 +616,35 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
           </div>
 
           <div className="oracle-grid">
-            {Object.entries(execution.oracles || {}).map(([key, oracle]) => (
-              <div key={key} className={`oracle-card ${oracle.passed ? 'pass' : 'fail'}`}>
-                <span className="oracle-name">{oracle.oracle_type}</span>
-                <span className={`oracle-status ${oracle.passed ? 'pass' : 'fail'}`}>
-                  {oracle.passed ? '✓ PASSED' : '✗ FAILED'}
-                </span>
-                <small style={{ color: '#888' }}>{oracle.description}</small>
-                {oracle.details && <small style={{ color: '#ff8888' }}>{oracle.details}</small>}
-              </div>
-            ))}
+            {Object.entries(execution.oracles || {}).map(([key, oracle]) => {
+              const status = oracle.status || (oracle.passed ? 'PASSED' : 'FAILED');
+              let statusClass = 'fail';
+              let statusLabel = '✗ FAILED';
+              if (status === 'PASSED') {
+                statusClass = 'pass';
+                statusLabel = '✓ PASSED';
+              } else if (status === 'NOT_RUN') {
+                statusClass = 'not-run';
+                statusLabel = '○ NOT RUN';
+              } else if (status === 'UNAVAILABLE') {
+                statusClass = 'unavailable';
+                statusLabel = '⚠ UNAVAILABLE';
+              }
+
+              return (
+                <div key={key} className={`oracle-card ${statusClass}`}>
+                  <span className="oracle-name">{oracle.oracle_type}</span>
+                  <span className={`oracle-status ${statusClass}`}>{statusLabel}</span>
+                  <small style={{ color: '#aaa' }}>{oracle.description}</small>
+                  {oracle.details && <small style={{ color: statusClass === 'pass' ? '#88ff88' : '#ff8888' }}>{oracle.details}</small>}
+                  {oracle.container_info && (
+                    <small style={{ color: '#00f3ff', fontSize: '0.7rem' }}>
+                      Container: {oracle.container_info.container_id} ({oracle.container_info.network_policy})
+                    </small>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           <div style={{ marginTop: '1rem', borderTop: '1px solid #222938', paddingTop: '0.75rem' }}>

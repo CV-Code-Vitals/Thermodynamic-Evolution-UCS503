@@ -478,7 +478,7 @@
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1794982740",
+      "report_id": "DR-1795287195",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -492,11 +492,11 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-18T06:19:00.5757234Z",
+        "timestamp": "2026-11-21T18:53:15.8954981Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 2
+        "execution_duration_ms": 14
       },
       "summary": {
         "total_findings": 14,
@@ -1072,7 +1072,7 @@
     },
     "suppressed_count": -10,
     "suppressions": null,
-    "duration_ms": 131
+    "duration_ms": 697
   },
   {
     "repo_id": "ext-repo-02",
@@ -1469,7 +1469,7 @@
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1794982740",
+      "report_id": "DR-1795287196",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -1483,11 +1483,11 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-18T06:19:00.8188729Z",
+        "timestamp": "2026-11-21T18:53:16.4976523Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 7
+        "execution_duration_ms": 3
       },
       "summary": {
         "total_findings": 11,
@@ -1943,7 +1943,7 @@
     },
     "suppressed_count": -7,
     "suppressions": null,
-    "duration_ms": 237
+    "duration_ms": 593
   },
   {
     "repo_id": "ext-repo-03",
@@ -2284,7 +2284,7 @@
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1794982740",
+      "report_id": "DR-1795287197",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -2298,11 +2298,11 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-18T06:19:00.9446361Z",
+        "timestamp": "2026-11-21T18:53:17.044245Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 1
+        "execution_duration_ms": 27
       },
       "summary": {
         "total_findings": 9,
@@ -2674,7 +2674,7 @@
     },
     "suppressed_count": -5,
     "suppressions": null,
-    "duration_ms": 127
+    "duration_ms": 544
   },
   {
     "repo_id": "ext-repo-04",
@@ -3099,7 +3099,7 @@
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1794982741",
+      "report_id": "DR-1795287197",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -3113,11 +3113,11 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-18T06:19:01.0283454Z",
+        "timestamp": "2026-11-21T18:53:17.6174562Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 2
+        "execution_duration_ms": 5
       },
       "summary": {
         "total_findings": 12,
@@ -3615,7 +3615,7 @@
     },
     "suppressed_count": -8,
     "suppressions": null,
-    "duration_ms": 85
+    "duration_ms": 576
   },
   {
     "repo_id": "ext-repo-05",
@@ -3954,34 +3954,6 @@
         "verification_status": "CONFIRMED"
       },
       {
-        "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
-        "category": "TEST_QUALITY",
-        "severity": "MEDIUM",
-        "confidence": 0.9,
-        "title": "Exported Symbols Lack Automated Unit Tests (ParseRawPayload)",
-        "description": "Source file internal/consumer/consumer.go defines exported function(s) [ParseRawPayload] with 0 test invocations in package test suites.",
-        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
-        "affected_files": [
-          "internal/consumer/consumer.go"
-        ],
-        "evidence": [
-          {
-            "file": "internal/consumer/consumer.go",
-            "line_start": 57,
-            "line_end": 57,
-            "description": "Untested symbol ParseRawPayload"
-          }
-        ],
-        "recommended_action": "Author comprehensive unit tests in internal/consumer/consumer_test.go covering functions: ParseRawPayload.",
-        "expected_benefit": "Resolves contextual structural or reliability defect.",
-        "regression_risk": "LOW",
-        "validation_requirements": [
-          "Issue resolved verified by contextual inspection"
-        ],
-        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
-        "verification_status": "CONFIRMED"
-      },
-      {
         "finding_id": "CTX-TST-UNTESTED-SYM-pkg-retry-retry_go",
         "category": "TEST_QUALITY",
         "severity": "MEDIUM",
@@ -4001,6 +3973,34 @@
           }
         ],
         "recommended_action": "Author comprehensive unit tests in pkg/retry/retry_test.go covering functions: RetryWithTimerLeak.",
+        "expected_benefit": "Resolves contextual structural or reliability defect.",
+        "regression_risk": "LOW",
+        "validation_requirements": [
+          "Issue resolved verified by contextual inspection"
+        ],
+        "detection_method": "AST_SYMBOL_TEST_CORRELATION",
+        "verification_status": "CONFIRMED"
+      },
+      {
+        "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
+        "category": "TEST_QUALITY",
+        "severity": "MEDIUM",
+        "confidence": 0.9,
+        "title": "Exported Symbols Lack Automated Unit Tests (ParseRawPayload)",
+        "description": "Source file internal/consumer/consumer.go defines exported function(s) [ParseRawPayload] with 0 test invocations in package test suites.",
+        "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+        "affected_files": [
+          "internal/consumer/consumer.go"
+        ],
+        "evidence": [
+          {
+            "file": "internal/consumer/consumer.go",
+            "line_start": 57,
+            "line_end": 57,
+            "description": "Untested symbol ParseRawPayload"
+          }
+        ],
+        "recommended_action": "Author comprehensive unit tests in internal/consumer/consumer_test.go covering functions: ParseRawPayload.",
         "expected_benefit": "Resolves contextual structural or reliability defect.",
         "regression_risk": "LOW",
         "validation_requirements": [
@@ -4040,7 +4040,7 @@
     ],
     "diagnostic_report": {
       "report_schema_version": "1.0",
-      "report_id": "DR-1794982741",
+      "report_id": "DR-1795287198",
       "repository": {
         "repo_root": "",
         "working_tree_clean": false,
@@ -4054,11 +4054,11 @@
         "ci_workflows": null
       },
       "analysis": {
-        "timestamp": "2026-11-18T06:19:01.2412677Z",
+        "timestamp": "2026-11-21T18:53:18.7142253Z",
         "files_discovered": 0,
         "files_analysed": 0,
         "analysis_coverage": 100,
-        "execution_duration_ms": 1
+        "execution_duration_ms": 10
       },
       "summary": {
         "total_findings": 11,
@@ -4374,46 +4374,6 @@
           "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
         },
         {
-          "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
-          "source_finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
-          "validation_state": "VALIDATED",
-          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
-          "category": "TEST_QUALITY",
-          "severity": "LOW",
-          "severity_rationale": "LOW: Directory lacks co-located unit test files",
-          "calibrated_confidence": 0.5,
-          "confidence_rationale": "0.50: Generic heuristic detection",
-          "title": "Exported Symbols Lack Automated Unit Tests (ParseRawPayload)",
-          "description": "Source file internal/consumer/consumer.go defines exported function(s) [ParseRawPayload] with 0 test invocations in package test suites.",
-          "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
-          "root_cause_confidence": 0.5,
-          "affected_components": [
-            "internal/consumer/consumer.go"
-          ],
-          "impact_scope": "Package Regression Safety",
-          "potential_consequences": [
-            "Lack of unit test coverage during refactoring"
-          ],
-          "expected_benefit": "Resolves contextual structural or reliability defect.",
-          "remediation_complexity": "MEDIUM",
-          "regression_risk": "LOW",
-          "remediation_readiness": "INVESTIGATION_REQUIRED",
-          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
-          "evidence": [
-            {
-              "file": "internal/consumer/consumer.go",
-              "line_start": 57,
-              "line_end": 57,
-              "description": "Untested symbol ParseRawPayload"
-            }
-          ],
-          "recommended_action": "Author comprehensive unit tests in internal/consumer/consumer_test.go covering functions: ParseRawPayload.",
-          "validation_requirements": [
-            "Issue resolved verified by contextual inspection"
-          ],
-          "detection_method": "AST_SYMBOL_TEST_CORRELATION"
-        },
-        {
           "finding_id": "CTX-TST-UNTESTED-SYM-pkg-retry-retry_go",
           "source_finding_id": "CTX-TST-UNTESTED-SYM-pkg-retry-retry_go",
           "validation_state": "VALIDATED",
@@ -4448,6 +4408,46 @@
             }
           ],
           "recommended_action": "Author comprehensive unit tests in pkg/retry/retry_test.go covering functions: RetryWithTimerLeak.",
+          "validation_requirements": [
+            "Issue resolved verified by contextual inspection"
+          ],
+          "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+        },
+        {
+          "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
+          "source_finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
+          "validation_state": "VALIDATED",
+          "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+          "category": "TEST_QUALITY",
+          "severity": "LOW",
+          "severity_rationale": "LOW: Directory lacks co-located unit test files",
+          "calibrated_confidence": 0.5,
+          "confidence_rationale": "0.50: Generic heuristic detection",
+          "title": "Exported Symbols Lack Automated Unit Tests (ParseRawPayload)",
+          "description": "Source file internal/consumer/consumer.go defines exported function(s) [ParseRawPayload] with 0 test invocations in package test suites.",
+          "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+          "root_cause_confidence": 0.5,
+          "affected_components": [
+            "internal/consumer/consumer.go"
+          ],
+          "impact_scope": "Package Regression Safety",
+          "potential_consequences": [
+            "Lack of unit test coverage during refactoring"
+          ],
+          "expected_benefit": "Resolves contextual structural or reliability defect.",
+          "remediation_complexity": "MEDIUM",
+          "regression_risk": "LOW",
+          "remediation_readiness": "INVESTIGATION_REQUIRED",
+          "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+          "evidence": [
+            {
+              "file": "internal/consumer/consumer.go",
+              "line_start": 57,
+              "line_end": 57,
+              "description": "Untested symbol ParseRawPayload"
+            }
+          ],
+          "recommended_action": "Author comprehensive unit tests in internal/consumer/consumer_test.go covering functions: ParseRawPayload.",
           "validation_requirements": [
             "Issue resolved verified by contextual inspection"
           ],
@@ -4513,6 +4513,6 @@
     },
     "suppressed_count": -6,
     "suppressions": null,
-    "duration_ms": 218
+    "duration_ms": 1075
   }
 ]

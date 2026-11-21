@@ -41,13 +41,18 @@ type ScannedThermodynamicReport struct {
 }
 
 // DiscoverWorkspaceTargets scans the target repository workspace for diagnostic findings.
-func (s *MVPService) DiscoverWorkspaceTargets(workspaceID string) ([]MVPTarget, error) {
+func (s *MVPService) DiscoverWorkspaceTargets(workspaceID string, ownerID ...string) ([]MVPTarget, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.discoverWorkspaceTargetsLocked(workspaceID)
+	return s.discoverWorkspaceTargetsLocked(workspaceID, ownerID...)
 }
 
-func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTarget, error) {
+func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID ...string) ([]MVPTarget, error) {
+	// Reject malformed workspace identifiers, absolute paths, or path traversal
+	if err := ValidateWorkspaceID(workspaceID); err != nil {
+		return nil, fmt.Errorf("SECURITY_VIOLATION: %w", err)
+	}
+
 	wsDir, err := s.resolveWorkspaceDirLocked(workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("resolve workspace %s: %w", workspaceID, err)
@@ -86,22 +91,44 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 	var discovered []MVPTarget
 	repoName := filepath.Base(wsDir)
 
-	rootDigest, _ := ComputeRepoDigest(wsDir)
-	snapshotID := "SNAP-EMPTY"
-	if len(rootDigest) >= 16 {
-		snapshotID = fmt.Sprintf("SNAP-%s", rootDigest[:16])
+	rootDigest, err := ComputeRepoDigest(wsDir)
+	if err != nil || rootDigest == "" {
+		return nil, fmt.Errorf("SNAPSHOT_DIGEST_FAILED: failed to compute repository digest for workspace %s: %w", workspaceID, err)
 	}
+	snapshotID := fmt.Sprintf("SNAP-%s", rootDigest)
 	fileHashes := make(map[string]string)
 
 	// Helper to bind snapshot details to discovered target
-	bindTargetSnapshot := func(target *MVPTarget) {
+	bindTargetSnapshot := func(target *MVPTarget) error {
 		target.SnapshotID = snapshotID
-		targetAbs := filepath.Join(wsDir, filepath.FromSlash(target.TargetFile))
-		if fb, fbErr := os.ReadFile(targetAbs); fbErr == nil {
-			h := sha256.Sum256(fb)
-			target.SourceFileHash = hex.EncodeToString(h[:])
-			fileHashes[target.TargetFile] = target.SourceFileHash
+		targetRel := target.TargetFile
+		if filepath.IsAbs(targetRel) {
+			if rel, err := filepath.Rel(wsDir, targetRel); err == nil {
+				targetRel = rel
+				target.TargetFile = filepath.ToSlash(rel)
+			}
 		}
+		targetAbs := filepath.Join(wsDir, filepath.FromSlash(targetRel))
+		fb, fbErr := os.ReadFile(targetAbs)
+		if fbErr != nil && filepath.IsAbs(target.TargetFile) {
+			if fb2, err2 := os.ReadFile(target.TargetFile); err2 == nil {
+				fb = fb2
+				fbErr = nil
+				if rel, rErr := filepath.Rel(wsDir, target.TargetFile); rErr == nil {
+					target.TargetFile = filepath.ToSlash(rel)
+				}
+			}
+		}
+		if fbErr != nil {
+			return fmt.Errorf("SNAPSHOT_SOURCE_HASH_FAILED: cannot read source file %s for target %s: %w", target.TargetFile, target.TargetID, fbErr)
+		}
+		h := sha256.Sum256(fb)
+		target.SourceFileHash = hex.EncodeToString(h[:])
+		if target.SourceFileHash == "" {
+			return fmt.Errorf("SNAPSHOT_SOURCE_HASH_FAILED: missing source-file hash for target %s", target.TargetID)
+		}
+		fileHashes[target.TargetFile] = target.SourceFileHash
+		return nil
 	}
 
 	// 2. Run Unified Semantic Diagnostic Orchestrator if Go files are present
@@ -128,21 +155,31 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 					categoryStr = "UNHANDLED_ERROR"
 				}
 
+				relTarget := f.TargetFile
+				if filepath.IsAbs(relTarget) {
+					if r, err := filepath.Rel(wsDir, relTarget); err == nil {
+						relTarget = r
+					}
+				}
+				relTarget = filepath.ToSlash(relTarget)
+
 				target := MVPTarget{
 					TargetID:       targetID,
 					Repository:     repoName,
-					RelativeSource: f.TargetFile,
-					TargetFile:     f.TargetFile,
+					RelativeSource: relTarget,
+					TargetFile:     relTarget,
 					DefectCategory: categoryStr,
 					Stratum:        "SCANNED_REPOSITORY",
 					ExpectedAction: expectedAction,
-					Description:    fmt.Sprintf("%s in %s:%d", f.Title, f.TargetFile, f.LineStart),
+					Description:    fmt.Sprintf("%s in %s:%d", f.Title, relTarget, f.LineStart),
 					WorkspaceID:    workspaceID,
 					LineNumber:     f.LineStart,
 					IsDemoTarget:   false,
 					VerifiedBy:     "Unified Semantic Diagnostic Engine",
 				}
-				bindTargetSnapshot(&target)
+				if err := bindTargetSnapshot(&target); err != nil {
+					return nil, err
+				}
 				discovered = append(discovered, target)
 				s.dynamicTargets[targetID] = &target
 			}
@@ -175,7 +212,9 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 							IsDemoTarget:   false,
 							VerifiedBy:     "Thermodynamic AST Hotspot Engine",
 						}
-						bindTargetSnapshot(&target)
+						if err := bindTargetSnapshot(&target); err != nil {
+							return nil, err
+						}
 						discovered = append(discovered, target)
 						s.dynamicTargets[targetID] = &target
 					}
@@ -188,10 +227,18 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 	if len(discovered) == 0 && len(goFiles) > 0 {
 		fallbackTargets := s.astFallbackScan(wsDir, goFiles, workspaceID, repoName)
 		for i := range fallbackTargets {
-			bindTargetSnapshot(&fallbackTargets[i])
+			if err := bindTargetSnapshot(&fallbackTargets[i]); err != nil {
+				return nil, err
+			}
 		}
 		discovered = append(discovered, fallbackTargets...)
 	}
+
+	owner := ""
+	if len(ownerID) > 0 && ownerID[0] != "" {
+		owner = ownerID[0]
+	}
+	now := time.Now().UTC()
 
 	if s.snapshots == nil {
 		s.snapshots = make(map[string]*WorkspaceSnapshot)
@@ -199,11 +246,13 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 	s.snapshots[snapshotID] = &WorkspaceSnapshot{
 		SnapshotID:   snapshotID,
 		WorkspaceID:  workspaceID,
+		OwnerID:      owner,
 		SourceCommit: "HEAD",
 		RootDigest:   rootDigest,
 		FileHashes:   fileHashes,
 		TargetCount:  len(discovered),
-		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
+		CreatedAt:    now.Format(time.RFC3339),
+		ExpiresAt:    now.Add(60 * time.Minute).Format(time.RFC3339),
 	}
 
 	return discovered, nil

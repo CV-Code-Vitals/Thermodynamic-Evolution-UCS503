@@ -67,6 +67,11 @@ func ValidatePathSafety(targetRelPath string) error {
 		return fmt.Errorf("security violation: path traverses outside workspace (root path): %s", targetRelPath)
 	}
 
+	// Reject home directory expansion paths ("~", "~/", "~\")
+	if strings.HasPrefix(targetRelPath, "~") {
+		return fmt.Errorf("security violation: path traverses outside workspace (home directory expansion '~'): %s", targetRelPath)
+	}
+
 	// Reject Windows drive-absolute ("C:\...", "c:/...") and drive-relative ("C:foo", "c:relative") on any OS
 	if len(targetRelPath) >= 2 && targetRelPath[1] == ':' {
 		c := targetRelPath[0]

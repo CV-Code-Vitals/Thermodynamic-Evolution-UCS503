@@ -112,9 +112,9 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-StepGraphV3-WorkflowGraphV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-StepGraphV3-WorkflowGraphV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-StepGraphV3-WorkflowGraphV3"
+      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-WorkflowGraphV3-StepGraphV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-WorkflowGraphV3-StepGraphV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-workflow_step_cycle_go-WorkflowGraphV3-StepGraphV3"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 3 diagnostic findings on target file architecture/workflow_step_cycle.go"
@@ -140,9 +140,9 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-DeviceRegistryV3-SessionContextV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-DeviceRegistryV3-SessionContextV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-DeviceRegistryV3-SessionContextV3"
+      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-SessionContextV3-DeviceRegistryV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-SessionContextV3-DeviceRegistryV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-session_device_cycle_go-SessionContextV3-DeviceRegistryV3"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 3 diagnostic findings on target file architecture/session_device_cycle.go"

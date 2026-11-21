@@ -313,46 +313,6 @@
       "detection_method": "SEMANTIC_RESOURCE_ANALYSIS"
     },
     {
-      "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
-      "source_finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
-      "validation_state": "VALIDATED",
-      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
-      "category": "TEST_QUALITY",
-      "severity": "LOW",
-      "severity_rationale": "LOW: Directory lacks co-located unit test files",
-      "calibrated_confidence": 0.5,
-      "confidence_rationale": "0.50: Generic heuristic detection",
-      "title": "Exported Symbols Lack Automated Unit Tests (ParseRawPayload)",
-      "description": "Source file internal/consumer/consumer.go defines exported function(s) [ParseRawPayload] with 0 test invocations in package test suites.",
-      "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
-      "root_cause_confidence": 0.5,
-      "affected_components": [
-        "internal/consumer/consumer.go"
-      ],
-      "impact_scope": "Package Regression Safety",
-      "potential_consequences": [
-        "Lack of unit test coverage during refactoring"
-      ],
-      "expected_benefit": "Resolves contextual structural or reliability defect.",
-      "remediation_complexity": "MEDIUM",
-      "regression_risk": "LOW",
-      "remediation_readiness": "INVESTIGATION_REQUIRED",
-      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
-      "evidence": [
-        {
-          "file": "internal/consumer/consumer.go",
-          "line_start": 57,
-          "line_end": 57,
-          "description": "Untested symbol ParseRawPayload"
-        }
-      ],
-      "recommended_action": "Author comprehensive unit tests in internal/consumer/consumer_test.go covering functions: ParseRawPayload.",
-      "validation_requirements": [
-        "Issue resolved verified by contextual inspection"
-      ],
-      "detection_method": "AST_SYMBOL_TEST_CORRELATION"
-    },
-    {
       "finding_id": "CTX-TST-UNTESTED-SYM-pkg-retry-retry_go",
       "source_finding_id": "CTX-TST-UNTESTED-SYM-pkg-retry-retry_go",
       "validation_state": "VALIDATED",
@@ -387,6 +347,46 @@
         }
       ],
       "recommended_action": "Author comprehensive unit tests in pkg/retry/retry_test.go covering functions: RetryWithTimerLeak.",
+      "validation_requirements": [
+        "Issue resolved verified by contextual inspection"
+      ],
+      "detection_method": "AST_SYMBOL_TEST_CORRELATION"
+    },
+    {
+      "finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
+      "source_finding_id": "CTX-TST-UNTESTED-SYM-internal-consumer-consumer_go",
+      "validation_state": "VALIDATED",
+      "validation_reason": "All evidence locations verified on disk with accurate line bounds",
+      "category": "TEST_QUALITY",
+      "severity": "LOW",
+      "severity_rationale": "LOW: Directory lacks co-located unit test files",
+      "calibrated_confidence": 0.5,
+      "confidence_rationale": "0.50: Generic heuristic detection",
+      "title": "Exported Symbols Lack Automated Unit Tests (ParseRawPayload)",
+      "description": "Source file internal/consumer/consumer.go defines exported function(s) [ParseRawPayload] with 0 test invocations in package test suites.",
+      "root_cause": "Critical business logic committed without corresponding unit test fixtures.",
+      "root_cause_confidence": 0.5,
+      "affected_components": [
+        "internal/consumer/consumer.go"
+      ],
+      "impact_scope": "Package Regression Safety",
+      "potential_consequences": [
+        "Lack of unit test coverage during refactoring"
+      ],
+      "expected_benefit": "Resolves contextual structural or reliability defect.",
+      "remediation_complexity": "MEDIUM",
+      "regression_risk": "LOW",
+      "remediation_readiness": "INVESTIGATION_REQUIRED",
+      "readiness_rationale": "Heuristic finding with confidence below automation threshold; manual code review required to verify true positive",
+      "evidence": [
+        {
+          "file": "internal/consumer/consumer.go",
+          "line_start": 57,
+          "line_end": 57,
+          "description": "Untested symbol ParseRawPayload"
+        }
+      ],
+      "recommended_action": "Author comprehensive unit tests in internal/consumer/consumer_test.go covering functions: ParseRawPayload.",
       "validation_requirements": [
         "Issue resolved verified by contextual inspection"
       ],

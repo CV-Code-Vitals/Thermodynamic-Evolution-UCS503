@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,10 +94,12 @@ type MVPApprovalResult struct {
 
 // MVPOracleOutcome records single-oracle verification details.
 type MVPOracleOutcome struct {
-	OracleType  string `json:"oracle_type"`
-	Description string `json:"description"`
-	Passed      bool   `json:"passed"`
-	Details     string `json:"details"`
+	OracleType    string                      `json:"oracle_type"`
+	Status        string                      `json:"status"` // "PASSED", "FAILED", "NOT_RUN", "UNAVAILABLE"
+	Description   string                      `json:"description"`
+	Passed        bool                        `json:"passed"`
+	Details       string                      `json:"details"`
+	ContainerInfo *ContainerExecutionEvidence `json:"container_info,omitempty"`
 }
 
 // MVPExecutionResult compiles sandbox execution, multi-oracle checks, and source immutability.
@@ -149,11 +152,74 @@ type MVPAuditReport struct {
 type WorkspaceSnapshot struct {
 	SnapshotID   string            `json:"snapshot_id"`
 	WorkspaceID  string            `json:"workspace_id"`
+	OwnerID      string            `json:"owner_id"`
 	SourceCommit string            `json:"source_commit"`
 	RootDigest   string            `json:"root_digest"`
 	FileHashes   map[string]string `json:"file_hashes"`
 	TargetCount  int               `json:"target_count"`
 	CreatedAt    string            `json:"created_at"`
+	ExpiresAt    string            `json:"expires_at"`
+}
+
+// ValidateWorkspaceID validates that a workspace identifier is well-formed and safe.
+func ValidateWorkspaceID(workspaceID string) error {
+	trimmed := strings.TrimSpace(workspaceID)
+	if trimmed == "" {
+		return fmt.Errorf("MALFORMED_WORKSPACE_ID: workspace ID cannot be empty")
+	}
+	if strings.ContainsRune(trimmed, 0) {
+		return fmt.Errorf("MALFORMED_WORKSPACE_ID: workspace ID contains null bytes")
+	}
+	if strings.HasPrefix(trimmed, `\\`) || strings.HasPrefix(trimmed, `//`) ||
+		strings.HasPrefix(trimmed, `\/`) || strings.HasPrefix(trimmed, `/\`) {
+		return fmt.Errorf("MALFORMED_WORKSPACE_ID: UNC or device workspace ID forbidden: %s", workspaceID)
+	}
+	norm := strings.ReplaceAll(trimmed, "\\", "/")
+	for _, part := range strings.Split(norm, "/") {
+		if part == ".." {
+			return fmt.Errorf("MALFORMED_WORKSPACE_ID: path traversal in workspace ID: %s", workspaceID)
+		}
+	}
+	clean := filepath.Clean(norm)
+	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) || strings.HasPrefix(clean, "../") {
+		return fmt.Errorf("MALFORMED_WORKSPACE_ID: path traversal in workspace ID: %s", workspaceID)
+	}
+
+	// If absolute path, ensure it is not a sensitive system directory and actually exists on disk
+	if filepath.IsAbs(trimmed) || (len(trimmed) >= 2 && trimmed[1] == ':') {
+		cleanAbs := strings.ToLower(filepath.ToSlash(filepath.Clean(trimmed)))
+		if strings.HasPrefix(cleanAbs, "/etc") || strings.HasPrefix(cleanAbs, "/usr") ||
+			strings.HasPrefix(cleanAbs, "/bin") || strings.HasPrefix(cleanAbs, "/var") ||
+			strings.HasPrefix(cleanAbs, "c:/windows") || strings.HasPrefix(cleanAbs, "c:/winnt") ||
+			cleanAbs == "/" || cleanAbs == "c:/" {
+			return fmt.Errorf("MALFORMED_WORKSPACE_ID: sensitive system path forbidden: %s", workspaceID)
+		}
+		if fi, err := os.Stat(trimmed); err != nil || !fi.IsDir() {
+			return fmt.Errorf("MALFORMED_WORKSPACE_ID: absolute workspace path does not exist or is not a directory: %s", workspaceID)
+		}
+	}
+	return nil
+}
+
+// ValidateSnapshotID validates that a snapshot identifier is well-formed (SNAP-<64 hex chars>).
+func ValidateSnapshotID(snapshotID string) error {
+	trimmed := strings.TrimSpace(snapshotID)
+	if trimmed == "" {
+		return fmt.Errorf("MALFORMED_SNAPSHOT_ID: snapshot ID cannot be empty")
+	}
+	if !strings.HasPrefix(trimmed, "SNAP-") {
+		return fmt.Errorf("MALFORMED_SNAPSHOT_ID: snapshot ID must start with SNAP-: %s", snapshotID)
+	}
+	digest := strings.TrimPrefix(trimmed, "SNAP-")
+	if len(digest) != 64 {
+		return fmt.Errorf("MALFORMED_SNAPSHOT_ID: snapshot digest length must be 64 hex characters: got %d in %s", len(digest), snapshotID)
+	}
+	for _, c := range digest {
+		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+			return fmt.Errorf("MALFORMED_SNAPSHOT_ID: snapshot digest contains non-hex character: %c", c)
+		}
+	}
+	return nil
 }
 
 // MVPService provides the unified business logic for the Autonomous Repair MVP.
@@ -165,6 +231,7 @@ type MVPService struct {
 	Oracles           *IndependentOracleSuite
 	BaselineSHA       string
 	WorkspaceResolver func(workspaceID string) (string, error)
+	Runner            ContainerRunner
 
 	mu             sync.Mutex
 	snapshots      map[string]*WorkspaceSnapshot
@@ -252,7 +319,7 @@ func DefaultPreconfiguredTargets() []MVPTarget {
 }
 
 // NewMVPService constructs an initialized MVP service instance.
-func NewMVPService(workspaceRoot, persistLedgerPath string) (*MVPService, error) {
+func NewMVPService(workspaceRoot, persistLedgerPath string, runner ...ContainerRunner) (*MVPService, error) {
 	if workspaceRoot == "" {
 		workspaceRoot = ResolveWorkspaceRoot()
 	}
@@ -277,7 +344,14 @@ func NewMVPService(workspaceRoot, persistLedgerPath string) (*MVPService, error)
 	secretKey := []byte("milestone-3.8-mvp-release-candidate-hmac-key")
 	authority := NewApprovalAuthority(secretKey, registry)
 	synthesizer := NewAutonomousPatchSynthesizer()
-	oracles := NewIndependentOracleSuite(20)
+
+	var r ContainerRunner
+	if len(runner) > 0 && runner[0] != nil {
+		r = runner[0]
+	} else {
+		r = NewDockerContainerRunner()
+	}
+	oracles := NewIndependentOracleSuite(20, r)
 
 	return &MVPService{
 		WorkspaceRoot:  workspaceRoot,
@@ -286,6 +360,7 @@ func NewMVPService(workspaceRoot, persistLedgerPath string) (*MVPService, error)
 		Synthesizer:    synthesizer,
 		Oracles:        oracles,
 		BaselineSHA:    "de06b6e568e0cce07d20b319d6618c15a9d3c899",
+		Runner:         r,
 		snapshots:      make(map[string]*WorkspaceSnapshot),
 		dynamicTargets: make(map[string]*MVPTarget),
 		tokenObjs:      make(map[string]*ApprovalToken),
@@ -297,6 +372,16 @@ func NewMVPService(workspaceRoot, persistLedgerPath string) (*MVPService, error)
 	}, nil
 }
 
+// SetContainerRunner configures or overrides the container isolation runtime for verification.
+func (s *MVPService) SetContainerRunner(runner ContainerRunner) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.Runner = runner
+	if s.Oracles != nil {
+		s.Oracles.Runner = runner
+	}
+}
+
 // SetWorkspaceResolver configures the callback used to locate retained workspace directories.
 func (s *MVPService) SetWorkspaceResolver(resolver func(workspaceID string) (string, error)) {
 	s.mu.Lock()
@@ -305,6 +390,11 @@ func (s *MVPService) SetWorkspaceResolver(resolver func(workspaceID string) (str
 }
 
 func (s *MVPService) resolveWorkspaceDirLocked(workspaceID string) (string, error) {
+	if workspaceID != "" {
+		if err := ValidateWorkspaceID(workspaceID); err != nil {
+			return "", err
+		}
+	}
 	if s.WorkspaceResolver != nil && workspaceID != "" {
 		dir, err := s.WorkspaceResolver(workspaceID)
 		if err == nil && dir != "" {
@@ -338,7 +428,9 @@ func (s *MVPService) ListTargets(workspaceID ...string) []MVPTarget {
 
 	if wsID != "" {
 		discovered, err := s.discoverWorkspaceTargetsLocked(wsID)
-		if err == nil {
+		if err != nil {
+			log.Printf("[ListTargets WARNING] discoverWorkspaceTargetsLocked failed for %s: %v", wsID, err)
+		} else {
 			targets = append(targets, discovered...)
 		}
 	} else {
@@ -642,7 +734,37 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 		return nil, fmt.Errorf("STALE_WORKSPACE: source file %s was modified on disk after scan snapshot (expected: %s, found: %s)", target.TargetFile, target.SourceFileHash, fileHashStr)
 	}
 
-	workspaceID := fmt.Sprintf("ws-mvp-%s", target.TargetID)
+	// Verify snapshot record integrity and expiration
+	if target.SnapshotID != "" {
+		if err := ValidateSnapshotID(target.SnapshotID); err != nil {
+			os.RemoveAll(tmpSandbox)
+			return nil, err
+		}
+		snap, snapOk := s.snapshots[target.SnapshotID]
+		if !snapOk || snap == nil {
+			os.RemoveAll(tmpSandbox)
+			return nil, fmt.Errorf("SNAPSHOT_MISSING: snapshot record %s does not exist", target.SnapshotID)
+		}
+		exp, parseErr := time.Parse(time.RFC3339, snap.ExpiresAt)
+		if parseErr == nil && !exp.IsZero() && time.Now().UTC().After(exp) {
+			os.RemoveAll(tmpSandbox)
+			return nil, fmt.Errorf("SNAPSHOT_EXPIRED: snapshot record %s expired at %s", target.SnapshotID, snap.ExpiresAt)
+		}
+		if snap.WorkspaceID != target.WorkspaceID {
+			os.RemoveAll(tmpSandbox)
+			return nil, fmt.Errorf("SNAPSHOT_WORKSPACE_MISMATCH: snapshot %s is bound to workspace %s, not %s", target.SnapshotID, snap.WorkspaceID, target.WorkspaceID)
+		}
+		currRepoDigest, dErr := ComputeRepoDigest(srcRepo)
+		if dErr != nil || currRepoDigest != snap.RootDigest {
+			os.RemoveAll(tmpSandbox)
+			return nil, fmt.Errorf("STALE_WORKSPACE: repository root digest mismatch against immutable scan snapshot %s (snapshot: %s, current: %s)", target.SnapshotID, snap.RootDigest, currRepoDigest)
+		}
+	}
+
+	workspaceID := target.WorkspaceID
+	if workspaceID == "" {
+		workspaceID = fmt.Sprintf("ws-mvp-%s", target.TargetID)
+	}
 
 	var res *MVPProposalResult
 	if decision.Status == DecisionAbstained {
@@ -700,11 +822,27 @@ func (s *MVPService) ApproveRepair(proposalID, principal, role string) (*MVPAppr
 		return nil, fmt.Errorf("cannot approve proposal with status %q", proposal.Status)
 	}
 
+	// 1. Verify proposal diff integrity (anti-tamper)
+	diffH := sha256.Sum256([]byte(proposal.UnifiedDiff))
+	expectedDiffHash := hex.EncodeToString(diffH[:])
+	if proposal.DiffHash != "" && proposal.DiffHash != expectedDiffHash {
+		return nil, fmt.Errorf("PROPOSAL_TAMPERED: proposal diff hash mismatch (expected: %s, found: %s)", expectedDiffHash, proposal.DiffHash)
+	}
+
 	if principal == "" {
 		principal = "operator@code-vitals.internal"
 	}
 	if role == "" {
 		role = "Lead Reliability Engineer"
+	}
+
+	// 2. Cross-user workspace access check
+	if proposal.SnapshotID != "" {
+		if snap, snapOk := s.snapshots[proposal.SnapshotID]; snapOk && snap != nil {
+			if snap.OwnerID != "" && principal != "" && snap.OwnerID != principal && principal != "operator@code-vitals.internal" {
+				return nil, fmt.Errorf("CROSS_USER_WORKSPACE_FORBIDDEN: approver %s cannot authorize repair for workspace owned by %s", principal, snap.OwnerID)
+			}
+		}
 	}
 
 	fileHashes := map[string]string{
@@ -778,6 +916,13 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		return nil, fmt.Errorf("target %q not recognized", proposal.TargetID)
 	}
 
+	// 1. Verify proposal diff integrity (anti-tamper)
+	diffH := sha256.Sum256([]byte(proposal.UnifiedDiff))
+	expectedDiffHash := hex.EncodeToString(diffH[:])
+	if proposal.DiffHash != "" && proposal.DiffHash != expectedDiffHash {
+		return nil, fmt.Errorf("PROPOSAL_TAMPERED: proposal diff hash mismatch (expected: %s, found: %s)", expectedDiffHash, proposal.DiffHash)
+	}
+
 	var origRepoPath string
 	if target.WorkspaceID != "" {
 		resolved, wsErr := s.resolveWorkspaceDirLocked(target.WorkspaceID)
@@ -798,12 +943,14 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		}
 	}
 	srcFileAbs := filepath.Join(origRepoPath, filepath.FromSlash(target.TargetFile))
-	if srcBytes, err := os.ReadFile(srcFileAbs); err == nil {
-		srcHash := sha256.Sum256(srcBytes)
-		srcHashStr := hex.EncodeToString(srcHash[:])
-		if proposal.FileHash != "" && srcHashStr != proposal.FileHash {
-			return nil, fmt.Errorf("STALE_WORKSPACE: original target file %s has been modified on disk since proposal was generated (pre-hash: %s, current: %s)", target.TargetFile, proposal.FileHash, srcHashStr)
-		}
+	srcBytes, err := os.ReadFile(srcFileAbs)
+	if err != nil {
+		return nil, fmt.Errorf("cannot read target source file %s: %w", target.TargetFile, err)
+	}
+	srcHash := sha256.Sum256(srcBytes)
+	srcHashStr := hex.EncodeToString(srcHash[:])
+	if proposal.FileHash != "" && srcHashStr != proposal.FileHash {
+		return nil, fmt.Errorf("STALE_WORKSPACE: original target file %s has been modified on disk since proposal was generated (pre-hash: %s, current: %s)", target.TargetFile, proposal.FileHash, srcHashStr)
 	}
 
 	preDigest, err := ComputeRepoDigest(origRepoPath)
@@ -812,10 +959,22 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	}
 
 	if target.SnapshotID != "" {
-		if snap, snapOk := s.snapshots[target.SnapshotID]; snapOk && snap != nil {
-			if snap.RootDigest != "" && preDigest != snap.RootDigest {
-				return nil, fmt.Errorf("STALE_WORKSPACE: workspace tree digest mismatch against immutable scan snapshot %s (snapshot: %s, current: %s)", target.SnapshotID, snap.RootDigest, preDigest)
-			}
+		if err := ValidateSnapshotID(target.SnapshotID); err != nil {
+			return nil, err
+		}
+		snap, snapOk := s.snapshots[target.SnapshotID]
+		if !snapOk || snap == nil {
+			return nil, fmt.Errorf("SNAPSHOT_MISSING: snapshot record %s does not exist", target.SnapshotID)
+		}
+		exp, parseErr := time.Parse(time.RFC3339, snap.ExpiresAt)
+		if parseErr == nil && !exp.IsZero() && time.Now().UTC().After(exp) {
+			return nil, fmt.Errorf("SNAPSHOT_EXPIRED: snapshot record %s expired at %s", target.SnapshotID, snap.ExpiresAt)
+		}
+		if snap.WorkspaceID != target.WorkspaceID || snap.WorkspaceID != proposal.WorkspaceID {
+			return nil, fmt.Errorf("SNAPSHOT_WORKSPACE_MISMATCH: snapshot workspace %s does not match proposal workspace %s", snap.WorkspaceID, proposal.WorkspaceID)
+		}
+		if snap.RootDigest != "" && preDigest != snap.RootDigest {
+			return nil, fmt.Errorf("STALE_WORKSPACE: workspace tree digest mismatch against immutable scan snapshot %s (snapshot: %s, current: %s)", target.SnapshotID, snap.RootDigest, preDigest)
 		}
 	}
 
@@ -850,6 +1009,8 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		return nil, fmt.Errorf("execution boundary rejected token: %s", rejectReason)
 	}
 
+	// 2. Token is atomically verified and consumed via CheckTaskEligibilitySecure -> Authority.VerifyAndConsumeToken.
+
 	// Apply patch inside sandbox ONLY
 	if err := os.WriteFile(proposal.TargetAbsPath, []byte(proposal.ModifiedSource), 0644); err != nil {
 		return nil, fmt.Errorf("failed to write patched file to sandbox: %w", err)
@@ -866,12 +1027,23 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	oracleReport := s.Oracles.VerifyAll(proposal.SandboxDir, task, patchObj, "", "")
 
 	oracleOutcomes := make(map[string]MVPOracleOutcome)
+	hasFailure := false
+	hasUnavailable := false
+
 	for oType, oRes := range oracleReport.OracleResults {
 		oracleOutcomes[string(oType)] = MVPOracleOutcome{
-			OracleType:  string(oType),
-			Description: oRes.Details,
-			Passed:      oRes.Passed,
-			Details:     oRes.FailureReason,
+			OracleType:    string(oType),
+			Status:        string(oRes.Status),
+			Description:   oRes.Details,
+			Passed:        oRes.Passed,
+			Details:       oRes.FailureReason,
+			ContainerInfo: oRes.ContainerInfo,
+		}
+		if oRes.Status == OracleStatusFailed {
+			hasFailure = true
+		}
+		if oRes.Status == OracleStatusUnavailable {
+			hasUnavailable = true
 		}
 	}
 
@@ -887,14 +1059,18 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 
 	executionID := fmt.Sprintf("EXEC-%s-%d", proposal.TargetID, time.Now().UnixNano()%1000000)
 	verdict := "FAILED"
-	if oracleReport.AllPassed {
+
+	if hasFailure {
+		verdict = "FAILED"
+	} else {
 		defectRep, hasRep := oracleReport.OracleResults[OracleDefectReproducer]
-		if hasRep && defectRep.Passed {
-			if strings.Contains(defectRep.Details, "Dynamic defect reproducer test confirmed") {
-				verdict = "INDEPENDENTLY_VERIFIED"
-			} else {
-				verdict = "SYNTAX_ONLY_VERIFIED"
-			}
+		dynamicReproduced := hasRep && defectRep.Status == OracleStatusPassed && strings.Contains(defectRep.Details, "isolated container")
+
+		regRes, hasReg := oracleReport.OracleResults[OracleRegressionTest]
+		regPassedOrNotRun := !hasReg || regRes.Status == OracleStatusPassed || regRes.Status == OracleStatusNotRun
+
+		if dynamicReproduced && regPassedOrNotRun && !hasUnavailable {
+			verdict = "INDEPENDENTLY_VERIFIED"
 		} else {
 			verdict = "SYNTAX_ONLY_VERIFIED"
 		}
