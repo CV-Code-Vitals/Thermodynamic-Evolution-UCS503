@@ -1,0 +1,147 @@
+{
+  "milestone": "3.8",
+  "phase": "2",
+  "report_type": "FINDING_QUALITY_AND_REPAIR_ELIGIBILITY",
+  "timestamp": "2026-11-21T18:20:00Z",
+  "scanned_repository": "CV-Code-Vitals/Thermodynamic-Evolution-UCS503",
+  "baseline_commit": "421b91712b2d10276a410cddda19e21b55e6492f",
+  "summary": {
+    "total_files_analyzed": 673,
+    "total_ast_hotspots": 22763,
+    "total_discovered_targets": 1293,
+    "repairable_targets_count": 1,
+    "abstained_targets_count": 1292,
+    "preconfigured_demo_targets": 5
+  },
+  "uncertainty_score_calibration": {
+    "description": "Heuristic uncertainty scoring scale reflecting AST mutator certainty, semantic taint boundary clarity, and ownership lifecycle escape risk. Scores are deterministic heuristic rankings, not empirical Bayesian probabilities.",
+    "bands": {
+      "0.05": "Deterministic intra-procedural AST mutator (single-file file/descriptor close or error handling where resource does not escape)",
+      "0.08": "Deterministic SQL query parameterization (dynamic string formatting replaced with ? placeholder binding)",
+      "0.50": "Uncertain structural finding requiring human inspection",
+      "0.60": "Unhandled error return in non-error signature requiring control-flow restructuring",
+      "0.85": "High cognitive/cyclomatic complexity hotspot (complexity >= 15); requires human architectural decomposition",
+      "0.90": "Resource lifecycle escape; resource returned to caller across functional boundary",
+      "0.95": "Command injection via shell interpreter (sh -c) or ground-truth disqualified false alarm (NAT-03 class); autonomous modification strictly prohibited"
+    }
+  },
+  "taxonomy_breakdown": [
+    {
+      "category": "HIGH_COMPLEXITY",
+      "count": 1250,
+      "severity": "HIGH",
+      "expected_action": "ABSTAIN",
+      "automatic_eligibility": false,
+      "uncertainty_score": 0.85,
+      "policy_rationale": "High complexity hotspots (Cyclomatic Complexity >= 15 or Entropy >= 75) represent architectural maintainability issues. Autonomous method extraction or decomposition without a functional specification introduces high regression risk. The system conservatively abstains and requests human architectural review.",
+      "sample_targets": [
+        {
+          "target_id": "SCAN-COMPLEXITY-EVALUATECANDIDATE",
+          "file_path": "go-backend/agent/evaluator.go",
+          "function_name": "EvaluateCandidate",
+          "cyclomatic_complexity": 22,
+          "entropy_score": 88.4,
+          "disposition": "EXPLICITLY_ABSTAINED"
+        },
+        {
+          "target_id": "SCAN-COMPLEXITY-VERIFYALL",
+          "file_path": "go-backend/agent/repo_intel/execution/oracles.go",
+          "function_name": "VerifyAll",
+          "cyclomatic_complexity": 18,
+          "entropy_score": 79.2,
+          "disposition": "EXPLICITLY_ABSTAINED"
+        }
+      ]
+    },
+    {
+      "category": "COMMAND_INJECTION",
+      "count": 42,
+      "severity": "CRITICAL",
+      "expected_action": "ABSTAIN",
+      "automatic_eligibility": false,
+      "uncertainty_score": 0.95,
+      "policy_rationale": "Arbitrary shell invocation patterns (e.g. exec.Command('sh', '-c', ...)) pose critical security risks. Automatically splitting arbitrary shell strings into discrete exec arguments requires semantic understanding of shell expansions (pipes, redirects, env vars). Autonomous mutation is strictly blocked by safety policy.",
+      "sample_targets": [
+        {
+          "target_id": "SCAN-SEMANTIC_COMMAND_INJECTION-41",
+          "file_path": "go-backend/agent/repo_intel/execution/scan_repair_test.go",
+          "line_number": 312,
+          "rule_id": "SEMANTIC_COMMAND_INJECTION",
+          "code_snippet": "c := exec.Command(\"sh\", \"-c\", \"echo \"+hook)",
+          "disposition": "EXPLICITLY_ABSTAINED"
+        }
+      ]
+    },
+    {
+      "category": "SQL_INJECTION",
+      "count": 1,
+      "severity": "HIGH",
+      "expected_action": "REPAIR",
+      "automatic_eligibility": true,
+      "uncertainty_score": 0.08,
+      "policy_rationale": "Dynamic SQL query formatting via fmt.Sprintf is a well-bounded vulnerability class. Deterministic AST transformation replaces dynamic formatting with SQL placeholder binding (?) and passes the dynamic variable as an execution parameter. Fully supported for autonomous repair.",
+      "sample_targets": [
+        {
+          "target_id": "SCAN-SEMANTIC_SQL_INJECTION-2",
+          "file_path": "go-backend/agent/repo_intel/diagnostic/semantic/fixtures/sample_sql.go",
+          "line_number": 28,
+          "rule_id": "SEMANTIC_SQL_INJECTION",
+          "code_snippet": "query := fmt.Sprintf(\"SELECT id, name FROM users WHERE role = '%s'\", role)\nreturn db.QueryContext(ctx, query)",
+          "disposition": "SYNTAX_ONLY_VERIFIED"
+        }
+      ]
+    }
+  ],
+  "pilot_corpus_demo_targets": [
+    {
+      "target_id": "INJ-EXT2-RES-02",
+      "repository": "fatih/color",
+      "defect_category": "RESOURCE_LEAK",
+      "stratum": "AUTHENTIC_REPO_INJECTED",
+      "expected_action": "REPAIR",
+      "automatic_eligibility": true,
+      "uncertainty_score": 0.05,
+      "description": "Authentic Repo Injected Defect: os.Open file descriptor leak in DumpColorProfile"
+    },
+    {
+      "target_id": "INJ-EXT2-SQL-01",
+      "repository": "stretchr/objx",
+      "defect_category": "SQL_INJECTION",
+      "stratum": "AUTHENTIC_REPO_INJECTED",
+      "expected_action": "REPAIR",
+      "automatic_eligibility": true,
+      "uncertainty_score": 0.08,
+      "description": "Authentic Repo Injected Defect: Dynamic SQL string formatting via fmt.Sprintf"
+    },
+    {
+      "target_id": "INJ-EXT2-CMD-01",
+      "repository": "schollz/progressbar",
+      "defect_category": "COMMAND_INJECTION",
+      "stratum": "AUTHENTIC_REPO_INJECTED",
+      "expected_action": "ABSTAIN",
+      "automatic_eligibility": false,
+      "uncertainty_score": 0.95,
+      "description": "Authentic Repo Injected Defect: Unsanitized command executed via sh -c (Must safely abstain)"
+    },
+    {
+      "target_id": "DEF-HOLD-01",
+      "repository": "microservice_api",
+      "defect_category": "UNHANDLED_ERROR",
+      "stratum": "CONSTRUCTED_MICROSERVICE",
+      "expected_action": "ABSTAIN",
+      "automatic_eligibility": false,
+      "uncertainty_score": 0.60,
+      "description": "Constructed Microservice Defect: json.Unmarshal error discarded in non-error return signature"
+    },
+    {
+      "target_id": "NAT-03",
+      "repository": "gorilla/websocket",
+      "defect_category": "RESOURCE_LEAK",
+      "stratum": "GROUND_TRUTH_DISQUALIFIED",
+      "expected_action": "ABSTAIN",
+      "automatic_eligibility": false,
+      "uncertainty_score": 0.95,
+      "description": "Disqualified Natural Baseline: DialContext socket managed via defer at line 330; response body unclosed is not a leak. 0 confirmed natural repairs."
+    }
+  ]
+}

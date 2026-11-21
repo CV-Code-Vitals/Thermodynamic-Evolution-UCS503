@@ -1,6 +1,8 @@
 package execution
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"go/ast"
@@ -9,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel"
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/diagnostic/semantic"
@@ -83,6 +86,24 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 	var discovered []MVPTarget
 	repoName := filepath.Base(wsDir)
 
+	rootDigest, _ := ComputeRepoDigest(wsDir)
+	snapshotID := "SNAP-EMPTY"
+	if len(rootDigest) >= 16 {
+		snapshotID = fmt.Sprintf("SNAP-%s", rootDigest[:16])
+	}
+	fileHashes := make(map[string]string)
+
+	// Helper to bind snapshot details to discovered target
+	bindTargetSnapshot := func(target *MVPTarget) {
+		target.SnapshotID = snapshotID
+		targetAbs := filepath.Join(wsDir, filepath.FromSlash(target.TargetFile))
+		if fb, fbErr := os.ReadFile(targetAbs); fbErr == nil {
+			h := sha256.Sum256(fb)
+			target.SourceFileHash = hex.EncodeToString(h[:])
+			fileHashes[target.TargetFile] = target.SourceFileHash
+		}
+	}
+
 	// 2. Run Unified Semantic Diagnostic Orchestrator if Go files are present
 	if len(goFiles) > 0 {
 		orch := semantic.NewUnifiedOrchestrator(wsDir)
@@ -121,6 +142,7 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 					IsDemoTarget:   false,
 					VerifiedBy:     "Unified Semantic Diagnostic Engine",
 				}
+				bindTargetSnapshot(&target)
 				discovered = append(discovered, target)
 				s.dynamicTargets[targetID] = &target
 			}
@@ -153,6 +175,7 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 							IsDemoTarget:   false,
 							VerifiedBy:     "Thermodynamic AST Hotspot Engine",
 						}
+						bindTargetSnapshot(&target)
 						discovered = append(discovered, target)
 						s.dynamicTargets[targetID] = &target
 					}
@@ -164,7 +187,23 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string) ([]MVPTa
 	// 4. Fallback AST heuristic scan if no semantic findings were identified
 	if len(discovered) == 0 && len(goFiles) > 0 {
 		fallbackTargets := s.astFallbackScan(wsDir, goFiles, workspaceID, repoName)
+		for i := range fallbackTargets {
+			bindTargetSnapshot(&fallbackTargets[i])
+		}
 		discovered = append(discovered, fallbackTargets...)
+	}
+
+	if s.snapshots == nil {
+		s.snapshots = make(map[string]*WorkspaceSnapshot)
+	}
+	s.snapshots[snapshotID] = &WorkspaceSnapshot{
+		SnapshotID:   snapshotID,
+		WorkspaceID:  workspaceID,
+		SourceCommit: "HEAD",
+		RootDigest:   rootDigest,
+		FileHashes:   fileHashes,
+		TargetCount:  len(discovered),
+		CreatedAt:    time.Now().UTC().Format(time.RFC3339),
 	}
 
 	return discovered, nil

@@ -1,6 +1,7 @@
 package execution
 
 import (
+	"context"
 	"fmt"
 	"go/ast"
 	"go/parser"
@@ -111,13 +112,121 @@ func (s *IndependentOracleSuite) VerifyAll(
 }
 
 func getExecutionEnv() []string {
-	env := os.Environ()
-	if os.Getenv("GOTMPDIR") == "" {
-		if fi, err := os.Stat(`E:\SWE\.tmp`); err == nil && fi.IsDir() {
-			env = append(env, `GOTMPDIR=E:\SWE\.tmp`, `TEMP=E:\SWE\.tmp`, `TMP=E:\SWE\.tmp`)
+	return GetSanitizedExecutionEnv()
+}
+
+// GetSanitizedExecutionEnv produces a scrubbed environment slice that strictly strips
+// all secrets, tokens, credentials, and sensitive host environment variables.
+func GetSanitizedExecutionEnv() []string {
+	allowedKeys := map[string]bool{
+		"PATH":         true,
+		"SYSTEMROOT":   true,
+		"WINDIR":       true,
+		"COMSPEC":      true,
+		"PATHEXT":      true,
+		"TEMP":         true,
+		"TMP":          true,
+		"GOTMPDIR":     true,
+		"GOCACHE":      true,
+		"GOPATH":       true,
+		"GOROOT":       true,
+		"GOOS":         true,
+		"GOARCH":       true,
+		"CGO_ENABLED":  true,
+		"HOME":         true,
+		"USERPROFILE":  true,
+		"LOCALAPPDATA": true,
+		"APPDATA":      true,
+	}
+
+	sensitiveSubstrings := []string{
+		"KEY", "TOKEN", "SECRET", "PASS", "AUTH", "CREDENTIAL",
+		"AWS_", "GITHUB_", "SSH_", "PRIVATE", "DATABASE_URL",
+	}
+
+	var cleanEnv []string
+	hasGocache := false
+	for _, entry := range os.Environ() {
+		parts := strings.SplitN(entry, "=", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		upperK := strings.ToUpper(parts[0])
+		if !allowedKeys[upperK] {
+			continue
+		}
+		isSensitive := false
+		for _, pat := range sensitiveSubstrings {
+			if strings.Contains(upperK, pat) {
+				isSensitive = true
+				break
+			}
+		}
+		if !isSensitive {
+			if upperK == "GOCACHE" {
+				hasGocache = true
+			}
+			cleanEnv = append(cleanEnv, entry)
 		}
 	}
-	return env
+
+	// Enforce CGO_ENABLED=0 to prevent unverified C compilation
+	cleanEnv = append(cleanEnv, "CGO_ENABLED=0")
+
+	// Ensure isolated temp directories
+	tmpBase := `E:\SWE\.tmp`
+	if fi, err := os.Stat(tmpBase); err == nil && fi.IsDir() {
+		cleanEnv = append(cleanEnv, `GOTMPDIR=`+tmpBase, `TEMP=`+tmpBase, `TMP=`+tmpBase)
+	}
+
+	// Ensure GOCACHE is always set to prevent go vet / build cache failures
+	if !hasGocache {
+		gocacheDir := filepath.Join(tmpBase, "gocache")
+		_ = os.MkdirAll(gocacheDir, 0755)
+		cleanEnv = append(cleanEnv, "GOCACHE="+gocacheDir)
+	}
+
+	return cleanEnv
+}
+
+// validateSafeSubprocessCommand validates that a command string to be executed on host
+// conforms to strict security whitelisting: only safe Go toolchain invocations are permitted.
+func validateSafeSubprocessCommand(cmdStr string) (string, []string, error) {
+	parts := strings.Fields(cmdStr)
+	if len(parts) == 0 {
+		return "", nil, fmt.Errorf("empty command")
+	}
+	binaryName := strings.ToLower(filepath.Base(parts[0]))
+	// Reject known interpreters and dangerous binaries
+	blockedBinaries := map[string]bool{
+		"sh": true, "bash": true, "zsh": true, "ksh": true, "csh": true, "tcsh": true,
+		"cmd": true, "cmd.exe": true, "powershell": true, "powershell.exe": true,
+		"pwsh": true, "pwsh.exe": true, "python": true, "python3": true, "perl": true,
+		"ruby": true, "node": true, "curl": true, "wget": true, "nc": true, "netcat": true,
+		"socat": true, "rm": true, "del": true,
+	}
+	if blockedBinaries[binaryName] {
+		return "", nil, fmt.Errorf("command %q is blocked: direct host execution of arbitrary shell interpreters is strictly forbidden", parts[0])
+	}
+	if binaryName != "go" && binaryName != "go.exe" {
+		return "", nil, fmt.Errorf("command %q is blocked: only 'go' toolchain commands are whitelisted for host verification", parts[0])
+	}
+	if len(parts) < 2 {
+		return "", nil, fmt.Errorf("incomplete go command: subcommand required")
+	}
+	allowedSubcommands := map[string]bool{
+		"vet": true, "test": true, "build": true,
+	}
+	if !allowedSubcommands[parts[1]] {
+		return "", nil, fmt.Errorf("go subcommand %q is not whitelisted", parts[1])
+	}
+	// Check for dangerous flags like -exec
+	for _, arg := range parts[2:] {
+		if strings.HasPrefix(arg, "-exec") || strings.HasPrefix(arg, "--exec") {
+			return "", nil, fmt.Errorf("go flag %q is forbidden in host verification", arg)
+		}
+	}
+	return parts[0], parts[1:], nil
 }
 
 // -----------------------------------------------------------------------------------------
@@ -144,9 +253,16 @@ func (s *IndependentOracleSuite) verifySyntaxCompilation(wsDir string, task *pla
 		_ = os.WriteFile(modPath, []byte("module testfixture\n\ngo 1.21\n"), 0644)
 	}
 
-	// Execute `go vet` in target package directory
+	// Execute `go vet` in target package directory with timeout and sanitized environment
+	timeout := time.Duration(s.TimeoutSec) * time.Second
+	if timeout <= 0 {
+		timeout = 20 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	pkgDir := filepath.Dir(targetPath)
-	cmd := exec.Command("go", "vet", ".")
+	cmd := exec.CommandContext(ctx, "go", "vet", ".")
 	cmd.Dir = pkgDir
 	cmd.Env = getExecutionEnv()
 
@@ -172,17 +288,27 @@ func (s *IndependentOracleSuite) verifyRegressionTests(wsDir string, task *plann
 	res := &OracleResult{OracleType: OracleRegressionTest, Passed: true}
 
 	if len(task.ValidationCommands) > 0 {
+		timeout := time.Duration(s.TimeoutSec) * time.Second
+		if timeout <= 0 {
+			timeout = 30 * time.Second
+		}
+
 		for _, cmdStr := range task.ValidationCommands {
-			parts := strings.Fields(cmdStr)
-			if len(parts) == 0 {
-				continue
+			prog, args, valErr := validateSafeSubprocessCommand(cmdStr)
+			if valErr != nil {
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("Security rejection on regression command: %v", valErr)
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
 			}
 
-			cmd := exec.Command(parts[0], parts[1:]...)
+			ctx, cancel := context.WithTimeout(context.Background(), timeout)
+			cmd := exec.CommandContext(ctx, prog, args...)
 			cmd.Dir = wsDir
 			cmd.Env = getExecutionEnv()
 
 			out, err := cmd.CombinedOutput()
+			cancel()
 			if err != nil {
 				res.Passed = false
 				res.Output = string(out)
@@ -213,10 +339,24 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 	start := time.Now()
 	res := &OracleResult{OracleType: OracleDefectReproducer, Passed: true}
 
-	// If explicit reproducer command provided, execute it
+	// If explicit reproducer command provided, validate and execute it
 	if reproducerCmd != "" {
-		parts := strings.Fields(reproducerCmd)
-		cmd := exec.Command(parts[0], parts[1:]...)
+		prog, args, valErr := validateSafeSubprocessCommand(reproducerCmd)
+		if valErr != nil {
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("Security rejection on reproducer command: %v", valErr)
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
+
+		timeout := time.Duration(s.TimeoutSec) * time.Second
+		if timeout <= 0 {
+			timeout = 30 * time.Second
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, prog, args...)
 		cmd.Dir = wsDir
 		cmd.Env = getExecutionEnv()
 
@@ -228,7 +368,7 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
-		res.Details = "Defect reproducer test confirmed defect elimination"
+		res.Details = "Dynamic defect reproducer test confirmed defect elimination"
 		res.DurationMs = time.Since(start).Milliseconds()
 		return res
 	}
@@ -266,7 +406,7 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 				}
 			}
 		}
-		res.Details = "Explicit or deferred resource cleanup verified along exit paths"
+		res.Details = "Explicit or deferred resource cleanup verified along exit paths (syntactic check; dynamic reproducer not executed)"
 	} else if strings.Contains(taskType, "sql") {
 		if strings.Contains(src, "fmt.Sprintf") && strings.Contains(src, "%s") {
 			res.Passed = false
@@ -280,7 +420,7 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
-		res.Details = "Parameterized SQL placeholder and parameter bindings verified"
+		res.Details = "Parameterized SQL placeholder and parameter bindings verified (syntactic check; dynamic reproducer not executed)"
 	} else if strings.Contains(taskType, "error") {
 		if !strings.Contains(src, "if err != nil") && !strings.Contains(src, "if err :=") {
 			res.Passed = false
@@ -288,7 +428,7 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
-		res.Details = "Error handling and propagation check verified"
+		res.Details = "Error handling and propagation check verified (syntactic check; dynamic reproducer not executed)"
 	}
 
 	res.DurationMs = time.Since(start).Milliseconds()
@@ -308,8 +448,22 @@ func (s *IndependentOracleSuite) verifyBehavioralInvariance(
 	res := &OracleResult{OracleType: OracleBehavioralInvariance, Passed: true}
 
 	if invarianceCmd != "" {
-		parts := strings.Fields(invarianceCmd)
-		cmd := exec.Command(parts[0], parts[1:]...)
+		prog, args, valErr := validateSafeSubprocessCommand(invarianceCmd)
+		if valErr != nil {
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("Security rejection on invariance command: %v", valErr)
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
+
+		timeout := time.Duration(s.TimeoutSec) * time.Second
+		if timeout <= 0 {
+			timeout = 30 * time.Second
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, prog, args...)
 		cmd.Dir = wsDir
 		cmd.Env = getExecutionEnv()
 

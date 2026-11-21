@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Play, Lock, RotateCcw, Download
+  Play, Lock, RotateCcw, Download, Filter, Search, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import './RemediationPortal.css';
 import {
@@ -18,7 +18,9 @@ function renderVerdictBadge(verdict) {
   switch (verdict) {
     case 'INDEPENDENTLY_VERIFIED':
     case 'VERIFIED':
-      return <span className="remediation-badge badge-verified">VERIFIED</span>;
+      return <span className="remediation-badge badge-verified">INDEPENDENTLY_VERIFIED</span>;
+    case 'SYNTAX_ONLY_VERIFIED':
+      return <span className="remediation-badge badge-review">SYNTAX_ONLY_VERIFIED</span>;
     case 'EXPLICITLY_ABSTAINED':
     case 'ABSTAINED':
       return <span className="remediation-badge badge-abstain">ABSTAINED</span>;
@@ -27,6 +29,8 @@ function renderVerdictBadge(verdict) {
     case 'GROUND_TRUTH_UNVERIFIED':
     case 'GROUND_TRUTH_DISQUALIFIED':
       return <span className="remediation-badge badge-unverified">GROUND_TRUTH_UNVERIFIED</span>;
+    case 'FAILED':
+      return <span className="remediation-badge badge-false-positive">FAILED</span>;
     default:
       return <span className="remediation-badge badge-review">{verdict}</span>;
   }
@@ -37,6 +41,13 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
   const [selectedTarget, setSelectedTarget] = useState('INJ-EXT2-RES-02');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Filter & Pagination state for large target corpora
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
+  const [actionFilter, setActionFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 25;
 
   // Pipeline step state
   const [analysis, setAnalysis] = useState(null);
@@ -237,6 +248,23 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
   const scannedTargets = targets.filter(t => !t.is_demo_target && (t.stratum === 'SCANNED_REPOSITORY' || t.target_id.startsWith('SCAN-')));
   const demoTargets = targets.filter(t => t.is_demo_target || (t.stratum !== 'SCANNED_REPOSITORY' && !t.target_id.startsWith('SCAN-')));
 
+  const filteredScanned = scannedTargets.filter(t => {
+    if (categoryFilter !== 'ALL' && t.defect_category !== categoryFilter) return false;
+    if (actionFilter !== 'ALL' && t.expected_action !== actionFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      const matchId = (t.target_id || '').toLowerCase().includes(q);
+      const matchFile = (t.target_file || '').toLowerCase().includes(q);
+      const matchDesc = (t.description || '').toLowerCase().includes(q);
+      if (!matchId && !matchFile && !matchDesc) return false;
+    }
+    return true;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredScanned.length / pageSize));
+  const paginatedScanned = filteredScanned.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const currentTargetObj = targets.find(t => t.target_id === selectedTarget);
+
   return (
     <div className="remediation-container">
       <div className="remediation-header">
@@ -303,9 +331,64 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
         </h3>
         <p>
           {scannedTargets.length > 0
-            ? 'Select a diagnostic finding from the scanned repository or a preconfigured demo target:'
+            ? `Select a diagnostic finding from the scanned repository (${scannedTargets.length} discovered) or a preconfigured demo target:`
             : 'Select a candidate defect target from the verified external pilot corpus:'}
         </p>
+
+        {/* Filter Toolbar for Scanned Targets */}
+        {scannedTargets.length > 0 && (
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '1rem', background: 'rgba(255,255,255,0.02)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid #1f2937' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <Filter size={14} style={{ color: '#00ff88' }} />
+              <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 600 }}>FILTERS:</span>
+            </div>
+            <select
+              className="cyber-input"
+              style={{ fontSize: '0.75rem', padding: '3px 8px', height: 'auto' }}
+              value={categoryFilter}
+              onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+            >
+              <option value="ALL">All Categories</option>
+              <option value="RESOURCE_LEAK">Resource Leaks</option>
+              <option value="SQL_INJECTION">SQL Injection</option>
+              <option value="COMMAND_INJECTION">Command Injection</option>
+              <option value="HIGH_COMPLEXITY">High Complexity Hotspots</option>
+              <option value="UNHANDLED_ERROR">Unhandled Errors</option>
+            </select>
+            <select
+              className="cyber-input"
+              style={{ fontSize: '0.75rem', padding: '3px 8px', height: 'auto' }}
+              value={actionFilter}
+              onChange={(e) => { setActionFilter(e.target.value); setCurrentPage(1); }}
+            >
+              <option value="ALL">All Actions</option>
+              <option value="REPAIR">Eligible for Repair (REPAIR)</option>
+              <option value="ABSTAIN">Requires Abstention / Review (ABSTAIN)</option>
+            </select>
+            <div style={{ position: 'relative', flexGrow: 1, minWidth: '180px' }}>
+              <input
+                className="cyber-input"
+                style={{ fontSize: '0.75rem', padding: '3px 8px 3px 24px', width: '100%', height: 'auto' }}
+                type="text"
+                placeholder="Search by file, rule ID, or description..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              />
+              <Search size={12} style={{ position: 'absolute', left: '7px', top: '7px', color: '#6b7280' }} />
+            </div>
+            {(categoryFilter !== 'ALL' || actionFilter !== 'ALL' || searchQuery) && (
+              <button
+                type="button"
+                className="action-btn secondary"
+                style={{ fontSize: '0.7rem', padding: '2px 8px', height: 'auto' }}
+                onClick={() => { setCategoryFilter('ALL'); setActionFilter('ALL'); setSearchQuery(''); setCurrentPage(1); }}
+              >
+                CLEAR
+              </button>
+            )}
+          </div>
+        )}
+
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <select
             className="cyber-input"
@@ -318,15 +401,15 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
             style={{ minWidth: '340px', maxWidth: '100%' }}
           >
             {scannedTargets.length > 0 && (
-              <optgroup label="Scanned Repository Findings">
-                {scannedTargets.map((t) => (
+              <optgroup label={`Scanned Findings (${filteredScanned.length} matching / ${scannedTargets.length} total, Page ${currentPage} of ${totalPages})`}>
+                {paginatedScanned.map((t) => (
                   <option key={t.target_id} value={t.target_id}>
                     {t.target_id}: {t.description || `${t.target_file} (${t.defect_category})`}
                   </option>
                 ))}
               </optgroup>
             )}
-            <optgroup label="Preconfigured Deterministic Demo Targets">
+            <optgroup label="Preconfigured Deterministic Demo Targets (5)">
               {demoTargets.map((t) => (
                 <option key={t.target_id} value={t.target_id}>
                   {t.target_id}: {t.repository} — {t.defect_category} [{t.stratum || (t.target_id === 'NAT-03' ? 'GROUND_TRUTH_DISQUALIFIED' : 'DEMO_FIXTURE')}]
@@ -341,6 +424,48 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
             RUN ONE-CLICK DETERMINISTIC DEMO
           </button>
         </div>
+
+        {/* Pagination controls */}
+        {scannedTargets.length > 0 && totalPages > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.75rem', fontSize: '0.8rem', color: '#9ca3af' }}>
+            <button
+              type="button"
+              className="action-btn secondary"
+              style={{ padding: '2px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}
+              disabled={currentPage <= 1 || loading}
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            >
+              <ChevronLeft size={12} /> PREV
+            </button>
+            <span>
+              Page {currentPage} of {totalPages} (Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredScanned.length)} of {filteredScanned.length} targets)
+            </span>
+            <button
+              type="button"
+              className="action-btn secondary"
+              style={{ padding: '2px 8px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '2px' }}
+              disabled={currentPage >= totalPages || loading}
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            >
+              NEXT <ChevronRight size={12} />
+            </button>
+          </div>
+        )}
+
+        {/* Selected target preview snippet */}
+        {currentTargetObj && (
+          <div style={{ marginTop: '0.75rem', padding: '0.5rem 0.75rem', background: 'rgba(0,0,0,0.25)', borderRadius: '4px', border: '1px solid #1f2937', fontSize: '0.75rem', color: '#9ca3af' }}>
+            <span style={{ color: '#00ff88', fontWeight: 600 }}>SELECTED TARGET:</span> {currentTargetObj.target_id} |{' '}
+            <span style={{ color: '#38bdf8' }}>CATEGORY:</span> {currentTargetObj.defect_category} |{' '}
+            <span style={{ color: '#f59e0b' }}>EXPECTED:</span> {currentTargetObj.expected_action} |{' '}
+            <span style={{ color: '#e5e7eb' }}>FILE:</span> {currentTargetObj.target_file}:{currentTargetObj.line_number || 1}
+            {currentTargetObj.snapshot_id && (
+              <span style={{ marginLeft: '0.5rem', color: '#8892b0' }}>
+                [SNAPSHOT: {currentTargetObj.snapshot_id}]
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* STEP 2: FINDINGS & SEMANTIC EVIDENCE */}

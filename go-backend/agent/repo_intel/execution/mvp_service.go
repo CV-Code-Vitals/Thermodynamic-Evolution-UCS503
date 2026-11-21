@@ -30,6 +30,8 @@ type MVPTarget struct {
 	WorkspaceID    string `json:"workspace_id,omitempty"`
 	LineNumber     int    `json:"line_number,omitempty"`
 	IsDemoTarget   bool   `json:"is_demo_target"`
+	SnapshotID     string `json:"snapshot_id,omitempty"`
+	SourceFileHash string `json:"source_file_hash,omitempty"`
 }
 
 // MVPAnalysisResult stores diagnostic and semantic findings for a target.
@@ -49,6 +51,8 @@ type MVPAnalysisResult struct {
 	RequiresHumanReview  bool     `json:"requires_human_review"`
 	FindingID            string   `json:"finding_id"`
 	Timestamp            string   `json:"timestamp"`
+	SnapshotID           string   `json:"snapshot_id,omitempty"`
+	SourceFileHash       string   `json:"source_file_hash,omitempty"`
 }
 
 // MVPProposalResult contains the synthesized patch diff or explicit abstention reason.
@@ -70,6 +74,7 @@ type MVPProposalResult struct {
 	TargetAbsPath         string `json:"target_abs_path"`
 	SandboxDir            string `json:"sandbox_dir"`
 	DurationMs            int64  `json:"duration_ms"`
+	SnapshotID            string `json:"snapshot_id,omitempty"`
 }
 
 // MVPApprovalResult contains the issued cryptographic authorization token.
@@ -140,6 +145,17 @@ type MVPAuditReport struct {
 	AuditRecords          []MVPAuditRecord `json:"audit_records"`
 }
 
+// WorkspaceSnapshot stores immutable snapshot metadata bound to a scanned workspace.
+type WorkspaceSnapshot struct {
+	SnapshotID   string            `json:"snapshot_id"`
+	WorkspaceID  string            `json:"workspace_id"`
+	SourceCommit string            `json:"source_commit"`
+	RootDigest   string            `json:"root_digest"`
+	FileHashes   map[string]string `json:"file_hashes"`
+	TargetCount  int               `json:"target_count"`
+	CreatedAt    string            `json:"created_at"`
+}
+
 // MVPService provides the unified business logic for the Autonomous Repair MVP.
 type MVPService struct {
 	WorkspaceRoot     string
@@ -151,6 +167,7 @@ type MVPService struct {
 	WorkspaceResolver func(workspaceID string) (string, error)
 
 	mu             sync.Mutex
+	snapshots      map[string]*WorkspaceSnapshot
 	dynamicTargets map[string]*MVPTarget
 	tokenObjs      map[string]*ApprovalToken
 	analyses       map[string]*MVPAnalysisResult
@@ -269,6 +286,7 @@ func NewMVPService(workspaceRoot, persistLedgerPath string) (*MVPService, error)
 		Synthesizer:    synthesizer,
 		Oracles:        oracles,
 		BaselineSHA:    "de06b6e568e0cce07d20b319d6618c15a9d3c899",
+		snapshots:      make(map[string]*WorkspaceSnapshot),
 		dynamicTargets: make(map[string]*MVPTarget),
 		tokenObjs:      make(map[string]*ApprovalToken),
 		analyses:       make(map[string]*MVPAnalysisResult),
@@ -528,6 +546,8 @@ func (s *MVPService) AnalyzeTarget(targetID string) (*MVPAnalysisResult, error) 
 		RequiresHumanReview:  true,
 		FindingID:            fmt.Sprintf("FIND-%s", target.TargetID),
 		Timestamp:            time.Now().UTC().Format(time.RFC3339),
+		SnapshotID:           target.SnapshotID,
+		SourceFileHash:       target.SourceFileHash,
 	}
 
 	s.analyses[analysisID] = res
@@ -616,6 +636,12 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 	fHash := sha256.Sum256(fBytes)
 	fileHashStr := hex.EncodeToString(fHash[:])
 
+	// If target has a pinned source file hash from scan, verify it hasn't mutated
+	if target.SourceFileHash != "" && target.SourceFileHash != fileHashStr {
+		os.RemoveAll(tmpSandbox)
+		return nil, fmt.Errorf("STALE_WORKSPACE: source file %s was modified on disk after scan snapshot (expected: %s, found: %s)", target.TargetFile, target.SourceFileHash, fileHashStr)
+	}
+
 	workspaceID := fmt.Sprintf("ws-mvp-%s", target.TargetID)
 
 	var res *MVPProposalResult
@@ -631,6 +657,7 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 			ExecutionClass:        string(planning.ClassHumanApprovalRequired),
 			SandboxDir:            tmpSandbox,
 			DurationMs:            time.Since(start).Milliseconds(),
+			SnapshotID:            target.SnapshotID,
 		}
 	} else if decision.Status == DecisionProposed && decision.Patch != nil {
 		res = &MVPProposalResult{
@@ -649,6 +676,7 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 			TargetAbsPath:         targetAbs,
 			SandboxDir:            tmpSandbox,
 			DurationMs:            time.Since(start).Milliseconds(),
+			SnapshotID:            target.SnapshotID,
 		}
 	} else {
 		os.RemoveAll(tmpSandbox)
@@ -769,9 +797,26 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 			}
 		}
 	}
+	srcFileAbs := filepath.Join(origRepoPath, filepath.FromSlash(target.TargetFile))
+	if srcBytes, err := os.ReadFile(srcFileAbs); err == nil {
+		srcHash := sha256.Sum256(srcBytes)
+		srcHashStr := hex.EncodeToString(srcHash[:])
+		if proposal.FileHash != "" && srcHashStr != proposal.FileHash {
+			return nil, fmt.Errorf("STALE_WORKSPACE: original target file %s has been modified on disk since proposal was generated (pre-hash: %s, current: %s)", target.TargetFile, proposal.FileHash, srcHashStr)
+		}
+	}
+
 	preDigest, err := ComputeRepoDigest(origRepoPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to compute original repo pre-digest: %w", err)
+	}
+
+	if target.SnapshotID != "" {
+		if snap, snapOk := s.snapshots[target.SnapshotID]; snapOk && snap != nil {
+			if snap.RootDigest != "" && preDigest != snap.RootDigest {
+				return nil, fmt.Errorf("STALE_WORKSPACE: workspace tree digest mismatch against immutable scan snapshot %s (snapshot: %s, current: %s)", target.SnapshotID, snap.RootDigest, preDigest)
+			}
+		}
 	}
 
 	fileHashes := map[string]string{
@@ -843,7 +888,16 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	executionID := fmt.Sprintf("EXEC-%s-%d", proposal.TargetID, time.Now().UnixNano()%1000000)
 	verdict := "FAILED"
 	if oracleReport.AllPassed {
-		verdict = "INDEPENDENTLY_VERIFIED"
+		defectRep, hasRep := oracleReport.OracleResults[OracleDefectReproducer]
+		if hasRep && defectRep.Passed {
+			if strings.Contains(defectRep.Details, "Dynamic defect reproducer test confirmed") {
+				verdict = "INDEPENDENTLY_VERIFIED"
+			} else {
+				verdict = "SYNTAX_ONLY_VERIFIED"
+			}
+		} else {
+			verdict = "SYNTAX_ONLY_VERIFIED"
+		}
 	}
 
 	res := &MVPExecutionResult{
@@ -939,7 +993,7 @@ func (s *MVPService) ExportAuditReport() *MVPAuditReport {
 	failedCount := 0
 
 	for _, rec := range s.auditTrail {
-		if rec.FinalStatus == "INDEPENDENTLY_VERIFIED" {
+		if rec.FinalStatus == "INDEPENDENTLY_VERIFIED" || rec.FinalStatus == "SYNTAX_ONLY_VERIFIED" {
 			verifiedCount++
 		} else if rec.FinalStatus == "EXPLICITLY_ABSTAINED" || (rec.Proposal != nil && rec.Proposal.Status == "ABSTAINED") {
 			abstainedCount++
@@ -960,10 +1014,10 @@ func (s *MVPService) ExportAuditReport() *MVPAuditReport {
 	}
 }
 
-// RunDeterministicDemo runs the complete workflow for NAT-03 and an abstention case INJ-EXT2-CMD-01.
+// RunDeterministicDemo runs the complete workflow for an authentic repair (INJ-EXT2-RES-02) and an abstention case (INJ-EXT2-CMD-01).
 func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
-	// 1. Natural Defect Repair Demo (NAT-03)
-	analysis1, err := s.AnalyzeTarget("NAT-03")
+	// 1. Authentic Injected Defect Repair Demo (INJ-EXT2-RES-02: fatih/color)
+	analysis1, err := s.AnalyzeTarget("INJ-EXT2-RES-02")
 	if err != nil {
 		return nil, fmt.Errorf("demo analysis failed: %w", err)
 	}
@@ -983,7 +1037,7 @@ func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
 		return nil, fmt.Errorf("demo execution failed: %w", err)
 	}
 
-	// 2. Conservative Abstention Demo (INJ-EXT2-CMD-01)
+	// 2. Conservative Abstention Demo (INJ-EXT2-CMD-01: schollz/progressbar)
 	analysis2, err := s.AnalyzeTarget("INJ-EXT2-CMD-01")
 	if err != nil {
 		return nil, fmt.Errorf("demo abstention analysis failed: %w", err)
@@ -1012,12 +1066,13 @@ func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
 
 	return map[string]interface{}{
 		"status": "DEMO_COMPLETED",
-		"natural_defect_repair": map[string]interface{}{
-			"target":             "NAT-03 (gorilla/websocket)",
-			"defect":             "Resource Leak (resp.Body unclosed along redirect)",
+		"authentic_defect_repair": map[string]interface{}{
+			"target":             "INJ-EXT2-RES-02 (fatih/color)",
+			"defect":             "Resource Leak (os.Open file descriptor leak in DumpColorProfile)",
 			"unified_diff":       prop1.UnifiedDiff,
 			"diff_hash":          prop1.DiffHash,
 			"approval_token":     appr1.TokenID,
+			"verification_verdict": exec1.VerificationVerdict,
 			"all_oracles_passed": exec1.AllOraclesPassed,
 			"oracles_evaluated":  exec1.Oracles,
 			"source_immutable":   exec1.OriginalRepoImmutable,
@@ -1028,6 +1083,11 @@ func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
 			"abstain_status":   prop2.Status,
 			"abstain_category": prop2.AbstainCategory,
 			"abstain_reason":   prop2.AbstainReason,
+		},
+		"disqualified_natural_baseline": map[string]interface{}{
+			"target":      "NAT-03 (gorilla/websocket)",
+			"disposition": "GROUND_TRUTH_DISQUALIFIED",
+			"rationale":   "DialContext manages socket in defer at line 330; response body does not require application close. 0 confirmed natural repairs.",
 		},
 		"audit_summary": map[string]interface{}{
 			"total_sessions":  auditReport.TotalSessionsRecorded,
