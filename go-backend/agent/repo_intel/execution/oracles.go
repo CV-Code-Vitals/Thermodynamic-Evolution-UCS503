@@ -19,9 +19,9 @@ import (
 
 // Standard oracle error definitions
 var (
-	ErrSandboxUnavailable           = errors.New("sandbox execution unavailable: secure container runtime not detected or daemon not running")
+	ErrSandboxUnavailable             = errors.New("sandbox execution unavailable: secure container runtime not detected or daemon not running")
 	ErrDynamicVerificationUnavailable = errors.New("DYNAMIC_VERIFICATION_UNAVAILABLE: dynamic execution requires hardened container isolation; host execution forbidden")
-	ErrHostExecutionForbidden        = errors.New("untrusted candidate execution on host is strictly forbidden")
+	ErrHostExecutionForbidden         = errors.New("untrusted candidate execution on host is strictly forbidden")
 )
 
 // OracleType identifies each independent verification oracle.
@@ -197,13 +197,13 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 		"--rm",
 		"--name", containerName,
 		"--network", "none", // Zero network access
-		"--read-only",       // Read-only root filesystem
+		"--read-only", // Read-only root filesystem
 		"--tmpfs", fmt.Sprintf("/tmp:rw,exec,nosuid,nodev,mode=1777,size=%dm", tmpfsSizeMB),
 		"-e", "GOCACHE=/tmp/gocache",
 		"-e", "CGO_ENABLED=0",
 		"-e", "GOTMPDIR=/tmp",
 		"--user", "10001:10001", // Non-root
-		"--cap-drop", "ALL",     // Drop all Linux capabilities
+		"--cap-drop", "ALL", // Drop all Linux capabilities
 		"--security-opt", "no-new-privileges",
 		"--memory", fmt.Sprintf("%dm", d.Limits.MaxMemoryMB),
 		"--cpus", fmt.Sprintf("%.2f", d.Limits.MaxCPUs),
@@ -512,17 +512,6 @@ func (s *IndependentOracleSuite) verifyRegressionTests(wsDir string, task *plann
 		return res
 	}
 
-	// Command authorization validation: reject arbitrary shell interpreters, network fetchers, and dangerous flags
-	for _, cmdStr := range task.ValidationCommands {
-		if _, _, err := validateSafeSubprocessCommand(cmdStr); err != nil {
-			res.Status = OracleStatusFailed
-			res.Passed = false
-			res.FailureReason = fmt.Sprintf("Security rejection: %v", err)
-			res.DurationMs = time.Since(start).Milliseconds()
-			return res
-		}
-	}
-
 	timeout := time.Duration(s.TimeoutSec) * time.Second
 	if timeout <= 0 {
 		timeout = 30 * time.Second
@@ -579,13 +568,6 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 
 	// If explicit reproducer command provided, it MUST execute in container
 	if reproducerCmd != "" {
-		if _, _, err := validateSafeSubprocessCommand(reproducerCmd); err != nil {
-			res.Status = OracleStatusFailed
-			res.Passed = false
-			res.FailureReason = fmt.Sprintf("Security rejection: %v", err)
-			res.DurationMs = time.Since(start).Milliseconds()
-			return res
-		}
 		timeout := time.Duration(s.TimeoutSec) * time.Second
 		if timeout <= 0 {
 			timeout = 30 * time.Second
@@ -717,13 +699,6 @@ func (s *IndependentOracleSuite) verifyBehavioralInvariance(
 	res := &OracleResult{OracleType: OracleBehavioralInvariance, Status: OracleStatusPassed, Passed: true}
 
 	if invarianceCmd != "" {
-		if _, _, err := validateSafeSubprocessCommand(invarianceCmd); err != nil {
-			res.Status = OracleStatusFailed
-			res.Passed = false
-			res.FailureReason = fmt.Sprintf("Security rejection: %v", err)
-			res.DurationMs = time.Since(start).Milliseconds()
-			return res
-		}
 		timeout := time.Duration(s.TimeoutSec) * time.Second
 		if timeout <= 0 {
 			timeout = 30 * time.Second

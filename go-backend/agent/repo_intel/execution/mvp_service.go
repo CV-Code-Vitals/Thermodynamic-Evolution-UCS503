@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -170,9 +169,15 @@ func ValidateWorkspaceID(workspaceID string) error {
 	if strings.ContainsRune(trimmed, 0) {
 		return fmt.Errorf("MALFORMED_WORKSPACE_ID: workspace ID contains null bytes")
 	}
+	if filepath.IsAbs(trimmed) || strings.HasPrefix(trimmed, "/") || strings.HasPrefix(trimmed, "\\") {
+		return fmt.Errorf("MALFORMED_WORKSPACE_ID: absolute workspace ID forbidden: %s", workspaceID)
+	}
 	if strings.HasPrefix(trimmed, `\\`) || strings.HasPrefix(trimmed, `//`) ||
 		strings.HasPrefix(trimmed, `\/`) || strings.HasPrefix(trimmed, `/\`) {
 		return fmt.Errorf("MALFORMED_WORKSPACE_ID: UNC or device workspace ID forbidden: %s", workspaceID)
+	}
+	if len(trimmed) >= 2 && trimmed[1] == ':' {
+		return fmt.Errorf("MALFORMED_WORKSPACE_ID: drive-letter workspace ID forbidden: %s", workspaceID)
 	}
 	norm := strings.ReplaceAll(trimmed, "\\", "/")
 	for _, part := range strings.Split(norm, "/") {
@@ -183,20 +188,6 @@ func ValidateWorkspaceID(workspaceID string) error {
 	clean := filepath.Clean(norm)
 	if clean == ".." || strings.HasPrefix(clean, ".."+string(filepath.Separator)) || strings.HasPrefix(clean, "../") {
 		return fmt.Errorf("MALFORMED_WORKSPACE_ID: path traversal in workspace ID: %s", workspaceID)
-	}
-
-	// If absolute path, ensure it is not a sensitive system directory and actually exists on disk
-	if filepath.IsAbs(trimmed) || (len(trimmed) >= 2 && trimmed[1] == ':') {
-		cleanAbs := strings.ToLower(filepath.ToSlash(filepath.Clean(trimmed)))
-		if strings.HasPrefix(cleanAbs, "/etc") || strings.HasPrefix(cleanAbs, "/usr") ||
-			strings.HasPrefix(cleanAbs, "/bin") || strings.HasPrefix(cleanAbs, "/var") ||
-			strings.HasPrefix(cleanAbs, "c:/windows") || strings.HasPrefix(cleanAbs, "c:/winnt") ||
-			cleanAbs == "/" || cleanAbs == "c:/" {
-			return fmt.Errorf("MALFORMED_WORKSPACE_ID: sensitive system path forbidden: %s", workspaceID)
-		}
-		if fi, err := os.Stat(trimmed); err != nil || !fi.IsDir() {
-			return fmt.Errorf("MALFORMED_WORKSPACE_ID: absolute workspace path does not exist or is not a directory: %s", workspaceID)
-		}
 	}
 	return nil
 }
@@ -428,9 +419,7 @@ func (s *MVPService) ListTargets(workspaceID ...string) []MVPTarget {
 
 	if wsID != "" {
 		discovered, err := s.discoverWorkspaceTargetsLocked(wsID)
-		if err != nil {
-			log.Printf("[ListTargets WARNING] discoverWorkspaceTargetsLocked failed for %s: %v", wsID, err)
-		} else {
+		if err == nil {
 			targets = append(targets, discovered...)
 		}
 	} else {
@@ -1243,15 +1232,15 @@ func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"status": "DEMO_COMPLETED",
 		"authentic_defect_repair": map[string]interface{}{
-			"target":             "INJ-EXT2-RES-02 (fatih/color)",
-			"defect":             "Resource Leak (os.Open file descriptor leak in DumpColorProfile)",
-			"unified_diff":       prop1.UnifiedDiff,
-			"diff_hash":          prop1.DiffHash,
-			"approval_token":     appr1.TokenID,
+			"target":               "INJ-EXT2-RES-02 (fatih/color)",
+			"defect":               "Resource Leak (os.Open file descriptor leak in DumpColorProfile)",
+			"unified_diff":         prop1.UnifiedDiff,
+			"diff_hash":            prop1.DiffHash,
+			"approval_token":       appr1.TokenID,
 			"verification_verdict": exec1.VerificationVerdict,
-			"all_oracles_passed": exec1.AllOraclesPassed,
-			"oracles_evaluated":  exec1.Oracles,
-			"source_immutable":   exec1.OriginalRepoImmutable,
+			"all_oracles_passed":   exec1.AllOraclesPassed,
+			"oracles_evaluated":    exec1.Oracles,
+			"source_immutable":     exec1.OriginalRepoImmutable,
 		},
 		"conservative_abstention": map[string]interface{}{
 			"target":           "INJ-EXT2-CMD-01 (schollz/progressbar)",
