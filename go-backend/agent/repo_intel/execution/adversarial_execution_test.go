@@ -32,7 +32,7 @@ func main() { fmt.Println("hello") }
 	})
 
 	// 1. Without container runner, host toolchain execution is strictly forbidden (fails closed)
-	suiteWithoutDocker := NewIndependentOracleSuite(10, nil)
+	suiteWithoutDocker := NewIndependentOracleSuite(10, NewUnavailableContainerRunner("sandbox execution unavailable: secure container runtime not detected or daemon not running"))
 	patch := &CandidatePatch{
 		TargetFile:     "main.go",
 		ModifiedSource: `package main; func main() {}`,
@@ -449,5 +449,168 @@ func TestAdversarial_9_SymlinkEscapeDetectedAndRejected(t *testing.T) {
 
 	if !strings.Contains(errContained.Error(), "security violation") || !strings.Contains(errContained.Error(), "symlink") {
 		t.Fatalf("expected symlink security violation error, got: %v", errContained)
+	}
+}
+
+// mockRunnerWithResult simulates container execution responses for contract verification.
+type mockRunnerWithResult struct {
+	result *ContainerRunResult
+	err    error
+}
+
+func (m *mockRunnerWithResult) CheckAvailable(ctx context.Context) error {
+	return nil
+}
+
+func (m *mockRunnerWithResult) RunCommand(ctx context.Context, wsDir string, cmdStr string) (*ContainerRunResult, error) {
+	return m.result, m.err
+}
+
+// TestAdversarial_10_MissingOfflineDependenciesReportedAsUnavailable verifies that missing
+// dependencies under --network none / GOPROXY=off are classified as UNAVAILABLE, never as PASSED or an ordinary defect.
+func TestAdversarial_10_MissingOfflineDependenciesReportedAsUnavailable(t *testing.T) {
+	wsDir := createTestWorkspace(t, map[string]string{
+		"go.mod": "module testapp\n\ngo 1.21\n\nrequire github.com/example/missing v1.0.0\n",
+		"main.go": `package main
+import "github.com/example/missing"
+func main() { missing.Do() }
+`,
+	})
+
+	mockRunner := &mockRunnerWithResult{
+		result: &ContainerRunResult{
+			ExitCode: 1,
+			Output:   "go: github.com/example/missing@v1.0.0: module lookup disabled by GOPROXY=off\ncannot find module providing package github.com/example/missing",
+			Evidence: &ContainerExecutionEvidence{
+				ContainerID:   "ucs503-test-offline",
+				ExitStatus:    1,
+				NetworkPolicy: "DISABLED (--network none)",
+			},
+		},
+	}
+
+	suite := NewIndependentOracleSuite(15, mockRunner)
+	patch := &CandidatePatch{
+		TargetFile:     "main.go",
+		ModifiedSource: `package main; func main() {}`,
+		UnifiedDiff:    "dummy diff",
+	}
+	task := &planning.RemediationTask{
+		TaskID:             "TASK-OFFLINE-DEP",
+		TargetFiles:        []string{"main.go"},
+		ValidationCommands: []string{"go test -v ./..."},
+	}
+
+	report := suite.VerifyAll(wsDir, task, patch, "go test -v -run TestReproducer", "go test -v -run TestInvariance")
+
+	// Must NOT report AllPassed
+	if report.AllPassed {
+		t.Fatalf("expected AllPassed to be false when offline dependency is missing")
+	}
+
+	// Syntax check must report UNAVAILABLE, not FAILED (ordinary defect) or PASSED
+	syntaxRes := report.OracleResults[OracleSyntaxCompilation]
+	if syntaxRes == nil {
+		t.Fatalf("missing syntax result")
+	}
+	if syntaxRes.Status != OracleStatusUnavailable {
+		t.Fatalf("expected OracleStatusUnavailable for missing offline dependency, got: %s", syntaxRes.Status)
+	}
+	if !strings.Contains(syntaxRes.FailureReason, "DYNAMIC_VERIFICATION_UNAVAILABLE: offline module cache missing dependency") {
+		t.Fatalf("unexpected failure reason: %s", syntaxRes.FailureReason)
+	}
+
+	// Regression check must report UNAVAILABLE
+	regRes := report.OracleResults[OracleRegressionTest]
+	if regRes == nil || regRes.Status != OracleStatusUnavailable {
+		t.Fatalf("expected regression test status UNAVAILABLE, got: %+v", regRes)
+	}
+
+	// Reproducer check must report UNAVAILABLE
+	reproRes := report.OracleResults[OracleDefectReproducer]
+	if reproRes == nil || reproRes.Status != OracleStatusUnavailable {
+		t.Fatalf("expected reproducer test status UNAVAILABLE, got: %+v", reproRes)
+	}
+
+	// Behavioral invariance check must report UNAVAILABLE
+	invRes := report.OracleResults[OracleBehavioralInvariance]
+	if invRes == nil || invRes.Status != OracleStatusUnavailable {
+		t.Fatalf("expected invariance test status UNAVAILABLE, got: %+v", invRes)
+	}
+}
+
+// TestAdversarial_11_ContainerExecutionTimeoutReportedAsUnavailable verifies that container
+// timeouts (exit -1, context deadline exceeded) are classified as UNAVAILABLE with explicit telemetry.
+func TestAdversarial_11_ContainerExecutionTimeoutReportedAsUnavailable(t *testing.T) {
+	wsDir := createTestWorkspace(t, map[string]string{
+		"go.mod":  "module testapp\n\ngo 1.21\n",
+		"main.go": `package main; func main() {}`,
+	})
+
+	mockRunner := &mockRunnerWithResult{
+		result: &ContainerRunResult{
+			ExitCode: -1,
+			Output:   "",
+			Evidence: &ContainerExecutionEvidence{
+				ContainerID:   "ucs503-test-timeout",
+				ExitStatus:    -1,
+				TimeoutCause:  "execution timeout: context deadline exceeded after 20s (limit: 20s)",
+				CleanupResult: "SUCCESS: container removed",
+			},
+		},
+	}
+
+	suite := NewIndependentOracleSuite(20, mockRunner)
+	patch := &CandidatePatch{
+		TargetFile:     "main.go",
+		ModifiedSource: `package main; func main() {}`,
+		UnifiedDiff:    "dummy diff",
+	}
+	task := &planning.RemediationTask{
+		TaskID:             "TASK-TIMEOUT",
+		TargetFiles:        []string{"main.go"},
+		ValidationCommands: []string{"go test -v ./..."},
+	}
+
+	report := suite.VerifyAll(wsDir, task, patch, "", "")
+
+	syntaxRes := report.OracleResults[OracleSyntaxCompilation]
+	if syntaxRes == nil || syntaxRes.Status != OracleStatusUnavailable {
+		t.Fatalf("expected syntax status UNAVAILABLE on timeout, got: %+v", syntaxRes)
+	}
+	if !strings.Contains(syntaxRes.FailureReason, "context deadline exceeded") {
+		t.Fatalf("expected deadline exceeded in failure reason, got: %s", syntaxRes.FailureReason)
+	}
+}
+
+// TestAdversarial_12_ContainerTelemetryAndDependencyInventory verifies that dependencies
+// are inventoried accurately and module packages are resolved cleanly.
+func TestAdversarial_12_ContainerTelemetryAndDependencyInventory(t *testing.T) {
+	wsDir := createTestWorkspace(t, map[string]string{
+		"go.mod": "module testtelemetry\n\ngo 1.21\n\nrequire (\n\tgolang.org/x/sys v0.6.0\n\tgithub.com/google/uuid v1.3.0 // indirect\n)\n",
+		"subpkg/worker.go": `package subpkg; func Work() {}`,
+	})
+
+	deps := parseRequiredDependencies(wsDir)
+	if len(deps) < 2 {
+		t.Fatalf("expected at least 2 required dependencies, got: %v", deps)
+	}
+	foundSys := false
+	for _, d := range deps {
+		if strings.Contains(d, "golang.org/x/sys") {
+			foundSys = true
+			break
+		}
+	}
+	if !foundSys {
+		t.Errorf("expected to find golang.org/x/sys in dependencies, got: %v", deps)
+	}
+
+	modDir, relPkg := resolveModuleAndPackage(wsDir, "subpkg/worker.go")
+	if modDir != wsDir {
+		t.Errorf("expected modDir to be %s, got: %s", wsDir, modDir)
+	}
+	if relPkg != "./subpkg" {
+		t.Errorf("expected relPkg to be ./subpkg, got: %s", relPkg)
 	}
 }

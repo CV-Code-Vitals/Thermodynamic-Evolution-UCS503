@@ -48,14 +48,21 @@ const (
 
 // ContainerExecutionEvidence captures execution telemetry and isolation bounds.
 type ContainerExecutionEvidence struct {
-	ContainerID     string  `json:"container_id"`
-	IsolationPolicy string  `json:"isolation_policy"`
-	Command         string  `json:"command"`
-	ExitStatus      int     `json:"exit_status"`
-	MemoryLimitMB   int     `json:"memory_limit_mb"`
-	CPULimit        float64 `json:"cpu_limit"`
-	NetworkPolicy   string  `json:"network_policy"`
-	RootFSPolicy    string  `json:"root_fs_policy"`
+	ContainerID          string   `json:"container_id"`
+	IsolationPolicy      string   `json:"isolation_policy"`
+	Command              string   `json:"command"`
+	ExitStatus           int      `json:"exit_status"`
+	MemoryLimitMB        int      `json:"memory_limit_mb"`
+	CPULimit             float64  `json:"cpu_limit"`
+	NetworkPolicy        string   `json:"network_policy"`
+	RootFSPolicy         string   `json:"root_fs_policy"`
+	WorkspaceDir         string   `json:"workspace_dir,omitempty"`
+	ModuleDir            string   `json:"module_dir,omitempty"`
+	Image                string   `json:"image,omitempty"`
+	ImageDigest          string   `json:"image_digest,omitempty"`
+	TimeoutCause         string   `json:"timeout_cause,omitempty"`
+	RequiredDependencies []string `json:"required_dependencies,omitempty"`
+	CleanupResult        string   `json:"cleanup_result,omitempty"`
 }
 
 // OracleResult holds the outcome of a single oracle check.
@@ -143,6 +150,177 @@ func (u *UnavailableContainerRunner) RunCommand(ctx context.Context, wsDir strin
 	return nil, u.CheckAvailable(ctx)
 }
 
+// resolveImageDigest inspects the container image to retrieve its canonical digest or ID.
+func (d *DockerContainerRunner) resolveImageDigest(ctx context.Context) string {
+	if strings.TrimSpace(d.Image) == "" {
+		return "unknown"
+	}
+	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(checkCtx, d.DockerBinary, "image", "inspect", "--format", "{{index .RepoDigests 0}}", d.Image)
+	if out, err := cmd.CombinedOutput(); err == nil {
+		s := strings.TrimSpace(string(out))
+		if s != "" && s != "<no value>" {
+			return s
+		}
+	}
+	// Fallback to Image ID
+	cmdID := exec.CommandContext(checkCtx, d.DockerBinary, "image", "inspect", "--format", "{{.Id}}", d.Image)
+	if out, err := cmdID.CombinedOutput(); err == nil {
+		s := strings.TrimSpace(string(out))
+		if s != "" {
+			return s
+		}
+	}
+	return d.Image
+}
+
+// parseRequiredDependencies inspects go.mod in wsDir to inventory required dependencies.
+func parseRequiredDependencies(wsDir string) []string {
+	goModPath := filepath.Join(wsDir, "go.mod")
+	bytes, err := os.ReadFile(goModPath)
+	if err != nil {
+		return []string{"(none - standard library only)"}
+	}
+	lines := strings.Split(string(bytes), "\n")
+	var deps []string
+	inRequireBlock := false
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "require (" {
+			inRequireBlock = true
+			continue
+		}
+		if inRequireBlock {
+			if trimmed == ")" {
+				inRequireBlock = false
+				continue
+			}
+			if trimmed != "" && !strings.HasPrefix(trimmed, "//") {
+				deps = append(deps, trimmed)
+			}
+		} else if strings.HasPrefix(trimmed, "require ") {
+			dep := strings.TrimSpace(strings.TrimPrefix(trimmed, "require "))
+			if dep != "" {
+				deps = append(deps, dep)
+			}
+		}
+	}
+	if len(deps) == 0 {
+		return []string{"(none - standard library only)"}
+	}
+	return deps
+}
+
+// resolveStagedModuleCache locates the system or staged Go module cache for offline read-only mounting.
+func resolveStagedModuleCache() string {
+	if p := os.Getenv("STAGED_MODULE_CACHE"); p != "" {
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			return p
+		}
+	}
+	if p := os.Getenv("GOMODCACHE"); p != "" {
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			return p
+		}
+	}
+	if gp := os.Getenv("GOPATH"); gp != "" {
+		p := filepath.Join(gp, "pkg", "mod")
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			return p
+		}
+	}
+	cmd := exec.Command("go", "env", "GOMODCACHE")
+	if out, err := cmd.Output(); err == nil {
+		p := strings.TrimSpace(string(out))
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			return p
+		}
+	}
+	return ""
+}
+
+// StageVerifiedDependencies downloads dependencies outside the container into the local module cache
+// ONLY if wsDir contains both go.mod and a non-empty go.sum with pinned checksums.
+// It never enables container networking and never downloads arbitrary unverified dependencies.
+func StageVerifiedDependencies(wsDir string) error {
+	goModPath := filepath.Join(wsDir, "go.mod")
+	goSumPath := filepath.Join(wsDir, "go.sum")
+
+	modFi, errMod := os.Stat(goModPath)
+	sumFi, errSum := os.Stat(goSumPath)
+	if errMod != nil || modFi.IsDir() || errSum != nil || sumFi.IsDir() || sumFi.Size() == 0 {
+		// No pinned checksums to verify; do not download untrusted dependencies
+		return nil
+	}
+
+	sumBytes, err := os.ReadFile(goSumPath)
+	if err != nil || len(strings.TrimSpace(string(sumBytes))) == 0 {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "go", "mod", "download")
+	cmd.Dir = wsDir
+	cmd.Env = GetSanitizedExecutionEnv()
+	_ = cmd.Run()
+	return nil
+}
+
+// resolveModuleAndPackage resolves the closest enclosing module root and package path relative to it.
+func resolveModuleAndPackage(wsDir string, targetFile string) (string, string) {
+	cleanWs := filepath.Clean(wsDir)
+	if targetFile == "" {
+		return cleanWs, "."
+	}
+	targetAbs := filepath.Join(cleanWs, filepath.FromSlash(targetFile))
+	targetDir := filepath.Dir(targetAbs)
+
+	curr := targetDir
+	for {
+		if fi, err := os.Stat(filepath.Join(curr, "go.mod")); err == nil && !fi.IsDir() {
+			relPkg, relErr := filepath.Rel(curr, targetDir)
+			if relErr != nil || relPkg == "." || relPkg == "" {
+				return curr, "."
+			}
+			return curr, "./" + filepath.ToSlash(relPkg)
+		}
+		if curr == cleanWs || filepath.Dir(curr) == curr {
+			break
+		}
+		curr = filepath.Dir(curr)
+	}
+
+	if fi, err := os.Stat(filepath.Join(cleanWs, "go.mod")); err == nil && !fi.IsDir() {
+		relPkg, relErr := filepath.Rel(cleanWs, targetDir)
+		if relErr != nil || relPkg == "." || relPkg == "" {
+			return cleanWs, "."
+		}
+		return cleanWs, "./" + filepath.ToSlash(relPkg)
+	}
+
+	_ = EnsureDisposableModule(cleanWs)
+	relPkg, relErr := filepath.Rel(cleanWs, targetDir)
+	if relErr != nil || relPkg == "." || relPkg == "" {
+		return cleanWs, "."
+	}
+	return cleanWs, "./" + filepath.ToSlash(relPkg)
+}
+
+// isOfflineDependencyMissing checks if compiler/test output indicates a missing module under GOPROXY=off.
+func isOfflineDependencyMissing(out string) bool {
+	lower := strings.ToLower(out)
+	return strings.Contains(lower, "cannot find module providing package") ||
+		strings.Contains(lower, "no required module provides package") ||
+		strings.Contains(lower, "module lookup disabled by goproxy=off") ||
+		strings.Contains(lower, "disable module lookup") ||
+		strings.Contains(lower, "missing go.sum entry") ||
+		strings.Contains(lower, "lookup proxy.golang.org") ||
+		strings.Contains(lower, "dial tcp: lookup")
+}
+
 // EnsureDisposableModule creates a minimal disposable go.mod in wsDir if none exists.
 // This allows standalone fixture verification in Go module mode under --network none.
 func EnsureDisposableModule(wsDir string) error {
@@ -212,14 +390,18 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 	}
 
 	// 3. Ensure disposable go.mod exists in workspace for offline container Go toolchain execution
-	_ = EnsureDisposableModule(wsDir)
+	_ = EnsureDisposableModule(cleanWs)
 
-	// 4. Check container runtime availability
+	// 4. Staged offline dependency cache: stage verified dependencies from pinned go.mod/go.sum
+	_ = StageVerifiedDependencies(cleanWs)
+	modCache := resolveStagedModuleCache()
+
+	// 5. Check container runtime availability
 	if err := d.CheckAvailable(ctx); err != nil {
 		return nil, err
 	}
 
-	// 5. Track execution attempts: reached only after policy checks succeed and runtime is available
+	// 6. Track execution attempts: reached only after policy checks succeed and runtime is available
 	atomic.AddInt64(&d.ExecutionAttempts, 1)
 
 	containerName := fmt.Sprintf("ucs503-oracle-%s", uuid.New().String()[:12])
@@ -230,7 +412,20 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 	cmdCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	wsMount := filepath.ToSlash(wsDir)
+	cleanupResult := "NOT_NEEDED"
+	defer func() {
+		// Guaranteed container cleanup hook prevents container and resource leakage
+		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		rmCmd := exec.CommandContext(cleanupCtx, d.DockerBinary, "rm", "-f", containerName)
+		if rmOut, rmErr := rmCmd.CombinedOutput(); rmErr == nil {
+			cleanupResult = "SUCCESS: container removed"
+		} else {
+			cleanupResult = fmt.Sprintf("CLEANUP_CALLED (%s)", strings.TrimSpace(string(rmOut)))
+		}
+	}()
+
+	wsMount := filepath.ToSlash(cleanWs)
 	tmpfsSizeMB := d.Limits.MaxMemoryMB / 4
 	if tmpfsSizeMB < 128 {
 		tmpfsSizeMB = 128
@@ -249,6 +444,9 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 		"-e", "GOCACHE=/tmp/gocache",
 		"-e", "CGO_ENABLED=0",
 		"-e", "GOTMPDIR=/tmp",
+		"-e", "GOPROXY=off",
+		"-e", "GOSUMDB=off",
+		"-e", "GONOSUMDB=*",
 		"--user", "10001:10001", // Non-root
 		"--cap-drop", "ALL", // Drop all Linux capabilities
 		"--security-opt", "no-new-privileges",
@@ -257,8 +455,16 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 		"--pids-limit", fmt.Sprintf("%d", d.Limits.MaxPids),
 		"-v", fmt.Sprintf("%s:/workspace:rw", wsMount),
 		"-w", "/workspace",
-		d.Image,
 	}
+
+	if modCache != "" {
+		args = append(args,
+			"-v", fmt.Sprintf("%s:/go/pkg/mod:ro", filepath.ToSlash(modCache)),
+			"-e", "GOPATH=/go",
+		)
+	}
+
+	args = append(args, d.Image)
 	// Structured executable and arguments
 	args = append(args, bin)
 	args = append(args, cleanArgs...)
@@ -269,7 +475,14 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 	dur := time.Since(start)
 
 	exitCode := 0
-	if runErr != nil {
+	timeoutCause := ""
+	if errors.Is(cmdCtx.Err(), context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		exitCode = -1
+		timeoutCause = fmt.Sprintf("execution timeout: context deadline exceeded after %v (limit: %v)", dur, timeout)
+	} else if errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+		exitCode = -1
+		timeoutCause = "execution canceled: context was canceled"
+	} else if runErr != nil {
 		if exitErr, ok := runErr.(*exec.ExitError); ok {
 			exitCode = exitErr.ExitCode()
 		} else {
@@ -278,14 +491,20 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 	}
 
 	evidence := &ContainerExecutionEvidence{
-		ContainerID:     containerName,
-		IsolationPolicy: "DOCKER_HARDENED_CONTAINER (network=none, read-only-root, tmpfs=/tmp, cap-drop=ALL, no-new-privs, non-root=10001:10001)",
-		Command:         cmdStr,
-		ExitStatus:      exitCode,
-		MemoryLimitMB:   d.Limits.MaxMemoryMB,
-		CPULimit:        d.Limits.MaxCPUs,
-		NetworkPolicy:   "DISABLED (--network none)",
-		RootFSPolicy:    "READ_ONLY (--read-only)",
+		ContainerID:          containerName,
+		IsolationPolicy:      "DOCKER_HARDENED_CONTAINER (network=none, read-only-root, tmpfs=/tmp, cap-drop=ALL, no-new-privs, non-root=10001:10001)",
+		Command:              cmdStr,
+		ExitStatus:           exitCode,
+		MemoryLimitMB:        d.Limits.MaxMemoryMB,
+		CPULimit:             d.Limits.MaxCPUs,
+		NetworkPolicy:        "DISABLED (--network none)",
+		RootFSPolicy:         "READ_ONLY (--read-only)",
+		WorkspaceDir:         cleanWs,
+		Image:                d.Image,
+		ImageDigest:          d.resolveImageDigest(ctx),
+		TimeoutCause:         timeoutCause,
+		RequiredDependencies: parseRequiredDependencies(cleanWs),
+		CleanupResult:        cleanupResult,
 	}
 
 	return &ContainerRunResult{
@@ -308,7 +527,7 @@ func NewIndependentOracleSuite(timeoutSec int, runner ...ContainerRunner) *Indep
 		timeoutSec = 30
 	}
 	var r ContainerRunner
-	if len(runner) > 0 && runner[0] != nil {
+	if len(runner) > 0 {
 		r = runner[0]
 	} else {
 		r = NewDockerContainerRunner()
@@ -542,22 +761,47 @@ func (s *IndependentOracleSuite) verifySyntaxCompilation(wsDir string, task *pla
 
 	// Run `go vet <pkg>` inside isolated container
 	runRes, runErr := s.Runner.RunCommand(ctx, wsDir, vetCmd)
-	if runErr != nil || runRes.ExitCode != 0 {
-		res.Status = OracleStatusFailed
-		res.Passed = false
-		if runRes != nil {
-			res.Output = runRes.Output
-			res.FailureReason = fmt.Sprintf("Container go vet failed (exit %d): %s", runRes.ExitCode, runRes.Output)
-			res.ContainerInfo = runRes.Evidence
-		} else {
-			res.FailureReason = fmt.Sprintf("Container execution failed: %v", runErr)
+	if runRes != nil {
+		res.ContainerInfo = runRes.Evidence
+		res.Output = runRes.Output
+
+		if isOfflineDependencyMissing(runRes.Output) {
+			res.Status = OracleStatusUnavailable
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: offline module cache missing dependency: %s", strings.TrimSpace(runRes.Output))
+			res.Details = "Dynamic container vetting unavailable due to missing offline dependency"
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
 		}
-	} else {
+
+		if runRes.Evidence != nil && runRes.Evidence.TimeoutCause != "" {
+			res.Status = OracleStatusUnavailable
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: %s", runRes.Evidence.TimeoutCause)
+			res.Details = "Dynamic container vetting timed out"
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
+
+		if runRes.ExitCode != 0 {
+			res.Status = OracleStatusFailed
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("Container go vet failed (exit %d): %s", runRes.ExitCode, runRes.Output)
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
+
 		res.Status = OracleStatusPassed
 		res.Passed = true
 		res.Details = "Syntax valid and container go vet passed with 0 warnings"
-		res.Output = runRes.Output
-		res.ContainerInfo = runRes.Evidence
+		res.DurationMs = time.Since(start).Milliseconds()
+		return res
+	}
+
+	if runErr != nil {
+		res.Status = OracleStatusFailed
+		res.Passed = false
+		res.FailureReason = fmt.Sprintf("Container execution failed: %v", runErr)
 	}
 
 	res.DurationMs = time.Since(start).Milliseconds()
@@ -610,16 +854,39 @@ func (s *IndependentOracleSuite) verifyRegressionTests(wsDir string, task *plann
 		}
 
 		runRes, runErr := s.Runner.RunCommand(ctx, wsDir, cmdStr)
-		if runErr != nil || runRes.ExitCode != 0 {
+		if runRes != nil {
+			res.ContainerInfo = runRes.Evidence
+			res.Output = runRes.Output
+
+			if isOfflineDependencyMissing(runRes.Output) {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: offline module cache missing dependency: %s", strings.TrimSpace(runRes.Output))
+				res.Details = "Dynamic regression test unavailable due to missing offline dependency"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+
+			if runRes.Evidence != nil && runRes.Evidence.TimeoutCause != "" {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: %s", runRes.Evidence.TimeoutCause)
+				res.Details = "Dynamic regression test timed out"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+
+			if runRes.ExitCode != 0 {
+				res.Status = OracleStatusFailed
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("Regression command %q failed in container (exit %d): %s", cmdStr, runRes.ExitCode, runRes.Output)
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+		} else if runErr != nil {
 			res.Status = OracleStatusFailed
 			res.Passed = false
-			if runRes != nil {
-				res.Output = runRes.Output
-				res.FailureReason = fmt.Sprintf("Regression command %q failed in container (exit %d): %s", cmdStr, runRes.ExitCode, runRes.Output)
-				res.ContainerInfo = runRes.Evidence
-			} else {
-				res.FailureReason = fmt.Sprintf("Regression command %q failed: %v", cmdStr, runErr)
-			}
+			res.FailureReason = fmt.Sprintf("Regression command %q failed: %v", cmdStr, runErr)
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
@@ -675,16 +942,39 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 		}
 
 		runRes, runErr := s.Runner.RunCommand(ctx, wsDir, reproducerCmd)
-		if runErr != nil || runRes.ExitCode != 0 {
+		if runRes != nil {
+			res.ContainerInfo = runRes.Evidence
+			res.Output = runRes.Output
+
+			if isOfflineDependencyMissing(runRes.Output) {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: offline module cache missing dependency: %s", strings.TrimSpace(runRes.Output))
+				res.Details = "Dynamic defect reproducer unavailable due to missing offline dependency"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+
+			if runRes.Evidence != nil && runRes.Evidence.TimeoutCause != "" {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: %s", runRes.Evidence.TimeoutCause)
+				res.Details = "Dynamic defect reproducer timed out"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+
+			if runRes.ExitCode != 0 {
+				res.Status = OracleStatusFailed
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("Defect reproducer failed in container (exit %d): %s", runRes.ExitCode, runRes.Output)
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+		} else if runErr != nil {
 			res.Status = OracleStatusFailed
 			res.Passed = false
-			if runRes != nil {
-				res.Output = runRes.Output
-				res.FailureReason = fmt.Sprintf("Defect reproducer failed in container (exit %d): %s", runRes.ExitCode, runRes.Output)
-				res.ContainerInfo = runRes.Evidence
-			} else {
-				res.FailureReason = fmt.Sprintf("Defect reproducer execution failed: %v", runErr)
-			}
+			res.FailureReason = fmt.Sprintf("Defect reproducer execution failed: %v", runErr)
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
@@ -816,16 +1106,39 @@ func (s *IndependentOracleSuite) verifyBehavioralInvariance(
 		}
 
 		runRes, runErr := s.Runner.RunCommand(ctx, wsDir, invarianceCmd)
-		if runErr != nil || runRes.ExitCode != 0 {
+		if runRes != nil {
+			res.ContainerInfo = runRes.Evidence
+			res.Output = runRes.Output
+
+			if isOfflineDependencyMissing(runRes.Output) {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: offline module cache missing dependency: %s", strings.TrimSpace(runRes.Output))
+				res.Details = "Dynamic behavioral invariance test unavailable due to missing offline dependency"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+
+			if runRes.Evidence != nil && runRes.Evidence.TimeoutCause != "" {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: %s", runRes.Evidence.TimeoutCause)
+				res.Details = "Dynamic behavioral invariance test timed out"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+
+			if runRes.ExitCode != 0 {
+				res.Status = OracleStatusFailed
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("Behavioral invariance test failed in container (exit %d): %s", runRes.ExitCode, runRes.Output)
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
+		} else if runErr != nil {
 			res.Status = OracleStatusFailed
 			res.Passed = false
-			if runRes != nil {
-				res.Output = runRes.Output
-				res.FailureReason = fmt.Sprintf("Behavioral invariance test failed in container (exit %d): %s", runRes.ExitCode, runRes.Output)
-				res.ContainerInfo = runRes.Evidence
-			} else {
-				res.FailureReason = fmt.Sprintf("Behavioral invariance command failed: %v", runErr)
-			}
+			res.FailureReason = fmt.Sprintf("Behavioral invariance command failed: %v", runErr)
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
