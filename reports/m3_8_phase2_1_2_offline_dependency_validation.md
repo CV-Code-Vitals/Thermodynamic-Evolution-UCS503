@@ -1,46 +1,50 @@
-# M3.8 Phase 2.1.2 — Offline Dependency Validation & Lifecycle Report
+# M3.8 Phase 2.1.2 — Offline Dependency Validation & Threat Model Report
 
 **Date:** 2026-11-23  
 **Repository:** `CV-Code-Vitals/Thermodynamic-Evolution-UCS503`  
-**Commit:** `0843ca613c602764ef3f534fc21bed7843486ba0` (with local Phase 2.1.2 stabilization fixes)
+**Review Baseline Commit:** `a0928fba56d81f90241460788322e89cdedc7334`  
+**Audit Scope:** Repository dependency staging threat model, minimal cache isolation, provenance verification, and toolchain offline enforcement.
 
 ---
 
-## 1. Threat Model & Offline Verification Strategy
+## 1. Threat Model & Security Boundaries
 
-Dynamic verification of untrusted patches requires strict network denial (`--network none`) to prevent remote code execution, token exfiltration, and SSRF attacks. However, Go module verification typically contacts `proxy.golang.org`.
+Dynamic verification of untrusted repository code must maintain strict network isolation (`--network none`) while verifying Go code that may declare third-party modules.
 
-### 1.1 Invariants Enforced
-1. **Container Network Egress Forbidden:** Containers must execute with `--network none` under all circumstances. Network access is never enabled, even for dependency downloads.
-2. **Untrusted Host Execution Forbidden:** Untrusted candidate source code is never executed directly on the host toolchain. AST parsing on trusted host is restricted to static syntax tree inspection without code execution.
-3. **Verified Dependency Staging Only:** External dependencies are staged on the host **only** when accompanied by a pinned `go.sum` containing cryptographic SHA-256 hashes. If `go.sum` is absent or empty, no network download is attempted.
-4. **Read-Only Cache Mount:** The module cache is mounted as `:ro` (`-v <cache>:/go/pkg/mod:ro`). Untrusted container processes cannot corrupt or inject modified packages into the module cache.
-5. **Disposable Module Fixtures:** Standalone fixtures without `go.mod` (e.g. synthetic test cases) are initialized with an ephemeral `disposable_fixture` via `EnsureDisposableModule(wsDir)`, permitting standard library compilation without network access.
+### 1.1 Identified Threat Vectors & Mitigations
 
----
-
-## 2. Oracle Classification Matrix
-
-Under `GOPROXY=off`, Go toolchain behavior is partitioned into distinct oracle statuses:
-
-| Outcome Observed | Underlying Event | Oracle Status | Verification Verdict Impact |
-|---|---|---|---|
-| Zero errors / warnings | Valid syntax & compilation | `PASSED` | Eligible for verification |
-| Syntax / parse error | AST or compiler failure | `FAILED` | Repair marked `FAILED` |
-| `module lookup disabled by GOPROXY=off` | Missing offline dependency | `UNAVAILABLE` | Fails closed; verdict `SYNTAX_ONLY_VERIFIED` or abstained |
-| `cannot find module providing package` | Missing offline dependency | `UNAVAILABLE` | Fails closed; verdict `SYNTAX_ONLY_VERIFIED` or abstained |
-| Context deadline exceeded (timeout) | Execution deadline expired | `UNAVAILABLE` | Fails closed; explicit timeout cause recorded |
-| Prohibited command / flag | Security policy violation | `FAILED` (Security Rejection) | Fails closed immediately (zero execution attempts) |
-
-### 2.1 Fail-Closed Integrity Guarantee
-A missing dynamic test is **never** converted into an independently verified repair. When dynamic container execution reports `UNAVAILABLE` or `NOT_RUN`:
-- The repair status is capped at `SYNTAX_ONLY_VERIFIED` (if static AST inspection succeeded) or `FAILED`.
-- The verdict `INDEPENDENTLY_VERIFIED` is strictly gated on all required dynamic oracles executing and passing in the hardened container (`dynamicReproduced && regPassedOrNotRun && !hasUnavailable`).
+| Threat Vector | Mechanism | Applied Mitigation |
+|---|---|---|
+| **Host Toolchain Compromise** | Untrusted `go.mod` directs host `go mod download` to exploit Go compiler/vcs vulnerabilities or fetch malicious code onto the host | Direct host `go mod download` from untrusted repository metadata is **strictly prohibited**. |
+| **Developer Cache Poisoning / Tampering** | Scanned repository modifies or corrupts shared global module cache files | Scanned repository runs inside isolated container; module cache is mounted strictly **read-only** (`:ro`). |
+| **Host Module Cache Exposure** | Mounting full global module cache (`~/go/pkg/mod`) exposes proprietary packages, internal tokens, and unrelated module code | Only a **minimal disposable directory** containing the exact verified dependencies required by the workspace is staged and mounted. |
+| **Toolchain Network Egress** | Go 1.21+ toolchain detects newer Go version in `go.mod` and attempts automatic network toolchain download | Container execution enforces `-e GOTOOLCHAIN=local` alongside `-e GOPROXY=off`, `-e GOSUMDB=off`, and `--network none`. |
+| **Path Traversal via Replace Directives** | `replace` directive points to host files (e.g. `replace evil => ../../sensitive`) | `parseGoModRequirements()` parses and validates all `replace` targets, rejecting any targeting host or parent paths. |
+| **Unpinned Dependency Tampering** | Workspace requests external modules without cryptographic checksums | `parseGoSumChecksums()` enforces non-empty pinned `go.sum` with SHA-256 (`h1:`) hashes for all requirements. |
 
 ---
 
-## 3. Container Lifecycle & Cleanup Verification
+## 2. Minimal Dependency Staging Architecture
 
-- Ephemeral container names use cryptographic UUIDs: `ucs503-oracle-<12-hex-chars>`.
-- Deferred cleanup executes with a dedicated 5-second background context (`context.Background()`), ensuring containers are forcefully terminated (`docker rm -f`) even when the primary command context times out or is canceled.
-- Unit test `TestAdversarial_11_ContainerExecutionTimeoutReportedAsUnavailable` verified timeout classification and cleanup confirmation telemetry.
+### 2.1 Staging Flow (`prepareMinimalDependencyCache`)
+1. **Requirements Parsing:** `parseGoModRequirements(wsDir)` extracts all `require` directives and verifies no unsafe `replace` directives exist. If zero external dependencies are required, staging completes immediately with no cache directory needed.
+2. **Checksum Verification:** `parseGoSumChecksums(wsDir)` indexes `go.sum`. If any required module lacks a pinned checksum, execution aborts with `DYNAMIC_VERIFICATION_UNAVAILABLE`.
+3. **Approved Cache Resolution:** Identifies pre-approved immutable cache sources (`APPROVED_DEPENDENCY_CACHE`, `STAGED_MODULE_CACHE`, `CI_DEPENDENCY_CACHE`).
+4. **Disposable Cache Creation:** Allocates an ephemeral temporary directory (`os.MkdirTemp("", "ucs503-minmod-*")`).
+5. **Selective Module Copy:** Copies **only** the required module version directory trees (`<modPath>@<version>`) into the disposable cache directory. Unrequested packages remain completely unexposed.
+6. **Isolated Mount & Cleanup:** Passes `-v <disposableDir>:/go/pkg/mod:ro` to container execution. Deferred cleanup deletes the disposable directory upon completion.
+
+---
+
+## 3. Unit Test Verification Evidence
+
+`TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache` evaluated all five threat vectors:
+
+1. `MissingGoSumFailsClosed`: Workspace with unpinned module dependency failed closed with `DYNAMIC_VERIFICATION_UNAVAILABLE: repository declares external dependencies but lacks pinned go.sum checksums`.
+2. `UnsafeReplaceDirectiveRejected`: Workspace with `replace ... => ../../sensitive` failed closed with `security violation: unsafe replace directive ... targeting host or escaped path`.
+3. `MissingModuleInApprovedCacheFailsClosedWithoutDownload`: Uncached module failed closed with `DYNAMIC_VERIFICATION_UNAVAILABLE: required dependency ... is missing from approved offline cache; host network download is prohibited`. Zero host downloads attempted.
+4. `StandardLibraryWorkspaceRequiresZeroCacheMounts`: Standard library workspaces execute with empty cache mount.
+5. `MinimalCacheStagesOnlyRequiredModuleAndCleansUp`: Verified that:
+   - Required module was staged into the disposable directory.
+   - Unrequested secret/internal modules in the approved cache were **never** copied into the disposable directory.
+   - Disposable directory was completely deleted after `cleanup()`.

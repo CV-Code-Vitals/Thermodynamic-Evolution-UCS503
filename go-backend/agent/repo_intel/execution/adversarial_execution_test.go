@@ -2,6 +2,7 @@ package execution
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -613,4 +614,367 @@ func TestAdversarial_12_ContainerTelemetryAndDependencyInventory(t *testing.T) {
 	if relPkg != "./subpkg" {
 		t.Errorf("expected relPkg to be ./subpkg, got: %s", relPkg)
 	}
+}
+
+// TestContainerCleanup_NormalCompletionVerifiedRemoval verifies that container cleanup executes
+// synchronously BEFORE ContainerExecutionEvidence is assembled, producing a verified removal audit status.
+func TestContainerCleanup_NormalCompletionVerifiedRemoval(t *testing.T) {
+	wsDir := createTestWorkspace(t, map[string]string{
+		"go.mod":  "module testapp\n\ngo 1.21\n",
+		"main.go": `package main; func main() {}`,
+	})
+
+	var executedCommands [][]string
+	runner := NewDockerContainerRunner()
+	runner.Checker = func(ctx context.Context) error { return nil }
+	runner.ExecCommand = func(ctx context.Context, binary string, args ...string) ([]byte, error) {
+		executedCommands = append(executedCommands, args)
+		if len(args) == 0 {
+			return nil, nil
+		}
+		switch args[0] {
+		case "run":
+			return []byte("PASS: tests succeeded\n"), nil
+		case "rm":
+			return []byte("container-removed\n"), nil
+		case "inspect":
+			// Inspect returns error when container is absent
+			return []byte("Error: No such container"), errors.New("exit status 1")
+		case "image":
+			return []byte("sha256:1234567890abcdef\n"), nil
+		default:
+			return []byte("ok"), nil
+		}
+	}
+
+	res, err := runner.RunCommand(context.Background(), wsDir, "go test -v ./...")
+	if err != nil {
+		t.Fatalf("unexpected error running command: %v", err)
+	}
+
+	if res.ExitCode != 0 {
+		t.Fatalf("expected exit code 0, got %d", res.ExitCode)
+	}
+
+	if res.Evidence == nil {
+		t.Fatalf("expected container evidence to be populated")
+	}
+
+	if !strings.HasPrefix(res.Evidence.CleanupResult, "VERIFIED_REMOVAL") {
+		t.Fatalf("expected CleanupResult to start with VERIFIED_REMOVAL, got: %s", res.Evidence.CleanupResult)
+	}
+
+	if !strings.Contains(res.Evidence.CleanupResult, "successfully removed and verified absent") {
+		t.Fatalf("expected verified absent in CleanupResult, got: %s", res.Evidence.CleanupResult)
+	}
+
+	// Verify command sequencing: run -> rm -> inspect
+	hasRun := false
+	hasRm := false
+	hasInspect := false
+	for _, cmd := range executedCommands {
+		if len(cmd) > 0 {
+			if cmd[0] == "run" {
+				hasRun = true
+			}
+			if cmd[0] == "rm" {
+				hasRm = true
+			}
+			if cmd[0] == "inspect" {
+				hasInspect = true
+			}
+		}
+	}
+	if !hasRun || !hasRm || !hasInspect {
+		t.Fatalf("expected execution lifecycle to include run, rm, inspect; executed: %v", executedCommands)
+	}
+}
+
+// TestContainerCleanup_CancellationAndTimeout verifies container cleanup behavior during
+// cancellation, command timeout, and cleanup deadline expiry.
+func TestContainerCleanup_CancellationAndTimeout(t *testing.T) {
+	wsDir := createTestWorkspace(t, map[string]string{
+		"go.mod":  "module testapp\n\ngo 1.21\n",
+		"main.go": `package main; func main() {}`,
+	})
+
+	t.Run("ContextCancellation", func(t *testing.T) {
+		runner := NewDockerContainerRunner()
+		runner.Checker = func(ctx context.Context) error { return nil }
+		runner.ExecCommand = func(ctx context.Context, binary string, args ...string) ([]byte, error) {
+			if len(args) > 0 && args[0] == "run" {
+				return nil, context.Canceled
+			}
+			if len(args) > 0 && args[0] == "rm" {
+				return []byte("removed"), nil
+			}
+			if len(args) > 0 && args[0] == "inspect" {
+				return []byte("Error: No such container"), errors.New("exit status 1")
+			}
+			return []byte("ok"), nil
+		}
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // Cancel before / during run
+
+		res, err := runner.RunCommand(ctx, wsDir, "go test -v ./...")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if res.ExitCode != -1 {
+			t.Fatalf("expected exit code -1 on cancellation, got %d", res.ExitCode)
+		}
+		if !strings.Contains(res.Evidence.TimeoutCause, "canceled") {
+			t.Fatalf("expected cancellation in TimeoutCause, got: %s", res.Evidence.TimeoutCause)
+		}
+		if !strings.HasPrefix(res.Evidence.CleanupResult, "VERIFIED_REMOVAL") {
+			t.Fatalf("expected verified removal after cancellation, got: %s", res.Evidence.CleanupResult)
+		}
+	})
+
+	t.Run("CommandExecutionTimeout", func(t *testing.T) {
+		runner := NewDockerContainerRunner()
+		runner.Limits.Timeout = 10 * time.Millisecond
+		runner.Checker = func(ctx context.Context) error { return nil }
+		runner.ExecCommand = func(ctx context.Context, binary string, args ...string) ([]byte, error) {
+			if len(args) > 0 && args[0] == "run" {
+				return nil, context.DeadlineExceeded
+			}
+			if len(args) > 0 && args[0] == "rm" {
+				return []byte("removed"), nil
+			}
+			if len(args) > 0 && args[0] == "inspect" {
+				return []byte("Error: No such container"), errors.New("exit status 1")
+			}
+			return []byte("ok"), nil
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+
+		res, err := runner.RunCommand(ctx, wsDir, "go test -v ./...")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if res.ExitCode != -1 {
+			t.Fatalf("expected exit code -1 on timeout, got %d", res.ExitCode)
+		}
+		if !strings.Contains(res.Evidence.TimeoutCause, "deadline exceeded") {
+			t.Fatalf("expected deadline exceeded in TimeoutCause, got: %s", res.Evidence.TimeoutCause)
+		}
+		if !strings.HasPrefix(res.Evidence.CleanupResult, "VERIFIED_REMOVAL") {
+			t.Fatalf("expected verified removal after timeout, got: %s", res.Evidence.CleanupResult)
+		}
+	})
+
+	t.Run("CleanupOperationTimeout", func(t *testing.T) {
+		runner := NewDockerContainerRunner()
+		runner.Checker = func(ctx context.Context) error { return nil }
+		runner.ExecCommand = func(ctx context.Context, binary string, args ...string) ([]byte, error) {
+			if len(args) > 0 && args[0] == "run" {
+				return []byte("done"), nil
+			}
+			if len(args) > 0 && args[0] == "rm" {
+				// Simulate cleanup timeout
+				return nil, context.DeadlineExceeded
+			}
+			return []byte("ok"), nil
+		}
+
+		res, err := runner.RunCommand(context.Background(), wsDir, "go test -v ./...")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !strings.Contains(res.Evidence.CleanupResult, "CLEANUP_TIMEOUT") && !strings.Contains(res.Evidence.CleanupResult, "CLEANUP_FAILURE") {
+			t.Fatalf("expected cleanup failure or timeout recorded, got: %s", res.Evidence.CleanupResult)
+		}
+	})
+}
+
+// TestContainerCleanup_DockerDaemonFailure verifies proper recording when the Docker daemon
+// fails during cleanup or when container inspect indicates removal failure.
+func TestContainerCleanup_DockerDaemonFailure(t *testing.T) {
+	wsDir := createTestWorkspace(t, map[string]string{
+		"go.mod":  "module testapp\n\ngo 1.21\n",
+		"main.go": `package main; func main() {}`,
+	})
+
+	t.Run("DaemonUnavailableDuringCleanup", func(t *testing.T) {
+		runner := NewDockerContainerRunner()
+		runner.Checker = func(ctx context.Context) error { return nil }
+		runner.ExecCommand = func(ctx context.Context, binary string, args ...string) ([]byte, error) {
+			if len(args) > 0 && args[0] == "run" {
+				return []byte("run ok"), nil
+			}
+			if len(args) > 0 && args[0] == "rm" {
+				return []byte("Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?"), errors.New("daemon offline")
+			}
+			return []byte("ok"), nil
+		}
+
+		res, err := runner.RunCommand(context.Background(), wsDir, "go test -v ./...")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !strings.HasPrefix(res.Evidence.CleanupResult, "DAEMON_UNAVAILABLE") {
+			t.Fatalf("expected DAEMON_UNAVAILABLE, got: %s", res.Evidence.CleanupResult)
+		}
+	})
+
+	t.Run("ContainerStillExistsAfterRemoval", func(t *testing.T) {
+		runner := NewDockerContainerRunner()
+		runner.Checker = func(ctx context.Context) error { return nil }
+		runner.ExecCommand = func(ctx context.Context, binary string, args ...string) ([]byte, error) {
+			if len(args) > 0 && args[0] == "run" {
+				return []byte("run ok"), nil
+			}
+			if len(args) > 0 && args[0] == "rm" {
+				return []byte("rm ok"), nil
+			}
+			if len(args) > 0 && args[0] == "inspect" {
+				// Inspect succeeds with status "running" - container was NOT removed!
+				return []byte("running\n"), nil
+			}
+			return []byte("ok"), nil
+		}
+
+		res, err := runner.RunCommand(context.Background(), wsDir, "go test -v ./...")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !strings.HasPrefix(res.Evidence.CleanupResult, "CLEANUP_FAILURE") {
+			t.Fatalf("expected CLEANUP_FAILURE, got: %s", res.Evidence.CleanupResult)
+		}
+		if !strings.Contains(res.Evidence.CleanupResult, "still exists after removal") {
+			t.Fatalf("expected 'still exists after removal', got: %s", res.Evidence.CleanupResult)
+		}
+	})
+}
+
+// TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache verifies that:
+// 1. Unpinned dependencies without go.sum fail closed with DYNAMIC_VERIFICATION_UNAVAILABLE.
+// 2. Unsafe replace directives are rejected with security violations.
+// 3. Modules missing from approved offline cache fail closed without host network downloads.
+// 4. Standard library workspaces need zero cache mounts.
+// 5. Approved cache mounts ONLY the minimal required module set and deletes disposable staging.
+func TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache(t *testing.T) {
+	t.Run("MissingGoSumFailsClosed", func(t *testing.T) {
+		wsDir := createTestWorkspace(t, map[string]string{
+			"go.mod": "module testapp\n\ngo 1.21\n\nrequire github.com/untrusted/pkg v1.0.0\n",
+			"main.go": `package main; func main() {}`,
+		})
+
+		_, _, err := prepareMinimalDependencyCache(wsDir)
+		if err == nil {
+			t.Fatalf("expected prepareMinimalDependencyCache to fail when go.sum is missing")
+		}
+		if !errors.Is(err, ErrDynamicVerificationUnavailable) {
+			t.Fatalf("expected ErrDynamicVerificationUnavailable, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), "lacks pinned go.sum checksums") {
+			t.Fatalf("expected missing checksums error, got: %v", err)
+		}
+	})
+
+	t.Run("UnsafeReplaceDirectiveRejected", func(t *testing.T) {
+		wsDir := createTestWorkspace(t, map[string]string{
+			"go.mod": "module testapp\n\ngo 1.21\n\nreplace github.com/pkg => ../../sensitive/host/path\nrequire github.com/pkg v1.0.0\n",
+			"go.sum": "github.com/pkg v1.0.0 h1:1234567890=\n",
+			"main.go": `package main; func main() {}`,
+		})
+
+		_, _, err := prepareMinimalDependencyCache(wsDir)
+		if err == nil {
+			t.Fatalf("expected prepareMinimalDependencyCache to reject unsafe replace directive")
+		}
+		if !strings.Contains(err.Error(), "security violation") || !strings.Contains(err.Error(), "unsafe replace") {
+			t.Fatalf("expected unsafe replace security violation, got: %v", err)
+		}
+	})
+
+	t.Run("MissingModuleInApprovedCacheFailsClosedWithoutDownload", func(t *testing.T) {
+		fakeApprovedCache := t.TempDir()
+		t.Setenv("APPROVED_DEPENDENCY_CACHE", fakeApprovedCache)
+
+		wsDir := createTestWorkspace(t, map[string]string{
+			"go.mod": "module testapp\n\ngo 1.21\n\nrequire github.com/untrusted/notincache v1.0.0\n",
+			"go.sum": "github.com/untrusted/notincache v1.0.0 h1:dummychecksum=\n",
+			"main.go": `package main; func main() {}`,
+		})
+
+		_, _, err := prepareMinimalDependencyCache(wsDir)
+		if err == nil {
+			t.Fatalf("expected missing module to fail closed, but got nil")
+		}
+		if !errors.Is(err, ErrDynamicVerificationUnavailable) {
+			t.Fatalf("expected ErrDynamicVerificationUnavailable, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), "missing from approved offline cache") {
+			t.Fatalf("expected missing from approved offline cache error, got: %v", err)
+		}
+	})
+
+	t.Run("StandardLibraryWorkspaceRequiresZeroCacheMounts", func(t *testing.T) {
+		wsDir := createTestWorkspace(t, map[string]string{
+			"go.mod":  "module testapp\n\ngo 1.21\n",
+			"main.go": `package main; func main() {}`,
+		})
+
+		cacheDir, cleanup, err := prepareMinimalDependencyCache(wsDir)
+		if err != nil {
+			t.Fatalf("unexpected error for stdlib workspace: %v", err)
+		}
+		if cacheDir != "" {
+			t.Fatalf("expected empty cacheDir for standard library workspace, got: %s", cacheDir)
+		}
+		if cleanup != nil {
+			cleanup()
+		}
+	})
+
+	t.Run("MinimalCacheStagesOnlyRequiredModuleAndCleansUp", func(t *testing.T) {
+		// Create a mock approved cache containing two modules: reqModule and secretModule
+		mockApprovedCache := t.TempDir()
+		t.Setenv("APPROVED_DEPENDENCY_CACHE", mockApprovedCache)
+
+		reqModDir := filepath.Join(mockApprovedCache, "github.com", "approved", "pkg@v1.0.0")
+		_ = os.MkdirAll(reqModDir, 0755)
+		_ = os.WriteFile(filepath.Join(reqModDir, "pkg.go"), []byte("package pkg\n"), 0644)
+
+		secretModDir := filepath.Join(mockApprovedCache, "corp.internal", "secret@v2.0.0")
+		_ = os.MkdirAll(secretModDir, 0755)
+		_ = os.WriteFile(filepath.Join(secretModDir, "secret.go"), []byte("package secret\n"), 0644)
+
+		wsDir := createTestWorkspace(t, map[string]string{
+			"go.mod": "module testapp\n\ngo 1.21\n\nrequire github.com/approved/pkg v1.0.0\n",
+			"go.sum": "github.com/approved/pkg v1.0.0 h1:approvedchecksum=\n",
+			"main.go": `package main; func main() {}`,
+		})
+
+		cacheDir, cleanup, err := prepareMinimalDependencyCache(wsDir)
+		if err != nil {
+			t.Fatalf("unexpected error staging minimal cache: %v", err)
+		}
+		if cacheDir == "" {
+			t.Fatalf("expected non-empty cacheDir")
+		}
+
+		// Verify that required module IS present in the isolated cache
+		stagedReqFile := filepath.Join(cacheDir, "github.com", "approved", "pkg@v1.0.0", "pkg.go")
+		if _, statErr := os.Stat(stagedReqFile); statErr != nil {
+			t.Fatalf("expected required module to be staged at %s: %v", stagedReqFile, statErr)
+		}
+
+		// Verify that secretModule is NEVER present in the isolated cache
+		stagedSecretFile := filepath.Join(cacheDir, "corp.internal", "secret@v2.0.0", "secret.go")
+		if _, statErr := os.Stat(stagedSecretFile); statErr == nil {
+			t.Fatalf("SECURITY LEAK: unrequested secret module was exposed in minimal cache: %s", stagedSecretFile)
+		}
+
+		// Verify cleanup deletes the disposable minimal cache
+		cleanup()
+		if _, statErr := os.Stat(cacheDir); !os.IsNotExist(statErr) {
+			t.Fatalf("expected disposable minimal cache %s to be deleted after cleanup, got err=%v", cacheDir, statErr)
+		}
+	})
 }

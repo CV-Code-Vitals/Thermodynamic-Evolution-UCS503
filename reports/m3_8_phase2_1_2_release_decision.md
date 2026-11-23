@@ -3,7 +3,8 @@
 **Date:** 2026-11-23  
 **Repository:** `CV-Code-Vitals/Thermodynamic-Evolution-UCS503`  
 **Target Branch:** `release/milestone-3.8-mvp-rc`  
-**Audit Baseline Commit:** `0843ca613c602764ef3f534fc21bed7843486ba0`
+**Audit Baseline Commit:** `a0928fba56d81f90241460788322e89cdedc7334`  
+**Working Tree State:** Local security fixes applied; zero uncommitted/untracked files outside report documentation.
 
 ---
 
@@ -11,7 +12,7 @@
 
 ### Status: CONDITIONAL PASS (Local Verification Complete; Awaiting Operator Authorization)
 
-All architectural and security fixes for Milestone 3.8 Phase 2.1.2 have been implemented and locally verified. The entire test suite—spanning Go backend security and benchmarks, Rust AST engine, and React frontend—passes with zero failures.
+All architectural and release-blocking security corrections for Milestone 3.8 Phase 2.1.2 have been implemented and locally verified. The full cross-language test suite—spanning Go backend security, execution, and benchmarks, Rust AST engine, and React frontend—passes with zero failures.
 
 ### Conditions for Final Release:
 1. **Zero Remote Push / Deployment Boundary Maintained:**
@@ -24,16 +25,18 @@ All architectural and security fixes for Milestone 3.8 Phase 2.1.2 have been imp
 
 ---
 
-## 2. Key Metrics Ledger Verification
+## 2. Key Metrics Ledger Verification (Exact 27-Target Corpus)
 
 - **Total Assessed Targets:** 27
 - **Constructed / Injected Targets:** 15
   - Verified Repairs: 9
   - Explicitly Abstained: 6
-- **Natural Confirmed Historical Defects:** 4
+- **Natural Confirmed Historical Candidates:** 4
   - Verified Repairs: 0
-  - Disqualified & Safely Abstained (NAT-03): 1
-  - Ineligible Benign Idioms: 3
+  - Disqualified Candidate & Safely Abstained (NAT-03): 1 (callee cleanup on escaping response body violates ownership and causes panic; NOT an eligible repair target; denominator strictly preserved at 9)
+  - Ineligible Benign Idioms Preserved: 3
 - **Clean Controls Preserved:** 8 (0 false alarms, 100% precision)
-- **Repair Precision:** 100.0% (9/9 verified candidates)
+- **Attempted Repairs:** 9
+- **Verified Repairs:** 9
+- **Observed Precision:** 100.0% (9/9 verified candidates)
 - **Original Source Immutability:** 100% Bitwise Verified across all test runs

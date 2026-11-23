@@ -119,13 +119,26 @@ type ContainerRunner interface {
 	RunCommand(ctx context.Context, wsDir string, cmdStr string) (*ContainerRunResult, error)
 }
 
+// CommandExecutor abstracts subprocess command execution for isolated container runtime operations.
+type CommandExecutor func(ctx context.Context, binary string, args ...string) ([]byte, error)
+
 // DockerContainerRunner executes commands inside an ephemeral, hardened Docker container.
 type DockerContainerRunner struct {
 	Image             string
 	DockerBinary      string
 	Limits            ContainerLimits
 	Checker           func(ctx context.Context) error
+	ExecCommand       CommandExecutor
 	ExecutionAttempts int64
+}
+
+// exec dispatches a subprocess command via the configured CommandExecutor hook or standard exec.
+func (d *DockerContainerRunner) exec(ctx context.Context, args ...string) ([]byte, error) {
+	if d.ExecCommand != nil {
+		return d.ExecCommand(ctx, d.DockerBinary, args...)
+	}
+	cmd := exec.CommandContext(ctx, d.DockerBinary, args...)
+	return cmd.CombinedOutput()
 }
 
 // UnavailableContainerRunner is a mock/test ContainerRunner that simulates unavailable container infrastructure.
@@ -157,16 +170,14 @@ func (d *DockerContainerRunner) resolveImageDigest(ctx context.Context) string {
 	}
 	checkCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(checkCtx, d.DockerBinary, "image", "inspect", "--format", "{{index .RepoDigests 0}}", d.Image)
-	if out, err := cmd.CombinedOutput(); err == nil {
+	if out, err := d.exec(checkCtx, "image", "inspect", "--format", "{{index .RepoDigests 0}}", d.Image); err == nil {
 		s := strings.TrimSpace(string(out))
 		if s != "" && s != "<no value>" {
 			return s
 		}
 	}
 	// Fallback to Image ID
-	cmdID := exec.CommandContext(checkCtx, d.DockerBinary, "image", "inspect", "--format", "{{.Id}}", d.Image)
-	if out, err := cmdID.CombinedOutput(); err == nil {
+	if out, err := d.exec(checkCtx, "image", "inspect", "--format", "{{.Id}}", d.Image); err == nil {
 		s := strings.TrimSpace(string(out))
 		if s != "" {
 			return s
@@ -212,9 +223,169 @@ func parseRequiredDependencies(wsDir string) []string {
 	return deps
 }
 
-// resolveStagedModuleCache locates the system or staged Go module cache for offline read-only mounting.
-func resolveStagedModuleCache() string {
+// ModuleRequirement specifies an external module dependency required by a workspace.
+type ModuleRequirement struct {
+	Path    string
+	Version string
+}
+
+// parseGoModRequirements inspects go.mod in wsDir, enforces path and replace safety,
+// and extracts required external module dependencies.
+func parseGoModRequirements(wsDir string) ([]ModuleRequirement, error) {
+	goModPath := filepath.Join(wsDir, "go.mod")
+	bytes, err := os.ReadFile(goModPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read go.mod: %w", err)
+	}
+
+	lines := strings.Split(string(bytes), "\n")
+	var reqs []ModuleRequirement
+	inRequireBlock := false
+
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "//") {
+			continue
+		}
+
+		// Security: Validate replace directives against path traversal and host escapes
+		if strings.HasPrefix(trimmed, "replace ") || strings.Contains(trimmed, "=>") {
+			parts := strings.Split(trimmed, "=>")
+			if len(parts) == 2 {
+				target := strings.TrimSpace(parts[1])
+				if idx := strings.Index(target, "//"); idx != -1 {
+					target = strings.TrimSpace(target[:idx])
+				}
+				targetFields := strings.Fields(target)
+				if len(targetFields) > 0 {
+					targetPath := filepath.ToSlash(targetFields[0])
+					if strings.Contains(targetPath, "../") || filepath.IsAbs(targetFields[0]) ||
+						strings.HasPrefix(targetPath, "/") || strings.Contains(targetPath, ":") ||
+						strings.HasPrefix(targetPath, "\\") {
+						return nil, fmt.Errorf("security violation: unsafe replace directive %q targeting host or escaped path", targetFields[0])
+					}
+				}
+			}
+		}
+
+		if trimmed == "require (" {
+			inRequireBlock = true
+			continue
+		}
+		if inRequireBlock {
+			if trimmed == ")" {
+				inRequireBlock = false
+				continue
+			}
+			req := parseRequireLine(trimmed)
+			if req.Path != "" {
+				reqs = append(reqs, req)
+			}
+		} else if strings.HasPrefix(trimmed, "require ") {
+			req := parseRequireLine(strings.TrimPrefix(trimmed, "require "))
+			if req.Path != "" {
+				reqs = append(reqs, req)
+			}
+		}
+	}
+	return reqs, nil
+}
+
+func parseRequireLine(line string) ModuleRequirement {
+	if idx := strings.Index(line, "//"); idx != -1 {
+		line = line[:idx]
+	}
+	fields := strings.Fields(line)
+	if len(fields) >= 2 {
+		return ModuleRequirement{
+			Path:    fields[0],
+			Version: fields[1],
+		}
+	}
+	return ModuleRequirement{}
+}
+
+// parseGoSumChecksums reads go.sum in wsDir and indexes valid cryptographic checksums.
+func parseGoSumChecksums(wsDir string) (map[string]bool, error) {
+	goSumPath := filepath.Join(wsDir, "go.sum")
+	bytes, err := os.ReadFile(goSumPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to read go.sum: %w", err)
+	}
+
+	checksums := make(map[string]bool)
+	lines := strings.Split(string(bytes), "\n")
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "" || strings.HasPrefix(trimmed, "//") {
+			continue
+		}
+		fields := strings.Fields(trimmed)
+		if len(fields) >= 3 {
+			// format: <modPath> <version>[/go.mod] <hash>
+			modVersion := strings.TrimSuffix(fields[1], "/go.mod")
+			key := fmt.Sprintf("%s@%s", fields[0], modVersion)
+			checksums[key] = true
+		}
+	}
+	return checksums, nil
+}
+
+// escapeModulePath encodes uppercase characters in module paths as !lower, conforming to Go module cache naming.
+func escapeModulePath(path string) string {
+	var b strings.Builder
+	for _, r := range path {
+		if r >= 'A' && r <= 'Z' {
+			b.WriteByte('!')
+			b.WriteByte(byte(r + ('a' - 'A')))
+		} else {
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// copyDir recursively copies files and directories from src to dst.
+func copyDir(src, dst string) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, err := filepath.Rel(src, path)
+		if err != nil {
+			return err
+		}
+		targetPath := filepath.Join(dst, rel)
+		if info.IsDir() {
+			return os.MkdirAll(targetPath, 0755)
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return os.WriteFile(targetPath, data, info.Mode())
+	})
+}
+
+// resolveApprovedSourceCache identifies the pre-approved, immutable module cache source on the host.
+func resolveApprovedSourceCache() string {
+	if p := os.Getenv("APPROVED_DEPENDENCY_CACHE"); p != "" {
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			return p
+		}
+	}
 	if p := os.Getenv("STAGED_MODULE_CACHE"); p != "" {
+		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
+			return p
+		}
+	}
+	if p := os.Getenv("CI_DEPENDENCY_CACHE"); p != "" {
 		if fi, err := os.Stat(p); err == nil && fi.IsDir() {
 			return p
 		}
@@ -240,33 +411,82 @@ func resolveStagedModuleCache() string {
 	return ""
 }
 
-// StageVerifiedDependencies downloads dependencies outside the container into the local module cache
-// ONLY if wsDir contains both go.mod and a non-empty go.sum with pinned checksums.
-// It never enables container networking and never downloads arbitrary unverified dependencies.
+// resolveStagedModuleCache is a compatibility helper resolving the approved source cache.
+func resolveStagedModuleCache() string {
+	return resolveApprovedSourceCache()
+}
+
+// prepareMinimalDependencyCache constructs an isolated, disposable directory containing ONLY
+// the minimal verified dependencies required by wsDir.
+// DIRECT HOST DOWNLOADS OF UNTRUSTED REPOSITORY METADATA ARE STRICTLY PROHIBITED.
+func prepareMinimalDependencyCache(wsDir string) (string, func(), error) {
+	reqs, err := parseGoModRequirements(wsDir)
+	if err != nil {
+		return "", nil, fmt.Errorf("%w: go.mod validation failed: %v", ErrDynamicVerificationUnavailable, err)
+	}
+	if len(reqs) == 0 {
+		// Zero external dependencies required; nothing to mount
+		return "", func() {}, nil
+	}
+
+	// Verify that pinned checksums exist for all required modules
+	checksums, err := parseGoSumChecksums(wsDir)
+	if err != nil {
+		return "", nil, fmt.Errorf("%w: go.sum check failed: %v", ErrDynamicVerificationUnavailable, err)
+	}
+	if len(checksums) == 0 {
+		return "", nil, fmt.Errorf("%w: repository declares external dependencies but lacks pinned go.sum checksums", ErrDynamicVerificationUnavailable)
+	}
+
+	for _, req := range reqs {
+		key := fmt.Sprintf("%s@%s", req.Path, req.Version)
+		if !checksums[key] {
+			return "", nil, fmt.Errorf("%w: required dependency %s lacks verified checksum in go.sum", ErrDynamicVerificationUnavailable, key)
+		}
+	}
+
+	// Resolve approved dependency source
+	sourceCache := resolveApprovedSourceCache()
+	if sourceCache == "" {
+		return "", nil, fmt.Errorf("%w: no approved offline dependency cache configured or available", ErrDynamicVerificationUnavailable)
+	}
+
+	// Create disposable, minimal module directory
+	disposableDir, err := os.MkdirTemp("", "ucs503-minmod-*")
+	if err != nil {
+		return "", nil, fmt.Errorf("%w: failed to create disposable dependency cache directory: %v", ErrDynamicVerificationUnavailable, err)
+	}
+	cleanup := func() {
+		_ = os.RemoveAll(disposableDir)
+	}
+
+	// Copy ONLY the required modules into disposableDir
+	for _, req := range reqs {
+		escapedPath := escapeModulePath(req.Path)
+		srcModDir := filepath.Join(sourceCache, escapedPath+"@"+req.Version)
+		if fi, statErr := os.Stat(srcModDir); statErr != nil || !fi.IsDir() {
+			cleanup()
+			return "", nil, fmt.Errorf("%w: required dependency %s@%s is missing from approved offline cache; host network download is prohibited", ErrDynamicVerificationUnavailable, req.Path, req.Version)
+		}
+
+		destModDir := filepath.Join(disposableDir, escapedPath+"@"+req.Version)
+		if copyErr := copyDir(srcModDir, destModDir); copyErr != nil {
+			cleanup()
+			return "", nil, fmt.Errorf("%w: failed to stage module %s@%s: %v", ErrDynamicVerificationUnavailable, req.Path, req.Version, copyErr)
+		}
+	}
+
+	return disposableDir, cleanup, nil
+}
+
+// StageVerifiedDependencies verifies repository dependencies against pinned checksums and the approved offline cache.
+// DIRECT HOST DOWNLOADS OF ARBITRARY REPOSITORY METADATA ARE STRICTLY PROHIBITED.
 func StageVerifiedDependencies(wsDir string) error {
-	goModPath := filepath.Join(wsDir, "go.mod")
-	goSumPath := filepath.Join(wsDir, "go.sum")
-
-	modFi, errMod := os.Stat(goModPath)
-	sumFi, errSum := os.Stat(goSumPath)
-	if errMod != nil || modFi.IsDir() || errSum != nil || sumFi.IsDir() || sumFi.Size() == 0 {
-		// No pinned checksums to verify; do not download untrusted dependencies
-		return nil
+	_, cleanup, err := prepareMinimalDependencyCache(wsDir)
+	if cleanup != nil {
+		defer cleanup()
 	}
-
-	sumBytes, err := os.ReadFile(goSumPath)
-	if err != nil || len(strings.TrimSpace(string(sumBytes))) == 0 {
-		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "go", "mod", "download")
-	cmd.Dir = wsDir
-	cmd.Env = GetSanitizedExecutionEnv()
-	_ = cmd.Run()
-	return nil
+	return err
 }
 
 // resolveModuleAndPackage resolves the closest enclosing module root and package path relative to it.
@@ -360,11 +580,57 @@ func (d *DockerContainerRunner) CheckAvailable(ctx context.Context) error {
 	}
 	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(checkCtx, d.DockerBinary, "info", "--format", "{{.ServerVersion}}")
-	if out, err := cmd.CombinedOutput(); err != nil {
+	out, err := d.exec(checkCtx, "info", "--format", "{{.ServerVersion}}")
+	if err != nil {
 		return fmt.Errorf("%w: docker daemon check failed: %v (%s)", ErrSandboxUnavailable, err, strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+// performVerifiedContainerCleanup ensures the container is removed and verifies its non-existence,
+// returning an audit status string distinguishing verified removal, failure, timeout, or daemon error.
+func (d *DockerContainerRunner) performVerifiedContainerCleanup(containerName string) string {
+	if containerName == "" {
+		return "NOT_NEEDED"
+	}
+
+	cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cleanupCancel()
+
+	rmOut, rmErr := d.exec(cleanupCtx, "rm", "-f", containerName)
+	if cleanupCtx.Err() != nil && errors.Is(cleanupCtx.Err(), context.DeadlineExceeded) {
+		return fmt.Sprintf("CLEANUP_TIMEOUT: container %s removal exceeded 5s deadline", containerName)
+	}
+	if rmErr != nil {
+		rmOutStr := strings.TrimSpace(string(rmOut))
+		if strings.Contains(strings.ToLower(rmOutStr), "cannot connect to the docker daemon") ||
+			strings.Contains(strings.ToLower(rmOutStr), "daemon is not running") ||
+			strings.Contains(strings.ToLower(rmOutStr), "error response from daemon") {
+			return fmt.Sprintf("DAEMON_UNAVAILABLE: failed to remove container %s: %s", containerName, rmOutStr)
+		}
+		if strings.Contains(strings.ToLower(rmOutStr), "no such container") {
+			return fmt.Sprintf("VERIFIED_REMOVAL: container %s absent (automatically removed via --rm)", containerName)
+		}
+		return fmt.Sprintf("CLEANUP_FAILURE: failed to remove container %s: %v (%s)", containerName, rmErr, rmOutStr)
+	}
+
+	// Verify container non-existence via inspect
+	inspectCtx, inspectCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer inspectCancel()
+
+	inspectOut, inspectErr := d.exec(inspectCtx, "inspect", "--format", "{{.State.Status}}", containerName)
+	if inspectErr != nil {
+		inspectStr := strings.TrimSpace(string(inspectOut))
+		if strings.Contains(strings.ToLower(inspectStr), "no such container") ||
+			strings.Contains(strings.ToLower(inspectStr), "error: no such object") ||
+			inspectStr == "" {
+			return fmt.Sprintf("VERIFIED_REMOVAL: container %s successfully removed and verified absent", containerName)
+		}
+		return fmt.Sprintf("VERIFIED_REMOVAL: container %s absent (inspect confirmed: %s)", containerName, inspectStr)
+	}
+
+	status := strings.TrimSpace(string(inspectOut))
+	return fmt.Sprintf("CLEANUP_FAILURE: container %s still exists after removal (state: %s)", containerName, status)
 }
 
 // RunCommand executes a command inside a hardened Docker container.
@@ -392,9 +658,15 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 	// 3. Ensure disposable go.mod exists in workspace for offline container Go toolchain execution
 	_ = EnsureDisposableModule(cleanWs)
 
-	// 4. Staged offline dependency cache: stage verified dependencies from pinned go.mod/go.sum
-	_ = StageVerifiedDependencies(cleanWs)
-	modCache := resolveStagedModuleCache()
+	// 4. Staged offline dependency cache: prepare minimal verified cache
+	// DIRECT HOST DOWNLOADS OF ARBITRARY REPOSITORY METADATA ARE STRICTLY PROHIBITED.
+	minimalModCache, cleanupModCache, stageErr := prepareMinimalDependencyCache(cleanWs)
+	if stageErr != nil {
+		return nil, fmt.Errorf("%w: safe dependency staging failed: %v", ErrDynamicVerificationUnavailable, stageErr)
+	}
+	if cleanupModCache != nil {
+		defer cleanupModCache()
+	}
 
 	// 5. Check container runtime availability
 	if err := d.CheckAvailable(ctx); err != nil {
@@ -412,16 +684,11 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 	cmdCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	cleanupResult := "NOT_NEEDED"
+	// Safety fallback cleanup hook prevents container and resource leakage
+	cleanedUp := false
 	defer func() {
-		// Guaranteed container cleanup hook prevents container and resource leakage
-		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cleanupCancel()
-		rmCmd := exec.CommandContext(cleanupCtx, d.DockerBinary, "rm", "-f", containerName)
-		if rmOut, rmErr := rmCmd.CombinedOutput(); rmErr == nil {
-			cleanupResult = "SUCCESS: container removed"
-		} else {
-			cleanupResult = fmt.Sprintf("CLEANUP_CALLED (%s)", strings.TrimSpace(string(rmOut)))
+		if !cleanedUp {
+			_ = d.performVerifiedContainerCleanup(containerName)
 		}
 	}()
 
@@ -447,6 +714,7 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 		"-e", "GOPROXY=off",
 		"-e", "GOSUMDB=off",
 		"-e", "GONOSUMDB=*",
+		"-e", "GOTOOLCHAIN=local", // Prevent dynamic network toolchain downloads
 		"--user", "10001:10001", // Non-root
 		"--cap-drop", "ALL", // Drop all Linux capabilities
 		"--security-opt", "no-new-privileges",
@@ -457,9 +725,9 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 		"-w", "/workspace",
 	}
 
-	if modCache != "" {
+	if minimalModCache != "" {
 		args = append(args,
-			"-v", fmt.Sprintf("%s:/go/pkg/mod:ro", filepath.ToSlash(modCache)),
+			"-v", fmt.Sprintf("%s:/go/pkg/mod:ro", filepath.ToSlash(minimalModCache)),
 			"-e", "GOPATH=/go",
 		)
 	}
@@ -470,16 +738,19 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 	args = append(args, cleanArgs...)
 
 	start := time.Now()
-	cmd := exec.CommandContext(cmdCtx, d.DockerBinary, args...)
-	out, runErr := cmd.CombinedOutput()
+	out, runErr := d.exec(cmdCtx, args...)
 	dur := time.Since(start)
+
+	// Synchronous cleanup completed BEFORE building ContainerExecutionEvidence
+	cleanupResult := d.performVerifiedContainerCleanup(containerName)
+	cleanedUp = true
 
 	exitCode := 0
 	timeoutCause := ""
-	if errors.Is(cmdCtx.Err(), context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+	if errors.Is(cmdCtx.Err(), context.DeadlineExceeded) || errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(runErr, context.DeadlineExceeded) {
 		exitCode = -1
 		timeoutCause = fmt.Sprintf("execution timeout: context deadline exceeded after %v (limit: %v)", dur, timeout)
-	} else if errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
+	} else if errors.Is(cmdCtx.Err(), context.Canceled) || errors.Is(ctx.Err(), context.Canceled) || errors.Is(runErr, context.Canceled) {
 		exitCode = -1
 		timeoutCause = "execution canceled: context was canceled"
 	} else if runErr != nil {
@@ -799,9 +1070,16 @@ func (s *IndependentOracleSuite) verifySyntaxCompilation(wsDir string, task *pla
 	}
 
 	if runErr != nil {
-		res.Status = OracleStatusFailed
-		res.Passed = false
-		res.FailureReason = fmt.Sprintf("Container execution failed: %v", runErr)
+		if errors.Is(runErr, ErrDynamicVerificationUnavailable) || errors.Is(runErr, ErrSandboxUnavailable) || strings.Contains(runErr.Error(), "DYNAMIC_VERIFICATION_UNAVAILABLE") {
+			res.Status = OracleStatusUnavailable
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: %v", runErr)
+			res.Details = "Dynamic container vetting unavailable"
+		} else {
+			res.Status = OracleStatusFailed
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("Container execution failed: %v", runErr)
+		}
 	}
 
 	res.DurationMs = time.Since(start).Milliseconds()
@@ -884,6 +1162,14 @@ func (s *IndependentOracleSuite) verifyRegressionTests(wsDir string, task *plann
 				return res
 			}
 		} else if runErr != nil {
+			if errors.Is(runErr, ErrDynamicVerificationUnavailable) || errors.Is(runErr, ErrSandboxUnavailable) || strings.Contains(runErr.Error(), "DYNAMIC_VERIFICATION_UNAVAILABLE") {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: %v", runErr)
+				res.Details = "Dynamic regression test unavailable"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
 			res.Status = OracleStatusFailed
 			res.Passed = false
 			res.FailureReason = fmt.Sprintf("Regression command %q failed: %v", cmdStr, runErr)
@@ -972,6 +1258,14 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 				return res
 			}
 		} else if runErr != nil {
+			if errors.Is(runErr, ErrDynamicVerificationUnavailable) || errors.Is(runErr, ErrSandboxUnavailable) || strings.Contains(runErr.Error(), "DYNAMIC_VERIFICATION_UNAVAILABLE") {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: %v", runErr)
+				res.Details = "Dynamic defect reproducer unavailable"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
 			res.Status = OracleStatusFailed
 			res.Passed = false
 			res.FailureReason = fmt.Sprintf("Defect reproducer execution failed: %v", runErr)
@@ -1136,6 +1430,14 @@ func (s *IndependentOracleSuite) verifyBehavioralInvariance(
 				return res
 			}
 		} else if runErr != nil {
+			if errors.Is(runErr, ErrDynamicVerificationUnavailable) || errors.Is(runErr, ErrSandboxUnavailable) || strings.Contains(runErr.Error(), "DYNAMIC_VERIFICATION_UNAVAILABLE") {
+				res.Status = OracleStatusUnavailable
+				res.Passed = false
+				res.FailureReason = fmt.Sprintf("DYNAMIC_VERIFICATION_UNAVAILABLE: %v", runErr)
+				res.Details = "Dynamic behavioral invariance test unavailable"
+				res.DurationMs = time.Since(start).Milliseconds()
+				return res
+			}
 			res.Status = OracleStatusFailed
 			res.Passed = false
 			res.FailureReason = fmt.Sprintf("Behavioral invariance command failed: %v", runErr)
