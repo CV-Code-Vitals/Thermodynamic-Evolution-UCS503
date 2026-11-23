@@ -1,12 +1,12 @@
-[2026-11-18T11:49:53.4504812+05:30] === START REMEDIATION TRIAL REM-CAND-03 (Repo: http_router, File: middleware.go, Risk: LOW) ===
-[2026-11-18T11:49:53.4573403+05:30] INV-1 Pre-trial repo tree SHA-256: 536300960191cbee4201c62cbfec63e9f6afd261a150aa613b9a9ea0ba92d2af (files: context.go,go.mod,middleware.go,router.go,router_test.go,trie.go)
-[2026-11-18T11:49:53.5733388+05:30] INV-2 Workspace created: E:\SWE\.tmp\milestone3_3_isolated_trials\ws_REM-CAND-03_1794982793457340300 (size: 8335 bytes)
-[2026-11-18T11:49:54.3597836+05:30] Pre-remediation go build passed=true (output: )
-[2026-11-18T11:49:56.9568202+05:30] Pre-remediation go test passed=true (output: ok  	github.com/external-bench/http-router	1.362s)
-[2026-11-18T11:49:56.9580571+05:30] Patch applied successfully in isolated workspace.
-[2026-11-18T11:49:57.5636135+05:30] Post-remediation go build passed=true (output: )
-[2026-11-18T11:50:00.1247627+05:30] Post-remediation go test passed=true (output: ok  	github.com/external-bench/http-router	1.501s)
-[2026-11-18T11:50:00.1256753+05:30] Unified diff generated (SHA-256: 8ba747b792b8cd42e2260731b1ab10b26f9a137150dbe59b926bc1793b80abd1, lines: 26)
-[2026-11-18T11:50:00.1534128+05:30] INV-5 Workspace destroyed cleanly: true
-[2026-11-18T11:50:00.1580726+05:30] INV-1 Post-trial repo tree SHA-256: 536300960191cbee4201c62cbfec63e9f6afd261a150aa613b9a9ea0ba92d2af (files: context.go,go.mod,middleware.go,router.go,router_test.go,trie.go, matches pre-trial: true)
-[2026-11-18T11:50:00.1580726+05:30] === TRIAL REM-CAND-03 COMPLETED in 6707 ms WITH STATUS: VERIFIED_RESOLVED ===
+[2026-11-23T13:52:12.0476421+05:30] === START REMEDIATION TRIAL REM-CAND-03 (Repo: http_router, File: middleware.go, Risk: LOW) ===
+[2026-11-23T13:52:12.0571111+05:30] INV-1 Pre-trial repo tree SHA-256: c6c19468f49ee5b7f0e3be3bb9de3219a41467a33aa54ddf2be9dba8d98a14df (files: context.go,go.mod,middleware.go,router.go,router_test.go,trie.go)
+[2026-11-23T13:52:12.0943811+05:30] INV-2 Workspace created: C:\Users\mishr\AppData\Local\Temp\milestone3_3_isolated_trials\ws_REM-CAND-03_1795422132057111100 (size: 8708 bytes)
+[2026-11-23T13:52:12.8336997+05:30] Pre-remediation go build passed=true (output: )
+[2026-11-23T13:52:15.6316639+05:30] Pre-remediation go test passed=true (output: ok  	github.com/external-bench/http-router	0.900s)
+[2026-11-23T13:52:15.632281+05:30] Patch applied successfully in isolated workspace.
+[2026-11-23T13:52:16.4293627+05:30] Post-remediation go build passed=true (output: )
+[2026-11-23T13:52:19.2428101+05:30] Post-remediation go test passed=true (output: ok  	github.com/external-bench/http-router	0.961s)
+[2026-11-23T13:52:19.2470708+05:30] Unified diff generated (SHA-256: 8ba747b792b8cd42e2260731b1ab10b26f9a137150dbe59b926bc1793b80abd1, lines: 26)
+[2026-11-23T13:52:19.2520806+05:30] INV-5 Workspace destroyed cleanly: true
+[2026-11-23T13:52:19.2526611+05:30] INV-1 Post-trial repo tree SHA-256: c6c19468f49ee5b7f0e3be3bb9de3219a41467a33aa54ddf2be9dba8d98a14df (files: context.go,go.mod,middleware.go,router.go,router_test.go,trie.go, matches pre-trial: true)
+[2026-11-23T13:52:19.2526611+05:30] === TRIAL REM-CAND-03 COMPLETED in 7205 ms WITH STATUS: VERIFIED_RESOLVED ===

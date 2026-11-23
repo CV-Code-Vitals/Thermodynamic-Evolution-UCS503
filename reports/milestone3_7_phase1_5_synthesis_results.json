@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-23T06:19:25.1333415Z",
+  "timestamp": "2026-11-23T08:21:22.4033784Z",
   "total_cases": 9,
   "synthesized_count": 4,
   "abstained_count": 5,
@@ -64,7 +64,7 @@
         "SYNTAX_AND_COMPILATION": true
       },
       "all_oracles_passed": true,
-      "duration_ms": 2
+      "duration_ms": 0
     },
     {
       "case_id": "SYNTH-SQL-01",
@@ -105,7 +105,7 @@
       "abstain_reason": "LOOP_DEFERRED_CLEANUP_ACCUMULATION: Resource allocated inside loop body; deferred cleanup would cause handle accumulation",
       "patch_generated": false,
       "all_oracles_passed": false,
-      "duration_ms": 4
+      "duration_ms": 0
     },
     {
       "case_id": "SYNTH-ESCAPE-ABSTAIN",
@@ -116,7 +116,7 @@
       "abstain_reason": "CONCURRENT_OWNERSHIP_ESCAPE: Resource handle escapes to concurrent goroutine",
       "patch_generated": false,
       "all_oracles_passed": false,
-      "duration_ms": 1
+      "duration_ms": 0
     },
     {
       "case_id": "SYNTH-RETURN-ABSTAIN",
@@ -138,7 +138,7 @@
       "abstain_reason": "RESOURCE_ESCAPES_VIA_RETURN: Resource \"resp\" escapes function scope via return signature; callee cannot safely synthesize lifecycle cleanup",
       "patch_generated": false,
       "all_oracles_passed": false,
-      "duration_ms": 1
+      "duration_ms": 0
     }
   ]
 }

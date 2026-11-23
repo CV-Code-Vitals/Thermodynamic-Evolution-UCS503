@@ -1,18 +1,18 @@
-[2026-11-18T11:49:46.7129394+05:30] === START REMEDIATION TRIAL REM-CAND-02 (Repo: queue_worker, File: internal\consumer\consumer.go, Risk: LOW) ===
-[2026-11-18T11:49:46.7195315+05:30] INV-1 Pre-trial repo tree SHA-256: 94688f72202b0617ae497bc8d7e9c45ddc3ffa13ab3c29df57cd5fcff2f99c8c (files: cmd/worker/main.go,go.mod,internal/consumer/consumer.go,internal/consumer/consumer_test.go,internal/producer/producer.go,pkg/retry/retry.go,pkg/retry/retry_test.go)
-[2026-11-18T11:49:46.7958994+05:30] INV-2 Workspace created: E:\SWE\.tmp\milestone3_3_isolated_trials\ws_REM-CAND-02_1794982786719531500 (size: 7300 bytes)
-[2026-11-18T11:49:48.164158+05:30] Pre-remediation go build passed=true (output: )
-[2026-11-18T11:49:50.2300198+05:30] Pre-remediation go test passed=true (output: ?   	github.com/external-bench/queue-worker/cmd/worker	[no test files]
-ok  	github.com/external-bench/queue-worker/internal/consumer	0.944s
+[2026-11-23T13:52:03.5136475+05:30] === START REMEDIATION TRIAL REM-CAND-02 (Repo: queue_worker, File: internal\consumer\consumer.go, Risk: LOW) ===
+[2026-11-23T13:52:03.5244787+05:30] INV-1 Pre-trial repo tree SHA-256: d7c72d86809802243da1b333afb762f29438a5bc05ba4ed4398b2d723f6030b0 (files: cmd/worker/main.go,go.mod,internal/consumer/consumer.go,internal/consumer/consumer_test.go,internal/producer/producer.go,pkg/retry/retry.go,pkg/retry/retry_test.go)
+[2026-11-23T13:52:03.5760906+05:30] INV-2 Workspace created: C:\Users\mishr\AppData\Local\Temp\milestone3_3_isolated_trials\ws_REM-CAND-02_1795422123524478700 (size: 7631 bytes)
+[2026-11-23T13:52:05.028313+05:30] Pre-remediation go build passed=true (output: )
+[2026-11-23T13:52:07.7650998+05:30] Pre-remediation go test passed=true (output: ?   	github.com/external-bench/queue-worker/cmd/worker	[no test files]
+ok  	github.com/external-bench/queue-worker/internal/consumer	1.107s
 ?   	github.com/external-bench/queue-worker/internal/producer	[no test files]
-ok  	github.com/external-bench/queue-worker/pkg/retry	0.973s)
-[2026-11-18T11:49:50.2316866+05:30] Patch applied successfully in isolated workspace.
-[2026-11-18T11:49:51.3142124+05:30] Post-remediation go build passed=true (output: )
-[2026-11-18T11:49:52.9217608+05:30] Post-remediation go test passed=true (output: ?   	github.com/external-bench/queue-worker/cmd/worker	[no test files]
-ok  	github.com/external-bench/queue-worker/internal/consumer	0.807s
+ok  	github.com/external-bench/queue-worker/pkg/retry	0.877s)
+[2026-11-23T13:52:07.7662629+05:30] Patch applied successfully in isolated workspace.
+[2026-11-23T13:52:09.107645+05:30] Post-remediation go build passed=true (output: )
+[2026-11-23T13:52:11.5261114+05:30] Post-remediation go test passed=true (output: ?   	github.com/external-bench/queue-worker/cmd/worker	[no test files]
+ok  	github.com/external-bench/queue-worker/internal/consumer	0.928s
 ?   	github.com/external-bench/queue-worker/internal/producer	[no test files]
 ok  	github.com/external-bench/queue-worker/pkg/retry	(cached))
-[2026-11-18T11:49:52.9225645+05:30] Unified diff generated (SHA-256: 606291c0334362a9eec6ea319090dd8c260b793559c280c007dbc8e17e18c696, lines: 58)
-[2026-11-18T11:49:52.9409984+05:30] INV-5 Workspace destroyed cleanly: true
-[2026-11-18T11:49:52.946416+05:30] INV-1 Post-trial repo tree SHA-256: 94688f72202b0617ae497bc8d7e9c45ddc3ffa13ab3c29df57cd5fcff2f99c8c (files: cmd/worker/main.go,go.mod,internal/consumer/consumer.go,internal/consumer/consumer_test.go,internal/producer/producer.go,pkg/retry/retry.go,pkg/retry/retry_test.go, matches pre-trial: true)
-[2026-11-18T11:49:52.946416+05:30] === TRIAL REM-CAND-02 COMPLETED in 6233 ms WITH STATUS: VERIFIED_RESOLVED ===
+[2026-11-23T13:52:11.529971+05:30] Unified diff generated (SHA-256: 606291c0334362a9eec6ea319090dd8c260b793559c280c007dbc8e17e18c696, lines: 58)
+[2026-11-23T13:52:11.5426904+05:30] INV-5 Workspace destroyed cleanly: true
+[2026-11-23T13:52:11.5460169+05:30] INV-1 Post-trial repo tree SHA-256: d7c72d86809802243da1b333afb762f29438a5bc05ba4ed4398b2d723f6030b0 (files: cmd/worker/main.go,go.mod,internal/consumer/consumer.go,internal/consumer/consumer_test.go,internal/producer/producer.go,pkg/retry/retry.go,pkg/retry/retry_test.go, matches pre-trial: true)
+[2026-11-23T13:52:11.5460169+05:30] === TRIAL REM-CAND-02 COMPLETED in 8032 ms WITH STATUS: VERIFIED_RESOLVED ===

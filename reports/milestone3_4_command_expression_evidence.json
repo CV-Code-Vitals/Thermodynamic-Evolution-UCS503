@@ -95,33 +95,6 @@
     {
       "file_path": "fixtures\\command_fixtures.go",
       "package": "",
-      "function": "Pos_Cmd_ShellConcat",
-      "line": 20,
-      "classification": "UNTRUSTED_SHELL_COMMAND",
-      "sink_name": "exec.Command",
-      "sink_call_snippet": "exec.Command(\"bash\", \"-c\", \"echo \"+userInput)",
-      "binary_expr": "\"bash\"",
-      "is_shell_interpreter": true,
-      "shell_command_snippet": "\"echo \" + userInput",
-      "argument_snippets": [
-        "\"-c\"",
-        "\"echo \" + userInput"
-      ],
-      "untrusted_inputs": [
-        "param:userInput (string)"
-      ],
-      "confidence": 0.98,
-      "lifecycle_state": "CONFIRMED",
-      "severity": "CRITICAL",
-      "title": "Command Injection Risk via Shell String Concatenation",
-      "description": "Shell command executed via 'bash -c' concatenates untrusted input(s): param:userInput (string).",
-      "root_cause": "Direct binary concatenation (+) of dynamic input into shell command string.",
-      "recommended_action": "Execute target binary directly without shell interpreter (-c).",
-      "ast_node_type": "*ast.BasicLit"
-    },
-    {
-      "file_path": "fixtures\\command_fixtures.go",
-      "package": "",
       "function": "Pos_Cmd_ShellPropagated",
       "line": 27,
       "classification": "UNTRUSTED_SHELL_COMMAND",
@@ -153,36 +126,6 @@
     {
       "file_path": "fixtures\\command_fixtures.go",
       "package": "",
-      "function": "Pos_Cmd_ShellParamDirect",
-      "line": 32,
-      "classification": "UNTRUSTED_SHELL_COMMAND",
-      "sink_name": "exec.Command",
-      "sink_call_snippet": "exec.Command(\"sh\", \"-c\", commandString)",
-      "binary_expr": "\"sh\"",
-      "is_shell_interpreter": true,
-      "shell_command_snippet": "commandString",
-      "argument_snippets": [
-        "\"-c\"",
-        "commandString"
-      ],
-      "untrusted_inputs": [
-        "param:commandString (string)"
-      ],
-      "reaching_defs": [
-        "def:commandString (line 31)"
-      ],
-      "confidence": 0.98,
-      "lifecycle_state": "CONFIRMED",
-      "severity": "CRITICAL",
-      "title": "Command Injection Risk via Shell Interpreter",
-      "description": "Command string in Pos_Cmd_ShellParamDirect at line 32 is passed directly from function parameter 'commandString' to shell interpreter 'sh -c'.",
-      "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
-      "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
-      "ast_node_type": "*ast.BasicLit"
-    },
-    {
-      "file_path": "fixtures\\command_fixtures.go",
-      "package": "",
       "function": "Pos_Cmd_ContextShell",
       "line": 38,
       "classification": "UNTRUSTED_SHELL_COMMAND",
@@ -208,6 +151,55 @@
       "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
       "root_cause": "Formatting user variables into shell interpreter string (-c).",
       "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Neg_Cmd_SafeArgSeparation",
+      "line": 50,
+      "classification": "SAFE_ARGUMENT_SEPARATION",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"git\", \"log\", \"--grep\", userInput)",
+      "binary_expr": "\"git\"",
+      "is_shell_interpreter": false,
+      "argument_snippets": [
+        "\"log\"",
+        "\"--grep\"",
+        "userInput"
+      ],
+      "counter_evidence": [
+        "Arguments (userInput) are passed as discrete array elements directly to executable git without shell interpretation"
+      ],
+      "confidence": 0.95,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Discrete Argument Separation",
+      "description": "Command uses OS-level argv separation; arguments are not subject to shell parsing or word splitting.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Neg_Cmd_DirectArgBranch",
+      "line": 55,
+      "classification": "SAFE_ARGUMENT_SEPARATION",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"git\", \"checkout\", branch)",
+      "binary_expr": "\"git\"",
+      "is_shell_interpreter": false,
+      "argument_snippets": [
+        "\"checkout\"",
+        "branch"
+      ],
+      "counter_evidence": [
+        "Arguments (branch) are passed as discrete array elements directly to executable git without shell interpretation"
+      ],
+      "confidence": 0.95,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Discrete Argument Separation",
+      "description": "Command uses OS-level argv separation; arguments are not subject to shell parsing or word splitting.",
       "ast_node_type": "*ast.BasicLit"
     },
     {
@@ -268,6 +260,63 @@
     {
       "file_path": "fixtures\\command_fixtures.go",
       "package": "",
+      "function": "Pos_Cmd_ShellConcat",
+      "line": 20,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"bash\", \"-c\", \"echo \"+userInput)",
+      "binary_expr": "\"bash\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "\"echo \" + userInput",
+      "argument_snippets": [
+        "\"-c\"",
+        "\"echo \" + userInput"
+      ],
+      "untrusted_inputs": [
+        "param:userInput (string)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Shell String Concatenation",
+      "description": "Shell command executed via 'bash -c' concatenates untrusted input(s): param:userInput (string).",
+      "root_cause": "Direct binary concatenation (+) of dynamic input into shell command string.",
+      "recommended_action": "Execute target binary directly without shell interpreter (-c).",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
+      "function": "Pos_Cmd_ShellParamDirect",
+      "line": 32,
+      "classification": "UNTRUSTED_SHELL_COMMAND",
+      "sink_name": "exec.Command",
+      "sink_call_snippet": "exec.Command(\"sh\", \"-c\", commandString)",
+      "binary_expr": "\"sh\"",
+      "is_shell_interpreter": true,
+      "shell_command_snippet": "commandString",
+      "argument_snippets": [
+        "\"-c\"",
+        "commandString"
+      ],
+      "untrusted_inputs": [
+        "param:commandString (string)"
+      ],
+      "reaching_defs": [
+        "def:commandString (line 31)"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Command Injection Risk via Shell Interpreter",
+      "description": "Command string in Pos_Cmd_ShellParamDirect at line 32 is passed directly from function parameter 'commandString' to shell interpreter 'sh -c'.",
+      "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
+      "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\command_fixtures.go",
+      "package": "",
       "function": "Neg_Cmd_StaticExec",
       "line": 45,
       "classification": "STATIC_COMMAND",
@@ -288,55 +337,6 @@
       "title": "Static Command Execution",
       "description": "Subprocess invoked with static command name and constant arguments.",
       "ast_node_type": "*ast.BasicLit"
-    },
-    {
-      "file_path": "fixtures\\command_fixtures.go",
-      "package": "",
-      "function": "Neg_Cmd_SafeArgSeparation",
-      "line": 50,
-      "classification": "SAFE_ARGUMENT_SEPARATION",
-      "sink_name": "exec.Command",
-      "sink_call_snippet": "exec.Command(\"git\", \"log\", \"--grep\", userInput)",
-      "binary_expr": "\"git\"",
-      "is_shell_interpreter": false,
-      "argument_snippets": [
-        "\"log\"",
-        "\"--grep\"",
-        "userInput"
-      ],
-      "counter_evidence": [
-        "Arguments (userInput) are passed as discrete array elements directly to executable git without shell interpretation"
-      ],
-      "confidence": 0.95,
-      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "title": "Safe Discrete Argument Separation",
-      "description": "Command uses OS-level argv separation; arguments are not subject to shell parsing or word splitting.",
-      "ast_node_type": "*ast.BasicLit"
-    },
-    {
-      "file_path": "fixtures\\command_fixtures.go",
-      "package": "",
-      "function": "Neg_Cmd_DirectArgBranch",
-      "line": 55,
-      "classification": "SAFE_ARGUMENT_SEPARATION",
-      "sink_name": "exec.Command",
-      "sink_call_snippet": "exec.Command(\"git\", \"checkout\", branch)",
-      "binary_expr": "\"git\"",
-      "is_shell_interpreter": false,
-      "argument_snippets": [
-        "\"checkout\"",
-        "branch"
-      ],
-      "counter_evidence": [
-        "Arguments (branch) are passed as discrete array elements directly to executable git without shell interpretation"
-      ],
-      "confidence": 0.95,
-      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "title": "Safe Discrete Argument Separation",
-      "description": "Command uses OS-level argv separation; arguments are not subject to shell parsing or word splitting.",
-      "ast_node_type": "*ast.BasicLit"
     }
   ],
   "metrics": {
@@ -346,5 +346,5 @@
     "specificity": 1
   },
   "report_type": "Milestone 3.4 Phase 2 Command Expression Evidence",
-  "timestamp": "2026-11-22T00:23:02+05:30"
+  "timestamp": "2026-11-23T13:42:53+05:30"
 }

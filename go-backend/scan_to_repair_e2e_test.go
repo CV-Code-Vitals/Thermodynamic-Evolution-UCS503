@@ -576,7 +576,15 @@ func Query(ctx context.Context, db *sql.DB, val string) (*sql.Rows, error) {
 		t.Fatalf("NewMVPService failed: %v", err)
 	}
 
-	targets, err := svc.DiscoverWorkspaceTargets(wsDir)
+	wsID := "ws-snapshot-stale"
+	svc.SetWorkspaceResolver(func(id string) (string, error) {
+		if id == wsID {
+			return wsDir, nil
+		}
+		return "", os.ErrNotExist
+	})
+
+	targets, err := svc.DiscoverWorkspaceTargets(wsID)
 	if err != nil || len(targets) == 0 {
 		t.Fatalf("DiscoverWorkspaceTargets failed: %v (targets: %d)", err, len(targets))
 	}

@@ -16,7 +16,7 @@
       "ARCHITECTURE",
       "TEST_QUALITY"
     ],
-    "execution_time_ms": 31
+    "execution_time_ms": 24
   },
   {
     "repo_name": "Self-Healing Benchmark Suite v2 (Expanded)",
@@ -35,7 +35,7 @@
       "ARCHITECTURE",
       "TEST_QUALITY"
     ],
-    "execution_time_ms": 115
+    "execution_time_ms": 90
   },
   {
     "repo_name": "Thermodynamic AST Engine",
@@ -54,6 +54,6 @@
       "ARCHITECTURE",
       "TEST_QUALITY"
     ],
-    "execution_time_ms": 15
+    "execution_time_ms": 6
   }
 ]

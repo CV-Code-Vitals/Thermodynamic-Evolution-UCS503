@@ -1,6 +1,6 @@
 {
   "report_schema_version": "1.0",
-  "report_id": "DR-1795287197",
+  "report_id": "DR-1795421579",
   "repository": {
     "repo_root": "",
     "working_tree_clean": false,
@@ -14,11 +14,11 @@
     "ci_workflows": null
   },
   "analysis": {
-    "timestamp": "2026-11-21T18:53:17.6174562Z",
+    "timestamp": "2026-11-23T08:12:59.0867808Z",
     "files_discovered": 0,
     "files_analysed": 0,
     "analysis_coverage": 100,
-    "execution_duration_ms": 5
+    "execution_duration_ms": 0
   },
   "summary": {
     "total_findings": 12,

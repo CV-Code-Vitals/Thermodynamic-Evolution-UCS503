@@ -101,10 +101,17 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 	// Helper to bind snapshot details to discovered target
 	bindTargetSnapshot := func(target *MVPTarget) error {
 		target.SnapshotID = snapshotID
+		targetRel := filepath.FromSlash(target.TargetFile)
+		if filepath.IsAbs(targetRel) {
+			if rel, err := filepath.Rel(wsDir, targetRel); err == nil && !strings.HasPrefix(rel, "..") {
+				targetRel = rel
+			}
+		}
+		target.TargetFile = filepath.ToSlash(targetRel)
 		targetAbs := filepath.Join(wsDir, filepath.FromSlash(target.TargetFile))
 		fb, fbErr := os.ReadFile(targetAbs)
 		if fbErr != nil {
-			return fmt.Errorf("SNAPSHOT_SOURCE_HASH_FAILED: cannot read source file %s for target %s: %w", target.TargetFile, target.TargetID, fbErr)
+			return fmt.Errorf("SNAPSHOT_SOURCE_HASH_FAILED: cannot read source file %s for target %s (abs: %s): %w", target.TargetFile, target.TargetID, targetAbs, fbErr)
 		}
 		h := sha256.Sum256(fb)
 		target.SourceFileHash = hex.EncodeToString(h[:])

