@@ -377,10 +377,12 @@ func GetSanitizedExecutionEnv() []string {
 	// Enforce CGO_ENABLED=0 to prevent unverified C compilation
 	cleanEnv = append(cleanEnv, "CGO_ENABLED=0")
 
-	// Ensure isolated temp directories
-	tmpBase := `E:\SWE\.tmp`
-	if fi, err := os.Stat(tmpBase); err == nil && fi.IsDir() {
+	// Ensure isolated temp directories via dynamic workspace resolution
+	tmpBase, err := EnsureTmpDir(ResolveWorkspaceRoot())
+	if err == nil && tmpBase != "" {
 		cleanEnv = append(cleanEnv, `GOTMPDIR=`+tmpBase, `TEMP=`+tmpBase, `TMP=`+tmpBase)
+	} else {
+		tmpBase = os.TempDir()
 	}
 
 	// Ensure GOCACHE is always set to prevent go vet / build cache failures

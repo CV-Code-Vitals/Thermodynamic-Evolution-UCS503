@@ -439,12 +439,7 @@ func ResolveWorkspaceRoot() string {
 		}
 	}
 
-	// 3. Fallback to existing Windows directory if present
-	if fi, err := os.Stat("E:\\SWE"); err == nil && fi.IsDir() {
-		return "E:\\SWE"
-	}
-
-	// 4. Fallback to current working directory or system temp
+	// 3. Fallback to current working directory or system temp
 	if wd != "" {
 		abs, err := filepath.Abs(wd)
 		if err == nil {

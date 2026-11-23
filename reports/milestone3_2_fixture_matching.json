@@ -98,9 +98,9 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-MUTUAL-CYCLE-architecture-account_ledger_cycle_go-AccountNodeV3-LedgerNodeV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-account_ledger_cycle_go-AccountNodeV3-LedgerNodeV3",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-account_ledger_cycle_go-AccountNodeV3-LedgerNodeV3"
+      "CTX-ARC-MUTUAL-CYCLE-architecture-account_ledger_cycle_go-LedgerNodeV3-AccountNodeV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-account_ledger_cycle_go-LedgerNodeV3-AccountNodeV3",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-account_ledger_cycle_go-LedgerNodeV3-AccountNodeV3"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 3 diagnostic findings on target file architecture/account_ledger_cycle.go"

@@ -5,9 +5,9 @@
 **Target Package:** `admin-portal` (`picomatch@4.0.7`, `picomatch@2.3.2`)  
 **Advisory ID:** `GHSA-fc5q-39xc-vjpf` / `CVE-2026-112366`  
 **Severity:** High (ReDoS)  
-**Status:** **PENDING REVIEW & APPROVAL**  
-**Submission Date:** 2026-11-18  
-**Expiry / Re-evaluation Date:** 2026-12-18 (30-day window)  
+**Status:** **PENDING OPERATOR APPROVAL**  
+**Submission Date:** 2026-11-23  
+**Expiry / Re-evaluation Date:** 2026-12-23 (30-day window)  
 **Proposed By:** Antigravity Autonomous Systems Engineering Team  
 
 ---
@@ -52,11 +52,11 @@ The following multi-layered compensating controls are active and verified:
 1. **Build Environment Sandboxing:**
    Frontend builds run in isolated GitHub Actions container runners (`ubuntu-latest`) or developer workstations with strictly bounded execution lifetimes.
 2. **Deterministic Step Timeouts:**
-   All CI workflow steps in `.github/workflows/check-frontend.yml` and Go/Rust CI are governed by execution timeouts (15 minutes). Any hypothetical catastrophic backtracking loop would be terminated without impacting release integrity.
+   All CI workflow steps in [.github/workflows/check-frontend.yml](file:///E:/SWE/.github/workflows/check-frontend.yml) and Go/Rust CI are governed by execution timeouts (15 minutes). Any hypothetical catastrophic backtracking loop would be terminated without impacting release integrity.
 3. **Artifact Integrity Verification:**
    All generated static assets (`dist/`) are validated by automated node tests (`tests/*.test.js`) before deployment.
 4. **Clean Production Tree:**
-   `package.json` production dependencies (`dependencies`) are restricted to `react`, `react-dom`, `lucide-react`, and `react-dropzone`. None depend on `picomatch`.
+   [package.json](file:///E:/SWE/admin-portal/package.json) production dependencies (`dependencies`) are restricted to `react`, `react-dom`, `lucide-react`, and `react-dropzone`. None depend on `picomatch`.
 
 ---
 
@@ -67,11 +67,11 @@ The following multi-layered compensating controls are active and verified:
 2. **Immediate Lockfile Regeneration:**
    As soon as a verified upstream patch is published to `https://registry.npmjs.org`, `npm update picomatch` or corresponding dependency upgrades will be executed and locked via standard `npm install`.
 3. **Sunset / Expiry Date:**
-   This exception expires exactly 30 days from issuance: **2026-12-18**. If an upstream patch has not been released by this date, a formal review will be conducted to evaluate alternative bundler configurations.
+   This exception expires exactly 30 days from issuance: **2026-12-23**. If an upstream patch has not been released by this date, a formal review will be conducted to evaluate alternative bundler configurations.
 
 ---
 
 ## 6. Formal Approval Status
 
-- **Current Status:** **PENDING FORMAL APPROVAL**  
-  *(This proposal is documented for repository maintainers and release leads. No unauthorized silent suppression of npm audit flags has been introduced).*
+- **Current Status:** **PENDING OPERATOR APPROVAL**  
+  *(This proposal is formally submitted for operator/maintainer authorization. No unauthorized silent suppression of npm audit flags has been introduced).*
