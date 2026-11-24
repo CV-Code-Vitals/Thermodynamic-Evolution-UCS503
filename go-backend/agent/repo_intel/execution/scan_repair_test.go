@@ -81,8 +81,8 @@ func DumpLogs(p string) ([]byte, error) {
 	if scannedTarget == nil {
 		t.Fatalf("Expected scanned target for server/logger.go, but found none")
 	}
-	if demoTargetCount == 0 {
-		t.Errorf("Expected preconfigured demo targets to be present")
+	if demoTargetCount != 0 {
+		t.Errorf("Live workspace must not contain demo targets")
 	}
 
 	// 2. Analyze Target
@@ -257,7 +257,13 @@ func OpenStore(path string) (*os.File, error) {
 	}
 
 	if escTarget == nil {
-		t.Fatalf("Expected target for OpenStore")
+		// Returning ownership is a valid program, not a missing-close defect.
+		for _, target := range targets {
+			if target.DefectCategory == "RESOURCE_LEAK" {
+				t.Fatalf("escaping resource misdiagnosed: %+v", target)
+			}
+		}
+		return
 	}
 
 	analysis, err := svc.AnalyzeTarget(escTarget.TargetID)
@@ -381,17 +387,8 @@ func TestScanToRepairWorkflow_MissingWorkspace_FailClosed(t *testing.T) {
 	svc.dynamicTargets[targetID] = orphanTarget
 	svc.mu.Unlock()
 
-	analysis, err := svc.AnalyzeTarget(targetID)
-	if err != nil {
-		t.Fatalf("AnalyzeTarget failed: %v", err)
-	}
-	if analysis.AutomaticEligibility {
-		t.Errorf("Missing workspace target must not be automatically eligible")
-	}
-	if analysis.UncertaintyScore < 0.95 {
-		t.Errorf("Expected uncertainty >= 0.95 for missing workspace, got %.2f", analysis.UncertaintyScore)
-	}
-	if !strings.Contains(analysis.EligibilityRationale, "fail-closed") {
-		t.Errorf("Expected fail-closed rationale, got: %s", analysis.EligibilityRationale)
+	_, err = svc.AnalyzeTarget(targetID)
+	if err == nil {
+		t.Fatal("missing source must reject analysis, not manufacture evidence")
 	}
 }

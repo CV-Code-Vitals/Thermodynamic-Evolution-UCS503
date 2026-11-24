@@ -18,22 +18,30 @@ import (
 
 // MVPTarget defines an evaluation or live repository target.
 type MVPTarget struct {
-	TargetID       string `json:"target_id"`
-	Repository     string `json:"repository"`
-	RelativeSource string `json:"relative_source"`
-	TargetFile     string `json:"target_file"`
-	DefectCategory string `json:"defect_category"`
-	Stratum        string `json:"stratum"`
-	ExpectedAction string `json:"expected_action"`
-	Description    string `json:"description"`
-	UpstreamCommit string `json:"upstream_commit,omitempty"`
-	UpstreamURL    string `json:"upstream_url,omitempty"`
-	VerifiedBy     string `json:"verified_by"`
-	WorkspaceID    string `json:"workspace_id,omitempty"`
-	LineNumber     int    `json:"line_number,omitempty"`
-	IsDemoTarget   bool   `json:"is_demo_target"`
-	SnapshotID     string `json:"snapshot_id,omitempty"`
-	SourceFileHash string `json:"source_file_hash,omitempty"`
+	RuleID            string  `json:"rule_id,omitempty"`
+	Symbol            string  `json:"symbol,omitempty"`
+	LineEnd           int     `json:"line_end,omitempty"`
+	Confidence        float64 `json:"confidence"`
+	UncertaintyClass  string  `json:"uncertainty_class,omitempty"`
+	SourceEvidence    string  `json:"source_evidence,omitempty"`
+	DetectionEvidence string  `json:"detection_evidence,omitempty"`
+	EligibilityReason string  `json:"eligibility_reason,omitempty"`
+	TargetID          string  `json:"target_id"`
+	Repository        string  `json:"repository"`
+	RelativeSource    string  `json:"relative_source"`
+	TargetFile        string  `json:"target_file"`
+	DefectCategory    string  `json:"defect_category"`
+	Stratum           string  `json:"stratum"`
+	ExpectedAction    string  `json:"expected_action"`
+	Description       string  `json:"description"`
+	UpstreamCommit    string  `json:"upstream_commit,omitempty"`
+	UpstreamURL       string  `json:"upstream_url,omitempty"`
+	VerifiedBy        string  `json:"verified_by"`
+	WorkspaceID       string  `json:"workspace_id,omitempty"`
+	LineNumber        int     `json:"line_number,omitempty"`
+	IsDemoTarget      bool    `json:"is_demo_target"`
+	SnapshotID        string  `json:"snapshot_id,omitempty"`
+	SourceFileHash    string  `json:"source_file_hash,omitempty"`
 }
 
 // MVPAnalysisResult stores diagnostic and semantic findings for a target.
@@ -412,27 +420,18 @@ func (s *MVPService) resolveWorkspaceDirLocked(workspaceID string) (string, erro
 	return "", fmt.Errorf("workspace %q cannot be resolved or is not a directory", workspaceID)
 }
 
-// ListTargets returns available demo targets and any discovered dynamic targets for workspaceID.
+// ListTargets is the legacy source-only accessor. HTTP callers use ListLiveTargets
+// so discovery errors cannot be mistaken for an empty successful scan.
 func (s *MVPService) ListTargets(workspaceID ...string) []MVPTarget {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var targets []MVPTarget
-	wsID := ""
-	if len(workspaceID) > 0 {
-		wsID = strings.TrimSpace(workspaceID[0])
+	if len(workspaceID) == 0 || strings.TrimSpace(workspaceID[0]) == "" {
+		return []MVPTarget{}
 	}
-
-	if wsID != "" {
-		discovered, err := s.discoverWorkspaceTargetsLocked(wsID, MVPAnalysisOperator)
-		if err == nil {
-			targets = append(targets, discovered...)
-		}
-	}
-
-	// Always append preconfigured demo fixtures
-	targets = append(targets, DefaultPreconfiguredTargets()...)
+	targets, _ := s.ListLiveTargets(workspaceID[0])
 	return targets
+}
+
+func (s *MVPService) ListLiveTargets(workspaceID string) ([]MVPTarget, error) {
+	return s.DiscoverWorkspaceTargets(workspaceID, MVPAnalysisOperator)
 }
 
 // AnalyzeTarget inspects a target and returns diagnostic findings with semantic evidence.
@@ -453,6 +452,25 @@ func (s *MVPService) AnalyzeTarget(targetID string) (*MVPAnalysisResult, error) 
 	}
 	if target == nil {
 		return nil, fmt.Errorf("target %q not recognized", targetID)
+	}
+
+	if !target.IsDemoTarget {
+		snap := s.snapshots[target.SnapshotID]
+		if snap == nil || snap.WorkspaceID != target.WorkspaceID {
+			return nil, fmt.Errorf("SNAPSHOT_MISSING: invalid target snapshot")
+		}
+		expiry, err := time.Parse(time.RFC3339, snap.ExpiresAt)
+		if err != nil || !time.Now().Before(expiry) {
+			return nil, fmt.Errorf("SNAPSHOT_EXPIRED: target snapshot expired")
+		}
+		dir, err := s.resolveWorkspaceDirLocked(target.WorkspaceID)
+		if err != nil {
+			return nil, err
+		}
+		digest, err := ComputeRepoDigest(dir)
+		if err != nil || digest != snap.RootDigest {
+			return nil, fmt.Errorf("STALE_WORKSPACE: source changed or unavailable")
+		}
 	}
 
 	analysisID := fmt.Sprintf("ANALYSIS-%s-%d", target.TargetID, time.Now().UnixNano()%1000000)
@@ -612,6 +630,11 @@ func (s *MVPService) AnalyzeTarget(targetID string) (*MVPAnalysisResult, error) 
 		}
 	}
 
+	if !target.IsDemoTarget && target.ExpectedAction != "REPAIR" {
+		autoEligible = false
+		rationale = "Scanner requires manual review; automated repair is not eligible. " + rationale
+	}
+
 	res := &MVPAnalysisResult{
 		AnalysisID:           analysisID,
 		TargetID:             target.TargetID,
@@ -706,12 +729,19 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 		HumanApprovalRequired: true,
 	}
 	finding := &repo_intel.Finding{
-		FindingID: analysis.FindingID,
-		Category:  repo_intel.CategorySecurity,
-		Title:     target.Description,
+		FindingID:       analysis.FindingID,
+		Category:        repo_intel.CategorySecurity,
+		Title:           target.DefectCategory,
+		AffectedSymbols: []string{target.Symbol},
+		Evidence:        []repo_intel.EvidenceLocation{{File: target.TargetFile, LineStart: target.LineNumber}},
 	}
 
-	decision := s.Synthesizer.Synthesize(tmpSandbox, task, finding)
+	var decision *SynthesisDecision
+	if !target.IsDemoTarget && !analysis.AutomaticEligibility {
+		decision = &SynthesisDecision{Status: DecisionAbstained, Intent: &RepairIntent{IntentType: IntentAbstain, AbstainCategory: AbstainUnrecognizedPattern}, Reason: analysis.EligibilityRationale}
+	} else {
+		decision = s.Synthesizer.Synthesize(tmpSandbox, task, finding)
+	}
 
 	targetAbs := filepath.Join(tmpSandbox, filepath.FromSlash(target.TargetFile))
 	fBytes, _ := os.ReadFile(targetAbs)

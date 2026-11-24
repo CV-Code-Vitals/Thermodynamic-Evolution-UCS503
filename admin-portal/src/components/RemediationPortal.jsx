@@ -17,7 +17,6 @@ import {
 function renderVerdictBadge(verdict) {
   switch (verdict) {
     case 'INDEPENDENTLY_VERIFIED':
-    case 'VERIFIED':
       return <span className="remediation-badge badge-verified">INDEPENDENTLY_VERIFIED</span>;
     case 'SYNTAX_ONLY_VERIFIED':
       return <span className="remediation-badge badge-review">SYNTAX_ONLY_VERIFIED</span>;
@@ -38,7 +37,7 @@ function renderVerdictBadge(verdict) {
 
 export default function RemediationPortal({ apiBase = '/api', token = '', latestScan = null, onNavigateToScan = null }) {
   const [targets, setTargets] = useState([]);
-  const [selectedTarget, setSelectedTarget] = useState('INJ-EXT2-RES-02');
+  const [selectedTarget, setSelectedTarget] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -59,7 +58,16 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
 
   useEffect(() => {
     let isMounted = true;
+    setTargets([]);
+    setSelectedTarget('');
+    setAnalysis(null);
+    setProposal(null);
+    setApproval(null);
+    setExecution(null);
+    setAuditReport(null);
+    setRollbackStatus('');
     async function loadTargets() {
+      if (!latestScan?.workspace_id) return;
       try {
         const list = await fetchRemediationTargets(apiBase, token, latestScan?.workspace_id);
         if (isMounted) {
@@ -70,6 +78,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
       } catch (loadError) {
         if (isMounted) {
           setTargets([]);
+          setSelectedTarget('');
           setError(loadError.message);
         }
       }
@@ -214,7 +223,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
         <h2>Autonomous Code Repair MVP</h2>
         <p>Controlled, Sandboxed AST-Level Remediation with Decoupled Independent Oracles & Cryptographic Authorization</p>
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-          <span className="remediation-badge badge-verified">BASELINE: de06b6e</span>
+          <span className="remediation-badge badge-review">SOURCE: {targets.find(t => t.target_id === selectedTarget)?.upstream_commit?.slice(0, 12) || 'No selected revision'}</span>
           <span className="remediation-badge badge-review">BRANCH: release/milestone-3.8-mvp-rc</span>
           <span className="remediation-badge badge-abstain">FAIL-CLOSED SAFETY ACTIVE</span>
         </div>
@@ -248,7 +257,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
           <div>
             <div style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 600 }}>NO LIVE REPOSITORY SCANNED</div>
             <div style={{ fontSize: '0.8rem', color: '#8892b0' }}>
-              Scan a GitHub repository in <strong>Scan & Optimize</strong> to discover and repair live findings, or test using the preconfigured demo targets below.
+              Scan a GitHub repository in <strong>Scan & Optimize</strong> to discover and repair live findings, or explicitly run the labeled demo.
             </div>
           </div>
           {onNavigateToScan && (
@@ -274,8 +283,8 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
         </h3>
         <p>
           {scannedTargets.length > 0
-            ? `Select a diagnostic finding from the scanned repository (${scannedTargets.length} discovered) or a preconfigured demo target:`
-            : 'Select a candidate defect target from the verified external pilot corpus:'}
+            ? `Select a diagnostic finding from the scanned repository (${scannedTargets.length} discovered) :`
+            : 'No live findings available. Scan a repository or explicitly run the demo.'}
         </p>
 
         {/* Filter Toolbar for Scanned Targets */}
@@ -363,7 +372,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
           <button className="action-btn" onClick={handleRunAnalysis} disabled={loading || targets.length === 0}>
             {loading ? 'ANALYZING...' : 'RUN SEMANTIC ANALYSIS'}
           </button>
-          <button className="action-btn secondary" onClick={handleQuickDemo} disabled={loading || targets.length === 0}>
+          <button className="action-btn secondary" onClick={handleQuickDemo} disabled={loading}>
             RUN ONE-CLICK DETERMINISTIC DEMO
           </button>
         </div>

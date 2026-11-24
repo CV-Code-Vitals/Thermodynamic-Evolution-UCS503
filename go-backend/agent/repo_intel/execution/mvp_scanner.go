@@ -3,13 +3,14 @@ package execution
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -67,7 +68,7 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 	var goFiles []string
 	err = filepath.Walk(wsDir, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
-			return nil
+			return walkErr
 		}
 		if info.IsDir() {
 			base := filepath.Base(path)
@@ -88,8 +89,32 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 		return nil, fmt.Errorf("failed to scan workspace files: %w", err)
 	}
 
-	var discovered []MVPTarget
+	// Parse every selected source file before analysis; parser failure is not a clean scan.
+	sourceAST := make(map[string]*ast.File)
+	sourceSets := make(map[string]*token.FileSet)
+	for _, rel := range goFiles {
+		content, err := readWorkspaceFile(wsDir, rel)
+		if err != nil {
+			return nil, err
+		}
+		fs := token.NewFileSet()
+		node, err := parser.ParseFile(fs, rel, content, parser.AllErrors)
+		if err != nil {
+			return nil, fmt.Errorf("SOURCE_PARSE_FAILED: %s: %w", rel, err)
+		}
+		sourceAST[rel], sourceSets[rel] = node, fs
+	}
+	discovered := []MVPTarget{}
 	repoName := filepath.Base(wsDir)
+	gitValue := func(args ...string) string {
+		cmd := exec.Command("git", append([]string{"-C", wsDir}, args...)...)
+		out, err := cmd.Output()
+		if err != nil {
+			return ""
+		}
+		return strings.TrimSpace(string(out))
+	}
+	commit, repoURL := gitValue("rev-parse", "HEAD"), gitValue("config", "--get", "remote.origin.url")
 
 	rootDigest, err := ComputeRepoDigest(wsDir)
 	if err != nil || rootDigest == "" {
@@ -127,8 +152,27 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 	// 2. Run Unified Semantic Diagnostic Orchestrator if Go files are present
 	if len(goFiles) > 0 {
 		orch := semantic.NewUnifiedOrchestrator(wsDir)
-		report, diagErr := orch.RunCompleteDiagnostic(goFiles, "HEAD")
-		if diagErr == nil && report != nil && report.ReconciliationLedger != nil {
+		report, diagErr := orch.RunCompleteDiagnostic(goFiles, commit)
+		if diagErr != nil {
+			return nil, fmt.Errorf("SCANNER_FAILED: %w", diagErr)
+		}
+		if report == nil || report.ReconciliationLedger == nil {
+			return nil, fmt.Errorf("SCANNER_FAILED: missing diagnostic report")
+		}
+		if report != nil && report.ReconciliationLedger != nil {
+			sort.SliceStable(report.ReconciliationLedger.Findings, func(i, j int) bool {
+				a, b := report.ReconciliationLedger.Findings[i], report.ReconciliationLedger.Findings[j]
+				if a.TargetFile != b.TargetFile {
+					return a.TargetFile < b.TargetFile
+				}
+				if a.LineStart != b.LineStart {
+					return a.LineStart < b.LineStart
+				}
+				if a.RuleID != b.RuleID {
+					return a.RuleID < b.RuleID
+				}
+				return a.Description < b.Description
+			})
 			for i, f := range report.ReconciliationLedger.Findings {
 				targetID := fmt.Sprintf("SCAN-%s-%d", f.RuleID, i+1)
 				expectedAction := "REPAIR"
@@ -139,15 +183,24 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 					expectedAction = "ABSTAIN"
 				}
 
-				categoryStr := "RESOURCE_LEAK"
+				categoryStr := "UNSUPPORTED"
 				if strings.Contains(f.RuleID, "SQL") {
 					categoryStr = "SQL_INJECTION"
 				} else if strings.Contains(f.RuleID, "CMD") || strings.Contains(f.RuleID, "COMMAND") {
 					categoryStr = "COMMAND_INJECTION"
+				} else if strings.Contains(f.RuleID, "RES") {
+					categoryStr = "RESOURCE_LEAK"
 				} else if strings.Contains(f.RuleID, "ERR") {
 					categoryStr = "UNHANDLED_ERROR"
 				}
 
+				if strings.Contains(f.Description, "time.Timer") || strings.Contains(f.Title, "time.Timer") {
+					categoryStr = "UNSUPPORTED"
+					f.ApprovalRationale = "Timer lifecycle requires timer-channel and Go-version semantics; not a supported Close repair."
+				}
+				if categoryStr == "UNHANDLED_ERROR" || categoryStr == "UNSUPPORTED" || f.RemediationEligibility == semantic.EligibleBenign {
+					expectedAction = "ABSTAIN"
+				}
 				target := MVPTarget{
 					TargetID:       targetID,
 					Repository:     repoName,
@@ -161,60 +214,40 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 					LineNumber:     f.LineStart,
 					IsDemoTarget:   false,
 					VerifiedBy:     "Unified Semantic Diagnostic Engine",
+					UpstreamCommit: commit, UpstreamURL: repoURL,
+					RuleID: f.RuleID, LineEnd: f.LineEnd, Confidence: f.Confidence,
+					UncertaintyClass: f.UncertaintyClass, DetectionEvidence: f.Description,
+					EligibilityReason: f.ApprovalRationale,
 				}
 				if err := bindTargetSnapshot(&target); err != nil {
 					return nil, err
 				}
+				node, fs := sourceAST[target.TargetFile], sourceSets[target.TargetFile]
+				if node == nil || fs == nil {
+					return nil, fmt.Errorf("INVALID_SOURCE_EVIDENCE: missing parsed file")
+				}
+				for _, decl := range node.Decls {
+					if fn, ok := decl.(*ast.FuncDecl); ok && fs.Position(fn.Pos()).Line <= target.LineNumber && fs.Position(fn.End()).Line >= target.LineNumber {
+						target.Symbol = fn.Name.Name
+						break
+					}
+				}
+				content, err := readWorkspaceFile(wsDir, target.TargetFile)
+				if err != nil {
+					return nil, err
+				}
+				lines := strings.Split(string(content), "\n")
+				if target.LineNumber < 1 || target.LineNumber > len(lines) || target.Symbol == "" {
+					return nil, fmt.Errorf("INVALID_SOURCE_EVIDENCE: %s:%d", target.TargetFile, target.LineNumber)
+				}
+				target.SourceEvidence = lines[target.LineNumber-1]
 				discovered = append(discovered, target)
 			}
 		}
 	}
 
-	// 3. Inspect thermodynamic_report.json for high-complexity hotspots
-	if reportBytes, err := readWorkspaceFile(wsDir, "thermodynamic_report.json"); err == nil {
-		var thermoReport ScannedThermodynamicReport
-		if err := json.Unmarshal(reportBytes, &thermoReport); err == nil {
-			for _, file := range thermoReport.FileReports {
-				if file.Language != "Go" {
-					continue
-				}
-				for _, hotspot := range file.Hotspots {
-					if hotspot.CyclomaticComplexity >= 15 || hotspot.EntropyScore >= 75 {
-						targetID := fmt.Sprintf("SCAN-COMPLEXITY-%s", sanitizeTargetID(hotspot.FunctionName))
-						target := MVPTarget{
-							TargetID:       targetID,
-							Repository:     repoName,
-							RelativeSource: file.FilePath,
-							TargetFile:     file.FilePath,
-							DefectCategory: "HIGH_COMPLEXITY",
-							Stratum:        "SCANNED_REPOSITORY",
-							ExpectedAction: "ABSTAIN",
-							Description:    fmt.Sprintf("High Complexity Hotspot: %s() in %s (Complexity: %d, Entropy: %.1f)", hotspot.FunctionName, file.FilePath, hotspot.CyclomaticComplexity, hotspot.EntropyScore),
-							WorkspaceID:    workspaceID,
-							LineNumber:     1,
-							IsDemoTarget:   false,
-							VerifiedBy:     "Thermodynamic AST Hotspot Engine",
-						}
-						if err := bindTargetSnapshot(&target); err != nil {
-							return nil, err
-						}
-						discovered = append(discovered, target)
-					}
-				}
-			}
-		}
-	}
-
-	// 4. Fallback AST heuristic scan if no semantic findings were identified
-	if len(discovered) == 0 && len(goFiles) > 0 {
-		fallbackTargets := s.astFallbackScan(wsDir, goFiles, workspaceID, repoName)
-		for i := range fallbackTargets {
-			if err := bindTargetSnapshot(&fallbackTargets[i]); err != nil {
-				return nil, err
-			}
-		}
-		discovered = append(discovered, fallbackTargets...)
-	}
+	// Repository-supplied reports and broad AST patterns are not diagnostic evidence.
+	// Only findings from the semantic pass above are returned in live mode.
 
 	owner := ""
 	if len(ownerID) > 0 && ownerID[0] != "" {
@@ -229,7 +262,7 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 		SnapshotID:   snapshotID,
 		WorkspaceID:  workspaceID,
 		OwnerID:      owner,
-		SourceCommit: "HEAD",
+		SourceCommit: commit,
 		RootDigest:   rootDigest,
 		FileHashes:   fileHashes,
 		TargetCount:  len(discovered),

@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/execution"
@@ -37,8 +38,19 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, work
 				workspaceID = bodyReq.WorkspaceID
 			}
 		}
-		targets := mvpService.ListTargets(workspaceID)
-		c.JSON(http.StatusOK, gin.H{"targets": targets})
+		if workspaceID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "workspace_id is required for live targets; use /demo explicitly"})
+			return
+		}
+		targets, err := mvpService.ListLiveTargets(workspaceID)
+		if err != nil {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+			return
+		}
+		if targets == nil {
+			targets = []execution.MVPTarget{}
+		}
+		c.JSON(http.StatusOK, gin.H{"source_kind": "SCANNED_REPOSITORY", "analysis_scope": "Go non-test source; semantic heuristics, not proof of defects", "targets": targets})
 	}
 
 	analyzeHandler := func(c *gin.Context) {
@@ -48,6 +60,12 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, work
 		if err := c.ShouldBindJSON(&req); err != nil || req.TargetID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "target_id is required"})
 			return
+		}
+		for _, fixture := range execution.DefaultPreconfiguredTargets() {
+			if req.TargetID == fixture.TargetID && !strings.Contains(c.FullPath(), "/demo/") {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "DEMO_FIXTURE requires explicit /demo mode"})
+				return
+			}
 		}
 		analysis, err := mvpService.AnalyzeTarget(req.TargetID)
 		if err != nil {
@@ -140,6 +158,10 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, work
 			c.Header("Cache-Control", "no-store")
 			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<10)
 		})
+		routes.GET("/demo/targets", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"source_kind": "DEMO_FIXTURE", "targets": execution.DefaultPreconfiguredTargets()})
+		})
+		routes.POST("/demo/analyze", analyzeHandler)
 		routes.GET("/targets", targetsHandler)
 		routes.POST("/targets", targetsHandler)
 		routes.POST("/analyze", analyzeHandler)

@@ -113,6 +113,18 @@ func (r *ErrorRegistry) ResolveCallSignature(
 			}
 		}
 
+		// Package functions not present in the exact registry must not inherit
+		// an unrelated instance method signature (e.g. hex.Encode returns int).
+		if id, ok := sel.X.(*ast.Ident); ok && id.Obj == nil {
+			return ErrorReturnSignature{Resolution: SignatureUnresolved}, ErrorCatGeneral
+		}
+		if (methodName == "Query" || methodName == "QueryContext" || methodName == "Begin" || methodName == "BeginTx") && isExplicitNonSQLReceiver(sel.X) {
+			return ErrorReturnSignature{Resolution: SignatureUnresolved}, ErrorCatGeneral
+		}
+		pkg, typ := declaredReceiverType(sel.X)
+		if methodName == "Write" && (len(call.Args) != 1 || (pkg == "hash" && (typ == "Hash" || typ == "Hash32" || typ == "Hash64"))) {
+			return ErrorReturnSignature{Resolution: SignatureASTInferred}, ErrorCatGeneral
+		}
 		// Method calls on known receivers or common idioms
 		switch methodName {
 		case "Close":
@@ -343,4 +355,3 @@ func typeExprToString(expr ast.Expr) string {
 		return ""
 	}
 }
-

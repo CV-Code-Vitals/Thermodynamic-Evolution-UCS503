@@ -101,12 +101,21 @@ func TestEndToEndScanToRepairWorkflow_LiveRepo(t *testing.T) {
 	if len(scannedTargets) == 0 {
 		t.Fatalf("Expected scanned repository targets for CV-Code-Vitals/Thermodynamic-Evolution-UCS503, found 0")
 	}
-	if len(demoTargets) == 0 {
-		t.Fatalf("Expected demo targets to be preserved, found 0")
+	if len(demoTargets) != 0 {
+		t.Fatalf("Live discovery contaminated with demo targets")
 	}
 
 	// Step 3: Test a repairable candidate target (e.g. SQL Injection parameterization)
-	repairableTargetID := "SCAN-SEMANTIC_SQL_INJECTION-2"
+	repairableTargetID := ""
+	for _, target := range targetsResp.Targets {
+		if target.DefectCategory == "SQL_INJECTION" && target.ExpectedAction == "REPAIR" {
+			repairableTargetID = target.TargetID
+			break
+		}
+	}
+	if repairableTargetID == "" {
+		t.Skip("real scan completed; no eligible SQL candidate; repair lifecycle NOT VERIFIED")
+	}
 	anBody, _ := json.Marshal(map[string]string{"target_id": repairableTargetID})
 	w3 := httptest.NewRecorder()
 	req3, _ := http.NewRequest(http.MethodPost, "/api/remediation/analyze", bytes.NewReader(anBody))
@@ -202,7 +211,16 @@ func TestEndToEndScanToRepairWorkflow_LiveRepo(t *testing.T) {
 		execResp.VerificationVerdict, execResp.AppliedInSandbox, execResp.OriginalRepoImmutable)
 
 	// Step 7: Test an unsupported / abstention candidate (e.g. Command Injection)
-	abstainTargetID := "SCAN-SEMANTIC_COMMAND_INJECTION-41"
+	abstainTargetID := ""
+	for _, target := range targetsResp.Targets {
+		if target.DefectCategory == "COMMAND_INJECTION" {
+			abstainTargetID = target.TargetID
+			break
+		}
+	}
+	if abstainTargetID == "" {
+		t.Skip("no command candidate; abstention track NOT VERIFIED")
+	}
 	absAnBody, _ := json.Marshal(map[string]string{"target_id": abstainTargetID})
 	w7 := httptest.NewRecorder()
 	req7, _ := http.NewRequest(http.MethodPost, "/api/remediation/analyze", bytes.NewReader(absAnBody))

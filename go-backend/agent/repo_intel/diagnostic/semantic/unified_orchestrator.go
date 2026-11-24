@@ -79,6 +79,7 @@ func NewUnifiedOrchestrator(repoRoot string) *UnifiedOrchestrator {
 // RunCompleteDiagnostic executes the unified multi-stage semantic analysis across all target files.
 func (u *UnifiedOrchestrator) RunCompleteDiagnostic(files []string, repoCommit string) (*UnifiedDiagnosticReport, error) {
 	t0 := time.Now()
+	var analysisErrors []string
 
 	// 1. Group files by directory to construct package models
 	dirMap := make(map[string][]string)
@@ -125,6 +126,7 @@ func (u *UnifiedOrchestrator) RunCompleteDiagnostic(files []string, repoCommit s
 
 		fileModel, _, err := u.semAnalyzer.AnalyzeFile(f)
 		if err != nil || fileModel == nil {
+			analysisErrors = append(analysisErrors, fmt.Sprintf("%s: %v", f, err))
 			continue
 		}
 
@@ -143,10 +145,13 @@ func (u *UnifiedOrchestrator) RunCompleteDiagnostic(files []string, repoCommit s
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						// Failure isolation: log and continue
+						analysisErrors = append(analysisErrors, fmt.Sprintf("analyzer panic in %s: %v", f, r))
 					}
 				}()
 				evs, err := u.sqlAnalyzer.AnalyzeFunction(cfg.FuncDecl, fileModel.FileSet, cfg, df, f)
+				if err != nil {
+					analysisErrors = append(analysisErrors, fmt.Sprintf("%s: %v", f, err))
+				}
 				if err == nil {
 					allSQLEvs = append(allSQLEvs, evs...)
 				}
@@ -156,10 +161,13 @@ func (u *UnifiedOrchestrator) RunCompleteDiagnostic(files []string, repoCommit s
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						// Failure isolation
+						analysisErrors = append(analysisErrors, fmt.Sprintf("analyzer panic in %s: %v", f, r))
 					}
 				}()
 				evs, err := u.cmdAnalyzer.AnalyzeFunction(cfg.FuncDecl, fileModel.FileSet, cfg, df, f)
+				if err != nil {
+					analysisErrors = append(analysisErrors, fmt.Sprintf("%s: %v", f, err))
+				}
 				if err == nil {
 					allCmdEvs = append(allCmdEvs, evs...)
 				}
@@ -169,10 +177,13 @@ func (u *UnifiedOrchestrator) RunCompleteDiagnostic(files []string, repoCommit s
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						// Failure isolation
+						analysisErrors = append(analysisErrors, fmt.Sprintf("analyzer panic in %s: %v", f, r))
 					}
 				}()
 				evs, err := u.resAnalyzer.AnalyzeFunction(cfg.FuncDecl, fileModel.FileSet, cfg, df, f)
+				if err != nil {
+					analysisErrors = append(analysisErrors, fmt.Sprintf("%s: %v", f, err))
+				}
 				if err == nil {
 					allResEvs = append(allResEvs, evs...)
 				}
@@ -182,15 +193,22 @@ func (u *UnifiedOrchestrator) RunCompleteDiagnostic(files []string, repoCommit s
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						// Failure isolation
+						analysisErrors = append(analysisErrors, fmt.Sprintf("analyzer panic in %s: %v", f, r))
 					}
 				}()
 				evs, err := u.errAnalyzer.AnalyzeFunction(cfg.FuncDecl, fileModel.FileSet, cfg, df, f, nil)
+				if err != nil {
+					analysisErrors = append(analysisErrors, fmt.Sprintf("%s: %v", f, err))
+				}
 				if err == nil {
 					allErrEvs = append(allErrEvs, evs...)
 				}
 			}()
 		}
+	}
+
+	if len(analysisErrors) > 0 {
+		return nil, fmt.Errorf("semantic analysis incomplete: %s", strings.Join(analysisErrors, "; "))
 	}
 
 	// 4. Canonical Finding Reconciliation

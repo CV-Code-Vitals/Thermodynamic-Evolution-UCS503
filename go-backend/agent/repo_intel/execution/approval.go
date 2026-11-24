@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -28,20 +29,20 @@ var (
 
 // ApprovalToken is an immutable, cryptographically authentic authorization credential.
 type ApprovalToken struct {
-	TokenID          string                 `json:"token_id"`
-	ApproverID       string                 `json:"approver_id"`
-	ApproverRole     string                 `json:"approver_role"`
-	TaskID           string                 `json:"task_id"`
-	RiskTier         string                 `json:"risk_tier"`
+	TokenID          string                  `json:"token_id"`
+	ApproverID       string                  `json:"approver_id"`
+	ApproverRole     string                  `json:"approver_role"`
+	TaskID           string                  `json:"task_id"`
+	RiskTier         string                  `json:"risk_tier"`
 	ExecutionClass   planning.ExecutionClass `json:"execution_class"`
-	BaselineCommit   string                 `json:"baseline_commit"`
-	TargetFileHashes map[string]string      `json:"target_file_hashes"` // relPath -> SHA256
-	PatchDiffHash    string                 `json:"patch_diff_hash"`    // SHA256 of unified diff
-	AllowedOperation string                 `json:"allowed_operation"`  // "APPLY_PATCH"
-	WorkspaceID      string                 `json:"workspace_id"`
-	IssuedAt         time.Time              `json:"issued_at"`
-	ExpiresAt        time.Time              `json:"expires_at"`
-	HMACSignature    string                 `json:"hmac_signature"`
+	BaselineCommit   string                  `json:"baseline_commit"`
+	TargetFileHashes map[string]string       `json:"target_file_hashes"` // relPath -> SHA256
+	PatchDiffHash    string                  `json:"patch_diff_hash"`    // SHA256 of unified diff
+	AllowedOperation string                  `json:"allowed_operation"`  // "APPLY_PATCH"
+	WorkspaceID      string                  `json:"workspace_id"`
+	IssuedAt         time.Time               `json:"issued_at"`
+	ExpiresAt        time.Time               `json:"expires_at"`
+	HMACSignature    string                  `json:"hmac_signature"`
 }
 
 // CanonicalPayload returns the deterministic bytes used for HMAC signing and verification.
@@ -66,7 +67,11 @@ func NewApprovalConsumptionRegistry(persistPath string) (*ApprovalConsumptionReg
 	}
 
 	if persistPath != "" {
-		if data, err := os.ReadFile(persistPath); err == nil && len(data) > 0 {
+		data, err := os.ReadFile(persistPath)
+		if err != nil && !os.IsNotExist(err) {
+			return nil, fmt.Errorf("%w: %v", ErrCorruptLedger, err)
+		}
+		if err == nil {
 			var loaded map[string]time.Time
 			if err := json.Unmarshal(data, &loaded); err != nil {
 				return nil, fmt.Errorf("%w: %v", ErrCorruptLedger, err)
@@ -103,8 +108,28 @@ func (r *ApprovalConsumptionRegistry) Consume(tokenID string) error {
 
 	// Persist to disk if path configured
 	if r.persistPath != "" {
-		if data, err := json.Marshal(r.consumed); err == nil {
-			_ = os.WriteFile(r.persistPath, data, 0600)
+		data, err := json.Marshal(r.consumed)
+		if err != nil {
+			return fmt.Errorf("persist approval consumption: %w", err)
+		}
+		file, err := os.CreateTemp(filepath.Dir(r.persistPath), ".approval-ledger-*")
+		if err != nil {
+			return fmt.Errorf("persist approval consumption: %w", err)
+		}
+		name := file.Name()
+		defer os.Remove(name)
+		if _, err = file.Write(data); err == nil {
+			err = file.Sync()
+		}
+		closeErr := file.Close()
+		if err == nil {
+			err = closeErr
+		}
+		if err == nil {
+			err = os.Rename(name, r.persistPath)
+		}
+		if err != nil {
+			return fmt.Errorf("persist approval consumption: %w", err)
 		}
 	}
 

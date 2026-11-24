@@ -19,12 +19,12 @@ func TestRemediationHttpWorkflow(t *testing.T) {
 	r := gin.New()
 	setupRemediationRoutes(r, func(c *gin.Context) { c.Next() }, nil, execution.NewUnavailableContainerRunner())
 
-	// 1. GET /api/remediation/targets
+	// 1. GET /api/remediation/demo/targets
 	w1 := httptest.NewRecorder()
-	req1, _ := http.NewRequest(http.MethodGet, "/api/remediation/targets", nil)
+	req1, _ := http.NewRequest(http.MethodGet, "/api/remediation/demo/targets", nil)
 	r.ServeHTTP(w1, req1)
 	if w1.Code != http.StatusOK {
-		t.Fatalf("GET /api/remediation/targets returned %d: %s", w1.Code, w1.Body.String())
+		t.Fatalf("GET /api/remediation/demo/targets returned %d: %s", w1.Code, w1.Body.String())
 	}
 	var targetsResp struct {
 		Targets []struct {
@@ -35,15 +35,15 @@ func TestRemediationHttpWorkflow(t *testing.T) {
 		t.Fatalf("Failed to parse targets: %v (len: %d)", err, len(targetsResp.Targets))
 	}
 
-	// 2. POST /api/remediation/analyze for primary verified target (INJ-EXT2-RES-02)
+	// 2. POST /api/remediation/demo/analyze for primary verified target (INJ-EXT2-RES-02)
 	targetID := targetsResp.Targets[0].TargetID
 	analyzeBody, _ := json.Marshal(map[string]string{"target_id": targetID})
 	w2 := httptest.NewRecorder()
-	req2, _ := http.NewRequest(http.MethodPost, "/api/remediation/analyze", bytes.NewReader(analyzeBody))
+	req2, _ := http.NewRequest(http.MethodPost, "/api/remediation/demo/analyze", bytes.NewReader(analyzeBody))
 	req2.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w2, req2)
 	if w2.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/analyze returned %d: %s", w2.Code, w2.Body.String())
+		t.Fatalf("POST /api/remediation/demo/analyze returned %d: %s", w2.Code, w2.Body.String())
 	}
 	var analysisResp struct {
 		AnalysisID string `json:"analysis_id"`
@@ -126,7 +126,7 @@ func TestRemediationHttpWorkflow(t *testing.T) {
 	// 7. Test Abstention via Analyze & Propose for INJ-EXT2-CMD-01
 	absAnalyzeBody, _ := json.Marshal(map[string]string{"target_id": "INJ-EXT2-CMD-01"})
 	w7 := httptest.NewRecorder()
-	req7, _ := http.NewRequest(http.MethodPost, "/api/remediation/analyze", bytes.NewReader(absAnalyzeBody))
+	req7, _ := http.NewRequest(http.MethodPost, "/api/remediation/demo/analyze", bytes.NewReader(absAnalyzeBody))
 	req7.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w7, req7)
 	if w7.Code != http.StatusOK {

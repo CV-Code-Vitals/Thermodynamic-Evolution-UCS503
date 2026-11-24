@@ -987,8 +987,8 @@ func (s *IndependentOracleSuite) verifySyntaxCompilation(wsDir string, task *pla
 	if s.Runner == nil || s.Runner.CheckAvailable(ctx) != nil {
 		// Secure container runtime is not available.
 		// FAIL-CLOSED: Do NOT fall back to host execution!
-		res.Status = OracleStatusPassed // Static AST syntax valid on trusted host
-		res.Passed = true
+		res.Status = OracleStatusUnavailable // Parsing succeeded, but compilation did not execute.
+		res.Passed = false
 		res.Details = "AST syntax valid on trusted host (static AST check only; dynamic container vetting unavailable: DYNAMIC_VERIFICATION_UNAVAILABLE)"
 		res.DurationMs = time.Since(start).Milliseconds()
 		return res
@@ -1282,8 +1282,8 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 				}
 			}
 		}
-		res.Status = OracleStatusPassed
-		res.Passed = true
+		res.Status = OracleStatusNotRun
+		res.Passed = false
 		res.Details = "Explicit or deferred resource cleanup verified along exit paths (syntactic check; dynamic reproducer not executed)"
 	} else if strings.Contains(taskType, "sql") {
 		if strings.Contains(src, "fmt.Sprintf") && strings.Contains(src, "%s") {
@@ -1300,8 +1300,8 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
-		res.Status = OracleStatusPassed
-		res.Passed = true
+		res.Status = OracleStatusNotRun
+		res.Passed = false
 		res.Details = "Parameterized SQL placeholder and parameter bindings verified (syntactic check; dynamic reproducer not executed)"
 	} else if strings.Contains(taskType, "error") {
 		if !strings.Contains(src, "if err != nil") && !strings.Contains(src, "if err :=") {
@@ -1311,12 +1311,12 @@ func (s *IndependentOracleSuite) verifyDefectReproducer(
 			res.DurationMs = time.Since(start).Milliseconds()
 			return res
 		}
-		res.Status = OracleStatusPassed
-		res.Passed = true
+		res.Status = OracleStatusNotRun
+		res.Passed = false
 		res.Details = "Error handling and propagation check verified (syntactic check; dynamic reproducer not executed)"
 	} else {
-		res.Status = OracleStatusPassed
-		res.Passed = true
+		res.Status = OracleStatusNotRun
+		res.Passed = false
 		res.Details = "Structural AST properties verified (syntactic check; dynamic reproducer not executed)"
 	}
 
