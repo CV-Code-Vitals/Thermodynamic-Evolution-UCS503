@@ -9,6 +9,7 @@ require (
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
+	golang.org/x/mod v0.37.0
 )
 
 require (

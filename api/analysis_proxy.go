@@ -59,7 +59,7 @@ func registerRemediationRoutes(mux *http.ServeMux, deps Dependencies) {
 			writeJSONError(w, http.StatusUnauthorized, "unauthorized")
 			return
 		}
-		if method, ok := allowed[r.URL.Path]; !ok || method != r.Method {
+		if method, ok := allowed[r.URL.Path]; !ok || (method != r.Method && !(r.URL.Path == "/api/remediation/targets" && r.Method == http.MethodPost)) {
 			writeJSONError(w, http.StatusNotFound, "remediation_route_not_found")
 			return
 		}

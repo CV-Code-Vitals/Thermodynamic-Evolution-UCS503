@@ -7,251 +7,277 @@
   "decisions": [
     {
       "action": "RETAIN",
+      "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L33",
+      "rule_id": "SEMANTIC_SQL_INJECTION",
+      "reason": "Verified semantic SQL injection sink with unescaped formatting",
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
+    },
+    {
+      "action": "RETAIN",
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L15",
       "rule_id": "SEMANTIC_SQL_INJECTION",
       "reason": "Verified semantic SQL injection sink with unescaped formatting",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L21",
       "rule_id": "SEMANTIC_SQL_INJECTION",
       "reason": "Verified semantic SQL injection sink with unescaped formatting",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L28",
       "rule_id": "SEMANTIC_SQL_INJECTION",
       "reason": "Verified semantic SQL injection sink with unescaped formatting",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L33",
-      "rule_id": "SEMANTIC_SQL_INJECTION",
-      "reason": "Verified semantic SQL injection sink with unescaped formatting",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L39",
       "rule_id": "SEMANTIC_SQL_INJECTION",
       "reason": "Verified semantic SQL injection sink with unescaped formatting",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
       "rule_id": "SEMANTIC_SQL_INJECTION",
       "reason": "Verified semantic SQL injection sink with unescaped formatting",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L15",
-      "rule_id": "SEMANTIC_COMMAND_INJECTION",
-      "reason": "Verified dynamic command passed to shell interpreter",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L20",
       "rule_id": "SEMANTIC_COMMAND_INJECTION",
       "reason": "Verified dynamic command passed to shell interpreter",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L27",
       "rule_id": "SEMANTIC_COMMAND_INJECTION",
       "reason": "Verified dynamic command passed to shell interpreter",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L38",
-      "rule_id": "SEMANTIC_COMMAND_INJECTION",
-      "reason": "Verified dynamic command passed to shell interpreter",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L32",
       "rule_id": "SEMANTIC_COMMAND_INJECTION",
       "reason": "Verified dynamic command passed to shell interpreter",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L38",
+      "rule_id": "SEMANTIC_COMMAND_INJECTION",
+      "reason": "Verified dynamic command passed to shell interpreter",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L60",
       "rule_id": "SEMANTIC_COMMAND_INJECTION",
       "reason": "Verified dynamic command passed to shell interpreter",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L261",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "reason": "Unclosed resource handle of type os.File along exit paths",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L76",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "reason": "Unclosed resource handle of type http.Response.Body along exit paths",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L95",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "reason": "Unclosed resource handle of type sql.Rows along exit paths",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L15",
+      "rule_id": "SEMANTIC_COMMAND_INJECTION",
+      "reason": "Verified dynamic command passed to shell interpreter",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "QUARANTINE",
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L231",
       "rule_id": "RESOURCE_UNRESOLVED",
       "reason": "Unverified struct storage or ownership transfer quarantined from autonomous remediation",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L273",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "reason": "Unclosed resource handle of type os.File along exit paths",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L158",
       "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "reason": "Unclosed resource handle of type os.File along exit paths",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L55",
       "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "reason": "Unclosed resource handle of type net.Conn along exit paths",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L95",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "reason": "Unclosed resource handle of type sql.Rows along exit paths",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L21",
       "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "reason": "Unclosed resource handle of type os.File along exit paths",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L231",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "reason": "Error return value from os.Open(path) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L76",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "reason": "Unclosed resource handle of type http.Response.Body along exit paths",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L163",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "reason": "Error return value from f.Close() unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L261",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "reason": "Unclosed resource handle of type os.File along exit paths",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L273",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "reason": "Unclosed resource handle of type os.File along exit paths",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L49",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "reason": "Error return value from f.Close() unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L231",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "reason": "Error return value from os.Open(path) unhandled or discarded",
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L163",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "reason": "Error return value from f.Close() unhandled or discarded",
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L126",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "reason": "Error return value from tx.Rollback() unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L138",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "reason": "Error return value from tx.Rollback() unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L69",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "reason": "Error return value from json.Unmarshal(data, \u0026res) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L81",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "reason": "Error return value from os.Open(p1) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "reason": "Error return value from db.Exec(query) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L63",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "reason": "Error return value from net.Dial(\"tcp\", addr) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L102",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "reason": "Error return value from fetch() unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L41",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "reason": "Error return value from json.Unmarshal(data, \u0026res) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "action": "RETAIN",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L47",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "reason": "Error return value from json.Marshal(v) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.9195376+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L53",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "reason": "Error return value from os.WriteFile(path, data, 0644) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.9195376+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L75",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "reason": "Error return value from loadConfig() unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.9195376+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L81",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "reason": "Error return value from os.Open(p1) unhandled or discarded",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L41",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "reason": "Error return value from json.Unmarshal(data, \u0026res) unhandled or discarded",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L69",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "reason": "Error return value from json.Unmarshal(data, \u0026res) unhandled or discarded",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "reason": "Error return value from db.Exec(query) unhandled or discarded",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L47",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "reason": "Error return value from json.Marshal(v) unhandled or discarded",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "action": "RETAIN",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L63",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "reason": "Error return value from net.Dial(\"tcp\", addr) unhandled or discarded",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
     },
     {
       "action": "RETAIN",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L92",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "reason": "Error return value from json.Marshal(v2) unhandled or discarded",
-      "timestamp": "2026-11-18T11:48:54.9195376+05:30"
+      "timestamp": "2026-11-23T13:42:53.7281328+05:30"
     }
   ],
   "findings": [
+    {
+      "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L33",
+      "rule_id": "SEMANTIC_SQL_INJECTION",
+      "category": "SECURITY",
+      "severity": "CRITICAL",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\sql_fixtures.go",
+      "line_start": 33,
+      "line_end": 33,
+      "title": "Untrusted SQL Query Passed as Function Parameter",
+      "description": "SQL query at Query is supplied directly from function parameter rawQuery without bind parameterization.",
+      "root_cause": "Exposing SQL query structure directly to caller parameter.",
+      "recommended_action": "Pass query parameters separately using bind placeholders ($1, ?) rather than dynamic query strings.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\sql_fixtures.go",
+          "line_start": 33,
+          "line_end": 33,
+          "description": "rawQuery"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
+    },
     {
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L15",
       "rule_id": "SEMANTIC_SQL_INJECTION",
@@ -276,7 +302,7 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L21",
@@ -302,7 +328,7 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L28",
@@ -328,33 +354,7 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
-    },
-    {
-      "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L33",
-      "rule_id": "SEMANTIC_SQL_INJECTION",
-      "category": "SECURITY",
-      "severity": "CRITICAL",
-      "confidence": 0.96,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\sql_fixtures.go",
-      "line_start": 33,
-      "line_end": 33,
-      "title": "Untrusted SQL Query Passed as Function Parameter",
-      "description": "SQL query at Query is supplied directly from function parameter rawQuery without bind parameterization.",
-      "root_cause": "Exposing SQL query structure directly to caller parameter.",
-      "recommended_action": "Pass query parameters separately using bind placeholders ($1, ?) rather than dynamic query strings.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\sql_fixtures.go",
-          "line_start": 33,
-          "line_end": 33,
-          "description": "rawQuery"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L39",
@@ -380,7 +380,7 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9179028+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
@@ -406,33 +406,7 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L15",
-      "rule_id": "SEMANTIC_COMMAND_INJECTION",
-      "category": "SECURITY",
-      "severity": "CRITICAL",
-      "confidence": 0.98,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
-      "line_start": 15,
-      "line_end": 15,
-      "title": "Command Injection Risk via Formatted Shell String",
-      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
-      "root_cause": "Formatting user variables into shell interpreter string (-c).",
-      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
-          "line_start": 15,
-          "line_end": 15,
-          "description": "exec.Command(\"sh\", \"-c\", cmdStr)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L20",
@@ -458,7 +432,7 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L27",
@@ -484,33 +458,7 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L38",
-      "rule_id": "SEMANTIC_COMMAND_INJECTION",
-      "category": "SECURITY",
-      "severity": "CRITICAL",
-      "confidence": 0.98,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
-      "line_start": 38,
-      "line_end": 38,
-      "title": "Command Injection Risk via Formatted Shell String",
-      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
-      "root_cause": "Formatting user variables into shell interpreter string (-c).",
-      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
-          "line_start": 38,
-          "line_end": 38,
-          "description": "exec.CommandContext(ctx, \"sh\", \"-c\", cmd)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L32",
@@ -536,7 +484,33 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L38",
+      "rule_id": "SEMANTIC_COMMAND_INJECTION",
+      "category": "SECURITY",
+      "severity": "CRITICAL",
+      "confidence": 0.98,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
+      "line_start": 38,
+      "line_end": 38,
+      "title": "Command Injection Risk via Formatted Shell String",
+      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
+      "root_cause": "Formatting user variables into shell interpreter string (-c).",
+      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
+          "line_start": 38,
+          "line_end": 38,
+          "description": "exec.CommandContext(ctx, \"sh\", \"-c\", cmd)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L60",
@@ -562,116 +536,33 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L261",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.97,
+      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L15",
+      "rule_id": "SEMANTIC_COMMAND_INJECTION",
+      "category": "SECURITY",
+      "severity": "CRITICAL",
+      "confidence": 0.98,
       "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 261,
-      "line_end": 261,
-      "title": "Unclosed System Resource Leak (os.File)",
-      "description": "Resource handle 'f' of type os.File acquired in function 'Pos_Res_AcquiredInLoop' at line 261 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
+      "line_start": 15,
+      "line_end": 15,
+      "title": "Command Injection Risk via Formatted Shell String",
+      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
+      "root_cause": "Formatting user variables into shell interpreter string (-c).",
+      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
       "evidence_locations": [
         {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-          "line_start": 261,
-          "line_end": 261,
-          "description": "os.Open(p)"
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
+          "line_start": 15,
+          "line_end": 15,
+          "description": "exec.Command(\"sh\", \"-c\", cmdStr)"
         }
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "uncertainty_class": "DETERMINISTIC",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L76",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.97,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 76,
-      "line_end": 76,
-      "title": "Unclosed System Resource Leak (http.Response.Body)",
-      "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'Pos_Res_HTTPBodyLeak' at line 76 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer resp.Close()' is called immediately following successful acquisition error checking.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-          "line_start": 76,
-          "line_end": 76,
-          "description": "http.Get(url)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "uncertainty_class": "DETERMINISTIC",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L95",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.97,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 95,
-      "line_end": 95,
-      "title": "Unclosed System Resource Leak (sql.Rows)",
-      "description": "Resource handle 'rows' of type sql.Rows acquired in function 'Pos_Res_SQLRowsLeak' at line 95 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-          "line_start": 95,
-          "line_end": 95,
-          "description": "db.Query(\"SELECT id FROM users\")"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "uncertainty_class": "DETERMINISTIC",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L273",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "category": "RELIABILITY",
-      "severity": "MEDIUM",
-      "confidence": 0.9,
-      "finding_state": "PROBABLE",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 273,
-      "line_end": 273,
-      "title": "Deferred Resource Release Inside Loop (os.File)",
-      "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
-      "root_cause": "Registering deferred cleanup inside loop body.",
-      "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-          "line_start": 273,
-          "line_end": 273,
-          "description": "os.Open(p)"
-        }
-      ],
-      "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
-      "approval_rationale": "Probable resource leak requires human review",
-      "uncertainty_class": "BOUNDED_UNCERTAINTY",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L158",
@@ -699,7 +590,7 @@
       "approval_rationale": "Probable resource leak requires human review",
       "uncertainty_class": "BOUNDED_UNCERTAINTY",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L55",
@@ -726,7 +617,34 @@
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "uncertainty_class": "DETERMINISTIC",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L95",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.97,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+      "line_start": 95,
+      "line_end": 95,
+      "title": "Unclosed System Resource Leak (sql.Rows)",
+      "description": "Resource handle 'rows' of type sql.Rows acquired in function 'Pos_Res_SQLRowsLeak' at line 95 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+          "line_start": 95,
+          "line_end": 95,
+          "description": "db.Query(\"SELECT id FROM users\")"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L21",
@@ -753,59 +671,89 @@
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "uncertainty_class": "DETERMINISTIC",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L231",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L76",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "category": "RELIABILITY",
       "severity": "HIGH",
-      "confidence": 0.95,
+      "confidence": 0.97,
       "finding_state": "CONFIRMED",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 231,
-      "line_end": 231,
-      "title": "Explicitly Discarded Critical Error (os.Open)",
-      "description": "Function 'Pos_Res_StoredInStructUnknownLifecycle' at line 231 explicitly discards error from critical operation 'os.Open(path)' via blank identifier '_'.",
-      "root_cause": "Critical operation error suppressed with blank identifier.",
-      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "line_start": 76,
+      "line_end": 76,
+      "title": "Unclosed System Resource Leak (http.Response.Body)",
+      "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'Pos_Res_HTTPBodyLeak' at line 76 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer resp.Close()' is called immediately following successful acquisition error checking.",
       "evidence_locations": [
         {
           "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-          "line_start": 231,
-          "line_end": 231,
-          "description": "os.Open(path)"
+          "line_start": 76,
+          "line_end": 76,
+          "description": "http.Get(url)"
         }
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9184362+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L163",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L261",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "category": "RELIABILITY",
-      "severity": "LOW",
-      "confidence": 0.96,
+      "severity": "HIGH",
+      "confidence": 0.97,
       "finding_state": "CONFIRMED",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 163,
-      "line_end": 163,
-      "title": "Unchecked Cleanup Error (f.Close)",
-      "description": "Function 'Pos_Res_ConditionalRelease' at line 163 invokes cleanup call 'f.Close()' without checking returned error.",
-      "root_cause": "Cleanup operation return error ignored.",
-      "recommended_action": "Inspect returned error and log if operation fails.",
+      "line_start": 261,
+      "line_end": 261,
+      "title": "Unclosed System Resource Leak (os.File)",
+      "description": "Resource handle 'f' of type os.File acquired in function 'Pos_Res_AcquiredInLoop' at line 261 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
       "evidence_locations": [
         {
           "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-          "line_start": 163,
-          "line_end": 163,
-          "description": "f.Close()"
+          "line_start": 261,
+          "line_end": 261,
+          "description": "os.Open(p)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "uncertainty_class": "DETERMINISTIC",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L273",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "category": "RELIABILITY",
+      "severity": "MEDIUM",
+      "confidence": 0.9,
+      "finding_state": "PROBABLE",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+      "line_start": 273,
+      "line_end": 273,
+      "title": "Deferred Resource Release Inside Loop (os.File)",
+      "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
+      "root_cause": "Registering deferred cleanup inside loop body.",
+      "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+          "line_start": 273,
+          "line_end": 273,
+          "description": "os.Open(p)"
         }
       ],
       "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "approval_rationale": "Probable resource leak requires human review",
+      "uncertainty_class": "BOUNDED_UNCERTAINTY",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L49",
@@ -831,7 +779,59 @@
       ],
       "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
+      "timestamp": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L231",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+      "line_start": 231,
+      "line_end": 231,
+      "title": "Explicitly Discarded Critical Error (os.Open)",
+      "description": "Function 'Pos_Res_StoredInStructUnknownLifecycle' at line 231 explicitly discards error from critical operation 'os.Open(path)' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+          "line_start": 231,
+          "line_end": 231,
+          "description": "os.Open(path)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L163",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+      "line_start": 163,
+      "line_end": 163,
+      "title": "Unchecked Cleanup Error (f.Close)",
+      "description": "Function 'Pos_Res_ConditionalRelease' at line 163 invokes cleanup call 'f.Close()' without checking returned error.",
+      "root_cause": "Cleanup operation return error ignored.",
+      "recommended_action": "Inspect returned error and log if operation fails.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+          "line_start": 163,
+          "line_end": 163,
+          "description": "f.Close()"
+        }
+      ],
+      "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L126",
@@ -857,7 +857,7 @@
       ],
       "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L138",
@@ -883,111 +883,7 @@
       ],
       "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L69",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.95,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 69,
-      "line_end": 69,
-      "title": "Explicitly Discarded Critical Error (json.Unmarshal)",
-      "description": "Function 'Pos_Err_ExplicitBlankCriticalOp' at line 69 explicitly discards error from critical operation 'json.Unmarshal(data, \u0026res)' via blank identifier '_'.",
-      "root_cause": "Critical operation error suppressed with blank identifier.",
-      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-          "line_start": 69,
-          "line_end": 69,
-          "description": "json.Unmarshal(data, \u0026res)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L81",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.96,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 81,
-      "line_end": 81,
-      "title": "Unhandled Error Return (os.Open)",
-      "description": "Function 'Pos_Err_OverwrittenBeforeCheck' at line 81 invokes error-producing call 'os.Open(p1)' but the returned error is discarded.",
-      "root_cause": "Error return value ignored without handling, logging, or propagation.",
-      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-          "line_start": 81,
-          "line_end": 81,
-          "description": "os.Open(p1)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.96,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 58,
-      "line_end": 58,
-      "title": "Unhandled Error Return (db.Exec)",
-      "description": "Function 'Pos_Err_UnhandledDBExec' at line 58 invokes error-producing call 'db.Exec(query)' but the returned error is discarded.",
-      "root_cause": "Error return value ignored without handling, logging, or propagation.",
-      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-          "line_start": 58,
-          "line_end": 58,
-          "description": "db.Exec(query)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L63",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.96,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 63,
-      "line_end": 63,
-      "title": "Unhandled Error Return (net.Dial)",
-      "description": "Function 'Pos_Err_UnhandledDial' at line 63 invokes error-producing call 'net.Dial(\"tcp\", addr)' but the returned error is discarded.",
-      "root_cause": "Error return value ignored without handling, logging, or propagation.",
-      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-          "line_start": 63,
-          "line_end": 63,
-          "description": "net.Dial(\"tcp\", addr)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L102",
@@ -1013,59 +909,7 @@
       ],
       "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L41",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.96,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 41,
-      "line_end": 41,
-      "title": "Unhandled Error Return (json.Unmarshal)",
-      "description": "Function 'Pos_Err_UnhandledUnmarshal' at line 41 invokes error-producing call 'json.Unmarshal(data, \u0026res)' but the returned error is discarded.",
-      "root_cause": "Error return value ignored without handling, logging, or propagation.",
-      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-          "line_start": 41,
-          "line_end": 41,
-          "description": "json.Unmarshal(data, \u0026res)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L47",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.95,
-      "finding_state": "CONFIRMED",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 47,
-      "line_end": 47,
-      "title": "Explicitly Discarded Critical Error (json.Marshal)",
-      "description": "Function 'Pos_Err_UnhandledMarshalDiscard' at line 47 explicitly discards error from critical operation 'json.Marshal(v)' via blank identifier '_'.",
-      "root_cause": "Critical operation error suppressed with blank identifier.",
-      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
-      "evidence_locations": [
-        {
-          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-          "line_start": 47,
-          "line_end": 47,
-          "description": "json.Marshal(v)"
-        }
-      ],
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9195376+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L53",
@@ -1091,7 +935,7 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9195376+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L75",
@@ -1117,7 +961,163 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9195376+05:30"
+      "timestamp": "2026-11-23T13:42:53.7270718+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L81",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 81,
+      "line_end": 81,
+      "title": "Unhandled Error Return (os.Open)",
+      "description": "Function 'Pos_Err_OverwrittenBeforeCheck' at line 81 invokes error-producing call 'os.Open(p1)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+          "line_start": 81,
+          "line_end": 81,
+          "description": "os.Open(p1)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L41",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 41,
+      "line_end": 41,
+      "title": "Unhandled Error Return (json.Unmarshal)",
+      "description": "Function 'Pos_Err_UnhandledUnmarshal' at line 41 invokes error-producing call 'json.Unmarshal(data, \u0026res)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+          "line_start": 41,
+          "line_end": 41,
+          "description": "json.Unmarshal(data, \u0026res)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L69",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 69,
+      "line_end": 69,
+      "title": "Explicitly Discarded Critical Error (json.Unmarshal)",
+      "description": "Function 'Pos_Err_ExplicitBlankCriticalOp' at line 69 explicitly discards error from critical operation 'json.Unmarshal(data, \u0026res)' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+          "line_start": 69,
+          "line_end": 69,
+          "description": "json.Unmarshal(data, \u0026res)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 58,
+      "line_end": 58,
+      "title": "Unhandled Error Return (db.Exec)",
+      "description": "Function 'Pos_Err_UnhandledDBExec' at line 58 invokes error-producing call 'db.Exec(query)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+          "line_start": 58,
+          "line_end": 58,
+          "description": "db.Exec(query)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L47",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 47,
+      "line_end": 47,
+      "title": "Explicitly Discarded Critical Error (json.Marshal)",
+      "description": "Function 'Pos_Err_UnhandledMarshalDiscard' at line 47 explicitly discards error from critical operation 'json.Marshal(v)' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+          "line_start": 47,
+          "line_end": 47,
+          "description": "json.Marshal(v)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L63",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "finding_state": "CONFIRMED",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 63,
+      "line_end": 63,
+      "title": "Unhandled Error Return (net.Dial)",
+      "description": "Function 'Pos_Err_UnhandledDial' at line 63 invokes error-producing call 'net.Dial(\"tcp\", addr)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "evidence_locations": [
+        {
+          "file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+          "line_start": 63,
+          "line_end": 63,
+          "description": "net.Dial(\"tcp\", addr)"
+        }
+      ],
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "provenance": "be917a4",
+      "timestamp": "2026-11-23T13:42:53.727613+05:30"
     },
     {
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L92",
@@ -1143,10 +1143,41 @@
       ],
       "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
       "provenance": "be917a4",
-      "timestamp": "2026-11-18T11:48:54.9195376+05:30"
+      "timestamp": "2026-11-23T13:42:53.7281328+05:30"
     }
   ],
   "contracts": [
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L33",
+      "rule_id": "SEMANTIC_SQL_INJECTION",
+      "source_commit": "be917a4",
+      "file_sha256": "516f92a1bfeaa48103dfad33c1b9edc8e9064b01c56b297ce33414bcef4cf436",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\sql_fixtures.go",
+      "line_start": 33,
+      "line_end": 33,
+      "category": "SECURITY",
+      "severity": "CRITICAL",
+      "confidence": 0.96,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Untrusted SQL Query Passed as Function Parameter",
+      "description": "SQL query at Query is supplied directly from function parameter rawQuery without bind parameterization.",
+      "root_cause": "Exposing SQL query structure directly to caller parameter.",
+      "recommended_action": "Pass query parameters separately using bind placeholders ($1, ?) rather than dynamic query strings.",
+      "generated_at": "2026-11-23T13:42:53.7259999+05:30"
+    },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L15",
@@ -1176,7 +1207,7 @@
       "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [username] directly into SQL syntax.",
       "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
       "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
-      "generated_at": "2026-11-18T11:48:54.9179028+05:30"
+      "generated_at": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "schema_version": "2.0-semantic",
@@ -1207,7 +1238,7 @@
       "description": "SQL query in Pos_SQL_Concat combines raw SQL literals with dynamic variable(s): userInput.",
       "root_cause": "Direct binary concatenation (+) of dynamic values into SQL statement string.",
       "recommended_action": "Replace dynamic concatenation with parameterized bind placeholders ($1, ?) and pass values to Exec/Query.",
-      "generated_at": "2026-11-18T11:48:54.9179028+05:30"
+      "generated_at": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "schema_version": "2.0-semantic",
@@ -1238,38 +1269,7 @@
       "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [filter] directly into SQL syntax.",
       "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
       "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
-      "generated_at": "2026-11-18T11:48:54.9179028+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-sql_fixtures_go-L33",
-      "rule_id": "SEMANTIC_SQL_INJECTION",
-      "source_commit": "be917a4",
-      "file_sha256": "516f92a1bfeaa48103dfad33c1b9edc8e9064b01c56b297ce33414bcef4cf436",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\sql_fixtures.go",
-      "line_start": 33,
-      "line_end": 33,
-      "category": "SECURITY",
-      "severity": "CRITICAL",
-      "confidence": 0.96,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Untrusted SQL Query Passed as Function Parameter",
-      "description": "SQL query at Query is supplied directly from function parameter rawQuery without bind parameterization.",
-      "root_cause": "Exposing SQL query structure directly to caller parameter.",
-      "recommended_action": "Pass query parameters separately using bind placeholders ($1, ?) rather than dynamic query strings.",
-      "generated_at": "2026-11-18T11:48:54.9179028+05:30"
+      "generated_at": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "schema_version": "2.0-semantic",
@@ -1300,14 +1300,14 @@
       "description": "SQL query constructed via fmt.Sprintf interpolates untrusted argument(s) [name] directly into SQL syntax.",
       "root_cause": "Direct interpolation of dynamic variables into SQL format string instead of bind placeholders.",
       "recommended_action": "Use parameterized SQL placeholders ($1, ?) in query string and pass variables as execution arguments.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7259999+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-SEC-SQL-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
       "rule_id": "SEMANTIC_SQL_INJECTION",
       "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
       "line_start": 58,
       "line_end": 58,
@@ -1331,38 +1331,7 @@
       "description": "SQL query at Exec is supplied directly from function parameter query without bind parameterization.",
       "root_cause": "Exposing SQL query structure directly to caller parameter.",
       "recommended_action": "Pass query parameters separately using bind placeholders ($1, ?) rather than dynamic query strings.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L15",
-      "rule_id": "SEMANTIC_COMMAND_INJECTION",
-      "source_commit": "be917a4",
-      "file_sha256": "1241ad73c41f1580df8acc51537591f5963bf65f8f6c98644d37da8d224baf6a",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
-      "line_start": 15,
-      "line_end": 15,
-      "category": "SECURITY",
-      "severity": "CRITICAL",
-      "confidence": 0.98,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Command Injection Risk via Formatted Shell String",
-      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
-      "root_cause": "Formatting user variables into shell interpreter string (-c).",
-      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
@@ -1393,7 +1362,7 @@
       "description": "Shell command executed via 'bash -c' concatenates untrusted input(s): param:userInput (string).",
       "root_cause": "Direct binary concatenation (+) of dynamic input into shell command string.",
       "recommended_action": "Execute target binary directly without shell interpreter (-c).",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
@@ -1424,38 +1393,7 @@
       "description": "Shell command executed via 'cmd.exe -c' dynamically formats shell string with untrusted input(s): param:script (string).",
       "root_cause": "Formatting user variables into shell interpreter string (-c).",
       "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L38",
-      "rule_id": "SEMANTIC_COMMAND_INJECTION",
-      "source_commit": "be917a4",
-      "file_sha256": "1241ad73c41f1580df8acc51537591f5963bf65f8f6c98644d37da8d224baf6a",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
-      "line_start": 38,
-      "line_end": 38,
-      "category": "SECURITY",
-      "severity": "CRITICAL",
-      "confidence": 0.98,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Command Injection Risk via Formatted Shell String",
-      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
-      "root_cause": "Formatting user variables into shell interpreter string (-c).",
-      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
@@ -1486,7 +1424,38 @@
       "description": "Command string in Pos_Cmd_ShellParamDirect at line 32 is passed directly from function parameter 'commandString' to shell interpreter 'sh -c'.",
       "root_cause": "Executing arbitrary untrusted shell strings with shell interpretation (-c).",
       "recommended_action": "Invoke target executable directly with discrete arguments instead of passing shell commands through 'sh -c'.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L38",
+      "rule_id": "SEMANTIC_COMMAND_INJECTION",
+      "source_commit": "be917a4",
+      "file_sha256": "1241ad73c41f1580df8acc51537591f5963bf65f8f6c98644d37da8d224baf6a",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
+      "line_start": 38,
+      "line_end": 38,
+      "category": "SECURITY",
+      "severity": "CRITICAL",
+      "confidence": 0.98,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Command Injection Risk via Formatted Shell String",
+      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
+      "root_cause": "Formatting user variables into shell interpreter string (-c).",
+      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
@@ -1517,20 +1486,20 @@
       "description": "Shell sh executes a constant command string.",
       "root_cause": "",
       "recommended_action": "",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L261",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "finding_id": "SEM-SEC-CMD-agent-repo_intel-diagnostic-semantic-fixtures-command_fixtures_go-L15",
+      "rule_id": "SEMANTIC_COMMAND_INJECTION",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 261,
-      "line_end": 261,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.97,
+      "file_sha256": "1241ad73c41f1580df8acc51537591f5963bf65f8f6c98644d37da8d224baf6a",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\command_fixtures.go",
+      "line_start": 15,
+      "line_end": 15,
+      "category": "SECURITY",
+      "severity": "CRITICAL",
+      "confidence": 0.98,
       "analysis_completeness": "COMPLETE",
       "uncertainty_class": "DETERMINISTIC",
       "semantic_trace": {
@@ -1544,112 +1513,18 @@
         "COMPILER_GO_VET",
         "UNIT_TEST_REGRESSION"
       ],
-      "title": "Unclosed System Resource Leak (os.File)",
-      "description": "Resource handle 'f' of type os.File acquired in function 'Pos_Res_AcquiredInLoop' at line 261 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L76",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 76,
-      "line_end": 76,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.97,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Unclosed System Resource Leak (http.Response.Body)",
-      "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'Pos_Res_HTTPBodyLeak' at line 76 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer resp.Close()' is called immediately following successful acquisition error checking.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L95",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 95,
-      "line_end": 95,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.97,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Unclosed System Resource Leak (sql.Rows)",
-      "description": "Resource handle 'rows' of type sql.Rows acquired in function 'Pos_Res_SQLRowsLeak' at line 95 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L273",
-      "rule_id": "SEMANTIC_RESOURCE_LEAK",
-      "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 273,
-      "line_end": 273,
-      "category": "RELIABILITY",
-      "severity": "MEDIUM",
-      "confidence": 0.9,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "BOUNDED_UNCERTAINTY",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
-      "human_approval_required": true,
-      "approval_rationale": "Probable resource leak requires human review",
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Deferred Resource Release Inside Loop (os.File)",
-      "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
-      "root_cause": "Registering deferred cleanup inside loop body.",
-      "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "title": "Command Injection Risk via Formatted Shell String",
+      "description": "Shell command executed via 'sh -c' dynamically formats shell string with untrusted input(s): param:userInput (string).",
+      "root_cause": "Formatting user variables into shell interpreter string (-c).",
+      "recommended_action": "Execute target binary directly without shell interpretation, passing arguments as discrete array.",
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L158",
       "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
       "line_start": 158,
       "line_end": 158,
@@ -1674,14 +1549,14 @@
       "description": "Resource 'f' is released on some execution paths but leaks along 1 of 3 reachable exits.",
       "root_cause": "Conditional release branch does not cover all function exit paths.",
       "recommended_action": "Unify cleanup under a top-level deferred release.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L55",
       "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
       "line_start": 55,
       "line_end": 55,
@@ -1705,14 +1580,45 @@
       "description": "Resource handle 'conn' of type net.Conn acquired in function 'Pos_Res_LinearNetConnLeak' at line 55 is never closed along normal execution paths.",
       "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
       "recommended_action": "Ensure 'defer conn.Close()' is called immediately following successful acquisition error checking.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L95",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "source_commit": "be917a4",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+      "line_start": 95,
+      "line_end": 95,
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.97,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unclosed System Resource Leak (sql.Rows)",
+      "description": "Resource handle 'rows' of type sql.Rows acquired in function 'Pos_Res_SQLRowsLeak' at line 95 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L21",
       "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
       "line_start": 21,
       "line_end": 21,
@@ -1736,20 +1642,20 @@
       "description": "Resource handle 'f' of type os.File acquired in function 'Pos_Res_LinearFileLeak' at line 21 is never closed along normal execution paths.",
       "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
       "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
-      "generated_at": "2026-11-18T11:48:54.9184362+05:30"
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L231",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L76",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 231,
-      "line_end": 231,
+      "line_start": 76,
+      "line_end": 76,
       "category": "RELIABILITY",
       "severity": "HIGH",
-      "confidence": 0.95,
+      "confidence": 0.97,
       "analysis_completeness": "COMPLETE",
       "uncertainty_class": "DETERMINISTIC",
       "semantic_trace": {
@@ -1763,49 +1669,81 @@
         "COMPILER_GO_VET",
         "UNIT_TEST_REGRESSION"
       ],
-      "title": "Explicitly Discarded Critical Error (os.Open)",
-      "description": "Function 'Pos_Res_StoredInStructUnknownLifecycle' at line 231 explicitly discards error from critical operation 'os.Open(path)' via blank identifier '_'.",
-      "root_cause": "Critical operation error suppressed with blank identifier.",
-      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
+      "title": "Unclosed System Resource Leak (http.Response.Body)",
+      "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'Pos_Res_HTTPBodyLeak' at line 76 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer resp.Close()' is called immediately following successful acquisition error checking.",
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L163",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L261",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
-      "line_start": 163,
-      "line_end": 163,
+      "line_start": 261,
+      "line_end": 261,
       "category": "RELIABILITY",
-      "severity": "LOW",
-      "confidence": 0.96,
+      "severity": "HIGH",
+      "confidence": 0.97,
       "analysis_completeness": "COMPLETE",
       "uncertainty_class": "DETERMINISTIC",
       "semantic_trace": {
         "dataflow_hops": 0,
         "alias_hop_depth": 0
       },
-      "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
-      "human_approval_required": true,
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
       "validation_requirements": [
         "SEMANTIC_RESCAN",
         "COMPILER_GO_VET",
         "UNIT_TEST_REGRESSION"
       ],
-      "title": "Unchecked Cleanup Error (f.Close)",
-      "description": "Function 'Pos_Res_ConditionalRelease' at line 163 invokes cleanup call 'f.Close()' without checking returned error.",
-      "root_cause": "Cleanup operation return error ignored.",
-      "recommended_action": "Inspect returned error and log if operation fails.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
+      "title": "Unclosed System Resource Leak (os.File)",
+      "description": "Resource handle 'f' of type os.File acquired in function 'Pos_Res_AcquiredInLoop' at line 261 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-RES-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L273",
+      "rule_id": "SEMANTIC_RESOURCE_LEAK",
+      "source_commit": "be917a4",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+      "line_start": 273,
+      "line_end": 273,
+      "category": "RELIABILITY",
+      "severity": "MEDIUM",
+      "confidence": 0.9,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "BOUNDED_UNCERTAINTY",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "human_approval_required": true,
+      "approval_rationale": "Probable resource leak requires human review",
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Deferred Resource Release Inside Loop (os.File)",
+      "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
+      "root_cause": "Registering deferred cleanup inside loop body.",
+      "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
+      "generated_at": "2026-11-23T13:42:53.7265303+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L49",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
       "line_start": 49,
       "line_end": 49,
@@ -1829,14 +1767,76 @@
       "description": "Function 'Neg_Res_ExplicitFileClose' at line 49 invokes cleanup call 'f.Close()' without checking returned error.",
       "root_cause": "Cleanup operation return error ignored.",
       "recommended_action": "Inspect returned error and log if operation fails.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
+      "generated_at": "2026-11-23T13:42:53.7270718+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L231",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "source_commit": "be917a4",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+      "line_start": 231,
+      "line_end": 231,
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Explicitly Discarded Critical Error (os.Open)",
+      "description": "Function 'Pos_Res_StoredInStructUnknownLifecycle' at line 231 explicitly discards error from critical operation 'os.Open(path)' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "generated_at": "2026-11-23T13:42:53.7270718+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L163",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "source_commit": "be917a4",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
+      "line_start": 163,
+      "line_end": 163,
+      "category": "RELIABILITY",
+      "severity": "LOW",
+      "confidence": 0.96,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "HUMAN_APPROVAL_REQUIRED",
+      "human_approval_required": true,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unchecked Cleanup Error (f.Close)",
+      "description": "Function 'Pos_Res_ConditionalRelease' at line 163 invokes cleanup call 'f.Close()' without checking returned error.",
+      "root_cause": "Cleanup operation return error ignored.",
+      "recommended_action": "Inspect returned error and log if operation fails.",
+      "generated_at": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L126",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
       "line_start": 126,
       "line_end": 126,
@@ -1860,14 +1860,14 @@
       "description": "Function 'Neg_Res_TxWithCommit' at line 126 invokes cleanup call 'tx.Rollback()' without checking returned error.",
       "root_cause": "Cleanup operation return error ignored.",
       "recommended_action": "Inspect returned error and log if operation fails.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
+      "generated_at": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-resource_fixtures_go-L138",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "source_commit": "be917a4",
-      "file_sha256": "8099b43efbbdeaabb5df1b3a8514ac5230664a5e4335cb96edcfeaa1b4ae966f",
+      "file_sha256": "b89bec0d77f7bfd4f235e49775fe79b44e38fa48e584a92b0a1352493f569eb3",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\resource_fixtures.go",
       "line_start": 138,
       "line_end": 138,
@@ -1891,138 +1891,14 @@
       "description": "Function 'Neg_Res_TxWithRollback' at line 138 invokes cleanup call 'tx.Rollback()' without checking returned error.",
       "root_cause": "Cleanup operation return error ignored.",
       "recommended_action": "Inspect returned error and log if operation fails.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L69",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 69,
-      "line_end": 69,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.95,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Explicitly Discarded Critical Error (json.Unmarshal)",
-      "description": "Function 'Pos_Err_ExplicitBlankCriticalOp' at line 69 explicitly discards error from critical operation 'json.Unmarshal(data, \u0026res)' via blank identifier '_'.",
-      "root_cause": "Critical operation error suppressed with blank identifier.",
-      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L81",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 81,
-      "line_end": 81,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.96,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Unhandled Error Return (os.Open)",
-      "description": "Function 'Pos_Err_OverwrittenBeforeCheck' at line 81 invokes error-producing call 'os.Open(p1)' but the returned error is discarded.",
-      "root_cause": "Error return value ignored without handling, logging, or propagation.",
-      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 58,
-      "line_end": 58,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.96,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Unhandled Error Return (db.Exec)",
-      "description": "Function 'Pos_Err_UnhandledDBExec' at line 58 invokes error-producing call 'db.Exec(query)' but the returned error is discarded.",
-      "root_cause": "Error return value ignored without handling, logging, or propagation.",
-      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L63",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 63,
-      "line_end": 63,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.96,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Unhandled Error Return (net.Dial)",
-      "description": "Function 'Pos_Err_UnhandledDial' at line 63 invokes error-producing call 'net.Dial(\"tcp\", addr)' but the returned error is discarded.",
-      "root_cause": "Error return value ignored without handling, logging, or propagation.",
-      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
+      "generated_at": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L102",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
       "line_start": 102,
       "line_end": 102,
@@ -2046,76 +1922,14 @@
       "description": "Error from 'fetch()' at line 102 is tested in branch but execution continues unsafely.",
       "root_cause": "Error check branch does not terminate or safely handle the error condition.",
       "recommended_action": "Ensure the error branch returns, propagates, or terminates control flow.",
-      "generated_at": "2026-11-18T11:48:54.919004+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L41",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 41,
-      "line_end": 41,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.96,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Unhandled Error Return (json.Unmarshal)",
-      "description": "Function 'Pos_Err_UnhandledUnmarshal' at line 41 invokes error-producing call 'json.Unmarshal(data, \u0026res)' but the returned error is discarded.",
-      "root_cause": "Error return value ignored without handling, logging, or propagation.",
-      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "generated_at": "2026-11-18T11:48:54.9195376+05:30"
-    },
-    {
-      "schema_version": "2.0-semantic",
-      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L47",
-      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
-      "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
-      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
-      "line_start": 47,
-      "line_end": 47,
-      "category": "RELIABILITY",
-      "severity": "HIGH",
-      "confidence": 0.95,
-      "analysis_completeness": "COMPLETE",
-      "uncertainty_class": "DETERMINISTIC",
-      "semantic_trace": {
-        "dataflow_hops": 0,
-        "alias_hop_depth": 0
-      },
-      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
-      "human_approval_required": false,
-      "validation_requirements": [
-        "SEMANTIC_RESCAN",
-        "COMPILER_GO_VET",
-        "UNIT_TEST_REGRESSION"
-      ],
-      "title": "Explicitly Discarded Critical Error (json.Marshal)",
-      "description": "Function 'Pos_Err_UnhandledMarshalDiscard' at line 47 explicitly discards error from critical operation 'json.Marshal(v)' via blank identifier '_'.",
-      "root_cause": "Critical operation error suppressed with blank identifier.",
-      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
-      "generated_at": "2026-11-18T11:48:54.9195376+05:30"
+      "generated_at": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L53",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
       "line_start": 53,
       "line_end": 53,
@@ -2139,14 +1953,14 @@
       "description": "Function 'Pos_Err_UnhandledWriteFile' at line 53 invokes error-producing call 'os.WriteFile(path, data, 0644)' but the returned error is discarded.",
       "root_cause": "Error return value ignored without handling, logging, or propagation.",
       "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "generated_at": "2026-11-18T11:48:54.9195376+05:30"
+      "generated_at": "2026-11-23T13:42:53.7270718+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L75",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
       "line_start": 75,
       "line_end": 75,
@@ -2170,14 +1984,200 @@
       "description": "Function 'Pos_Err_MultipleReturnDiscardError' at line 75 explicitly discards error from critical operation 'loadConfig()' via blank identifier '_'.",
       "root_cause": "Critical operation error suppressed with blank identifier.",
       "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
-      "generated_at": "2026-11-18T11:48:54.9195376+05:30"
+      "generated_at": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L81",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "source_commit": "be917a4",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 81,
+      "line_end": 81,
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unhandled Error Return (os.Open)",
+      "description": "Function 'Pos_Err_OverwrittenBeforeCheck' at line 81 invokes error-producing call 'os.Open(p1)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "generated_at": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L41",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "source_commit": "be917a4",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 41,
+      "line_end": 41,
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unhandled Error Return (json.Unmarshal)",
+      "description": "Function 'Pos_Err_UnhandledUnmarshal' at line 41 invokes error-producing call 'json.Unmarshal(data, \u0026res)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "generated_at": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L69",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "source_commit": "be917a4",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 69,
+      "line_end": 69,
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Explicitly Discarded Critical Error (json.Unmarshal)",
+      "description": "Function 'Pos_Err_ExplicitBlankCriticalOp' at line 69 explicitly discards error from critical operation 'json.Unmarshal(data, \u0026res)' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "generated_at": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L58",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "source_commit": "be917a4",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 58,
+      "line_end": 58,
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unhandled Error Return (db.Exec)",
+      "description": "Function 'Pos_Err_UnhandledDBExec' at line 58 invokes error-producing call 'db.Exec(query)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "generated_at": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L47",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "source_commit": "be917a4",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 47,
+      "line_end": 47,
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.95,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Explicitly Discarded Critical Error (json.Marshal)",
+      "description": "Function 'Pos_Err_UnhandledMarshalDiscard' at line 47 explicitly discards error from critical operation 'json.Marshal(v)' via blank identifier '_'.",
+      "root_cause": "Critical operation error suppressed with blank identifier.",
+      "recommended_action": "Handle or propagate the error rather than suppressing with '_'.",
+      "generated_at": "2026-11-23T13:42:53.727613+05:30"
+    },
+    {
+      "schema_version": "2.0-semantic",
+      "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L63",
+      "rule_id": "SEMANTIC_UNHANDLED_ERROR",
+      "source_commit": "be917a4",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
+      "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
+      "line_start": 63,
+      "line_end": 63,
+      "category": "RELIABILITY",
+      "severity": "HIGH",
+      "confidence": 0.96,
+      "analysis_completeness": "COMPLETE",
+      "uncertainty_class": "DETERMINISTIC",
+      "semantic_trace": {
+        "dataflow_hops": 0,
+        "alias_hop_depth": 0
+      },
+      "remediation_eligibility": "AUTONOMOUS_ELIGIBLE",
+      "human_approval_required": false,
+      "validation_requirements": [
+        "SEMANTIC_RESCAN",
+        "COMPILER_GO_VET",
+        "UNIT_TEST_REGRESSION"
+      ],
+      "title": "Unhandled Error Return (net.Dial)",
+      "description": "Function 'Pos_Err_UnhandledDial' at line 63 invokes error-producing call 'net.Dial(\"tcp\", addr)' but the returned error is discarded.",
+      "root_cause": "Error return value ignored without handling, logging, or propagation.",
+      "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
+      "generated_at": "2026-11-23T13:42:53.7281328+05:30"
     },
     {
       "schema_version": "2.0-semantic",
       "finding_id": "SEM-REL-ERR-agent-repo_intel-diagnostic-semantic-fixtures-error_fixtures_go-L92",
       "rule_id": "SEMANTIC_UNHANDLED_ERROR",
       "source_commit": "be917a4",
-      "file_sha256": "a65d0499168ec377c00dc99fb24876e581b8e4a24cb157aed1aaaa0acc5573b2",
+      "file_sha256": "aee8beb945b7083865c5cd17792efee1fbc697b90ad53aca7ab5797cd79d67ea",
       "target_file": "agent\\repo_intel\\diagnostic\\semantic\\fixtures\\error_fixtures.go",
       "line_start": 92,
       "line_end": 92,
@@ -2201,7 +2201,7 @@
       "description": "Function 'Pos_Err_MismatchedErrorCheck' at line 92 invokes error-producing call 'json.Marshal(v2)' but the returned error is discarded.",
       "root_cause": "Error return value ignored without handling, logging, or propagation.",
       "recommended_action": "Assign returned error and handle with 'if err != nil { return ... }'.",
-      "generated_at": "2026-11-18T11:48:54.9195376+05:30"
+      "generated_at": "2026-11-23T13:42:53.7281328+05:30"
     }
   ]
 }

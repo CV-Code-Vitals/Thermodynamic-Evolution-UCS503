@@ -37,8 +37,9 @@ async function request(url, options, operation) {
   return data;
 }
 
-export async function fetchRemediationTargets(apiBase = '/api', token = '') {
-  const data = await request(`${apiBase}/remediation/targets`, {
+export async function fetchRemediationTargets(apiBase = '/api', token = '', workspaceId = '') {
+  const query = workspaceId ? `?workspace_id=${encodeURIComponent(workspaceId)}` : '';
+  const data = await request(`${apiBase}/remediation/targets${query}`, {
     headers: authHeaders(token),
   }, 'Loading targets');
   if (!Array.isArray(data.targets)) {

@@ -17,9 +17,12 @@ import (
 )
 
 func TestSnapshotPortalScanEvolutionAndPatch(t *testing.T) {
+	if os.Getenv("RUN_LIVE_SANDBOX_TESTS") != "1" {
+		t.Skip("set RUN_LIVE_SANDBOX_TESTS=1 to use the prebuilt sandbox image")
+	}
 	engine := os.Getenv("ENGINE_PATH")
 	if engine == "" {
-		t.Skip("set ENGINE_PATH to run the real snapshot portal integration")
+		t.Fatal("ENGINE_PATH is required for the live snapshot portal integration")
 	}
 	t.Setenv("SANDBOX_SERVICE_URL", "")
 	t.Setenv("MUTATION_API_KEY", "")

@@ -198,11 +198,12 @@ func TestExecuteExternalRemediationTrials(t *testing.T) {
 			t.Fatalf("failed to read target file in workspace: %v", err)
 		}
 		content := strings.ReplaceAll(string(fileData), "\r\n", "\n")
-		if !strings.Contains(content, trial.OriginalText) {
+		origText := strings.ReplaceAll(trial.OriginalText, "\r\n", "\n")
+		if !strings.Contains(content, origText) {
 			t.Fatalf("target text not found in %s", trial.TargetFile)
 		}
 
-		newContent := strings.Replace(content, trial.OriginalText, trial.PatchedText, 1)
+		newContent := strings.Replace(content, origText, strings.ReplaceAll(trial.PatchedText, "\r\n", "\n"), 1)
 		err = os.WriteFile(targetWsFile, []byte(newContent), 0644)
 		if err != nil {
 			t.Fatalf("failed to write patch in workspace: %v", err)

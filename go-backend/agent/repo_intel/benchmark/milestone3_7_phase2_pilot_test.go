@@ -631,7 +631,7 @@ func TestMilestone3_7_Phase2_ControlledExternalAutonomousRepairPilot(t *testing.
 			} else {
 				var failures []string
 				for oType, oRes := range oracleReport.OracleResults {
-					if !oRes.Passed && !((oType == execution.OracleRegressionTest || oType == execution.OracleBehavioralInvariance) && strings.HasPrefix(oRes.Details, "NOT_RUN:")) {
+					if oRes.Status == execution.OracleStatusFailed {
 						failures = append(failures, fmt.Sprintf("%s (%s)", oType, oRes.FailureReason))
 					}
 				}

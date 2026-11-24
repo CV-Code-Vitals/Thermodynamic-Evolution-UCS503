@@ -38,6 +38,9 @@ on:
       - '.github/workflows/ci-go.yml'
       - '.github/workflows/publish-api-image.yml'
 
+permissions:
+  contents: read
+
 jobs:
   go-checks:
     runs-on: ubuntu-latest
@@ -45,6 +48,8 @@ jobs:
       SANDBOX_RUNNER_IMAGE: ucs503-sandbox-runner:${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node for deployment configuration tests
         uses: actions/setup-node@v4
@@ -137,38 +142,42 @@ jobs:
         run: |
           docker build -t "$SANDBOX_RUNNER_IMAGE" -f docker/sandbox-runner/Dockerfile .
 
-      - name: Run Live Docker Sandbox Integration Tests (Mandatory Gate)
+      - name: Run live Docker sandbox integration tests
+        shell: bash
         run: |
+          set -o pipefail
           cd go-backend
           export ENGINE_PATH="$GITHUB_WORKSPACE/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine"
-          TEST_EXIT=0
-          go test -v -run TestDockerEvaluator_LiveExecution ./agent > sandbox_test.log 2>&1 || TEST_EXIT=$?
-          cat sandbox_test.log
-          if [ "$TEST_EXIT" -ne 0 ]; then
-            echo "ERROR: Live Docker Sandbox integration test failed with exit code $TEST_EXIT!"
-            exit $TEST_EXIT
-          fi
-          if grep -q -F -- "--- SKIP: TestDockerEvaluator_LiveExecution" sandbox_test.log; then
-            echo "ERROR: Live Docker Sandbox integration test was skipped!"
-            exit 1
-          fi
-          if ! grep -q -F -- "--- PASS: TestDockerEvaluator_LiveExecution" sandbox_test.log; then
-            echo "ERROR: Mandatory Live Docker Sandbox integration test did not pass!"
-            exit 1
-          fi
-
-      - name: Upload Sandbox Test Artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: sandbox-integration-test-logs
-          path: go-backend/sandbox_test.log
+          export RUN_LIVE_SANDBOX_TESTS=1
+          go test -count=1 -v -run '^(TestDockerEvaluator_LiveExecution|TestDockerContainerRunner_LiveVerification|TestSnapshotPortalScanEvolutionAndPatch)$' \
+            . ./agent ./agent/repo_intel/execution 2>&1 | tee sandbox_test.log
+          for test in TestDockerEvaluator_LiveExecution TestDockerContainerRunner_LiveVerification TestSnapshotPortalScanEvolutionAndPatch; do
+            if ! grep -Fq -- "--- PASS: $test (" sandbox_test.log; then
+              echo "::error::Mandatory live sandbox test did not pass: $test"
+              exit 1
+            fi
+          done
 
       - name: Check analysis backend
+        shell: bash
         run: |
+          set -o pipefail
           cd go-backend
           go mod download
           go vet ./...
           export ENGINE_PATH="$GITHUB_WORKSPACE/thermodynamic-ast-engine/target/release/thermodynamic-ast-engine"
-          go test -v ./...
+          test -x "$ENGINE_PATH"
+          if ! go test -count=1 -v ./... 2>&1 | tee backend_test.log; then
+            grep -E '^--- FAIL:|^FAIL[[:space:]]' backend_test.log || true
+            exit 1
+          fi
           go build ./...
+
+      - name: Upload Go backend test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-backend-test-logs
+          path: |
+            go-backend/sandbox_test.log
+            go-backend/backend_test.log

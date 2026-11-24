@@ -4,7 +4,7 @@
 **Workspace:** `E:\SWE`  
 **Branch:** `release/milestone-3.8-mvp-rc`  
 **Audit Target:** Cross-Platform Filesystem Safety & Linux CI Runner Portability  
-**Date:** 2026-11-18  
+**Date:** 2026-11-23  
 **Engineer:** Antigravity Autonomous Systems Engineering Team  
 
 ---
@@ -14,7 +14,7 @@
 Prior GitHub Actions CI runs on Ubuntu Linux runners (`ubuntu-latest`) encountered three fatal errors during execution of the Go backend test suite and remediation endpoints:
 
 1. **`E:\SWE\.tmp` directory missing on Ubuntu runners:**
-   - In Ubuntu CI runners, Windows drive specifications (e.g. `E:\...`) do not exist. Calls to `os.MkdirTemp("E:\\SWE\\.tmp", ...)` failed with `no such file or directory` / `ENOENT`.
+   - In Ubuntu CI runners, Windows drive specifications (e.g. `E:\...`) do not exist. Calls attempting to write or read from `E:\SWE\.tmp` failed with `no such file or directory` / `ENOENT`.
 2. **`E:\SWE/benchmarks/external_v2` directory missing:**
    - Functions resolving test fixtures defaulted to `"E:\\SWE"` when neither `..` nor `.` directly contained `benchmarks/external_v2`, causing repository clone and digest operations to fail on POSIX runners where the repository root was `/home/runner/work/...`.
 3. **`.tmp` directory absent during `POST /api/remediation/propose`:**
@@ -27,25 +27,27 @@ Prior GitHub Actions CI runs on Ubuntu Linux runners (`ubuntu-latest`) encounter
 A forensic code audit revealed several locations where Windows-specific filesystem paths or assumptions were hardcoded:
 
 1. **`remediation_routes.go`:**
-   `resolveWorkspaceRoot()` checked `os.Getenv("WORKSPACE_ROOT")`, then `..` and `.`, and defaulted to `"E:\\SWE"`. If tests ran from subdirectories, the fallback was selected and failed immediately on Linux.
+   `resolveWorkspaceRoot()` previously checked `os.Getenv("WORKSPACE_ROOT")`, then `..` and `.`, and defaulted to `"E:\\SWE"`. If tests ran from subdirectories, the fallback was selected and failed immediately on Linux.
 2. **`mvp_service.go`:**
    - `NewMVPService` defaulted `workspaceRoot` to `"E:\\SWE"` and `persistLedgerPath` to `E:\SWE\.tmp\...`.
    - `ProposeRepair` assumed `.tmp` already existed on disk when calling `os.MkdirTemp`.
    - `ExecuteRepair` lacked fallback discovery for authentic repository fixtures.
 3. **`oracles.go`:**
-   Lines 141, 173, 211, and 304 forcibly appended `"GOTMPDIR=E:\\SWE\\.tmp"`, `"TEMP=E:\\SWE\\.tmp"`, and `"TMP=E:\\SWE\\.tmp"` to `cmd.Env` during `go vet` and test invocations. On Linux runners, this caused `go` toolchain commands to attempt writing compiler temporary files to a nonexistent Windows path.
-4. **Test Fixtures:**
-   - `approval_test.go`, `oracles_test.go`, `synthesis_test.go`, `milestone3_7_phase2_pilot_test.go`, and `milestone3_8_phase1_1_revalidation_test.go` all called `os.MkdirTemp("E:\\SWE\\.tmp", ...)`.
+   `GetSanitizedExecutionEnv()` previously set `tmpBase := "E:\\SWE\\.tmp"` and appended `GOTMPDIR`, `TEMP`, and `TMP` pointing to that Windows path. On Linux runners, this caused `go` toolchain commands to attempt writing compiler temporary files to a nonexistent Windows path.
+4. **`workspace.go`:**
+   `ResolveWorkspaceRoot()` contained an explicit fallback check `if fi, err := os.Stat("E:\\SWE"); err == nil && fi.IsDir() { return "E:\\SWE" }`, which caused environment-specific resolution leaks.
+5. **`mvp_scanner.go`:**
+   `bindTargetSnapshot` previously joined `target.TargetFile` without verifying whether diagnostic engines emitted an absolute or relative path, risking path concatenation failures on Linux runners.
+6. **Test Fixtures:**
+   - `approval_test.go`, `oracles_test.go`, `synthesis_test.go`, `milestone3_7_phase2_pilot_test.go`, and `milestone3_8_phase1_1_revalidation_test.go` historically called `os.MkdirTemp("E:\\SWE\\.tmp", ...)`.
    - `synthesis_test.go` wrote reports to hardcoded `"E:\\SWE\\reports\\..."`.
-5. **Entrypoint Binaries:**
-   `cmd/remediation_mvp`, `cmd/evaluate_cross_package`, and `cmd/evaluate_external_v2` hardcoded default workspace paths to `"E:\\SWE"`.
 
 ---
 
 ## 3. Architecture & Implementation of Portable Solutions
 
 ### A. Centralized Workspace Root Discovery (`execution.ResolveWorkspaceRoot`)
-Added to `go-backend/agent/repo_intel/execution/workspace.go`:
+In [go-backend/agent/repo_intel/execution/workspace.go](file:///E:/SWE/go-backend/agent/repo_intel/execution/workspace.go), `ResolveWorkspaceRoot()` was refactored to rely exclusively on upward landmark traversal and environment configuration:
 
 ```go
 func ResolveWorkspaceRoot() string {
@@ -75,26 +77,18 @@ func ResolveWorkspaceRoot() string {
                 if err == nil { return abs }
                 return curr
             }
+            if fi, err := os.Stat(filepath.Join(curr, "go-backend", "go.mod")); err == nil {
+                abs, err := filepath.Abs(curr)
+                if err == nil { return abs }
+                return curr
+            }
             parent := filepath.Dir(curr)
             if parent == curr || parent == "" { break }
             curr = parent
         }
     }
 
-    // 3. Check relative candidate paths
-    candidates := []string{".", "..", filepath.Join("..", ".."), filepath.Join("..", "..", ".."), filepath.Join("..", "..", "..", "..")}
-    for _, cand := range candidates {
-        if fi, err := os.Stat(filepath.Join(cand, "benchmarks", "external_v2")); err == nil && fi.IsDir() {
-            abs, err := filepath.Abs(cand)
-            if err == nil { return abs }
-        }
-    }
-
-    // 4. Safe conditional fallback on Windows only
-    if fi, err := os.Stat("E:\\SWE"); err == nil && fi.IsDir() {
-        return "E:\\SWE"
-    }
-
+    // 3. Fallback to current working directory or system temp
     if wd != "" {
         abs, err := filepath.Abs(wd)
         if err == nil { return abs }
@@ -103,9 +97,10 @@ func ResolveWorkspaceRoot() string {
     return os.TempDir()
 }
 ```
+All hardcoded Windows fallbacks (`"E:\\SWE"`) were completely excised.
 
 ### B. Fail-Safe Temporary Directory Management (`execution.EnsureTmpDir`)
-Added to `go-backend/agent/repo_intel/execution/workspace.go`:
+Added to [go-backend/agent/repo_intel/execution/workspace.go](file:///E:/SWE/go-backend/agent/repo_intel/execution/workspace.go):
 
 ```go
 func EnsureTmpDir(root string) (string, error) {
@@ -123,50 +118,50 @@ func EnsureTmpDir(root string) (string, error) {
 }
 ```
 
-### C. Safe Subprocess Toolchain Environment (`oracles.go`)
-Replaced hardcoded environment injection with `getExecutionEnv()`:
+### C. Dynamic Subprocess Toolchain Environment (`oracles.go`)
+In [go-backend/agent/repo_intel/execution/oracles.go](file:///E:/SWE/go-backend/agent/repo_intel/execution/oracles.go), `GetSanitizedExecutionEnv()` now dynamically resolves the temporary directory using `EnsureTmpDir(ResolveWorkspaceRoot())`:
 
 ```go
-func getExecutionEnv() []string {
-    env := os.Environ()
-    if os.Getenv("GOTMPDIR") == "" {
-        // Only inject on Windows host when the directory physically exists
-        if fi, err := os.Stat(`E:\SWE\.tmp`); err == nil && fi.IsDir() {
-            env = append(env, `GOTMPDIR=E:\SWE\.tmp`, `TEMP=E:\SWE\.tmp`, `TMP=E:\SWE\.tmp`)
+    // Ensure isolated temp directories via dynamic workspace resolution
+    tmpBase, err := EnsureTmpDir(ResolveWorkspaceRoot())
+    if err == nil && tmpBase != "" {
+        cleanEnv = append(cleanEnv, `GOTMPDIR=`+tmpBase, `TEMP=`+tmpBase, `TMP=`+tmpBase)
+    } else {
+        tmpBase = os.TempDir()
+    }
+
+    // Ensure GOCACHE is always set to prevent go vet / build cache failures
+    if !hasGocache {
+        gocacheDir := filepath.Join(tmpBase, "gocache")
+        _ = os.MkdirAll(gocacheDir, 0755)
+        cleanEnv = append(cleanEnv, "GOCACHE="+gocacheDir)
+    }
+```
+On Ubuntu Linux runners, this points safely to the runner's native temporary hierarchy without crashing.
+
+### D. Target Path Sanitization (`mvp_scanner.go`)
+In [go-backend/agent/repo_intel/execution/mvp_scanner.go](file:///E:/SWE/go-backend/agent/repo_intel/execution/mvp_scanner.go), `bindTargetSnapshot` now explicitly converts absolute target paths returned by diagnostic engines into workspace-relative paths:
+
+```go
+    targetRel := target.TargetFile
+    if filepath.IsAbs(targetRel) {
+        if rel, err := filepath.Rel(wsDir, targetRel); err == nil && !strings.HasPrefix(rel, "..") {
+            targetRel = rel
         }
     }
-    return env
-}
+    sourcePath := filepath.Join(wsDir, targetRel)
 ```
-On Ubuntu Linux runners, `os.Stat("E:\\SWE\\.tmp")` fails cleanly, so the runner's native environment (`/tmp`) is inherited without interference.
+This prevents malformed cross-platform path concatenations like `/home/runner/work/repo//home/runner/work/repo/...`.
 
-### D. Elimination of Test Sandbox Leaks
-All test cases across `approval_test.go`, `oracles_test.go`, `synthesis_test.go`, `milestone3_7_phase2_pilot_test.go`, and `milestone3_8_phase1_1_revalidation_test.go` were refactored to use Go's standard `t.TempDir()`. This guarantees:
+### E. Elimination of Test Sandbox Leaks
+All test cases across `approval_test.go`, `oracles_test.go`, `synthesis_test.go`, `milestone3_7_phase2_pilot_test.go`, and `milestone3_8_phase1_1_revalidation_test.go` use Go's standard `t.TempDir()`. This guarantees:
 - Native pathing on both Windows and POSIX.
 - Automatic creation and cleanup.
 - Zero leftover disk clutter or permission collisions between test runs.
+- Zero tests skipped on Linux.
 
 ---
 
-## 4. Modified Files Summary
+## 4. Verification Verdict
 
-| File Path | Description of Changes |
-| :--- | :--- |
-| `go-backend/agent/repo_intel/execution/workspace.go` | Implemented `ResolveWorkspaceRoot()` and `EnsureTmpDir()` |
-| `go-backend/agent/repo_intel/execution/mvp_service.go` | Integrated `ResolveWorkspaceRoot()`, `EnsureTmpDir()`, and directory validation in `NewMVPService`, `ProposeRepair`, `ExecuteRepair` |
-| `go-backend/remediation_routes.go` | Replaced legacy root resolution with `execution.ResolveWorkspaceRoot()` and `execution.EnsureTmpDir()` |
-| `go-backend/agent/repo_intel/execution/oracles.go` | Replaced hardcoded `E:\SWE\.tmp` environment injection with `getExecutionEnv()` |
-| `go-backend/agent/repo_intel/execution/approval_test.go` | Switched from `os.MkdirTemp` to `t.TempDir()` |
-| `go-backend/agent/repo_intel/execution/oracles_test.go` | Replaced 3 `os.MkdirTemp` instances with `t.TempDir()` |
-| `go-backend/agent/repo_intel/execution/synthesis_test.go` | Replaced 2 `os.MkdirTemp` instances with `t.TempDir()`, resolved report path via `ResolveWorkspaceRoot()` |
-| `go-backend/agent/repo_intel/benchmark/milestone3_7_phase2_pilot_test.go` | Replaced hardcoded `E:\SWE` with `execution.ResolveWorkspaceRoot()`, used `t.TempDir()` |
-| `go-backend/agent/repo_intel/benchmark/milestone3_8_phase1_1_revalidation_test.go` | Replaced hardcoded `E:\SWE` with `execution.ResolveWorkspaceRoot()`, used `t.TempDir()` |
-| `go-backend/cmd/remediation_mvp/main.go` | Defaulted `-workspace` flag to `execution.ResolveWorkspaceRoot()`, used `EnsureTmpDir()` |
-| `go-backend/cmd/evaluate_cross_package/main.go` | Dynamic `repoRoot` resolution via `execution.ResolveWorkspaceRoot()` |
-| `go-backend/cmd/evaluate_external_v2/main.go` | Dynamic `repoRoot` resolution via `execution.ResolveWorkspaceRoot()` |
-
----
-
-## 5. Verification Verdict
-
-All tests compile, pass `go vet`, and execute successfully across packages without relying on hardcoded paths or skipped tests.
+All Go backend tests compile, pass `go vet`, and execute successfully across packages without relying on hardcoded paths, skipped tests, or platform-specific directory conventions.

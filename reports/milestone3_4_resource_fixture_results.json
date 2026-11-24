@@ -10,44 +10,45 @@
     {
       "file_path": "fixtures\\resource_fixtures.go",
       "package": "",
-      "function": "Pos_Res_DeferredInLoop",
-      "line": 273,
-      "resource_kind": "os.File",
-      "var_name": "f",
-      "lifecycle_state": "RESOURCE_LEAK_PROBABLE",
-      "finding_state": "PROBABLE",
-      "severity": "MEDIUM",
-      "confidence": 0.9,
-      "acquisition_snippet": "os.Open(p)",
+      "function": "Neg_Res_TxWithDeferredRollback",
+      "line": 144,
+      "resource_kind": "sql.Tx",
+      "var_name": "tx",
+      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "confidence": 0.99,
+      "acquisition_snippet": "db.Begin()",
       "history": [
         {
           "from_state": "RESOURCE_ACQUIRED",
           "to_state": "RESOURCE_ACQUIRED",
-          "action": "os.Open(p)",
-          "line": 273,
-          "block_id": 3,
+          "action": "db.Begin()",
+          "line": 144,
+          "block_id": 0,
           "detail": "Acquired via supported API contract"
         },
         {
           "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_LEAK_PROBABLE",
-          "action": "defer Close()",
-          "line": 277,
+          "to_state": "RESOURCE_DEFERRED_RELEASE",
+          "action": "defer Rollback()",
+          "line": 148,
           "block_id": 0,
-          "detail": "Deferred release inside loop delays closure until function exit"
+          "detail": "Scheduled deferred release on function return"
         }
       ],
-      "title": "Deferred Resource Release Inside Loop (os.File)",
-      "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
-      "root_cause": "Registering deferred cleanup inside loop body.",
-      "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "counter_evidence": [
+        "Resource 'tx' of type sql.Tx has verified deferred release covering all reachable exit paths"
+      ],
+      "title": "Safe Deferred Resource Lifecycle",
+      "description": "Resource 'tx' is safely released via deferred call.",
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
       "package": "",
-      "function": "Neg_Res_DeferredFileClose",
-      "line": 34,
+      "function": "Neg_Res_ErrorPathCleanup",
+      "line": 184,
       "resource_kind": "os.File",
       "var_name": "f",
       "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
@@ -60,7 +61,7 @@
           "from_state": "RESOURCE_ACQUIRED",
           "to_state": "RESOURCE_ACQUIRED",
           "action": "os.Open(path)",
-          "line": 34,
+          "line": 184,
           "block_id": 0,
           "detail": "Acquired via supported API contract"
         },
@@ -68,7 +69,7 @@
           "from_state": "RESOURCE_ACQUIRED",
           "to_state": "RESOURCE_DEFERRED_RELEASE",
           "action": "defer Close()",
-          "line": 38,
+          "line": 188,
           "block_id": 0,
           "detail": "Scheduled deferred release on function return"
         }
@@ -78,44 +79,35 @@
       ],
       "title": "Safe Deferred Resource Lifecycle",
       "description": "Resource 'f' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
       "package": "",
-      "function": "Neg_Res_HTTPBodyClosed",
-      "line": 85,
+      "function": "Pos_Res_HTTPBodyLeak",
+      "line": 76,
       "resource_kind": "http.Response.Body",
       "var_name": "resp",
-      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
-      "finding_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "confidence": 0.99,
+      "lifecycle_state": "RESOURCE_LEAK_CONFIRMED",
+      "finding_state": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 0.97,
       "acquisition_snippet": "http.Get(url)",
       "history": [
         {
           "from_state": "RESOURCE_ACQUIRED",
           "to_state": "RESOURCE_ACQUIRED",
           "action": "http.Get(url)",
-          "line": 85,
+          "line": 76,
           "block_id": 0,
           "detail": "Acquired via supported API contract"
-        },
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_DEFERRED_RELEASE",
-          "action": "defer Close()",
-          "line": 89,
-          "block_id": 0,
-          "detail": "Scheduled deferred release on function return"
         }
       ],
-      "counter_evidence": [
-        "Resource 'resp' of type http.Response.Body has verified deferred release covering all reachable exit paths"
-      ],
-      "title": "Safe Deferred Resource Lifecycle",
-      "description": "Resource 'resp' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "title": "Unclosed System Resource Leak (http.Response.Body)",
+      "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'Pos_Res_HTTPBodyLeak' at line 76 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer resp.Close()' is called immediately following successful acquisition error checking.",
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -160,80 +152,7 @@
       ],
       "title": "Safe Explicit Resource Lifecycle",
       "description": "Resource 'tx' is explicitly closed prior to return.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
-    },
-    {
-      "file_path": "fixtures\\resource_fixtures.go",
-      "package": "",
-      "function": "Neg_Res_TxWithDeferredRollback",
-      "line": 144,
-      "resource_kind": "sql.Tx",
-      "var_name": "tx",
-      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
-      "finding_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "confidence": 0.99,
-      "acquisition_snippet": "db.Begin()",
-      "history": [
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_ACQUIRED",
-          "action": "db.Begin()",
-          "line": 144,
-          "block_id": 0,
-          "detail": "Acquired via supported API contract"
-        },
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_DEFERRED_RELEASE",
-          "action": "defer Rollback()",
-          "line": 148,
-          "block_id": 0,
-          "detail": "Scheduled deferred release on function return"
-        }
-      ],
-      "counter_evidence": [
-        "Resource 'tx' of type sql.Tx has verified deferred release covering all reachable exit paths"
-      ],
-      "title": "Safe Deferred Resource Lifecycle",
-      "description": "Resource 'tx' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
-    },
-    {
-      "file_path": "fixtures\\resource_fixtures.go",
-      "package": "",
-      "function": "Pos_Res_ConditionalRelease",
-      "line": 158,
-      "resource_kind": "os.File",
-      "var_name": "f",
-      "lifecycle_state": "RESOURCE_LEAK_PROBABLE",
-      "finding_state": "PROBABLE",
-      "severity": "MEDIUM",
-      "confidence": 0.9,
-      "acquisition_snippet": "os.Open(path)",
-      "history": [
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_ACQUIRED",
-          "action": "os.Open(path)",
-          "line": 158,
-          "block_id": 0,
-          "detail": "Acquired via supported API contract"
-        },
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_RELEASED",
-          "action": "explicit release",
-          "line": 163,
-          "block_id": 5,
-          "detail": "Explicit release executed prior to return"
-        }
-      ],
-      "title": "Conditional Resource Leak on Exit Path (os.File)",
-      "description": "Resource 'f' is released on some execution paths but leaks along 1 of 3 reachable exits.",
-      "root_cause": "Conditional release branch does not cover all function exit paths.",
-      "recommended_action": "Unify cleanup under a top-level deferred release.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -270,44 +189,44 @@
       ],
       "title": "Safe Deferred Resource Lifecycle",
       "description": "Resource 'f' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
       "package": "",
-      "function": "Neg_Res_ErrorPathCleanup",
-      "line": 184,
+      "function": "Neg_Res_ReturnedToCaller",
+      "line": 208,
       "resource_kind": "os.File",
       "var_name": "f",
-      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
+      "lifecycle_state": "RESOURCE_TRANSFERRED",
       "finding_state": "COUNTER_EVIDENCE_PRESENT",
       "severity": "",
-      "confidence": 0.99,
+      "confidence": 0.98,
       "acquisition_snippet": "os.Open(path)",
       "history": [
         {
           "from_state": "RESOURCE_ACQUIRED",
           "to_state": "RESOURCE_ACQUIRED",
           "action": "os.Open(path)",
-          "line": 184,
+          "line": 208,
           "block_id": 0,
           "detail": "Acquired via supported API contract"
         },
         {
           "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_DEFERRED_RELEASE",
-          "action": "defer Close()",
-          "line": 188,
-          "block_id": 0,
-          "detail": "Scheduled deferred release on function return"
+          "to_state": "RESOURCE_TRANSFERRED",
+          "action": "return f",
+          "line": 212,
+          "block_id": 4,
+          "detail": "Ownership transferred to caller via return value"
         }
       ],
       "counter_evidence": [
-        "Resource 'f' of type os.File has verified deferred release covering all reachable exit paths"
+        "Resource 'f' of type os.File ownership transferred to caller via return value or consumer"
       ],
-      "title": "Safe Deferred Resource Lifecycle",
-      "description": "Resource 'f' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "title": "Safe Resource Ownership Transfer",
+      "description": "Resource 'f' ownership was transferred, discharging local release obligation.",
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -344,109 +263,7 @@
       ],
       "title": "Safe Resource Ownership Transfer",
       "description": "Resource 'f' ownership was transferred, discharging local release obligation.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
-    },
-    {
-      "file_path": "fixtures\\resource_fixtures.go",
-      "package": "",
-      "function": "Pos_Res_LinearNetConnLeak",
-      "line": 55,
-      "resource_kind": "net.Conn",
-      "var_name": "conn",
-      "lifecycle_state": "RESOURCE_LEAK_CONFIRMED",
-      "finding_state": "CONFIRMED",
-      "severity": "HIGH",
-      "confidence": 0.97,
-      "acquisition_snippet": "net.Dial(\"tcp\", addr)",
-      "history": [
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_ACQUIRED",
-          "action": "net.Dial(\"tcp\", addr)",
-          "line": 55,
-          "block_id": 0,
-          "detail": "Acquired via supported API contract"
-        }
-      ],
-      "title": "Unclosed System Resource Leak (net.Conn)",
-      "description": "Resource handle 'conn' of type net.Conn acquired in function 'Pos_Res_LinearNetConnLeak' at line 55 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer conn.Close()' is called immediately following successful acquisition error checking.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
-    },
-    {
-      "file_path": "fixtures\\resource_fixtures.go",
-      "package": "",
-      "function": "Neg_Res_DeferredNetConnClose",
-      "line": 65,
-      "resource_kind": "net.Conn",
-      "var_name": "conn",
-      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
-      "finding_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "confidence": 0.99,
-      "acquisition_snippet": "net.Dial(\"tcp\", addr)",
-      "history": [
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_ACQUIRED",
-          "action": "net.Dial(\"tcp\", addr)",
-          "line": 65,
-          "block_id": 0,
-          "detail": "Acquired via supported API contract"
-        },
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_DEFERRED_RELEASE",
-          "action": "defer Close()",
-          "line": 69,
-          "block_id": 0,
-          "detail": "Scheduled deferred release on function return"
-        }
-      ],
-      "counter_evidence": [
-        "Resource 'conn' of type net.Conn has verified deferred release covering all reachable exit paths"
-      ],
-      "title": "Safe Deferred Resource Lifecycle",
-      "description": "Resource 'conn' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
-    },
-    {
-      "file_path": "fixtures\\resource_fixtures.go",
-      "package": "",
-      "function": "Neg_Res_SQLRowsDeferredClose",
-      "line": 107,
-      "resource_kind": "sql.Rows",
-      "var_name": "rows",
-      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
-      "finding_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "confidence": 0.99,
-      "acquisition_snippet": "db.Query(\"SELECT id FROM users\")",
-      "history": [
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_ACQUIRED",
-          "action": "db.Query(\"SELECT id FROM users\")",
-          "line": 107,
-          "block_id": 0,
-          "detail": "Acquired via supported API contract"
-        },
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_DEFERRED_RELEASE",
-          "action": "defer Close()",
-          "line": 111,
-          "block_id": 0,
-          "detail": "Scheduled deferred release on function return"
-        }
-      ],
-      "counter_evidence": [
-        "Resource 'rows' of type sql.Rows has verified deferred release covering all reachable exit paths"
-      ],
-      "title": "Safe Deferred Resource Lifecycle",
-      "description": "Resource 'rows' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -483,7 +300,7 @@
       ],
       "title": "Unresolved Resource Lifecycle",
       "description": "Lifecycle for resource 'f' could not be statically verified.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -520,7 +337,7 @@
       ],
       "title": "Safe Explicit Resource Lifecycle",
       "description": "Resource 'timer' is explicitly closed prior to return.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -557,7 +374,100 @@
       ],
       "title": "Safe Resource Ownership Transfer",
       "description": "Resource 'timer' ownership was transferred, discharging local release obligation.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
+    },
+    {
+      "file_path": "fixtures\\resource_fixtures.go",
+      "package": "",
+      "function": "Pos_Res_LinearFileLeak",
+      "line": 21,
+      "resource_kind": "os.File",
+      "var_name": "f",
+      "lifecycle_state": "RESOURCE_LEAK_CONFIRMED",
+      "finding_state": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 0.97,
+      "acquisition_snippet": "os.Open(path)",
+      "history": [
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_ACQUIRED",
+          "action": "os.Open(path)",
+          "line": 21,
+          "block_id": 0,
+          "detail": "Acquired via supported API contract"
+        }
+      ],
+      "title": "Unclosed System Resource Leak (os.File)",
+      "description": "Resource handle 'f' of type os.File acquired in function 'Pos_Res_LinearFileLeak' at line 21 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
+    },
+    {
+      "file_path": "fixtures\\resource_fixtures.go",
+      "package": "",
+      "function": "Pos_Res_SQLRowsLeak",
+      "line": 95,
+      "resource_kind": "sql.Rows",
+      "var_name": "rows",
+      "lifecycle_state": "RESOURCE_LEAK_CONFIRMED",
+      "finding_state": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 0.97,
+      "acquisition_snippet": "db.Query(\"SELECT id FROM users\")",
+      "history": [
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_ACQUIRED",
+          "action": "db.Query(\"SELECT id FROM users\")",
+          "line": 95,
+          "block_id": 0,
+          "detail": "Acquired via supported API contract"
+        }
+      ],
+      "title": "Unclosed System Resource Leak (sql.Rows)",
+      "description": "Resource handle 'rows' of type sql.Rows acquired in function 'Pos_Res_SQLRowsLeak' at line 95 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
+      "timestamp": "2026-11-23T13:42:53.6732465+05:30"
+    },
+    {
+      "file_path": "fixtures\\resource_fixtures.go",
+      "package": "",
+      "function": "Neg_Res_AcquisitionFailurePath",
+      "line": 249,
+      "resource_kind": "os.File",
+      "var_name": "f",
+      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "confidence": 0.99,
+      "acquisition_snippet": "os.Open(path)",
+      "history": [
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_ACQUIRED",
+          "action": "os.Open(path)",
+          "line": 249,
+          "block_id": 0,
+          "detail": "Acquired via supported API contract"
+        },
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_DEFERRED_RELEASE",
+          "action": "defer Close()",
+          "line": 254,
+          "block_id": 0,
+          "detail": "Scheduled deferred release on function return"
+        }
+      ],
+      "counter_evidence": [
+        "Resource 'f' of type os.File has verified deferred release covering all reachable exit paths"
+      ],
+      "title": "Safe Deferred Resource Lifecycle",
+      "description": "Resource 'f' is safely released via deferred call.",
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -585,7 +495,107 @@
       "description": "Resource handle 'f' of type os.File acquired in function 'Pos_Res_AcquiredInLoop' at line 261 is never closed along normal execution paths.",
       "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
       "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
+    },
+    {
+      "file_path": "fixtures\\resource_fixtures.go",
+      "package": "",
+      "function": "Pos_Res_DeferredInLoop",
+      "line": 273,
+      "resource_kind": "os.File",
+      "var_name": "f",
+      "lifecycle_state": "RESOURCE_LEAK_PROBABLE",
+      "finding_state": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.9,
+      "acquisition_snippet": "os.Open(p)",
+      "history": [
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_ACQUIRED",
+          "action": "os.Open(p)",
+          "line": 273,
+          "block_id": 3,
+          "detail": "Acquired via supported API contract"
+        },
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_LEAK_PROBABLE",
+          "action": "defer Close()",
+          "line": 277,
+          "block_id": 0,
+          "detail": "Deferred release inside loop delays closure until function exit"
+        }
+      ],
+      "title": "Deferred Resource Release Inside Loop (os.File)",
+      "description": "Resource 'f' acquired in loop with 'defer Close()'; cleanup is delayed until function exit, accumulating descriptors.",
+      "root_cause": "Registering deferred cleanup inside loop body.",
+      "recommended_action": "Close resource explicitly at the end of each loop iteration or encapsulate loop body in a helper function.",
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
+    },
+    {
+      "file_path": "fixtures\\resource_fixtures.go",
+      "package": "",
+      "function": "Pos_Res_LinearNetConnLeak",
+      "line": 55,
+      "resource_kind": "net.Conn",
+      "var_name": "conn",
+      "lifecycle_state": "RESOURCE_LEAK_CONFIRMED",
+      "finding_state": "CONFIRMED",
+      "severity": "HIGH",
+      "confidence": 0.97,
+      "acquisition_snippet": "net.Dial(\"tcp\", addr)",
+      "history": [
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_ACQUIRED",
+          "action": "net.Dial(\"tcp\", addr)",
+          "line": 55,
+          "block_id": 0,
+          "detail": "Acquired via supported API contract"
+        }
+      ],
+      "title": "Unclosed System Resource Leak (net.Conn)",
+      "description": "Resource handle 'conn' of type net.Conn acquired in function 'Pos_Res_LinearNetConnLeak' at line 55 is never closed along normal execution paths.",
+      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
+      "recommended_action": "Ensure 'defer conn.Close()' is called immediately following successful acquisition error checking.",
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
+    },
+    {
+      "file_path": "fixtures\\resource_fixtures.go",
+      "package": "",
+      "function": "Pos_Res_ConditionalRelease",
+      "line": 158,
+      "resource_kind": "os.File",
+      "var_name": "f",
+      "lifecycle_state": "RESOURCE_LEAK_PROBABLE",
+      "finding_state": "PROBABLE",
+      "severity": "MEDIUM",
+      "confidence": 0.9,
+      "acquisition_snippet": "os.Open(path)",
+      "history": [
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_ACQUIRED",
+          "action": "os.Open(path)",
+          "line": 158,
+          "block_id": 0,
+          "detail": "Acquired via supported API contract"
+        },
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_RELEASED",
+          "action": "explicit release",
+          "line": 163,
+          "block_id": 5,
+          "detail": "Explicit release executed prior to return"
+        }
+      ],
+      "title": "Conditional Resource Leak on Exit Path (os.File)",
+      "description": "Resource 'f' is released on some execution paths but leaks along 1 of 3 reachable exits.",
+      "root_cause": "Conditional release branch does not cover all function exit paths.",
+      "recommended_action": "Unify cleanup under a top-level deferred release.",
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -625,72 +635,44 @@
       ],
       "title": "Safe Deferred Resource Lifecycle",
       "description": "Resource 'f' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
       "package": "",
-      "function": "Neg_Res_ReturnedToCaller",
-      "line": 208,
+      "function": "Neg_Res_DeferredFileClose",
+      "line": 34,
       "resource_kind": "os.File",
       "var_name": "f",
-      "lifecycle_state": "RESOURCE_TRANSFERRED",
+      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
       "finding_state": "COUNTER_EVIDENCE_PRESENT",
       "severity": "",
-      "confidence": 0.98,
+      "confidence": 0.99,
       "acquisition_snippet": "os.Open(path)",
       "history": [
         {
           "from_state": "RESOURCE_ACQUIRED",
           "to_state": "RESOURCE_ACQUIRED",
           "action": "os.Open(path)",
-          "line": 208,
+          "line": 34,
           "block_id": 0,
           "detail": "Acquired via supported API contract"
         },
         {
           "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_TRANSFERRED",
-          "action": "return f",
-          "line": 212,
-          "block_id": 4,
-          "detail": "Ownership transferred to caller via return value"
+          "to_state": "RESOURCE_DEFERRED_RELEASE",
+          "action": "defer Close()",
+          "line": 38,
+          "block_id": 0,
+          "detail": "Scheduled deferred release on function return"
         }
       ],
       "counter_evidence": [
-        "Resource 'f' of type os.File ownership transferred to caller via return value or consumer"
+        "Resource 'f' of type os.File has verified deferred release covering all reachable exit paths"
       ],
-      "title": "Safe Resource Ownership Transfer",
-      "description": "Resource 'f' ownership was transferred, discharging local release obligation.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
-    },
-    {
-      "file_path": "fixtures\\resource_fixtures.go",
-      "package": "",
-      "function": "Pos_Res_LinearFileLeak",
-      "line": 21,
-      "resource_kind": "os.File",
-      "var_name": "f",
-      "lifecycle_state": "RESOURCE_LEAK_CONFIRMED",
-      "finding_state": "CONFIRMED",
-      "severity": "HIGH",
-      "confidence": 0.97,
-      "acquisition_snippet": "os.Open(path)",
-      "history": [
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_ACQUIRED",
-          "action": "os.Open(path)",
-          "line": 21,
-          "block_id": 0,
-          "detail": "Acquired via supported API contract"
-        }
-      ],
-      "title": "Unclosed System Resource Leak (os.File)",
-      "description": "Resource handle 'f' of type os.File acquired in function 'Pos_Res_LinearFileLeak' at line 21 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer f.Close()' is called immediately following successful acquisition error checking.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "title": "Safe Deferred Resource Lifecycle",
+      "description": "Resource 'f' is safely released via deferred call.",
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -727,63 +709,118 @@
       ],
       "title": "Safe Explicit Resource Lifecycle",
       "description": "Resource 'f' is explicitly closed prior to return.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
       "package": "",
-      "function": "Pos_Res_HTTPBodyLeak",
-      "line": 76,
+      "function": "Neg_Res_DeferredNetConnClose",
+      "line": 65,
+      "resource_kind": "net.Conn",
+      "var_name": "conn",
+      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "confidence": 0.99,
+      "acquisition_snippet": "net.Dial(\"tcp\", addr)",
+      "history": [
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_ACQUIRED",
+          "action": "net.Dial(\"tcp\", addr)",
+          "line": 65,
+          "block_id": 0,
+          "detail": "Acquired via supported API contract"
+        },
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_DEFERRED_RELEASE",
+          "action": "defer Close()",
+          "line": 69,
+          "block_id": 0,
+          "detail": "Scheduled deferred release on function return"
+        }
+      ],
+      "counter_evidence": [
+        "Resource 'conn' of type net.Conn has verified deferred release covering all reachable exit paths"
+      ],
+      "title": "Safe Deferred Resource Lifecycle",
+      "description": "Resource 'conn' is safely released via deferred call.",
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
+    },
+    {
+      "file_path": "fixtures\\resource_fixtures.go",
+      "package": "",
+      "function": "Neg_Res_HTTPBodyClosed",
+      "line": 85,
       "resource_kind": "http.Response.Body",
       "var_name": "resp",
-      "lifecycle_state": "RESOURCE_LEAK_CONFIRMED",
-      "finding_state": "CONFIRMED",
-      "severity": "HIGH",
-      "confidence": 0.97,
+      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "confidence": 0.99,
       "acquisition_snippet": "http.Get(url)",
       "history": [
         {
           "from_state": "RESOURCE_ACQUIRED",
           "to_state": "RESOURCE_ACQUIRED",
           "action": "http.Get(url)",
-          "line": 76,
+          "line": 85,
           "block_id": 0,
           "detail": "Acquired via supported API contract"
+        },
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_DEFERRED_RELEASE",
+          "action": "defer Close()",
+          "line": 89,
+          "block_id": 0,
+          "detail": "Scheduled deferred release on function return"
         }
       ],
-      "title": "Unclosed System Resource Leak (http.Response.Body)",
-      "description": "Resource handle 'resp' of type http.Response.Body acquired in function 'Pos_Res_HTTPBodyLeak' at line 76 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer resp.Close()' is called immediately following successful acquisition error checking.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "counter_evidence": [
+        "Resource 'resp' of type http.Response.Body has verified deferred release covering all reachable exit paths"
+      ],
+      "title": "Safe Deferred Resource Lifecycle",
+      "description": "Resource 'resp' is safely released via deferred call.",
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
       "package": "",
-      "function": "Pos_Res_SQLRowsLeak",
-      "line": 95,
+      "function": "Neg_Res_SQLRowsDeferredClose",
+      "line": 107,
       "resource_kind": "sql.Rows",
       "var_name": "rows",
-      "lifecycle_state": "RESOURCE_LEAK_CONFIRMED",
-      "finding_state": "CONFIRMED",
-      "severity": "HIGH",
-      "confidence": 0.97,
+      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
+      "finding_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "confidence": 0.99,
       "acquisition_snippet": "db.Query(\"SELECT id FROM users\")",
       "history": [
         {
           "from_state": "RESOURCE_ACQUIRED",
           "to_state": "RESOURCE_ACQUIRED",
           "action": "db.Query(\"SELECT id FROM users\")",
-          "line": 95,
+          "line": 107,
           "block_id": 0,
           "detail": "Acquired via supported API contract"
+        },
+        {
+          "from_state": "RESOURCE_ACQUIRED",
+          "to_state": "RESOURCE_DEFERRED_RELEASE",
+          "action": "defer Close()",
+          "line": 111,
+          "block_id": 0,
+          "detail": "Scheduled deferred release on function return"
         }
       ],
-      "title": "Unclosed System Resource Leak (sql.Rows)",
-      "description": "Resource handle 'rows' of type sql.Rows acquired in function 'Pos_Res_SQLRowsLeak' at line 95 is never closed along normal execution paths.",
-      "root_cause": "Resource handle acquired without explicit or deferred release call along reachable exit paths.",
-      "recommended_action": "Ensure 'defer rows.Close()' is called immediately following successful acquisition error checking.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "counter_evidence": [
+        "Resource 'rows' of type sql.Rows has verified deferred release covering all reachable exit paths"
+      ],
+      "title": "Safe Deferred Resource Lifecycle",
+      "description": "Resource 'rows' is safely released via deferred call.",
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
     },
     {
       "file_path": "fixtures\\resource_fixtures.go",
@@ -820,44 +857,7 @@
       ],
       "title": "Safe Explicit Resource Lifecycle",
       "description": "Resource 'tx' is explicitly closed prior to return.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
-    },
-    {
-      "file_path": "fixtures\\resource_fixtures.go",
-      "package": "",
-      "function": "Neg_Res_AcquisitionFailurePath",
-      "line": 249,
-      "resource_kind": "os.File",
-      "var_name": "f",
-      "lifecycle_state": "RESOURCE_DEFERRED_RELEASE",
-      "finding_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "confidence": 0.99,
-      "acquisition_snippet": "os.Open(path)",
-      "history": [
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_ACQUIRED",
-          "action": "os.Open(path)",
-          "line": 249,
-          "block_id": 0,
-          "detail": "Acquired via supported API contract"
-        },
-        {
-          "from_state": "RESOURCE_ACQUIRED",
-          "to_state": "RESOURCE_DEFERRED_RELEASE",
-          "action": "defer Close()",
-          "line": 254,
-          "block_id": 0,
-          "detail": "Scheduled deferred release on function return"
-        }
-      ],
-      "counter_evidence": [
-        "Resource 'f' of type os.File has verified deferred release covering all reachable exit paths"
-      ],
-      "title": "Safe Deferred Resource Lifecycle",
-      "description": "Resource 'f' is safely released via deferred call.",
-      "timestamp": "2026-11-18T11:48:54.8608813+05:30"
+      "timestamp": "2026-11-23T13:42:53.6738401+05:30"
     }
   ],
   "metrics": {
@@ -867,5 +867,5 @@
     "specificity": 1
   },
   "report_type": "Milestone 3.4 Phase 3 Resource Lifecycle Model and Fixture Results",
-  "timestamp": "2026-11-18T11:48:54+05:30"
+  "timestamp": "2026-11-23T13:42:53+05:30"
 }
