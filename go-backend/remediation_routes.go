@@ -121,9 +121,9 @@ func setupRemediationRoutesWithService(r *gin.Engine, tokenMiddleware gin.Handle
 			c.JSON(http.StatusBadRequest, gin.H{"error": "proposal_id is required"})
 			return
 		}
-		approval, err := mvpService.ApproveRepair(req.ProposalID, execution.MVPAnalysisOperator, "analysis-operator")
+		approval, err := mvpService.ApproveVerifiedRepair(req.ProposalID, execution.MVPAnalysisOperator, "analysis-operator")
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "verification_verdict": execution.VerificationFailureVerdict(err)})
 			return
 		}
 		c.JSON(http.StatusOK, approval)

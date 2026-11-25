@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -254,6 +255,7 @@ type MVPService struct {
 	Runner            ContainerRunner
 
 	trustedPlans    []VerificationPlan
+	removeSandbox   func(string) error // nil uses os.RemoveAll; test injection never exposed over REST
 	mu              sync.Mutex
 	snapshots       map[string]*WorkspaceSnapshot
 	dynamicTargets  map[string]*MVPTarget
@@ -737,6 +739,11 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 		return nil, fmt.Errorf("failed to clone repo to sandbox: %w", err)
 	}
 
+	if err := prepareContainerSnapshot(tmpSandbox); err != nil {
+		_ = os.RemoveAll(tmpSandbox)
+		return nil, err
+	}
+
 	task := &planning.RemediationTask{
 		TaskID:                fmt.Sprintf("TASK-MVP-%s", target.TargetID),
 		Title:                 fmt.Sprintf("Remediate %s in %s", target.DefectCategory, target.TargetFile),
@@ -1196,7 +1203,7 @@ func (s *MVPService) ExecuteRepair(tokenID string) (result *MVPExecutionResult, 
 	}
 	evidenceClass := "REAL_CONTAINER_EXECUTION"
 	if !genuineDocker(s.Runner) {
-		evidenceClass = "TESTED_WITH_MOCK -- NOT_DYNAMICALLY_VERIFIED"
+		evidenceClass = "TESTED_WITH_MOCK \u2014 NOT_DYNAMICALLY_VERIFIED"
 	}
 
 	res := &MVPExecutionResult{
@@ -1283,6 +1290,9 @@ func (s *MVPService) RollbackSandbox(executionID string) (bool, error) {
 	if !exists {
 		return false, fmt.Errorf("execution record %q not found", executionID)
 	}
+	if s.activeProposals[exec.ProposalID] {
+		return false, fmt.Errorf("DISCARD_SANDBOX: proposal is executing")
+	}
 	if exec.SandboxDir == "" {
 		return false, fmt.Errorf("DISCARD_SANDBOX: missing sandbox path")
 	}
@@ -1295,7 +1305,14 @@ func (s *MVPService) RollbackSandbox(executionID string) (bool, error) {
 		return false, fmt.Errorf("DISCARD_SANDBOX: path is outside managed sandbox root")
 	}
 	exec.CleanupOperation = "DISCARD_SANDBOX"
-	if err := os.RemoveAll(exec.SandboxDir); err != nil {
+	if info, e := os.Lstat(root); e != nil || info.Mode()&os.ModeSymlink != 0 {
+		return false, fmt.Errorf("DISCARD_SANDBOX: unsafe managed root")
+	}
+	remove := s.removeSandbox
+	if remove == nil {
+		remove = os.RemoveAll
+	}
+	if err := remove(exec.SandboxDir); err != nil {
 		exec.CleanupStatus = "FAILED"
 		return false, fmt.Errorf("DISCARD_SANDBOX: %w", err)
 	}
@@ -1317,8 +1334,12 @@ func (s *MVPService) ExportAuditReport() *MVPAuditReport {
 	abstainedCount := 0
 	failedCount := 0
 	allImmutable := true
+	checkedExecutions := 0
 
 	for _, rec := range s.auditTrail {
+		if rec.Execution != nil {
+			checkedExecutions++
+		}
 		if rec.Execution != nil && !rec.Execution.OriginalRepoImmutable {
 			allImmutable = false
 		}
@@ -1331,16 +1352,20 @@ func (s *MVPService) ExportAuditReport() *MVPAuditReport {
 		}
 	}
 
-	return &MVPAuditReport{
+	report := &MVPAuditReport{
 		BaselineCommit:        s.BaselineSHA,
 		ExportTimestamp:       time.Now().UTC().Format(time.RFC3339),
 		TotalSessionsRecorded: len(s.auditTrail),
 		VerifiedRepairsCount:  verifiedCount,
 		AbstainedRepairsCount: abstainedCount,
 		FailedRepairsCount:    failedCount,
-		SourceImmutability100: allImmutable,
+		SourceImmutability100: allImmutable && checkedExecutions > 0,
 		AuditRecords:          s.auditTrail,
 	}
+	data, _ := json.Marshal(report)
+	var frozen MVPAuditReport
+	_ = json.Unmarshal(data, &frozen)
+	return &frozen
 }
 
 // RunDeterministicDemo runs a repair candidate and an abstention case.
@@ -1362,7 +1387,7 @@ func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
 	}
 
 	exec1, err := s.ExecuteRepair(appr1.TokenID)
-	if err != nil {
+	if err != nil && (exec1 == nil || exec1.VerificationVerdict != "REPRODUCER_NOT_AVAILABLE") {
 		return nil, fmt.Errorf("demo execution failed: %w", err)
 	}
 

@@ -2,6 +2,9 @@ package execution
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -83,7 +86,7 @@ func contractFixture(t *testing.T, r ContainerRunner) (*MVPService, *MVPProposal
 	if e != nil {
 		t.Fatal(e)
 	}
-	plan := VerificationPlan{Repository: snap.Repository, Revision: snap.SourceCommit, RootDigest: snap.RootDigest, SourceHash: target.SourceFileHash, Reproducer: VerificationCheck{".", "TestIndependentDescriptorLeak"}, Regression: []VerificationCheck{{".", "TestApprovedRegression"}}, Behavioral: VerificationCheck{".", "TestBehaviorUnchanged"}, TestFiles: map[string]string{"independent_test.go": sourceSHA(testData)}, FailureAssertion: "HEALPROOF_DESCRIPTOR_LEAK", BeforeExit: 1, AfterExit: 0, NegativeProperties: "AST_SAFETY_V1", Issuer: "test-operator", Provenance: "independent testdata/healproof contract; TESTED_WITH_MOCK -- NOT_DYNAMICALLY_VERIFIED", Limits: DefaultContainerLimits()}
+	plan := VerificationPlan{Repository: snap.Repository, Revision: snap.SourceCommit, RootDigest: snap.RootDigest, SourceHash: target.SourceFileHash, Reproducer: VerificationCheck{".", "TestIndependentDescriptorLeak"}, Regression: []VerificationCheck{{".", "TestApprovedRegression"}}, Behavioral: VerificationCheck{".", "TestBehaviorUnchanged"}, TestFiles: map[string]string{"independent_test.go": sourceSHA(testData)}, FailureAssertion: "HEALPROOF_DESCRIPTOR_LEAK", BeforeExit: 1, AfterExit: 0, NegativeProperties: "AST_SAFETY_V1", Issuer: "test-operator", Provenance: "independent testdata/healproof contract; TESTED_WITH_MOCK \u2014 NOT_DYNAMICALLY_VERIFIED", Limits: DefaultContainerLimits()}
 	if e = s.ConfigureTrustedVerificationPlans([]VerificationPlan{plan}); e != nil {
 		t.Fatal(e)
 	}
@@ -101,7 +104,7 @@ func contractFixture(t *testing.T, r ContainerRunner) (*MVPService, *MVPProposal
 	return s, p, ws
 }
 func TestVerificationContractControlFlow(t *testing.T) {
-	t.Log("TESTED_WITH_MOCK -- NOT_DYNAMICALLY_VERIFIED")
+	t.Log("TESTED_WITH_MOCK \u2014 NOT_DYNAMICALLY_VERIFIED")
 	for _, tc := range []struct{ mode, want string }{{"ok", "EXECUTION_FAILED"}, {"wrong_patch", "EXECUTION_FAILED"}, {"regression", "REGRESSION_FAILED"}, {"behavior", "BEHAVIORAL_INVARIANCE_FAILED"}, {"baseline_pass", "EXECUTION_FAILED"}, {"compile", "EXECUTION_FAILED"}, {"unavailable", "DYNAMIC_VERIFICATION_UNAVAILABLE"}, {"no_test", "EXECUTION_FAILED"}} {
 		t.Run(tc.mode, func(t *testing.T) {
 			r := &contractRunner{mode: tc.mode}
@@ -168,11 +171,16 @@ func TestVerificationContractSecurity(t *testing.T) {
 			case "workspace":
 				p.WorkspaceID = "ws-other"
 			case "expiry":
-				s.tokenObjs[a.TokenID].ExpiresAt = time.Now().Add(-time.Hour)
+				tok := s.tokenObjs[a.TokenID]
+				tok.ExpiresAt = time.Now().Add(-time.Hour)
+				payload, _ := tok.CanonicalPayload()
+				mac := hmac.New(sha256.New, s.Authority.secretKey)
+				mac.Write(payload)
+				tok.HMACSignature = hex.EncodeToString(mac.Sum(nil))
 			case "missing":
 				p.VerificationPlan = nil
 			case "restart":
-				s, e = NewMVPService(s.WorkspaceRoot, filepath.Join(s.WorkspaceRoot,"ledger.json"), &contractRunner{})
+				s, e = NewMVPService(s.WorkspaceRoot, filepath.Join(s.WorkspaceRoot, "ledger.json"), &contractRunner{})
 			case "redigest":
 				p.VerificationPlan.Reproducer.Test = "TestOther"
 				p.VerificationPlanDigest = p.VerificationPlan.Digest()
@@ -208,5 +216,80 @@ func TestVerificationPlanFrozen(t *testing.T) {
 	}
 	if fmt.Sprint(s.tokenObjs[a.TokenID].TargetFileHashes) == "" {
 		t.Fatal("missing scope")
+	}
+}
+
+func TestVerificationAuditAndLedgerRestart(t *testing.T) {
+	s, p, _ := contractFixture(t, &contractRunner{mode: "unavailable"})
+	a, e := s.ApproveRepair(p.ProposalID, MVPAnalysisOperator, "operator")
+	if e != nil {
+		t.Fatal(e)
+	}
+	r, _ := s.ExecuteRepair(a.TokenID)
+	if r == nil || !r.TokenConsumed {
+		t.Fatal("approval was not consumed")
+	}
+	restored, e := NewMVPService(s.WorkspaceRoot, filepath.Join(s.WorkspaceRoot, "ledger.json"), &contractRunner{})
+	if e != nil {
+		t.Fatal(e)
+	}
+	if !restored.Registry.IsConsumed(a.TokenID) {
+		t.Fatal("consumption lost after restart")
+	}
+	if len(restored.ExportAuditReport().AuditRecords) != 0 {
+		t.Fatal("audit persistence is not a supported contract")
+	}
+	if _, e = restored.ExecuteRepair(a.TokenID); e == nil {
+		t.Fatal("restart accepted missing approval state")
+	}
+}
+func TestVerificationActiveSandboxCannotBeDiscarded(t *testing.T) {
+	// Directory disposal itself is exercised on the real filesystem by the v2
+	// contract test. This assertion covers active-execution exclusion.
+	s, p, _ := contractFixture(t, &contractRunner{})
+	s.executions["running"] = &MVPExecutionResult{ProposalID: p.ProposalID, SandboxDir: p.SandboxDir}
+	s.activeProposals = map[string]bool{p.ProposalID: true}
+	if _, e := s.RollbackSandbox("running"); e == nil {
+		t.Fatal("running workspace disposed")
+	}
+	if _, e := os.Stat(p.SandboxDir); e != nil {
+		t.Fatal(e)
+	}
+}
+
+func TestVerificationDiscardErrors(t *testing.T) {
+	for _, mode := range []string{"delete_error", "deletion_not_performed"} {
+		t.Run(mode, func(t *testing.T) {
+			s, p, ws := contractFixture(t, &contractRunner{})
+			pre, _ := ComputeRepoDigest(ws)
+			s.executions["owned"] = &MVPExecutionResult{ProposalID: p.ProposalID, SandboxDir: p.SandboxDir}
+			s.removeSandbox = func(string) error {
+				if mode == "delete_error" {
+					return fmt.Errorf("injected filesystem denial")
+				}
+				return nil
+			}
+			if ok, e := s.RollbackSandbox("owned"); e == nil || ok {
+				t.Fatal("deletion failure hidden")
+			}
+			if s.executions["owned"].CleanupStatus != "FAILED" {
+				t.Fatal("failure not recorded")
+			}
+			post, _ := ComputeRepoDigest(ws)
+			if pre != post {
+				t.Fatal("original changed")
+			}
+		})
+	}
+}
+func TestVerificationPublicApprovalRequiresPlan(t *testing.T) {
+	s, p, _ := contractFixture(t, &contractRunner{})
+	p.VerificationPlan = nil
+	p.VerificationPlanDigest = ""
+	if a, e := s.ApproveVerifiedRepair(p.ProposalID, MVPAnalysisOperator, "operator"); e == nil || a != nil {
+		t.Fatal("unplanned live approval issued")
+	}
+	if len(s.approvals) != 0 {
+		t.Fatal("missing-plan rejection issued token")
 	}
 }

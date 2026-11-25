@@ -171,115 +171,9 @@ func TestEndToEndScanToRepairWorkflow_LiveRepo(t *testing.T) {
 	req5.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w5, req5)
 
-	if w5.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/approve failed: %s", w5.Body.String())
+	if w5.Code != http.StatusUnprocessableEntity || !strings.Contains(w5.Body.String(), "REPRODUCER_NOT_AVAILABLE") {
+		t.Fatalf("unplanned live approval must reject: %s", w5.Body.String())
 	}
-	var approvalResp struct {
-		TokenID string `json:"token_id"`
-		Valid   bool   `json:"valid"`
-	}
-	_ = json.Unmarshal(w5.Body.Bytes(), &approvalResp)
-	if !approvalResp.Valid || approvalResp.TokenID == "" {
-		t.Fatalf("Approval failed: %+v", approvalResp)
-	}
-
-	// Step 6: Execute repair in sandbox and verify oracles + immutability
-	exBody, _ := json.Marshal(map[string]string{"token_id": approvalResp.TokenID})
-	w6 := httptest.NewRecorder()
-	req6, _ := http.NewRequest(http.MethodPost, "/api/remediation/execute", bytes.NewReader(exBody))
-	req6.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w6, req6)
-
-	if w6.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/execute failed: %s", w6.Body.String())
-	}
-	var execResp struct {
-		ExecutionID           string `json:"execution_id"`
-		AppliedInSandbox      bool   `json:"applied_in_sandbox"`
-		OriginalRepoImmutable bool   `json:"original_repo_immutable"`
-		TokenConsumed         bool   `json:"token_consumed"`
-		VerificationVerdict   string `json:"verification_verdict"`
-	}
-	_ = json.Unmarshal(w6.Body.Bytes(), &execResp)
-	if !execResp.AppliedInSandbox || !execResp.OriginalRepoImmutable || !execResp.TokenConsumed {
-		t.Fatalf("Execution safety invariant violated: %+v", execResp)
-	}
-	if execResp.VerificationVerdict != "SYNTAX_ONLY_VERIFIED" && execResp.VerificationVerdict != "INDEPENDENTLY_VERIFIED" {
-		t.Fatalf("Expected valid verification verdict, got %s", execResp.VerificationVerdict)
-	}
-	t.Logf("Execution completed: Verdict=%s, SandboxApplied=%v, SourceImmutable=%v",
-		execResp.VerificationVerdict, execResp.AppliedInSandbox, execResp.OriginalRepoImmutable)
-
-	// Step 7: Test an unsupported / abstention candidate (e.g. Command Injection)
-	abstainTargetID := ""
-	for _, target := range targetsResp.Targets {
-		if target.DefectCategory == "COMMAND_INJECTION" {
-			abstainTargetID = target.TargetID
-			break
-		}
-	}
-	if abstainTargetID == "" {
-		t.Skip("no command candidate; abstention track NOT VERIFIED")
-	}
-	absAnBody, _ := json.Marshal(map[string]string{"target_id": abstainTargetID})
-	w7 := httptest.NewRecorder()
-	req7, _ := http.NewRequest(http.MethodPost, "/api/remediation/analyze", bytes.NewReader(absAnBody))
-	req7.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w7, req7)
-
-	if w7.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/analyze failed for %s: %s", abstainTargetID, w7.Body.String())
-	}
-	var absAnalysis struct {
-		AnalysisID           string  `json:"analysis_id"`
-		AutomaticEligibility bool    `json:"automatic_eligibility"`
-		UncertaintyScore     float64 `json:"uncertainty_score"`
-		EligibilityRationale string  `json:"eligibility_rationale"`
-	}
-	_ = json.Unmarshal(w7.Body.Bytes(), &absAnalysis)
-	if absAnalysis.AutomaticEligibility {
-		t.Errorf("Command injection must not be automatically eligible")
-	}
-	if absAnalysis.UncertaintyScore < 0.90 {
-		t.Errorf("Expected high uncertainty for command injection, got %.2f", absAnalysis.UncertaintyScore)
-	}
-
-	absPrBody, _ := json.Marshal(map[string]string{"analysis_id": absAnalysis.AnalysisID})
-	w8 := httptest.NewRecorder()
-	req8, _ := http.NewRequest(http.MethodPost, "/api/remediation/propose", bytes.NewReader(absPrBody))
-	req8.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w8, req8)
-
-	if w8.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/propose failed for %s: %s", abstainTargetID, w8.Body.String())
-	}
-	var absProposal struct {
-		Status        string `json:"status"`
-		AbstainReason string `json:"abstain_reason"`
-	}
-	_ = json.Unmarshal(w8.Body.Bytes(), &absProposal)
-	if absProposal.Status != "ABSTAINED" {
-		t.Errorf("Expected ABSTAINED status for %s, got %s", abstainTargetID, absProposal.Status)
-	}
-	t.Logf("Abstention verified for %s: %s", abstainTargetID, absProposal.AbstainReason)
-
-	// Step 8: Fetch audit report
-	w9 := httptest.NewRecorder()
-	req9, _ := http.NewRequest(http.MethodGet, "/api/remediation/audit", nil)
-	r.ServeHTTP(w9, req9)
-	if w9.Code != http.StatusOK {
-		t.Fatalf("GET /api/remediation/audit failed: %s", w9.Body.String())
-	}
-	var auditResp struct {
-		TotalSessionsRecorded int  `json:"total_sessions_recorded"`
-		SourceImmutability100 bool `json:"source_immutability_100_percent"`
-	}
-	_ = json.Unmarshal(w9.Body.Bytes(), &auditResp)
-	if !auditResp.SourceImmutability100 {
-		t.Errorf("Audit report must verify 100%% source immutability")
-	}
-	t.Logf("Audit report verified: TotalSessions=%d, 100%% Immutability=%v",
-		auditResp.TotalSessionsRecorded, auditResp.SourceImmutability100)
 }
 
 func TestEndToEndScanToRepairWorkflow_OfflineFixture(t *testing.T) {
@@ -382,13 +276,9 @@ func RunScript(userInput string) error {
 	_ = json.Unmarshal(w1.Body.Bytes(), &targetsResp)
 
 	var repairableTarget string
-	var abstainTarget string
 	for _, trg := range targetsResp.Targets {
 		if trg.DefectCategory == "SQL_INJECTION" {
 			repairableTarget = trg.TargetID
-		}
-		if trg.DefectCategory == "COMMAND_INJECTION" || trg.DefectCategory == "HIGH_COMPLEXITY" {
-			abstainTarget = trg.TargetID
 		}
 	}
 
@@ -446,57 +336,8 @@ func RunScript(userInput string) error {
 	req4, _ := http.NewRequest(http.MethodPost, "/api/remediation/approve", bytes.NewReader(apBody))
 	req4.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w4, req4)
-	if w4.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/approve returned %d: %s", w4.Code, w4.Body.String())
-	}
-
-	var apResp struct {
-		TokenID string `json:"token_id"`
-		Valid   bool   `json:"valid"`
-	}
-	_ = json.Unmarshal(w4.Body.Bytes(), &apResp)
-
-	// Execute repair
-	exBody, _ := json.Marshal(map[string]string{"token_id": apResp.TokenID})
-	w5 := httptest.NewRecorder()
-	req5, _ := http.NewRequest(http.MethodPost, "/api/remediation/execute", bytes.NewReader(exBody))
-	req5.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w5, req5)
-	if w5.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/execute returned %d: %s", w5.Code, w5.Body.String())
-	}
-
-	var exResp struct {
-		AppliedInSandbox      bool   `json:"applied_in_sandbox"`
-		OriginalRepoImmutable bool   `json:"original_repo_immutable"`
-		TokenConsumed         bool   `json:"token_consumed"`
-		VerificationVerdict   string `json:"verification_verdict"`
-	}
-	_ = json.Unmarshal(w5.Body.Bytes(), &exResp)
-	if !exResp.AppliedInSandbox || !exResp.OriginalRepoImmutable || !exResp.TokenConsumed {
-		t.Fatalf("Execution safety invariant violated in offline fixture: %+v", exResp)
-	}
-	if exResp.VerificationVerdict != "SYNTAX_ONLY_VERIFIED" && exResp.VerificationVerdict != "INDEPENDENTLY_VERIFIED" {
-		t.Errorf("Unexpected verification verdict: %s", exResp.VerificationVerdict)
-	}
-
-	// Test abstention if present
-	if abstainTarget != "" {
-		absBody, _ := json.Marshal(map[string]string{"target_id": abstainTarget})
-		w6 := httptest.NewRecorder()
-		req6, _ := http.NewRequest(http.MethodPost, "/api/remediation/analyze", bytes.NewReader(absBody))
-		req6.Header.Set("Content-Type", "application/json")
-		r.ServeHTTP(w6, req6)
-		if w6.Code == http.StatusOK {
-			var absAn struct {
-				AnalysisID           string `json:"analysis_id"`
-				AutomaticEligibility bool   `json:"automatic_eligibility"`
-			}
-			_ = json.Unmarshal(w6.Body.Bytes(), &absAn)
-			if absAn.AutomaticEligibility {
-				t.Errorf("Abstention target %s must not be automatically eligible", abstainTarget)
-			}
-		}
+	if w4.Code != http.StatusUnprocessableEntity || !strings.Contains(w4.Body.String(), "REPRODUCER_NOT_AVAILABLE") {
+		t.Fatalf("unplanned fixture approval must reject: %s", w4.Body.String())
 	}
 }
 

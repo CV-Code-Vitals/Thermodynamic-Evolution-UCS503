@@ -67,7 +67,7 @@ func proofRequest(t *testing.T, r *gin.Engine, method, path string, body any, wa
 	req := httptest.NewRequest(method, path, bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Trusted-Client-IP", "8.8.8.8")
-	req.Header.Set("Authorization", "Bearer proof-operator-token")
+	req.Header.Set("X-API-Token", "proof-operator-token")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 	if w.Code != want {
@@ -90,6 +90,9 @@ func proofPublicLifecycle(t *testing.T, runner execution.ContainerRunner, real b
 			t.Fatal(err)
 		}
 		entries["repo/healproof/"+name] = string(data)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "archives"), 0755); err != nil {
+		t.Fatal(err)
 	}
 	provider := NewSnapshotStore(&proofArchive{makeSnapshotArchive(t, entries)}, filepath.Join(root, "archives"))
 	store := &workspaceStore{entries: make(map[string]*evolutionWorkspace)}
@@ -165,6 +168,19 @@ func proofPublicLifecycle(t *testing.T, runner execution.ContainerRunner, real b
 	if !missingPlan && (proposal.VerificationPlan == nil || proposal.VerificationPlanDigest != proposal.VerificationPlan.Digest()) {
 		t.Fatal("public proposal missing valid manifest")
 	}
+	if missingPlan {
+		var rejection struct {
+			Verdict string `json:"verification_verdict"`
+		}
+		proofRequest(t, r, "POST", "/api/remediation/approve", map[string]string{"proposal_id": proposal.ProposalID}, 422, &rejection)
+		if rejection.Verdict != "REPRODUCER_NOT_AVAILABLE" {
+			t.Fatal("unplanned public proposal authorized")
+		}
+		if service.ExportAuditReport().AuditRecords[0].FinalStatus != rejection.Verdict {
+			t.Fatal("missing-plan approval rejection not audited")
+		}
+		return
+	}
 	var approval execution.MVPApprovalResult
 	proofRequest(t, r, "POST", "/api/remediation/approve", map[string]string{"proposal_id": proposal.ProposalID}, 200, &approval)
 	if approval.Signature == "" || approval.VerificationPlanDigest != proposal.VerificationPlanDigest {
@@ -214,22 +230,27 @@ func proofPublicLifecycle(t *testing.T, runner execution.ContainerRunner, real b
 	if _, err = os.Lstat(result.SandboxDir); !os.IsNotExist(err) {
 		t.Fatal("sandbox not deleted")
 	}
+	proofRequest(t, r, "GET", "/api/remediation/audit", nil, 200, &audit)
+	if audit.AuditRecords[0].Execution == nil || audit.AuditRecords[0].Execution.CleanupStatus != "PASSED" {
+		t.Fatal("disposal state missing from audit")
+	}
+	result = *audit.AuditRecords[0].Execution
 	post, err := execution.ComputeRepoDigest(ws)
 	if err != nil || pre != post {
 		t.Fatal("source mutated")
 	}
-	if output := os.Getenv("HEALPROOF_EVIDENCE_DIR"); real && output != "" {
+	if output := os.Getenv("HEALPROOF_EVIDENCE_DIR"); output != "" {
 		if err = os.MkdirAll(output, 0755); err != nil {
 			t.Fatal(err)
 		}
-		b, _ := json.MarshalIndent(map[string]any{"proposal": proposal, "approval": approval, "execution": result, "audit": audit, "source_pre": pre, "source_post": post, "disposal": disposal}, "", "  ")
-		if err = os.WriteFile(filepath.Join(output, fmt.Sprintf("public-docker-trace-incorrect-%t.json", incorrectPatch)), b, 0600); err != nil {
+		b, _ := json.MarshalIndent(map[string]any{"evidence_class": result.EvidenceClass, "proposal": proposal, "approval": approval, "execution": result, "audit": audit, "source_pre": pre, "source_post": post, "disposal": disposal}, "", "  ")
+		if err = os.WriteFile(filepath.Join(output, fmt.Sprintf("public-trace-real-%t-unavailable-%t-incorrect-%t.json", real, unavailable, incorrectPatch)), b, 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
 }
 func TestHealproofPublicContract(t *testing.T) {
-	t.Log("TESTED_WITH_MOCK -- NOT_DYNAMICALLY_VERIFIED")
+	t.Log("TESTED_WITH_MOCK \u2014 NOT_DYNAMICALLY_VERIFIED")
 	for _, mode := range []string{"wired", "wrong_patch", "unavailable", "missing_plan"} {
 		t.Run(mode, func(t *testing.T) {
 			proofPublicLifecycle(t, &publicProofRunner{unavailable: mode == "unavailable", wrong: mode == "wrong_patch"}, false, map[string]string{}, mode == "missing_plan", mode == "wrong_patch")

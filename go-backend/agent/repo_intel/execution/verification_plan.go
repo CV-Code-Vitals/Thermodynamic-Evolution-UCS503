@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -167,6 +168,9 @@ func (s *MVPService) reproduceBefore(p *MVPProposalResult) (evidence *Reproducti
 	if e = CopyDirectory(p.SandboxDir, dir); e != nil {
 		return ev, e
 	}
+	if e = prepareContainerSnapshot(dir); e != nil {
+		return ev, e
+	}
 	ev.SourceDigest, e = ComputeRepoDigest(dir)
 	if e != nil {
 		return ev, e
@@ -180,6 +184,9 @@ func (s *MVPService) reproduceBefore(p *MVPProposalResult) (evidence *Reproducti
 	}
 	ev.Result, e = s.Runner.RunCommand(ctx, moduleDir, cmd)
 	r := ev.Result
+	if errors.Is(e, ErrDynamicVerificationUnavailable) || errors.Is(e, ErrSandboxUnavailable) || (r != nil && (isOfflineDependencyMissing(r.Output) || (r.Evidence != nil && r.Evidence.TimeoutCause != ""))) {
+		return ev, fmt.Errorf("DYNAMIC_VERIFICATION_UNAVAILABLE: baseline: %v", e)
+	}
 	// A Go testing assertion and completed container are mandatory; compile/dependency failures do not reproduce defects.
 	if e != nil || r == nil || !validContainerEvidence(r.Evidence, 1) || r.ExitCode != 1 || r.Evidence.TimeoutCause != "" || !strings.Contains(r.Output, "--- FAIL: "+v.Reproducer.Test+" (") || !strings.Contains(r.Output, v.FailureAssertion) || strings.Contains(r.Output, "[build failed]") || isOfflineDependencyMissing(r.Output) {
 		ev.Status = "EXECUTION_FAILED"
@@ -255,7 +262,7 @@ func approvalScope(p *MVPProposalResult, hash string) map[string]string {
 	return map[string]string{filepath.Base(p.TargetAbsPath): hash, "@verification/manifest": p.VerificationPlanDigest}
 }
 func completeDynamicProof(r ContainerRunner, p *MVPProposalResult, b *ReproductionEvidence, report *MultiOracleReport) bool {
-	if !genuineDocker(r) || b == nil || b.Status != "PASSED" || !validContainerEvidence(b.Result.Evidence, 1) || !report.AllPassed {
+	if !genuineDocker(r) || b == nil || b.Result == nil || b.BehavioralBaseline == nil || p.VerificationPlan == nil || b.SourceDigest != p.VerificationPlan.RootDigest || b.CleanupStatus != "VERIFIED_REMOVAL" || !validContainerEvidence(b.BehavioralBaseline.Evidence, 0) || b.Status != "PASSED" || !validContainerEvidence(b.Result.Evidence, 1) || !report.AllPassed {
 		return false
 	}
 	for _, kind := range []OracleType{OracleSyntaxCompilation, OracleRegressionTest, OracleDefectReproducer, OracleBehavioralInvariance, OracleNegativeProperties} {
@@ -310,6 +317,9 @@ func (s *MVPService) recordExecutionFailure(tokenID string, err error, b *Reprod
 		}
 		res.CandidateDigest, _ = ComputeRepoDigest(p.SandboxDir)
 	}
+	if s.executions == nil {
+		s.executions = make(map[string]*MVPExecutionResult)
+	}
 	s.executions[res.ExecutionID] = res
 	s.auditTrail = append(s.auditTrail, MVPAuditRecord{RecordID: res.ExecutionID, TargetID: res.TargetID, Proposal: p, Approval: a, Execution: res, FinalStatus: v, Timestamp: res.Timestamp})
 	return res
@@ -327,9 +337,13 @@ func (r *proofRunner) RunCommand(ctx context.Context, dir, cmd string) (*Contain
 	result, err := r.ContainerRunner.RunCommand(ctx, dir, cmd)
 	r.Records = append(r.Records, result)
 	if result == nil {
+		if err != nil {
+			return nil, err
+		}
 		return nil, fmt.Errorf("EXECUTION_FAILED: missing execution result")
 	}
 	if err != nil {
+		result.ExitCode = -1
 		return result, err
 	}
 	if result.ExitCode == 0 && strings.HasPrefix(cmd, "go test ") {
@@ -366,4 +380,47 @@ func (p VerificationPlan) modulePath(root string) (string, error) {
 		return "", err
 	}
 	return filepath.Join(root, filepath.FromSlash(p.ModuleDir)), nil
+}
+
+// ApproveVerifiedRepair is the live public approval boundary. Legacy demo
+// acknowledgments may still use ApproveRepair, but cannot authorize execution
+// without a plan. No live approval is issued for an unplanned proposal.
+func (s *MVPService) ApproveVerifiedRepair(id, principal, role string) (*MVPApprovalResult, error) {
+	s.mu.Lock()
+	p := s.proposals[id]
+	if p == nil {
+		s.mu.Unlock()
+		return nil, fmt.Errorf("SECURITY_REJECTION: proposal missing")
+	}
+	err := validateProposalPlan(p)
+	if err != nil {
+		s.auditTrail = append(s.auditTrail, MVPAuditRecord{RecordID: fmt.Sprintf("APPROVAL-REJECT-%d", time.Now().UnixNano()), TargetID: p.TargetID, Proposal: p, FinalStatus: failureVerdict(err), Timestamp: time.Now().UTC().Format(time.RFC3339)})
+		s.mu.Unlock()
+		return nil, err
+	}
+	s.mu.Unlock()
+	return s.ApproveRepair(id, principal, role)
+}
+
+func VerificationFailureVerdict(err error) string { return failureVerdict(err) }
+
+// Only disposable snapshots are normalized. Source repositories are never chmod'ed.
+// The container runs as UID/GID 10001 and needs read access even when extraction
+// or MkdirTemp used owner-only modes. No executable permission is granted to files.
+func prepareContainerSnapshot(dir string) error {
+	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("SECURITY_REJECTION: symlink in sandbox")
+		}
+		if info.IsDir() {
+			return os.Chmod(path, 0755)
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("SECURITY_REJECTION: nonregular sandbox file")
+		}
+		return os.Chmod(path, 0644)
+	})
 }
