@@ -1,0 +1,57 @@
+[
+  {
+    "path": "data/timetable.xlsx",
+    "sha256": "3775f21be0d8006d75449ca33f1a0f03a8aa0d6122471f04945b08f0e9e0fab8",
+    "bytes": 2204263
+  },
+  {
+    "path": "go.mod",
+    "sha256": "5c223331bd1623c74efd773bec21bdb7736d1f5b637c3d60dd37bc16679f23eb",
+    "bytes": 1885
+  },
+  {
+    "path": "go.sum",
+    "sha256": "8f6f30760354f3ef155b6774c664d43ed23f6c8a5bc6abc40289e354b656edca",
+    "bytes": 11376
+  },
+  {
+    "path": "internal/models/models.go",
+    "sha256": "5f6818ec761b0434ba2601baea534e50fe67f63c80368c19851be776503c6188",
+    "bytes": 312
+  },
+  {
+    "path": "internal/parser/excel_parser.go",
+    "sha256": "af0c3e0f90a36cf4afa2dd808ad6424dbe97c4c748725eea8c1233dca1055039",
+    "bytes": 9707
+  },
+  {
+    "path": "internal/utils/slots.go",
+    "sha256": "8b47aa7671c95bbbe7e5fa6a4535bfe572367c448a6821f8a37a31fc1d021a9d",
+    "bytes": 475
+  },
+  {
+    "path": "server.exe",
+    "sha256": "a70497759734f7f0b4cc2abc52b047c8bed0e3bd8e550d2736f864c6fc560e08",
+    "bytes": 23305216
+  },
+  {
+    "path": "server.go",
+    "sha256": "0cd79cc19953d6686a2a3bd2b88b9ddd4aebf6efe0172b05326eb78c790f38d9",
+    "bytes": 2234
+  },
+  {
+    "path": "web/css/style.css",
+    "sha256": "976ffd32b983e708363299a363f3739650e0c9f7d24fc1ddfcf36fe47855fd4b",
+    "bytes": 7450
+  },
+  {
+    "path": "web/index.html",
+    "sha256": "0d27cea360ec295a13e6d8230c94e61f440216be6f0b9304af7524a1b40cc496",
+    "bytes": 3737
+  },
+  {
+    "path": "web/js/app.js",
+    "sha256": "fff2e3a69a61ae1706c70dd74e66143fa72690d7ceda5d794eda2cf4b9d3c76e",
+    "bytes": 9121
+  }
+]

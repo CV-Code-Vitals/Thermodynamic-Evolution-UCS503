@@ -115,69 +115,6 @@
     {
       "file_path": "fixtures\\sql_fixtures.go",
       "package": "",
-      "function": "Neg_SQL_StaticQuery",
-      "line": 46,
-      "classification": "STATIC_SQL",
-      "sink_name": "Query",
-      "sink_call_snippet": "db.Query(\"SELECT id, name, email FROM users WHERE active = 1\")",
-      "query_expr_snippet": "\"SELECT id, name, email FROM users WHERE active = 1\"",
-      "counter_evidence": [
-        "Query is an unconcatenated static string literal with no dynamic arguments"
-      ],
-      "confidence": 0.99,
-      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "title": "Static Constant SQL Query",
-      "description": "Static SQL query executed without runtime string formatting.",
-      "ast_node_type": "*ast.BasicLit"
-    },
-    {
-      "file_path": "fixtures\\sql_fixtures.go",
-      "package": "",
-      "function": "Neg_SQL_ParameterizedQuery",
-      "line": 51,
-      "classification": "SAFE_PARAMETERIZED_SQL",
-      "sink_name": "Query",
-      "sink_call_snippet": "db.Query(\"SELECT id, name FROM users WHERE username = ?\", username)",
-      "query_expr_snippet": "\"SELECT id, name FROM users WHERE username = ?\"",
-      "parameter_arguments": [
-        "username"
-      ],
-      "counter_evidence": [
-        "Query string contains bind placeholder (?) and receives 1 discrete parameter arguments at sink"
-      ],
-      "confidence": 0.98,
-      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "title": "Safe Parameterized SQL Query",
-      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
-      "ast_node_type": "*ast.BasicLit"
-    },
-    {
-      "file_path": "fixtures\\sql_fixtures.go",
-      "package": "",
-      "function": "Neg_SQL_ParameterizedContext",
-      "line": 56,
-      "classification": "SAFE_PARAMETERIZED_SQL",
-      "sink_name": "QueryContext",
-      "sink_call_snippet": "db.QueryContext(ctx, \"SELECT id FROM accounts WHERE name = $1\", name)",
-      "query_expr_snippet": "\"SELECT id FROM accounts WHERE name = $1\"",
-      "parameter_arguments": [
-        "name"
-      ],
-      "counter_evidence": [
-        "Query string contains bind placeholder ($1) and receives 1 discrete parameter arguments at sink"
-      ],
-      "confidence": 0.98,
-      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
-      "severity": "",
-      "title": "Safe Parameterized SQL Query",
-      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
-      "ast_node_type": "*ast.BasicLit"
-    },
-    {
-      "file_path": "fixtures\\sql_fixtures.go",
-      "package": "",
       "function": "Pos_SQL_Sprintf",
       "line": 15,
       "classification": "UNTRUSTED_SQL_STRUCTURE",
@@ -254,6 +191,30 @@
     {
       "file_path": "fixtures\\sql_fixtures.go",
       "package": "",
+      "function": "Pos_SQL_ParamAsQuery",
+      "line": 33,
+      "classification": "UNTRUSTED_SQL_STRUCTURE",
+      "sink_name": "Query",
+      "sink_call_snippet": "db.Query(rawQuery)",
+      "query_expr_snippet": "rawQuery",
+      "reaching_defs": [
+        "def:rawQuery (line 32)"
+      ],
+      "untrusted_inputs": [
+        "param:rawQuery (string)"
+      ],
+      "confidence": 0.96,
+      "lifecycle_state": "CONFIRMED",
+      "severity": "CRITICAL",
+      "title": "Untrusted SQL Query Passed as Function Parameter",
+      "description": "SQL query at Query is supplied directly from function parameter rawQuery without bind parameterization.",
+      "root_cause": "Exposing SQL query structure directly to caller parameter.",
+      "recommended_action": "Pass query parameters separately using bind placeholders ($1, ?) rather than dynamic query strings.",
+      "ast_node_type": "*ast.Ident"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
       "function": "Pos_SQL_ContextSink",
       "line": 39,
       "classification": "UNTRUSTED_SQL_STRUCTURE",
@@ -279,6 +240,69 @@
     {
       "file_path": "fixtures\\sql_fixtures.go",
       "package": "",
+      "function": "Neg_SQL_StaticQuery",
+      "line": 46,
+      "classification": "STATIC_SQL",
+      "sink_name": "Query",
+      "sink_call_snippet": "db.Query(\"SELECT id, name, email FROM users WHERE active = 1\")",
+      "query_expr_snippet": "\"SELECT id, name, email FROM users WHERE active = 1\"",
+      "counter_evidence": [
+        "Query is an unconcatenated static string literal with no dynamic arguments"
+      ],
+      "confidence": 0.99,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Static Constant SQL Query",
+      "description": "Static SQL query executed without runtime string formatting.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Neg_SQL_ParameterizedContext",
+      "line": 56,
+      "classification": "SAFE_PARAMETERIZED_SQL",
+      "sink_name": "QueryContext",
+      "sink_call_snippet": "db.QueryContext(ctx, \"SELECT id FROM accounts WHERE name = $1\", name)",
+      "query_expr_snippet": "\"SELECT id FROM accounts WHERE name = $1\"",
+      "parameter_arguments": [
+        "name"
+      ],
+      "counter_evidence": [
+        "Query string contains bind placeholder ($1) and receives 1 discrete parameter arguments at sink"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Parameterized SQL Query",
+      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
+      "function": "Neg_SQL_ParameterizedQuery",
+      "line": 51,
+      "classification": "SAFE_PARAMETERIZED_SQL",
+      "sink_name": "Query",
+      "sink_call_snippet": "db.Query(\"SELECT id, name FROM users WHERE username = ?\", username)",
+      "query_expr_snippet": "\"SELECT id, name FROM users WHERE username = ?\"",
+      "parameter_arguments": [
+        "username"
+      ],
+      "counter_evidence": [
+        "Query string contains bind placeholder (?) and receives 1 discrete parameter arguments at sink"
+      ],
+      "confidence": 0.98,
+      "lifecycle_state": "COUNTER_EVIDENCE_PRESENT",
+      "severity": "",
+      "title": "Safe Parameterized SQL Query",
+      "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
+      "ast_node_type": "*ast.BasicLit"
+    },
+    {
+      "file_path": "fixtures\\sql_fixtures.go",
+      "package": "",
       "function": "Neg_SQL_PreparedStatement",
       "line": 61,
       "classification": "SAFE_PARAMETERIZED_SQL",
@@ -294,30 +318,6 @@
       "title": "Safe Parameterized SQL Query",
       "description": "Query uses parameterized placeholders with separately supplied execution arguments.",
       "ast_node_type": "*ast.BasicLit"
-    },
-    {
-      "file_path": "fixtures\\sql_fixtures.go",
-      "package": "",
-      "function": "Pos_SQL_ParamAsQuery",
-      "line": 33,
-      "classification": "UNTRUSTED_SQL_STRUCTURE",
-      "sink_name": "Query",
-      "sink_call_snippet": "db.Query(rawQuery)",
-      "query_expr_snippet": "rawQuery",
-      "reaching_defs": [
-        "def:rawQuery (line 32)"
-      ],
-      "untrusted_inputs": [
-        "param:rawQuery (string)"
-      ],
-      "confidence": 0.96,
-      "lifecycle_state": "CONFIRMED",
-      "severity": "CRITICAL",
-      "title": "Untrusted SQL Query Passed as Function Parameter",
-      "description": "SQL query at Query is supplied directly from function parameter rawQuery without bind parameterization.",
-      "root_cause": "Exposing SQL query structure directly to caller parameter.",
-      "recommended_action": "Pass query parameters separately using bind placeholders ($1, ?) rather than dynamic query strings.",
-      "ast_node_type": "*ast.Ident"
     }
   ],
   "metrics": {
@@ -327,5 +327,5 @@
     "specificity": 1
   },
   "report_type": "Milestone 3.4 Phase 2 SQL Expression Evidence",
-  "timestamp": "2026-11-18T11:48:54+05:30"
+  "timestamp": "2026-11-25T05:21:00+05:30"
 }

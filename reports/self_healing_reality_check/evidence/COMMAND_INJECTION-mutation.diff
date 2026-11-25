@@ -1,0 +1,9 @@
+--- clean/defect.go
++++ mutated/defect.go
+@@ -1,5 +1,5 @@
+ package realityfixture
+ import "os/exec"
+ func Run(value string) error {
+- return exec.Command("echo",value).Run()
++ return exec.Command("sh","-c","echo "+value).Run()
+ }

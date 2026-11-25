@@ -7,14 +7,14 @@ import (
 
 // AcquisitionContract defines the signature and semantics of a resource-allocating function or method.
 type AcquisitionContract struct {
-	PackageName    string       `json:"package_name"`
-	MethodName     string       `json:"method_name"`
-	ResourceKind   ResourceKind `json:"resource_kind"`
-	ResultIndex    int          `json:"result_index"`
-	ErrorIndex     int          `json:"error_index"`
-	IsSubfield     bool         `json:"is_subfield"`
-	SubfieldName   string       `json:"subfield_name,omitempty"`
-	IdempotentClose bool        `json:"idempotent_close"`
+	PackageName     string       `json:"package_name"`
+	MethodName      string       `json:"method_name"`
+	ResourceKind    ResourceKind `json:"resource_kind"`
+	ResultIndex     int          `json:"result_index"`
+	ErrorIndex      int          `json:"error_index"`
+	IsSubfield      bool         `json:"is_subfield"`
+	SubfieldName    string       `json:"subfield_name,omitempty"`
+	IdempotentClose bool         `json:"idempotent_close"`
 }
 
 // ReleaseContract defines valid release actions for a specific resource kind.
@@ -79,6 +79,9 @@ func (reg *ResourceRegistry) MatchAcquisition(call *ast.CallExpr, fset *token.Fi
 	}
 
 	methodName := sel.Sel.Name
+	if (methodName == "Query" || methodName == "QueryContext" || methodName == "Begin" || methodName == "BeginTx") && isExplicitNonSQLReceiver(sel.X) {
+		return nil, "", false
+	}
 	pkgOrVarName := ""
 
 	if id, isId := sel.X.(*ast.Ident); isId {
@@ -159,4 +162,3 @@ func (reg *ResourceRegistry) IsReleaseCall(call *ast.CallExpr, kind ResourceKind
 
 	return false
 }
-

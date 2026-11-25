@@ -1,0 +1,108 @@
+{
+  "system": "Thermodynamic-Evolution-UCS503",
+  "audit_version": "1.0.0",
+  "baseline_commit": "4b992caf951aef397ec9ef043bb9f1e3755b0cae",
+  "audit_date": "2026-11-24",
+  "defects_summary": {
+    "total_tracked": 8,
+    "p0_critical": 3,
+    "p1_high": 3,
+    "p2_medium": 2,
+    "p3_low": 0,
+    "status_counts": {
+      "RESOLVED": 7,
+      "DISQUALIFIED_ABSTAINED": 1,
+      "OPEN": 0
+    }
+  },
+  "defects": [
+    {
+      "id": "DEF-001",
+      "severity": "P0",
+      "title": "Direct Host go mod download Executed on Untrusted Scanned Repository Metadata",
+      "component": "go-backend/agent/repo_intel/execution/oracles.go",
+      "status": "RESOLVED",
+      "root_cause": "StageVerifiedDependencies executed host-level go mod download directly inside wsDir, allowing untrusted repositories to direct host network downloads and execute arbitrary replace directives.",
+      "resolution": "Replaced with prepareMinimalDependencyCache. Direct host downloads strictly forbidden. Unsafe replace directives rejected. Verified minimal dependency directory staged from approved offline cache and mounted read-only into container under GOPROXY=off.",
+      "resolution_commit": "d2e9c37717c84a9fe52404c2dee45bd5db99fce2",
+      "regression_test": "go-backend/agent/repo_intel/execution/adversarial_execution_test.go: TestUntrustedExecution_RejectsHostModDownload"
+    },
+    {
+      "id": "DEF-002",
+      "severity": "P0",
+      "title": "DockerContainerRunner Executed Commands Without Pre-Invocation Policy Validation",
+      "component": "go-backend/agent/repo_intel/execution/oracles.go",
+      "status": "RESOLVED",
+      "root_cause": "DockerContainerRunner passed command strings to Docker without prior validation against safeCommandPattern, creating a risk of unauthorized command execution if container isolation broke.",
+      "resolution": "Enforced validateSafeSubprocessCommand as step 1 in RunCommand before container creation, network inspection, or execution attempt counters.",
+      "resolution_commit": "0843ca613c602764ef3f534fc21bed7843486ba0",
+      "regression_test": "go-backend/scan_to_repair_e2e_test.go: TestUntrustedExecution_ArbitraryCommandBlocked"
+    },
+    {
+      "id": "DEF-003",
+      "severity": "P1",
+      "title": "Premature Evaluation of Container Cleanup Evidence Before Deferred Removal",
+      "component": "go-backend/agent/repo_intel/execution/oracles.go",
+      "status": "RESOLVED",
+      "root_cause": "ContainerExecutionEvidence was assembled while container removal was deferred, causing audit logs to record indeterminate cleanup statuses.",
+      "resolution": "Converted container cleanup to a synchronous performVerifiedContainerCleanup call executing immediately upon container exit, followed by an inspect check verifying container non-existence.",
+      "resolution_commit": "a0928fba56d81f90241460788322e89cdedc7334",
+      "regression_test": "go-backend/agent/repo_intel/execution/controlled_remediation_test.go"
+    },
+    {
+      "id": "DEF-004",
+      "severity": "P1",
+      "title": "Command Execution Timeout Produced Indeterminate Exit Status on Context Deadline",
+      "component": "go-backend/agent/repo_intel/execution/oracles.go",
+      "status": "RESOLVED",
+      "root_cause": "RunCommand checked cmdCtx.Err() for DeadlineExceeded, but the error returned by execCommand was wrapped in runErr before context cancellation propagated.",
+      "resolution": "Added explicit checks for errors.Is(runErr, context.DeadlineExceeded) and context.Canceled, setting exitCode to -1 and timeoutCause appropriately.",
+      "resolution_commit": "d2e9c37717c84a9fe52404c2dee45bd5db99fce2",
+      "regression_test": "go-backend/agent/repo_intel/execution/adversarial_execution_test.go: TestCommandExecutionTimeout"
+    },
+    {
+      "id": "DEF-005",
+      "severity": "P1",
+      "title": "Missing Node AWS SDK Dependencies in infra/analysis/stream-proxy Workspace",
+      "component": "infra/analysis/stream-proxy",
+      "status": "RESOLVED",
+      "root_cause": "Workspace was missing node_modules directory for stream-proxy, causing ERR_MODULE_NOT_FOUND when importing @aws-sdk/client-lambda.",
+      "resolution": "Executed npm ci in infra/analysis/stream-proxy to install pinned dependencies from package-lock.json. All 11 unit tests passed.",
+      "resolution_commit": "LOCAL_RECON_CORRECTION",
+      "regression_test": "infra/analysis/stream-proxy/index.test.mjs"
+    },
+    {
+      "id": "DEF-006",
+      "severity": "P2",
+      "title": "Rust Clippy Warnings Flagged Under -D warnings in thermodynamic-ast-engine",
+      "component": "thermodynamic-ast-engine/src/main.rs",
+      "status": "RESOLVED",
+      "root_cause": "Clippy identified collapsible if block at line 549, deprecated io::Error::new at line 1186, empty format string literal at line 1232, and redundant reference at line 1253.",
+      "resolution": "Refactored main.rs to collapse nested if condition, use io::Error::other, format string without trailing redundant literal, and pass function_name directly. Cargo clippy passes cleanly with zero warnings.",
+      "resolution_commit": "LOCAL_RECON_CORRECTION",
+      "regression_test": "thermodynamic-ast-engine: cargo clippy -- -D warnings"
+    },
+    {
+      "id": "DEF-007",
+      "severity": "P0",
+      "title": "NAT-03 (gorilla/websocket) Categorization as Fixable Resource Leak Violating Return Contract",
+      "component": "go-backend/agent/repo_intel/benchmark/nat03_reproducer_test.go",
+      "status": "DISQUALIFIED_ABSTAINED",
+      "root_cause": "Naive scanners flagged unclosed resp.Body in DialContext. DialContext transfers response body ownership to caller on success, and http.ReadResponse returns nil resp on error, causing defer resp.Body.Close() to panic.",
+      "resolution": "NAT-03 was audited and verified as a disqualified non-defect candidate. ExpectedAction set to ABSTAIN. Excluded from attempted repairs denominator (denominator strictly 9).",
+      "resolution_commit": "ab07861e6ac880b91e70c52a32501a1c97a1f592",
+      "regression_test": "go-backend/agent/repo_intel/benchmark/nat03_reproducer_test.go: TestNAT03_ErrorPathPanicReproducer"
+    },
+    {
+      "id": "DEF-008",
+      "severity": "P2",
+      "title": "Vulnerability Advisory GHSA-fc5q-39xc-vjpf in admin-portal Tooling Dependency (picomatch)",
+      "component": "admin-portal/package.json",
+      "status": "RESOLVED",
+      "root_cause": "Transitive dependency picomatch@4.0.7 via Vite 6 in admin-portal development tooling had a ReDoS vulnerability.",
+      "resolution": "Updated Vite to ^8.2.0 in package.json and regenerated package-lock.json. Verified zero untrusted inputs reach picomatch at runtime.",
+      "resolution_commit": "4494c2518e38d4f0d3a5a8bc3337f7637db6a40a",
+      "regression_test": "admin-portal: npm audit --omit=dev"
+    }
+  ]
+}

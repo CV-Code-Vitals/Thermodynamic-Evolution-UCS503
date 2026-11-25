@@ -1,0 +1,12 @@
+=== RUN   TestRealityNoRepository
+--- PASS: TestRealityNoRepository (0.03s)
+=== RUN   TestRealitySourceFailures
+=== RUN   TestRealitySourceFailures/empty
+=== RUN   TestRealitySourceFailures/broken-parser
+=== RUN   TestRealitySourceFailures/clean-closed-resource
+--- PASS: TestRealitySourceFailures (0.11s)
+    --- PASS: TestRealitySourceFailures/empty (0.03s)
+    --- PASS: TestRealitySourceFailures/broken-parser (0.03s)
+    --- PASS: TestRealitySourceFailures/clean-closed-resource (0.04s)
+PASS
+ok  	github.com/saksham/self-healing-pipeline/agent/repo_intel/execution	1.481s

@@ -12,12 +12,16 @@ import (
 func TestExecuteRepairRejectsFileChangedAfterApproval(t *testing.T) {
 	root := t.TempDir()
 	target := DefaultPreconfiguredTargets()[0]
-	if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(target.RelativeSource)), 0755); err != nil {
+	sourceDir := filepath.Join(root, filepath.FromSlash(target.RelativeSource))
+	if err := os.MkdirAll(sourceDir, 0755); err != nil {
 		t.Fatal(err)
 	}
 	sandbox := t.TempDir()
 	path := filepath.Join(sandbox, target.TargetFile)
 	initial := []byte("original")
+	if err := os.WriteFile(filepath.Join(sourceDir, target.TargetFile), initial, 0600); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(path, initial, 0600); err != nil {
 		t.Fatal(err)
 	}

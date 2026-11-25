@@ -1,0 +1,20 @@
+[     798ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:15173/node_modules/.vite/deps/react-dom_client.js?v=62560ecf:14333
+[     960ms] [VERBOSE] [DOM] Password forms should have (optionally hidden) username fields for accessibility: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:15173/:1
+[ 2607055ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[ 3447091ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[ 4287135ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[ 5127186ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[ 5967232ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[ 6807284ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[ 7647323ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[ 8487456ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[ 9327408ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[10167452ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[11007497ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[11847547ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://127.0.0.1:15173/api/remediation/targets?workspace_id=1fe2cba0-528c-423c-8cac-f47b6ee58a1f:1
+[12570891ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:15173/@vite/client:1090
+[12581133ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:15173/node_modules/.vite/deps/react-dom_client.js?v=62560ecf:14333
+[12581406ms] [VERBOSE] [DOM] Password forms should have (optionally hidden) username fields for accessibility: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:15173/#repair:1
+[12582472ms] [LOG] [vite] server connection lost. Polling for restart... @ http://127.0.0.1:15173/@vite/client:1090
+[17063621ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:15173/node_modules/.vite/deps/react-dom_client.js?v=62560ecf:14333
+[17063667ms] [VERBOSE] [DOM] Password forms should have (optionally hidden) username fields for accessibility: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:15173/#repair:1

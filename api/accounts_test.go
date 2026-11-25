@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -180,7 +181,11 @@ func TestGitHubAccountsKeepRepositoriesPrivateAndPersistAcrossRestart(t *testing
 		t.Fatal("session did not survive API restart")
 	}
 	info, err := os.Stat(oldStore.path)
-	if err != nil || info.Mode().Perm() != 0600 {
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Windows access is governed by ACLs, which are not represented by FileMode.Perm.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0600 {
 		t.Fatal("account file must be private")
 	}
 	contents, _ := os.ReadFile(oldStore.path)

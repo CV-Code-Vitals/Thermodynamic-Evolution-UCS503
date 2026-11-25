@@ -47,7 +47,11 @@ type SynthesisBenchmarkReport struct {
 
 func TestAutonomousPatchSynthesisAndIndependentOracles(t *testing.T) {
 	synthesizer := NewAutonomousPatchSynthesizer()
-	oracles := NewIndependentOracleSuite(15)
+	// Each fixture gets a fresh Go build cache inside the sandbox.
+	const vetTimeout = 90 * time.Second
+	runner := NewDockerContainerRunner()
+	runner.Limits.Timeout = vetTimeout
+	oracles := NewIndependentOracleSuite(int(vetTimeout/time.Second), runner)
 
 	tmpDir := t.TempDir()
 

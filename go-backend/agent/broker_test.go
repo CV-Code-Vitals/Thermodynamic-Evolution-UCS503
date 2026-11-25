@@ -74,10 +74,15 @@ func TestSandboxRunnerIsolationAndCIPinsImage(t *testing.T) {
 	if strings.Contains(ciWorkflow, "ucs503-sandbox-runner:latest") {
 		t.Error("CI must not use a mutable latest sandbox runner image")
 	}
-	if !strings.Contains(ciWorkflow, "TestDockerEvaluator_LiveExecution") ||
-		!strings.Contains(ciWorkflow, "--- PASS: TestDockerEvaluator_LiveExecution") ||
-		!strings.Contains(ciWorkflow, "--- SKIP: TestDockerEvaluator_LiveExecution") {
-		t.Error("CI must preserve the mandatory live Docker test and its pass/skip checks")
+	for _, required := range []string{
+		"TestDockerEvaluator_LiveExecution",
+		"TestDockerContainerRunner_LiveVerification",
+		"TestSnapshotPortalScanEvolutionAndPatch",
+		`grep -Fq -- "--- PASS: $test ("`,
+	} {
+		if !strings.Contains(ciWorkflow, required) {
+			t.Errorf("CI must require a live sandbox pass for %q", required)
+		}
 	}
 
 	publishWorkflow := readRepoFile(filepath.Join(".github", "workflows", "publish-api-image.yml"))

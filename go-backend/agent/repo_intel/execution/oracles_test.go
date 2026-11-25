@@ -1,45 +1,20 @@
 package execution
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/planning"
 )
 
-func TestOracleCommandHelper(t *testing.T) {
-	switch os.Getenv("ORACLE_TEST_HELPER") {
-	case "wait":
-		time.Sleep(10 * time.Second)
-	case "output":
-		fmt.Print(strings.Repeat("x", 128<<10))
-	default:
-		return
-	}
-	os.Exit(0)
-}
-
-func TestOracleCommandsTimeoutAndLimitOutput(t *testing.T) {
-	executable, err := os.Executable()
-	if err != nil {
-		t.Fatal(err)
-	}
-	suite := NewIndependentOracleSuite(1)
-	args := []string{executable, "-test.run=^TestOracleCommandHelper$"}
-	t.Setenv("ORACLE_TEST_HELPER", "wait")
-	started := time.Now()
-	_, err = suite.runCommand(t.TempDir(), args)
-	if err == nil || !strings.Contains(err.Error(), "timed out") || time.Since(started) > 5*time.Second {
-		t.Fatalf("command did not time out promptly: %v", err)
-	}
-	t.Setenv("ORACLE_TEST_HELPER", "output")
-	output, err := suite.runCommand(t.TempDir(), args)
-	if err != nil || len(output) != 64<<10 {
-		t.Fatalf("bounded output length = %d, err = %v", len(output), err)
+func TestOracleLimitsContainerOutput(t *testing.T) {
+	var output oracleOutput
+	message := []byte(strings.Repeat("x", 128<<10))
+	written, err := output.Write(message)
+	if err != nil || written != len(message) || output.buffer.Len() != 64<<10 {
+		t.Fatalf("bounded output length = %d, written = %d, err = %v", output.buffer.Len(), written, err)
 	}
 }
 

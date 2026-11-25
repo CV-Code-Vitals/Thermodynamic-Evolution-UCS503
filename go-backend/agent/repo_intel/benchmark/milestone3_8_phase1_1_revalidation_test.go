@@ -528,7 +528,7 @@ func TestMilestone3_8_Phase1_1_AutonomousRepairRevalidation(t *testing.T) {
 			} else {
 				var failures []string
 				for oType, oRes := range oracleReport.OracleResults {
-					if !oRes.Passed && !((oType == execution.OracleRegressionTest || oType == execution.OracleBehavioralInvariance) && strings.HasPrefix(oRes.Details, "NOT_RUN:")) {
+					if oRes.Status == execution.OracleStatusFailed {
 						failures = append(failures, fmt.Sprintf("%s (%s)", oType, oRes.FailureReason))
 					}
 				}

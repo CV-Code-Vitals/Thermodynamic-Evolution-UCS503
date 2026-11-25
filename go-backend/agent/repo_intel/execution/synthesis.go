@@ -78,11 +78,11 @@ const (
 
 // SynthesisDecision encapsulates the full result of autonomous patch synthesis.
 type SynthesisDecision struct {
-	Status    SynthesisDecisionStatus `json:"status"`
-	Intent    *RepairIntent           `json:"intent"`
-	Patch     *CandidatePatch         `json:"patch,omitempty"`
-	Reason    string                  `json:"reason"`
-	DurationMs int64                  `json:"duration_ms"`
+	Status     SynthesisDecisionStatus `json:"status"`
+	Intent     *RepairIntent           `json:"intent"`
+	Patch      *CandidatePatch         `json:"patch,omitempty"`
+	Reason     string                  `json:"reason"`
+	DurationMs int64                   `json:"duration_ms"`
 }
 
 // AutonomousPatchSynthesizer transforms semantic findings into verified AST-level patches.
@@ -133,6 +133,14 @@ func (s *AutonomousPatchSynthesizer) Synthesize(
 
 	// Step 1: Infer Repair Intent from Semantic Context
 	intent := s.inferIntent(task, finding, targetRel, originalSrc)
+	if finding != nil {
+		if len(finding.AffectedSymbols) > 0 {
+			intent.TargetSymbol = finding.AffectedSymbols[0]
+		}
+		if len(finding.Evidence) > 0 {
+			intent.LineNumber = finding.Evidence[0].LineStart
+		}
+	}
 	if intent.IntentType == IntentAbstain {
 		return &SynthesisDecision{
 			Status:     DecisionAbstained,
@@ -279,30 +287,30 @@ func (s *AutonomousPatchSynthesizer) inferIntent(
 	// Intent: SQL Injection Parameterization
 	if strings.Contains(taskText, "sql") || strings.Contains(taskText, "query") {
 		return &RepairIntent{
-			IntentType:   IntentParameterizeSQL,
-			TargetFile:   targetRel,
-			Rationale:    "Convert dynamic SQL string concatenation into parameterized query placeholders",
-			Confidence:   0.95,
+			IntentType: IntentParameterizeSQL,
+			TargetFile: targetRel,
+			Rationale:  "Convert dynamic SQL string concatenation into parameterized query placeholders",
+			Confidence: 0.95,
 		}
 	}
 
 	// Intent: Resource Leak Cleanup
 	if strings.Contains(taskText, "resource") || strings.Contains(taskText, "leak") || strings.Contains(taskText, "close") {
 		return &RepairIntent{
-			IntentType:   IntentResourceCleanup,
-			TargetFile:   targetRel,
-			Rationale:    "Insert deterministic deferred resource cleanup after allocation error check",
-			Confidence:   0.95,
+			IntentType: IntentResourceCleanup,
+			TargetFile: targetRel,
+			Rationale:  "Insert deterministic deferred resource cleanup after allocation error check",
+			Confidence: 0.95,
 		}
 	}
 
 	// Intent: Unhandled Error Propagation
 	if strings.Contains(taskText, "error") || strings.Contains(taskText, "unhandled") || strings.Contains(taskText, "err") {
 		return &RepairIntent{
-			IntentType:   IntentHandleError,
-			TargetFile:   targetRel,
-			Rationale:    "Insert error check and propagate error value to caller",
-			Confidence:   0.90,
+			IntentType: IntentHandleError,
+			TargetFile: targetRel,
+			Rationale:  "Insert error check and propagate error value to caller",
+			Confidence: 0.90,
 		}
 	}
 
@@ -333,6 +341,12 @@ func (s *AutonomousPatchSynthesizer) synthesizeResourceCleanup(
 	for _, decl := range node.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
 		if !ok || fn.Body == nil {
+			continue
+		}
+		if intent.TargetSymbol != "" && fn.Name.Name != intent.TargetSymbol {
+			continue
+		}
+		if intent.LineNumber > 0 && (fset.Position(fn.Pos()).Line > intent.LineNumber || fset.Position(fn.End()).Line < intent.LineNumber) {
 			continue
 		}
 
@@ -741,6 +755,12 @@ func (s *AutonomousPatchSynthesizer) synthesizeErrorHandling(
 		if !ok || fn.Body == nil {
 			continue
 		}
+		if intent.TargetSymbol != "" && fn.Name.Name != intent.TargetSymbol {
+			continue
+		}
+		if intent.LineNumber > 0 && (fset.Position(fn.Pos()).Line > intent.LineNumber || fset.Position(fn.End()).Line < intent.LineNumber) {
+			continue
+		}
 
 		// Inspect function signature to ensure error is returned
 		if fn.Type.Results == nil || len(fn.Type.Results.List) == 0 {
@@ -902,6 +922,12 @@ func (s *AutonomousPatchSynthesizer) synthesizeSQLParameterization(
 	for _, decl := range node.Decls {
 		fn, ok := decl.(*ast.FuncDecl)
 		if !ok || fn.Body == nil {
+			continue
+		}
+		if intent.TargetSymbol != "" && fn.Name.Name != intent.TargetSymbol {
+			continue
+		}
+		if intent.LineNumber > 0 && (fset.Position(fn.Pos()).Line > intent.LineNumber || fset.Position(fn.End()).Line < intent.LineNumber) {
 			continue
 		}
 

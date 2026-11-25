@@ -52,6 +52,20 @@ describe('Autonomous Remediation API Client', () => {
     assert.strictEqual(res[0].target_id, 'NAT-03');
   });
 
+  it('fetchRemediationTargets includes workspace_id query parameter when provided', async () => {
+    const mockFetch = async (url) => {
+      assert.strictEqual(url, 'http://localhost:8080/api/remediation/targets?workspace_id=ws-test-123');
+      return {
+        ok: true,
+        json: async () => ({ targets: [{ target_id: 'SCAN-RES-1', stratum: 'SCANNED_REPOSITORY' }] }),
+      };
+    };
+    globalThis.fetch = mockFetch;
+    const res = await fetchRemediationTargets('http://localhost:8080/api', '', 'ws-test-123');
+    assert.strictEqual(res.length, 1);
+    assert.strictEqual(res[0].target_id, 'SCAN-RES-1');
+  });
+
   it('analyzeRemediationTarget sends target_id in POST body', async () => {
     const mockFetch = async (url, opts) => {
       assert.strictEqual(url, 'http://localhost:8080/api/remediation/analyze');

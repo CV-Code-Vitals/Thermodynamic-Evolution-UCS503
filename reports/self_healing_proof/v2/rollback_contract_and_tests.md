@@ -1,0 +1,2 @@
+Supported contract: DISCARD_SANDBOX, not persisted revision restoration. Added explicit response operation and revision_restored=false; execution records carry cleanup status. Deletion errors propagate, unmanaged paths reject, removal is checked with Lstat, repeated disposal is idempotent. Audit remains process-local, not restart-durable. TestDiscardSandboxContract covers deletion, repeat request and unmanaged-path rejection.
+`go test ./agent/repo_intel/execution -run ^TestDiscardSandboxContract$ -count=1 -v`: PASS (0.984s package runtime).

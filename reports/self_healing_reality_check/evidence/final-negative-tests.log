@@ -1,0 +1,22 @@
+=== RUN   TestRealityNoRepository
+--- PASS: TestRealityNoRepository (0.00s)
+=== RUN   TestRealityUnconfiguredReproducerNeverPasses
+--- PASS: TestRealityUnconfiguredReproducerNeverPasses (0.00s)
+=== RUN   TestRealityRepositoryReportPoisoning
+--- PASS: TestRealityRepositoryReportPoisoning (0.26s)
+=== RUN   TestRealityApprovalPersistenceFailure
+--- PASS: TestRealityApprovalPersistenceFailure (0.00s)
+=== RUN   TestRealitySourceFailures
+=== RUN   TestRealitySourceFailures/empty
+=== RUN   TestRealitySourceFailures/broken-parser
+=== RUN   TestRealitySourceFailures/non-sql-query
+=== RUN   TestRealitySourceFailures/non-error-encode
+=== RUN   TestRealitySourceFailures/clean-closed-resource
+--- PASS: TestRealitySourceFailures (1.06s)
+    --- PASS: TestRealitySourceFailures/empty (0.25s)
+    --- PASS: TestRealitySourceFailures/broken-parser (0.01s)
+    --- PASS: TestRealitySourceFailures/non-sql-query (0.28s)
+    --- PASS: TestRealitySourceFailures/non-error-encode (0.25s)
+    --- PASS: TestRealitySourceFailures/clean-closed-resource (0.27s)
+PASS
+ok  	github.com/saksham/self-healing-pipeline/agent/repo_intel/execution	2.361s

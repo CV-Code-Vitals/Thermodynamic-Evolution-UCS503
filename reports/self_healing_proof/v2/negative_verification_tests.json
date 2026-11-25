@@ -1,0 +1,6 @@
+{
+  "new_test": "TestDiscardSandboxContract",
+  "historical_checks": "v1/revalidation.log: PASS, including missing reproducers, absent compiler, ledger failures and source failures",
+  "incorrect_patch_dynamic_test": "BLOCKED",
+  "full_public_verification": "NOT TESTED"
+}

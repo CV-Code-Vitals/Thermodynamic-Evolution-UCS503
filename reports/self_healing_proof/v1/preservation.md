@@ -1,0 +1,1 @@
+Starting HEAD 4b992caf951aef397ec9ef043bb9f1e3755b0cae. Preservation commit b431104e4e67df925564de86958244d7ee717541 on codex/healproof-preservation contains 19 corrective source/test files. Existing report/Rust modifications remain uncommitted and preserved. No temporary artifacts or credentials included.

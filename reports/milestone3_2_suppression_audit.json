@@ -11,7 +11,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-ARCHITECTURE",
@@ -22,7 +22,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-ARCHITECTURE",
@@ -33,7 +33,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-ARCHITECTURE",
@@ -44,7 +44,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-ARCHITECTURE",
@@ -55,7 +55,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-ARCHITECTURE",
@@ -66,7 +66,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-DOCUMENTATION",
@@ -77,7 +77,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-DOCUMENTATION",
@@ -88,7 +88,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-DOCUMENTATION",
@@ -99,7 +99,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-DOCUMENTATION",
@@ -110,7 +110,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-DOCUMENTATION",
@@ -121,7 +121,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-DOCUMENTATION",
@@ -132,73 +132,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
-      "target_file": "reliability/clean_batch_socket.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
-      "target_file": "reliability/clean_closure_stream.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
-      "target_file": "reliability/clean_config_reader.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
-      "target_file": "reliability/clean_db_transaction.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
-      "target_file": "reliability/clean_payload_downloader.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
-      "target_file": "reliability/clean_temp_lock.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-SECURITY",
@@ -209,7 +143,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-SECURITY",
@@ -220,7 +154,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-SECURITY",
@@ -231,7 +165,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-SECURITY",
@@ -242,7 +176,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-SECURITY",
@@ -253,7 +187,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-SECURITY",
@@ -264,73 +198,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
-      "target_file": "maintainability/clean_email_masker.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
-      "target_file": "maintainability/clean_int_clamper.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
-      "target_file": "maintainability/clean_port_parser.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
-      "target_file": "maintainability/clean_prefix_trimmer.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
-      "target_file": "maintainability/clean_slice_lookup.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
-    },
-    {
-      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
-      "target_file": "maintainability/clean_time_formatter.go",
-      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
-      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
-      "original_state": "PROBABLE",
-      "final_state": "INSUFFICIENT_EVIDENCE",
-      "confidence_before": 0.85,
-      "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-STRUCTURAL",
@@ -341,7 +209,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-STRUCTURAL",
@@ -352,7 +220,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-STRUCTURAL",
@@ -363,7 +231,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-STRUCTURAL",
@@ -374,7 +242,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-STRUCTURAL",
@@ -385,7 +253,7 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     },
     {
       "finding_id": "RI-QUAL-NOTEST-STRUCTURAL",
@@ -396,9 +264,141 @@
       "final_state": "INSUFFICIENT_EVIDENCE",
       "confidence_before": 0.85,
       "confidence_after": 0,
-      "timestamp": "2026-11-18T11:50:45.0112883+05:30"
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
+      "target_file": "maintainability/clean_email_masker.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
+      "target_file": "maintainability/clean_int_clamper.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
+      "target_file": "maintainability/clean_port_parser.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
+      "target_file": "maintainability/clean_prefix_trimmer.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
+      "target_file": "maintainability/clean_slice_lookup.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-MAINTAINABILITY",
+      "target_file": "maintainability/clean_time_formatter.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
+      "target_file": "reliability/clean_batch_socket.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
+      "target_file": "reliability/clean_closure_stream.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
+      "target_file": "reliability/clean_config_reader.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
+      "target_file": "reliability/clean_db_transaction.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
+      "target_file": "reliability/clean_payload_downloader.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
+    },
+    {
+      "finding_id": "RI-QUAL-NOTEST-RELIABILITY",
+      "target_file": "reliability/clean_temp_lock.go",
+      "suppression_rule": "NOTEST_CONTROL_FILE_EXCLUSION",
+      "rationale": "Excluded clean/tested/documented negative control from coarse package-level test coverage alert",
+      "original_state": "PROBABLE",
+      "final_state": "INSUFFICIENT_EVIDENCE",
+      "confidence_before": 0.85,
+      "confidence_after": 0,
+      "timestamp": "2026-11-24T22:17:29.7068205+05:30"
     }
   ],
-  "timestamp": "2026-11-18T11:50:45.7743955+05:30",
+  "timestamp": "2026-11-24T22:17:30.4119243+05:30",
   "total_suppressions": 36
 }

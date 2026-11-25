@@ -269,9 +269,10 @@ func (a *ErrorAnalyzer) evaluateAssignStmt(
 	varName := targetIdent.Name
 	inst.AssignedVar = varName
 	assignLine := fset.Position(assignStmt.Pos()).Line
+	assignOffset := fset.Position(assignStmt.Pos()).Offset
 
 	// 2. Check if varName was overwritten before being checked
-	if a.isVariableOverwrittenBeforeCheck(fnDecl, varName, assignLine, fset) {
+	if a.isVariableOverwrittenBeforeCheck(fnDecl, varName, assignOffset, fset) {
 		inst.OverwrittenBefore = true
 		inst.Classification = ErrorUnhandled
 		inst.History = append(inst.History, fmt.Sprintf("Error variable '%s' was overwritten by subsequent assignment before being checked", varName))
@@ -279,7 +280,7 @@ func (a *ErrorAnalyzer) evaluateAssignStmt(
 	}
 
 	// 3. Inspect subsequent if statements for checks of varName
-	checked, wrapped, handlesGracefully := a.inspectErrorConditionCheck(fnDecl, varName, assignLine, fset)
+	checked, wrapped, handlesGracefully := a.inspectErrorConditionCheck(fnDecl, varName, assignOffset, fset)
 	if checked {
 		if wrapped {
 			inst.Classification = ErrorWrappedAndPropagated
@@ -295,7 +296,7 @@ func (a *ErrorAnalyzer) evaluateAssignStmt(
 	}
 
 	// 4. Check for test helper assertion or check helper: e.g. assert.NoError(t, err) or check(err)
-	if a.isPassedToErrorHelper(fnDecl, varName, assignLine, fset) {
+	if a.isPassedToErrorHelper(fnDecl, varName, assignOffset, fset) {
 		inst.Classification = ErrorChecked
 		inst.History = append(inst.History, fmt.Sprintf("Error variable '%s' checked via recognized assertion or helper", varName))
 		return
@@ -303,7 +304,7 @@ func (a *ErrorAnalyzer) evaluateAssignStmt(
 
 	// 5. Named return variable check
 	if namedErrorVar != "" && varName == namedErrorVar {
-		if a.hasReturnAfterLine(fnDecl, assignLine, fset) {
+		if a.hasReturnAfterLine(fnDecl, assignOffset, fset) {
 			inst.Classification = ErrorPropagated
 			inst.History = append(inst.History, fmt.Sprintf("Error assigned to named return variable '%s' and returned", varName))
 			return
@@ -311,7 +312,7 @@ func (a *ErrorAnalyzer) evaluateAssignStmt(
 	}
 
 	// 6. Check for direct unconditional return of varName: return err or return nil, err
-	if a.isVariableReturnedDirectly(fnDecl, varName, assignLine, fset) {
+	if a.isVariableReturnedDirectly(fnDecl, varName, assignOffset, fset) {
 		inst.Classification = ErrorPropagated
 		inst.History = append(inst.History, fmt.Sprintf("Error variable '%s' returned directly", varName))
 		return
@@ -388,25 +389,25 @@ func (a *ErrorAnalyzer) isCallEnclosedInDefer(call *ast.CallExpr, fnDecl *ast.Fu
 	return isDef
 }
 
-// isVariableOverwrittenBeforeCheck verifies if varName is reassigned after startLine before any if check.
+// isVariableOverwrittenBeforeCheck verifies if varName is reassigned after startOffset before any if check.
 func (a *ErrorAnalyzer) isVariableOverwrittenBeforeCheck(
 	fnDecl *ast.FuncDecl,
 	varName string,
-	startLine int,
+	startOffset int,
 	fset *token.FileSet,
 ) bool {
-	firstCheckLine := 999999
+	firstCheckOffset := int(^uint(0) >> 1)
 	ast.Inspect(fnDecl.Body, func(n ast.Node) bool {
 		ifStmt, ok := n.(*ast.IfStmt)
 		if !ok {
 			return true
 		}
 		ifPos := fset.Position(ifStmt.Pos())
-		if ifPos.Line > startLine {
+		if ifPos.Offset > startOffset {
 			condStr := exprToString(ifStmt.Cond, fset)
 			if strings.Contains(condStr, varName) && strings.Contains(condStr, "!= nil") {
-				if ifPos.Line < firstCheckLine {
-					firstCheckLine = ifPos.Line
+				if ifPos.Offset < firstCheckOffset {
+					firstCheckOffset = ifPos.Offset
 				}
 			}
 		}
@@ -420,7 +421,7 @@ func (a *ErrorAnalyzer) isVariableOverwrittenBeforeCheck(
 			return true
 		}
 		pos := fset.Position(assign.Pos())
-		if pos.Line > startLine && pos.Line < firstCheckLine {
+		if pos.Offset > startOffset && pos.Offset < firstCheckOffset {
 			for _, lhs := range assign.Lhs {
 				if id, ok := lhs.(*ast.Ident); ok && id.Name == varName {
 					isOverwritten = true
@@ -438,7 +439,7 @@ func (a *ErrorAnalyzer) isVariableOverwrittenBeforeCheck(
 func (a *ErrorAnalyzer) inspectErrorConditionCheck(
 	fnDecl *ast.FuncDecl,
 	varName string,
-	startLine int,
+	startOffset int,
 	fset *token.FileSet,
 ) (checked bool, wrapped bool, handlesGracefully bool) {
 	ast.Inspect(fnDecl.Body, func(n ast.Node) bool {
@@ -447,7 +448,7 @@ func (a *ErrorAnalyzer) inspectErrorConditionCheck(
 			return true
 		}
 		pos := fset.Position(ifStmt.Pos())
-		if pos.Line <= startLine {
+		if pos.Offset <= startOffset {
 			return true
 		}
 
@@ -495,7 +496,7 @@ func (a *ErrorAnalyzer) inspectErrorConditionCheck(
 func (a *ErrorAnalyzer) isVariableReturnedDirectly(
 	fnDecl *ast.FuncDecl,
 	varName string,
-	startLine int,
+	startOffset int,
 	fset *token.FileSet,
 ) bool {
 	returned := false
@@ -505,7 +506,7 @@ func (a *ErrorAnalyzer) isVariableReturnedDirectly(
 			continue
 		}
 		pos := fset.Position(retStmt.Pos())
-		if pos.Line < startLine {
+		if pos.Offset < startOffset {
 			continue
 		}
 		for _, res := range retStmt.Results {
@@ -518,12 +519,12 @@ func (a *ErrorAnalyzer) isVariableReturnedDirectly(
 	return returned
 }
 
-// hasReturnAfterLine checks if any ReturnStmt exists after startLine.
-func (a *ErrorAnalyzer) hasReturnAfterLine(fnDecl *ast.FuncDecl, startLine int, fset *token.FileSet) bool {
+// hasReturnAfterLine checks if any ReturnStmt exists after startOffset.
+func (a *ErrorAnalyzer) hasReturnAfterLine(fnDecl *ast.FuncDecl, startOffset int, fset *token.FileSet) bool {
 	hasRet := false
 	ast.Inspect(fnDecl.Body, func(n ast.Node) bool {
 		retStmt, ok := n.(*ast.ReturnStmt)
-		if ok && fset.Position(retStmt.Pos()).Line >= startLine {
+		if ok && fset.Position(retStmt.Pos()).Offset >= startOffset {
 			hasRet = true
 			return false
 		}
@@ -536,7 +537,7 @@ func (a *ErrorAnalyzer) hasReturnAfterLine(fnDecl *ast.FuncDecl, startLine int, 
 func (a *ErrorAnalyzer) isPassedToErrorHelper(
 	fnDecl *ast.FuncDecl,
 	varName string,
-	startLine int,
+	startOffset int,
 	fset *token.FileSet,
 ) bool {
 	isHelper := false
@@ -546,7 +547,7 @@ func (a *ErrorAnalyzer) isPassedToErrorHelper(
 			return true
 		}
 		pos := fset.Position(call.Pos())
-		if pos.Line < startLine {
+		if pos.Offset < startOffset {
 			return true
 		}
 		fnStr := exprToString(call.Fun, fset)

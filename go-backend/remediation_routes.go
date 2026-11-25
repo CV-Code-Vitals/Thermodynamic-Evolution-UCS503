@@ -1,8 +1,10 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/saksham/self-healing-pipeline/agent/repo_intel/execution"
@@ -12,19 +14,43 @@ func resolveWorkspaceRoot() string {
 	return execution.ResolveWorkspaceRoot()
 }
 
-func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
+func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, workspaces *workspaceStore, runners ...execution.ContainerRunner) {
 	wsRoot := execution.ResolveWorkspaceRoot()
 	tmpDir, _ := execution.EnsureTmpDir(wsRoot)
 	ledgerPath := filepath.Join(tmpDir, "consumed_approvals_mvp.json")
-	mvpService, err := execution.NewMVPService(wsRoot, ledgerPath)
+	mvpService, err := execution.NewMVPService(wsRoot, ledgerPath, runners...)
 	if err != nil {
-		// Log error but do not crash server
+		log.Printf("remediation routes unavailable: %v", err)
 		return
 	}
 
+	if workspaces != nil {
+		mvpService.SetWorkspaceResolver(workspaces.get)
+	}
+
 	targetsHandler := func(c *gin.Context) {
-		targets := mvpService.ListTargets()
-		c.JSON(http.StatusOK, gin.H{"targets": targets})
+		workspaceID := c.Query("workspace_id")
+		if workspaceID == "" && c.Request.Method == http.MethodPost {
+			var bodyReq struct {
+				WorkspaceID string `json:"workspace_id"`
+			}
+			if err := c.ShouldBindJSON(&bodyReq); err == nil && bodyReq.WorkspaceID != "" {
+				workspaceID = bodyReq.WorkspaceID
+			}
+		}
+		if workspaceID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "workspace_id is required for live targets; use /demo explicitly"})
+			return
+		}
+		targets, err := mvpService.ListLiveTargets(workspaceID)
+		if err != nil {
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
+			return
+		}
+		if targets == nil {
+			targets = []execution.MVPTarget{}
+		}
+		c.JSON(http.StatusOK, gin.H{"source_kind": "SCANNED_REPOSITORY", "analysis_scope": "Go non-test source; semantic heuristics, not proof of defects", "targets": targets})
 	}
 
 	analyzeHandler := func(c *gin.Context) {
@@ -34,6 +60,12 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
 		if err := c.ShouldBindJSON(&req); err != nil || req.TargetID == "" {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "target_id is required"})
 			return
+		}
+		for _, fixture := range execution.DefaultPreconfiguredTargets() {
+			if req.TargetID == fixture.TargetID && !strings.Contains(c.FullPath(), "/demo/") {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "DEMO_FIXTURE requires explicit /demo mode"})
+				return
+			}
 		}
 		analysis, err := mvpService.AnalyzeTarget(req.TargetID)
 		if err != nil {
@@ -67,7 +99,7 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "proposal_id is required"})
 			return
 		}
-		approval, err := mvpService.ApproveRepair(req.ProposalID, "authenticated-analysis-client", "analysis-operator")
+		approval, err := mvpService.ApproveRepair(req.ProposalID, execution.MVPAnalysisOperator, "analysis-operator")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -104,7 +136,7 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"success": ok})
+		c.JSON(http.StatusOK, gin.H{"success": ok, "operation": "DISCARD_SANDBOX", "revision_restored": false})
 	}
 
 	auditHandler := func(c *gin.Context) {
@@ -121,28 +153,23 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc) {
 		c.JSON(http.StatusOK, result)
 	}
 
-	// Register with and without /api prefix
-	r.GET("/api/remediation/targets", tokenMiddleware, targetsHandler)
-	r.GET("/remediation/targets", tokenMiddleware, targetsHandler)
-
-	r.POST("/api/remediation/analyze", tokenMiddleware, analyzeHandler)
-	r.POST("/remediation/analyze", tokenMiddleware, analyzeHandler)
-
-	r.POST("/api/remediation/propose", tokenMiddleware, proposeHandler)
-	r.POST("/remediation/propose", tokenMiddleware, proposeHandler)
-
-	r.POST("/api/remediation/approve", tokenMiddleware, approveHandler)
-	r.POST("/remediation/approve", tokenMiddleware, approveHandler)
-
-	r.POST("/api/remediation/execute", tokenMiddleware, executeHandler)
-	r.POST("/remediation/execute", tokenMiddleware, executeHandler)
-
-	r.POST("/api/remediation/rollback", tokenMiddleware, rollbackHandler)
-	r.POST("/remediation/rollback", tokenMiddleware, rollbackHandler)
-
-	r.GET("/api/remediation/audit", tokenMiddleware, auditHandler)
-	r.GET("/remediation/audit", tokenMiddleware, auditHandler)
-
-	r.POST("/api/remediation/demo", tokenMiddleware, demoHandler)
-	r.POST("/remediation/demo", tokenMiddleware, demoHandler)
+	for _, prefix := range []string{"/api/remediation", "/remediation"} {
+		routes := r.Group(prefix, tokenMiddleware, func(c *gin.Context) {
+			c.Header("Cache-Control", "no-store")
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, 16<<10)
+		})
+		routes.GET("/demo/targets", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"source_kind": "DEMO_FIXTURE", "targets": execution.DefaultPreconfiguredTargets()})
+		})
+		routes.POST("/demo/analyze", analyzeHandler)
+		routes.GET("/targets", targetsHandler)
+		routes.POST("/targets", targetsHandler)
+		routes.POST("/analyze", analyzeHandler)
+		routes.POST("/propose", proposeHandler)
+		routes.POST("/approve", approveHandler)
+		routes.POST("/execute", executeHandler)
+		routes.POST("/rollback", rollbackHandler)
+		routes.GET("/audit", auditHandler)
+		routes.POST("/demo", demoHandler)
+	}
 }

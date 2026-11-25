@@ -1,0 +1,6 @@
+2026/11/25 00:33:02 [INFO] Using persistent JSON storage for deliverables: uploads\deliverables.json
+2026/11/25 00:33:02 [INFO] Self-Healing Pipeline backend listening on :18080
+2026/11/25 00:33:02 [INFO] Engine: E:\SWE\thermodynamic-ast-engine\target\release\thermodynamic-ast-engine.exe | Timeout: 5m0s | Max upload: 50 MiB
+2026/11/25 00:34:16 [SCAN] Cloning https://github.com/google/uuid into E:\SWE\go-backend\uploads\workspace_1fe2cba0-528c-423c-8cac-f47b6ee58a1f ...
+2026/11/25 00:34:18 [SCAN] Running engine on E:\SWE\go-backend\uploads\workspace_1fe2cba0-528c-423c-8cac-f47b6ee58a1f ...
+2026/11/25 00:34:18 [SCAN] Completed for https://github.com/google/uuid: 29 files, 148 hotspots, entropy 408.40

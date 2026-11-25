@@ -258,6 +258,10 @@ export function createProxyHandler(dependencies = {}) {
         const payload = repairMethod === 'POST' && event.body ? parseRequestBody(event, maxRequestBytes) : {};
         const base = validateAnalysisBaseURL(baseValue);
         const upstreamURL = new URL(`${base.pathname.replace(/\/+$/, '')}${path}`, base.origin);
+        const workspaceID = event.queryStringParameters?.workspace_id;
+        if (path === '/api/remediation/targets' && typeof workspaceID === 'string') {
+          upstreamURL.searchParams.set('workspace_id', workspaceID);
+        }
         const upstream = await fetchImpl(upstreamURL, {
           method: repairMethod,
           headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-API-Token': analysisToken },

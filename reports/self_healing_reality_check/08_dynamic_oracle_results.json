@@ -1,0 +1,17 @@
+{
+  "status": "UNAVAILABLE",
+  "reason": "docker executable absent from PATH and conventional Docker Desktop location",
+  "container_image": null,
+  "container_command": null,
+  "container_exit_code": null,
+  "independent_reproducer": "NOT_RUN",
+  "regression_tests_on_external_code": "NOT_RUN",
+  "behavioral_invariance": "NOT_RUN",
+  "host_execution_fallback": false,
+  "evidence": [
+    "06_controlled_injection_trials.json",
+    "evidence/final-negative-tests.log",
+    "evidence/final-security-tests.log"
+  ],
+  "warning": "mock-runner safety tests are not live Docker proof"
+}

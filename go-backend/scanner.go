@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -99,6 +100,22 @@ func scanRepoHandler(enginePath string, engineTimeout time.Duration, workspaces 
 				Error:  "clone_failed",
 				Detail: fmt.Sprintf("Failed to clone repository: %v", err),
 			})
+			return
+		}
+
+		if err := filepath.WalkDir(targetDir, func(path string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if entry.IsDir() && entry.Name() == ".git" {
+				return filepath.SkipDir
+			}
+			if !entry.IsDir() && !entry.Type().IsRegular() {
+				return fmt.Errorf("repository contains an unsupported entry: %s", entry.Name())
+			}
+			return nil
+		}); err != nil {
+			c.JSON(http.StatusUnprocessableEntity, ErrorResponse{Error: "unsafe_repository", Detail: "Repository scan requires regular files and directories."})
 			return
 		}
 

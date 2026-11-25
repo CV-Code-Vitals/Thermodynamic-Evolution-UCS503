@@ -1,0 +1,22 @@
+package realityfixture
+import("context";"database/sql";"database/sql/driver";"errors";"io";"testing")
+type probeDriver struct{}
+type probeConn struct{}
+type probeRows struct{}
+var observedQuery string
+var observedArgs []driver.NamedValue
+func(probeDriver) Open(string)(driver.Conn,error){return probeConn{},nil}
+func(probeConn) Prepare(string)(driver.Stmt,error){return nil,errors.New("unexpected prepare")}
+func(probeConn) Close()error{return nil}
+func(probeConn) Begin()(driver.Tx,error){return nil,errors.New("unexpected transaction")}
+func(probeConn) QueryContext(_ context.Context,q string,args []driver.NamedValue)(driver.Rows,error){observedQuery=q;observedArgs=args;return probeRows{},nil}
+func(probeRows) Columns()[]string{return []string{"name"}}
+func(probeRows) Close()error{return nil}
+func(probeRows) Next([]driver.Value)error{return io.EOF}
+func TestIndependentSQLBinding(t *testing.T){
+ sql.Register("reality-probe",probeDriver{});db,e:=sql.Open("reality-probe","");if e!=nil{t.Fatal(e)};defer db.Close()
+ for _,value:=range []string{"Alice","' OR 1=1 --"}{
+ rows,e:=Find(context.Background(),db,value);if e!=nil{t.Fatal(e)};rows.Close()
+ if observedQuery!="SELECT name FROM users WHERE name = ?" || len(observedArgs)!=1 || observedArgs[0].Value!=value{t.Fatalf("unbound user input: query=%q args=%v",observedQuery,observedArgs)}
+ }
+}

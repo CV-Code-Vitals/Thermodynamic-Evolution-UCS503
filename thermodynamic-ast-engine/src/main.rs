@@ -546,12 +546,11 @@ impl<'a> FunctionVisitor<'a> {
             }
 
             // Recursive call detection
-            if kind == "call_expression" || kind == "call" {
-                if text.contains(&format!("{}(", self.func_name))
-                    || text.contains(&format!("self.{}(", self.func_name))
-                {
-                    self.has_recursive_call = true;
-                }
+            if (kind == "call_expression" || kind == "call")
+                && (text.contains(&format!("{}(", self.func_name))
+                    || text.contains(&format!("self.{}(", self.func_name)))
+            {
+                self.has_recursive_call = true;
             }
         }
 
@@ -1183,7 +1182,7 @@ pub fn build_and_write_report(
     };
 
     let json = serde_json::to_string_pretty(&report)
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
     fs::write(output_path, json)?;
 
@@ -1228,8 +1227,8 @@ fn print_summary(report: &ThermodynamicReport) {
     println!();
     println!("{}", "  Top 5 Energy Hotspots:".bold());
     println!(
-        "  {:<8}  {:<25}  {:<6}  {:<6}  {:<6}  {}",
-        "Energy", "Function", "M", "D", "S", "Driver"
+        "  {:<8}  {:<25}  {:<6}  {:<6}  {:<6}  Driver",
+        "Energy", "Function", "M", "D", "S"
     );
     println!("  {}", "─".repeat(78));
 
@@ -1250,7 +1249,7 @@ fn print_summary(report: &ThermodynamicReport) {
         println!(
             "  {:<8.2}  {:<25}  {:<6}  {:<6}  {:<6}  {}",
             h.entropy_score,
-            &h.function_name,
+            h.function_name,
             h.metrics.cyclomatic_complexity,
             h.metrics.max_nesting_depth,
             h.metrics.ast_node_count,

@@ -1,0 +1,15 @@
+- generic [ref=f2e5]:
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]: UCS503 // SECURE ACCESS
+    - generic [ref=f2e10]: ENCRYPTED CONNECTION
+  - generic [ref=f2e12]:
+    - heading "Administrator access" [level=1] [ref=f2e16]
+    - paragraph [ref=f2e17]: SIGN IN TO OPTIMIZE FUNCTIONS AND MANAGE DELIVERABLES
+    - link "Scan repositories and explore graphs without signing in →" [ref=f2e18] [cursor=pointer]:
+      - /url: ../graph-visualizer/
+    - generic [ref=f2e19]:
+      - generic [ref=f2e20]:
+        - generic [ref=f2e21]: Passkey
+        - textbox "• • • • • • • •" [active] [ref=f2e22]
+        - generic [ref=f2e23]: Enter the administrator passkey configured on the API server.
+      - button "INITIALIZE SESSION" [ref=f2e24] [cursor=pointer]

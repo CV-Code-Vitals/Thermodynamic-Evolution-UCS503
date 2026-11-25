@@ -1,0 +1,26 @@
+{
+  "baseline": "FAIL: five demos for no/missing workspace; malformed source silently accepted",
+  "corrected_evidence": [
+    "evidence/final-negative-tests.log",
+    "evidence/latest-validation.log",
+    "evidence/final-http-regression-tests.log",
+    "evidence/http-trace.json"
+  ],
+  "passed_checks": [
+    "empty source zero findings",
+    "missing workspace rejection",
+    "invalid URL rejection",
+    "missing URL rejection",
+    "explicit demo separation",
+    "broken parser rejection",
+    "repository-report poisoning rejected",
+    "expired snapshot rejection",
+    "deleted source rejection"
+  ],
+  "limitations": {
+    "private_without_auth": "UNVERIFIED",
+    "nonexistent_repository": "502 clone_failed, not specific repository-not-found status",
+    "unsupported_language": "zero Go remediation findings; explicit unsupported status remains incomplete",
+    "disabled_engine": "UNVERIFIED"
+  }
+}

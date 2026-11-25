@@ -159,6 +159,14 @@
   border-left: 3px solid #ff4444;
 }
 
+.oracle-card.not-run {
+  border-left: 3px solid #666666;
+}
+
+.oracle-card.unavailable {
+  border-left: 3px solid #ffaa00;
+}
+
 .oracle-name {
   font-weight: bold;
   font-size: 0.8rem;
@@ -168,6 +176,7 @@
 .oracle-status {
   font-size: 0.75rem;
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 .oracle-status.pass {
@@ -176,6 +185,14 @@
 
 .oracle-status.fail {
   color: #ff4444;
+}
+
+.oracle-status.not-run {
+  color: #888888;
+}
+
+.oracle-status.unavailable {
+  color: #ffaa00;
 }
 
 .token-box {

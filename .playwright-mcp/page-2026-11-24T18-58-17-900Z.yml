@@ -1,0 +1,37 @@
+- generic [ref=f2e5]:
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]: UCS503 // PROJECT WORKSPACE
+    - generic [ref=f2e10]: "AUTHORIZED : ADMIN"
+    - button "LOG OUT" [ref=f2e27] [cursor=pointer]
+  - generic [ref=f2e12]:
+    - button "OVERVIEW" [ref=f2e28] [cursor=pointer]
+    - button "SCAN & OPTIMIZE" [ref=f2e34] [cursor=pointer]
+    - button "AUTONOMOUS REPAIR" [active] [ref=f2e39] [cursor=pointer]
+    - button "GRAPH" [ref=f2e42] [cursor=pointer]
+    - button "UPLOAD" [ref=f2e48] [cursor=pointer]
+    - button "VIEW ARCHIVE" [ref=f2e52] [cursor=pointer]
+  - generic [ref=f2e108]:
+    - generic [ref=f2e109]:
+      - heading "Autonomous Code Repair MVP" [level=2] [ref=f2e110]
+      - paragraph [ref=f2e111]: Controlled, Sandboxed AST-Level Remediation with Decoupled Independent Oracles & Cryptographic Authorization
+      - generic [ref=f2e112]:
+        - generic [ref=f2e113]: "BASELINE: de06b6e"
+        - generic [ref=f2e114]: "BRANCH: release/milestone-3.8-mvp-rc"
+        - generic [ref=f2e115]: FAIL-CLOSED SAFETY ACTIVE
+    - generic [ref=f2e116]:
+      - generic [ref=f2e117]:
+        - generic [ref=f2e118]: NO LIVE REPOSITORY SCANNED
+        - generic [ref=f2e119]:
+          - text: Scan a GitHub repository in
+          - strong [ref=f2e120]: Scan & Optimize
+          - text: to discover and repair live findings, or explicitly run the labeled demo.
+      - button "GO TO SCAN & OPTIMIZE" [ref=f2e121] [cursor=pointer]
+    - generic [ref=f2e122]:
+      - heading "1 Repository Target Selection" [level=3] [ref=f2e123]:
+        - generic [ref=f2e124]: "1"
+        - text: Repository Target Selection
+      - paragraph [ref=f2e125]: "Select a candidate defect target from the verified external pilot corpus:"
+      - generic [ref=f2e126]:
+        - combobox [disabled] [ref=f2e127]
+        - button "RUN SEMANTIC ANALYSIS" [disabled] [ref=f2e128]
+        - button "RUN ONE-CLICK DETERMINISTIC DEMO" [disabled] [ref=f2e129]

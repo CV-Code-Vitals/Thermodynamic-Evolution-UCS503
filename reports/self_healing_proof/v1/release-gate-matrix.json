@@ -1,0 +1,50 @@
+[
+  {
+    "defect": "RESOURCE_LEAK",
+    "Scan": "PASS",
+    "Reproduce": "BLOCKED",
+    "Proposal": "PASS",
+    "Apply": "NOT TESTED",
+    "Verify": "BLOCKED",
+    "Regression": "BLOCKED",
+    "Approval": "NOT TESTED",
+    "Rollback": "NOT TESTED",
+    "provenance": "Prior controlled-trial evidence; not a fresh dynamic run"
+  },
+  {
+    "defect": "SQL_INJECTION",
+    "Scan": "PASS",
+    "Reproduce": "BLOCKED",
+    "Proposal": "PASS",
+    "Apply": "NOT TESTED",
+    "Verify": "BLOCKED",
+    "Regression": "BLOCKED",
+    "Approval": "NOT TESTED",
+    "Rollback": "NOT TESTED",
+    "provenance": "Prior controlled-trial evidence; not a fresh dynamic run"
+  },
+  {
+    "defect": "UNHANDLED_ERROR",
+    "Scan": "PASS",
+    "Reproduce": "BLOCKED",
+    "Proposal": "NOT TESTED",
+    "Apply": "NOT TESTED",
+    "Verify": "BLOCKED",
+    "Regression": "BLOCKED",
+    "Approval": "NOT TESTED",
+    "Rollback": "NOT TESTED",
+    "provenance": "Prior controlled-trial evidence; not a fresh dynamic run"
+  },
+  {
+    "defect": "COMMAND_INJECTION",
+    "Scan": "PASS",
+    "Reproduce": "BLOCKED",
+    "Proposal": "NOT TESTED",
+    "Apply": "NOT TESTED",
+    "Verify": "BLOCKED",
+    "Regression": "BLOCKED",
+    "Approval": "NOT TESTED",
+    "Rollback": "NOT TESTED",
+    "provenance": "Prior controlled-trial evidence; not a fresh dynamic run"
+  }
+]

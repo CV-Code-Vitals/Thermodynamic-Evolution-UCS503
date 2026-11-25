@@ -1,0 +1,11 @@
+{
+  "verdict": "INCOMPLETE",
+  "real_URL_to_AST_to_workspace_to_targets": "executed; evidence/http-trace.json",
+  "controlled_scan_to_analysis_to_proposal": "executed; 06_controlled_injection_trials.json",
+  "controlled_proposals": 2,
+  "controlled_abstentions": 2,
+  "human_authorization": "NOT_REQUESTED: Docker unavailable",
+  "dynamic_execution": "UNAVAILABLE",
+  "independently_verified_repairs": 0,
+  "audit_and_rollback": "unit/API fixture tests only, not independently verified external-repository lifecycle"
+}

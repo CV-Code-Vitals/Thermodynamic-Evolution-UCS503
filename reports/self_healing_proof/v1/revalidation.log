@@ -1,0 +1,34 @@
+=== RUN   TestRealityNoRepository
+--- PASS: TestRealityNoRepository (0.00s)
+=== RUN   TestRealityApprovalPersistenceFailure
+--- PASS: TestRealityApprovalPersistenceFailure (0.00s)
+=== RUN   TestRealityUnconfiguredReproducerNeverPasses
+--- PASS: TestRealityUnconfiguredReproducerNeverPasses (0.00s)
+=== RUN   TestRealityRepositoryReportPoisoning
+--- PASS: TestRealityRepositoryReportPoisoning (0.35s)
+=== RUN   TestRealitySourceFailures
+=== RUN   TestRealitySourceFailures/empty
+=== RUN   TestRealitySourceFailures/broken-parser
+=== RUN   TestRealitySourceFailures/non-sql-query
+=== RUN   TestRealitySourceFailures/non-error-encode
+=== RUN   TestRealitySourceFailures/hash-contract
+=== RUN   TestRealitySourceFailures/clean-closed-resource
+--- PASS: TestRealitySourceFailures (1.77s)
+    --- PASS: TestRealitySourceFailures/empty (0.25s)
+    --- PASS: TestRealitySourceFailures/broken-parser (0.00s)
+    --- PASS: TestRealitySourceFailures/non-sql-query (0.31s)
+    --- PASS: TestRealitySourceFailures/non-error-encode (0.44s)
+    --- PASS: TestRealitySourceFailures/hash-contract (0.53s)
+    --- PASS: TestRealitySourceFailures/clean-closed-resource (0.22s)
+=== RUN   TestRealityExternalRepositories
+    reality_repositories_test.go:75: mlsc-timetable: 0 findings, reproducible=true error=
+    reality_repositories_test.go:75: chi: 52 findings, reproducible=true error=
+    reality_repositories_test.go:75: uuid: 0 findings, reproducible=true error=
+    reality_repositories_test.go:75: Finger-Counter: 0 findings, reproducible=true error=
+    reality_repositories_test.go:75: mlsc-timetable: 0 findings, reproducible=true error=
+--- PASS: TestRealityExternalRepositories (9.37s)
+=== RUN   TestRealityControlledTrials
+    reality_trials_test.go:16: opt-in disposable external-repository mutation trials
+--- SKIP: TestRealityControlledTrials (0.00s)
+PASS
+ok  	github.com/saksham/self-healing-pipeline/agent/repo_intel/execution	12.103s

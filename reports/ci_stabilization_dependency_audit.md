@@ -4,14 +4,14 @@
 **Workspace:** `E:\SWE`  
 **Branch:** `release/milestone-3.8-mvp-rc`  
 **Audit Target:** Frontend Web Application (`admin-portal`)  
-**Audit Date:** 2026-11-18  
+**Audit Date:** 2026-11-23  
 **Auditor:** Antigravity Autonomous Security Engineer  
 
 ---
 
 ## 1. Executive Summary
 
-As part of the Milestone 3.8 MVP Release Candidate CI Stabilization Hotfix, an exhaustive security audit of the frontend dependency graph was performed. The audit focused on npm dependencies specified in `admin-portal/package.json`, locked in `admin-portal/package-lock.json`, and tested under GitHub Actions workflow `.github/workflows/check-frontend.yml`.
+As part of the Milestone 3.8 MVP Release Candidate CI Stabilization Hotfix, an exhaustive security audit of the frontend dependency graph was performed. The audit focused on npm dependencies specified in [admin-portal/package.json](file:///E:/SWE/admin-portal/package.json), locked in [admin-portal/package-lock.json](file:///E:/SWE/admin-portal/package-lock.json), and tested under GitHub Actions workflow [.github/workflows/check-frontend.yml](file:///E:/SWE/.github/workflows/check-frontend.yml).
 
 The primary security finding identified in CI runs is advisory **`GHSA-fc5q-39xc-vjpf` / `CVE-2026-112366`** affecting the glob-matching library `picomatch`.
 
@@ -20,16 +20,15 @@ The primary security finding identified in CI runs is advisory **`GHSA-fc5q-39xc
 | Metric / Check | Value / Status | Verification Command |
 | :--- | :--- | :--- |
 | **Production Dependencies (`--omit=dev`)** | **0 Vulnerabilities** | `npm audit --omit=dev --audit-level=high` |
-| **Total High Severity Findings** | 9 (all via `picomatch` in dev tooling) | `npm audit --audit-level=high` |
 | **Vulnerable Package 1** | `picomatch@4.0.7` | `npm ls picomatch` (via Vite / tinyglobby / fdir) |
 | **Vulnerable Package 2** | `picomatch@2.3.2` | `npm ls picomatch` (via gh-pages / globby / micromatch) |
 | **Upstream Fix Availability** | **None** (latest release is 4.0.7) | `npm view picomatch versions` |
 | **Breaking `npm audit fix --force` Proposal** | Proposes downgrade to `vite@6.2.7` | Rejected per security guidelines |
 | **Runtime Exposure** | **Zero (0%)** | Bundled static client output does not include globs |
 | **Untrusted Input Exposure** | **Zero (0%)** | CI/Build globs are static repo paths |
-| **Frontend Test Suite** | **48/48 Passed** (0 failed) | `npm test` |
+| **Frontend Test Suite** | **49/49 Passed** (0 failed) | `npm test` |
 | **Frontend Linter (`oxlint`)** | **0 errors, 0 warnings** | `npm run lint` |
-| **Production Build** | **Success** (332 ms) | `VITE_API_BASE=... npm run build` |
+| **Production Build** | **Success** (705 ms) | `VITE_API_BASE=... npm run build` |
 
 ---
 
@@ -75,7 +74,7 @@ admin-portal@0.0.0 E:\SWE\admin-portal
 ## 3. Advisory Vulnerability Assessment
 
 ### GHSA-fc5q-39xc-vjpf / CVE-2026-112366
-- **Vulnerability Type:** Regular Expression Denial of Service (ReDoS)
+- **Vulnerability Type:** Regular Expression Denial of Service (ReDoS) in `picomatch.scan()`.
 - **Mechanism:** Repeated single-branch extglobs (e.g. `@(a|a)*`) induce catastrophic backtracking in pattern compilation and string matching routines within `picomatch`.
 - **CVSS Base Score:** High (7.5)
 - **Attack Vector:** Network / Local, requiring untrusted user-supplied glob pattern input.

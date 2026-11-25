@@ -1,0 +1,10 @@
+package realityfixture
+import("os";"path/filepath";"runtime";"testing")
+func TestIndependentLeak(t *testing.T){
+ if runtime.GOOS!="linux"{t.Skip("requires Linux /proc inside hardened container")}
+ p:=filepath.Join(t.TempDir(),"input");if e:=os.WriteFile(p,[]byte("ok"),0600);e!=nil{t.Fatal(e)}
+ before,e:=os.ReadDir("/proc/self/fd");if e!=nil{t.Fatal(e)}
+ for i:=0;i<32;i++{b,e:=Read(p);if e!=nil||string(b)!="ok"{t.Fatalf("valid behavior: %s %v",b,e)}}
+ after,e:=os.ReadDir("/proc/self/fd");if e!=nil{t.Fatal(e)}
+ if len(after)>len(before)+2{t.Fatalf("descriptor leak: %d -> %d",len(before),len(after))}
+}

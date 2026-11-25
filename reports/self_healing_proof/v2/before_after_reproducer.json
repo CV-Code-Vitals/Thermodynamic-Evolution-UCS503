@@ -1,0 +1,11 @@
+{
+  "status": "BLOCKED",
+  "reason": "No actual Docker runtime; public independent verification specification not implemented",
+  "pre_patch_execution": "NOT TESTED",
+  "post_patch_execution": "NOT TESTED",
+  "approval": "NOT TESTED",
+  "original_digest": null,
+  "modified_digest": null,
+  "generated_patch": "No new patch in v2; historical controlled proposals remain in ../../self_healing_reality_check/06_controlled_injection_trials.json",
+  "oracle_execution_records": []
+}

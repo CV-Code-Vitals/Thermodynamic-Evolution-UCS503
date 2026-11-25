@@ -1,0 +1,6 @@
+package realityfixture
+import "testing"
+func TestIndependentErrorPropagation(t *testing.T){
+ if Decode([]byte("invalid-json"))==nil{t.Fatal("malformed JSON silently accepted")}
+ if e:=Decode([]byte(`{"valid":true}`));e!=nil{t.Fatal(e)}
+}

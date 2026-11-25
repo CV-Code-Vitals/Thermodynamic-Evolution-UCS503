@@ -1,0 +1,8 @@
+package realityfixture
+import("io";"os")
+func Read(path string)([]byte,error){
+ f,err:=os.Open(path)
+ if err!=nil{return nil,err}
+ defer f.Close()
+ return io.ReadAll(f)
+}

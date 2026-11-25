@@ -1,0 +1,6 @@
+package realityfixture
+import "encoding/json"
+func Decode(data []byte) error {
+ var value map[string]interface{}
+ return json.Unmarshal(data,&value)
+}
