@@ -1,0 +1,95 @@
+- generic [ref=f2e5]:
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]: UCS503 // PROJECT WORKSPACE
+    - generic [ref=f2e10]: "AUTHORIZED : ADMIN"
+    - button "LOG OUT" [ref=f2e27] [cursor=pointer]
+  - generic [ref=f2e12]:
+    - button "OVERVIEW" [ref=f2e28] [cursor=pointer]
+    - button "SCAN & OPTIMIZE" [ref=f2e34] [cursor=pointer]
+    - button "AUTONOMOUS REPAIR" [ref=f2e39] [cursor=pointer]
+    - button "GRAPH" [ref=f2e42] [cursor=pointer]
+    - button "UPLOAD" [ref=f2e48] [cursor=pointer]
+    - button "VIEW ARCHIVE" [ref=f2e52] [cursor=pointer]
+  - generic [ref=f2e131]:
+    - heading "Analyze a repository" [level=2] [ref=f2e132]
+    - paragraph [ref=f2e133]: Scan a public GitHub repository and explore its files and functions in the graph.
+    - paragraph [ref=f2e134]: Function analysis supports Go, Python, JavaScript / JSX, TypeScript / TSX, Rust, Java, C, C++, C#, Ruby, PHP, Swift and shell. Other text files appear with their language and line count. Optimization supports Go modules with tests and dependencies available in the offline sandbox. The score measures code structure; runtime performance needs a separate benchmark.
+    - generic [ref=f2e135]:
+      - generic [ref=f2e136]: GitHub repository URL
+      - textbox "GitHub repository URL" [ref=f2e137]:
+        - /placeholder: https://github.com/owner/repository
+        - text: https://github.com/google/uuid
+      - button "SCAN REPOSITORY" [ref=f2e210] [cursor=pointer]
+    - generic [ref=f2e217]:
+      - paragraph [ref=f2e218]: Analyzed 29 files. The scanned copy expires at 1:04:16 AM.
+      - generic [ref=f2e219]: Go function
+      - combobox "Go function" [ref=f2e220]:
+        - option "uuid.go · Validate · score 10.50" [selected]
+        - option "uuid.go · ParseBytes · score 8.90"
+        - option "uuid.go · Parse · score 8.89"
+        - option "uuid.go · Variant · score 3.11"
+        - option "uuid.go · Strings · score 1.96"
+        - option "uuid.go · MustParse · score 1.95"
+        - option "uuid.go · SetRand · score 1.86"
+        - option "uuid.go · Must · score 1.83"
+        - option "uuid.go · DisableRandPool · score 1.60"
+        - option "uuid.go · encodeHex · score 1.45"
+        - option "uuid.go · URN · score 1.24"
+        - option "uuid.go · FromBytes · score 1.17"
+        - option "uuid.go · Version · score 1.08"
+        - option "uuid.go · IsInvalidLengthError · score 1.05"
+        - option "uuid.go · EnableRandPool · score 0.90"
+        - option "time.go · getTime · score 3.05"
+        - option "time.go · Time · score 2.94"
+        - option "time.go · setClockSequence · score 2.53"
+        - option "time.go · clockSequence · score 1.83"
+        - option "time.go · GetTime · score 1.62"
+        - option "time.go · SetClockSequence · score 1.58"
+        - option "time.go · UnixTime · score 1.25"
+        - option "null.go · Scan · score 2.51"
+        - option "null.go · UnmarshalJSON · score 2.04"
+        - option "null.go · UnmarshalBinary · score 2.01"
+        - option "null.go · UnmarshalText · score 2.01"
+        - option "null.go · Value · score 1.91"
+        - option "null.go · MarshalBinary · score 1.90"
+        - option "null.go · MarshalJSON · score 1.90"
+        - option "null.go · MarshalText · score 1.89"
+        - option "node.go · setNodeInterface · score 2.96"
+        - option "node.go · SetNodeID · score 2.43"
+        - option "node.go · SetNodeInterface · score 1.60"
+        - option "node.go · NodeInterface · score 1.54"
+        - option "version4.go · newRandomFromPool · score 3.32"
+        - option "version4.go · NewRandomFromReader · score 2.08"
+        - option "version4.go · NewRandom · score 1.83"
+        - option "version4.go · NewString · score 1.05"
+        - option "version4.go · New · score 0.99"
+        - option "dce.go · String · score 2.62"
+        - option "dce.go · NewDCESecurity · score 2.06"
+        - option "dce.go · NewDCEPerson · score 1.12"
+        - option "dce.go · NewDCEGroup · score 1.12"
+        - option "dce.go · ID · score 1.11"
+        - option "dce.go · Domain · score 1.05"
+        - option "version7.go · getV7Time · score 2.59"
+        - option "version7.go · NewV7FromReader · score 1.95"
+        - option "version7.go · NewV7 · score 1.92"
+        - option "version7.go · makeV7 · score 1.49"
+        - option "sql.go · Scan · score 5.34"
+        - option "sql.go · Value · score 1.12"
+        - option "version6.go · generateV6 · score 2.52"
+        - option "version6.go · NewV6WithTime · score 1.95"
+        - option "version6.go · NewV6 · score 1.91"
+        - option "marshal.go · UnmarshalBinary · score 1.97"
+        - option "marshal.go · UnmarshalText · score 1.94"
+        - option "marshal.go · MarshalText · score 1.19"
+        - option "marshal.go · MarshalBinary · score 1.08"
+        - option "util.go · randomBits · score 1.91"
+        - option "util.go · xtob · score 1.70"
+        - option "util.go · Compare · score 1.09"
+        - option "node_net.go · getHardwareInterface · score 4.60"
+        - option "hash.go · NewHash · score 1.45"
+        - option "hash.go · NewMD5 · score 1.14"
+        - option "hash.go · NewSHA1 · score 1.14"
+        - option "version1.go · NewUUID · score 2.99"
+        - option "node_js.go · getHardwareInterface · score 1.05"
+      - paragraph [ref=f2e221]: Changes apply to the scanned copy. Review the best candidate before applying it to your own repository.
+      - button "REVIEW FUNCTION" [ref=f2e222] [cursor=pointer]

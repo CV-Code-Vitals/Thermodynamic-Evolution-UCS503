@@ -1,0 +1,56 @@
+- generic [ref=f2e5]:
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]: UCS503 // PROJECT WORKSPACE
+    - generic [ref=f2e10]: "AUTHORIZED : ADMIN"
+    - button "LOG OUT" [ref=f2e27] [cursor=pointer]
+  - generic [ref=f2e12]:
+    - button "OVERVIEW" [ref=f2e28] [cursor=pointer]
+    - button "SCAN & OPTIMIZE" [ref=f2e34] [cursor=pointer]
+    - button "AUTONOMOUS REPAIR" [active] [ref=f2e39] [cursor=pointer]
+    - button "GRAPH" [ref=f2e42] [cursor=pointer]
+    - button "UPLOAD" [ref=f2e48] [cursor=pointer]
+    - button "VIEW ARCHIVE" [ref=f2e52] [cursor=pointer]
+  - generic [ref=f2e108]:
+    - generic [ref=f2e109]:
+      - heading "Autonomous Code Repair MVP" [level=2] [ref=f2e110]
+      - paragraph [ref=f2e111]: Controlled, Sandboxed AST-Level Remediation with Decoupled Independent Oracles & Cryptographic Authorization
+      - generic [ref=f2e112]:
+        - generic [ref=f2e113]: "SOURCE: 2d3c2a9cc518"
+        - generic [ref=f2e114]: "BRANCH: release/milestone-3.8-mvp-rc"
+        - generic [ref=f2e115]: FAIL-CLOSED SAFETY ACTIVE
+    - generic [ref=f2e117]:
+      - generic [ref=f2e118]:
+        - generic [ref=f2e223]: CONNECTED SCANNED REPOSITORY
+        - generic [ref=f2e224]:
+          - text: https://github.com/google/uuid
+          - generic [ref=f2e225]: "(Workspace: 1fe2cba0...)"
+        - generic [ref=f2e226]: 29 files analyzed · 148 hotspots detected · 2 findings available for remediation
+      - button "CHANGE / RE-SCAN" [ref=f2e227] [cursor=pointer]
+    - generic [ref=f2e122]:
+      - heading "1 Repository Target Selection" [level=3] [ref=f2e123]:
+        - generic [ref=f2e124]: "1"
+        - text: Repository Target Selection
+      - paragraph [ref=f2e125]: "Select a diagnostic finding from the scanned repository (2 discovered) :"
+      - generic [ref=f2e228]:
+        - generic [ref=f2e229]: "FILTERS:"
+        - combobox [ref=f2e233]:
+          - option "All Categories" [selected]
+          - option "Resource Leaks"
+          - option "SQL Injection"
+          - option "Command Injection"
+          - option "High Complexity Hotspots"
+          - option "Unhandled Errors"
+        - combobox [ref=f2e234]:
+          - option "All Actions" [selected]
+          - option "Eligible for Repair (REPAIR)"
+          - option "Requires Abstention / Review (ABSTAIN)"
+        - textbox "Search by file, rule ID, or description..." [ref=f2e236]
+      - generic [ref=f2e126]:
+        - combobox [ref=f2e127]:
+          - 'option "SCAN-SEMANTIC_UNHANDLED_ERROR-1-578b0c70d40c9a3344b1757a-0: Unhandled Error Return (h.Write) in hash.go:35" [selected]'
+          - 'option "SCAN-SEMANTIC_UNHANDLED_ERROR-2-578b0c70d40c9a3344b1757a-1: Unhandled Error Return (h.Write) in hash.go:36"'
+        - button "RUN SEMANTIC ANALYSIS" [ref=f2e128] [cursor=pointer]
+        - button "RUN ONE-CLICK DETERMINISTIC DEMO" [ref=f2e129] [cursor=pointer]
+      - generic [ref=f2e240]:
+        - text: "SELECTED TARGET: SCAN-SEMANTIC_UNHANDLED_ERROR-1-578b0c70d40c9a3344b1757a-0 | CATEGORY: UNHANDLED_ERROR | EXPECTED: ABSTAIN | FILE: hash.go:35"
+        - generic [ref=f2e241]: "[SNAPSHOT: SNAP-578b0c70d40c9a3344b1757af49b853879f8bfe74e48cbcc2215be6ff8e6c767]"

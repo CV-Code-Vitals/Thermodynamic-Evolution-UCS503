@@ -13,7 +13,7 @@
       "error_message": "Source report provenance verification failed",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 270
+      "duration_ms": 298
     },
     {
       "test_id": "MODIFIED_SOURCE",
@@ -26,7 +26,7 @@
       "error_message": "Target file was missing or hash deviated from plan snapshot",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 313
+      "duration_ms": 393
     },
     {
       "test_id": "PATH_TRAVERSAL",
@@ -39,7 +39,7 @@
       "error_message": "security violation: path traverses outside workspace (traversal segment '..'): ../../etc/passwd",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 43
+      "duration_ms": 33
     },
     {
       "test_id": "SYMLINK_ESCAPE",
@@ -52,7 +52,7 @@
       "error_message": "Target path resolves outside workspace boundary",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 39
+      "duration_ms": 33
     },
     {
       "test_id": "CIRCULAR_DEPENDENCY",
@@ -117,7 +117,7 @@
       "error_message": "go build failed in isolated workspace",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 544
+      "duration_ms": 9263
     },
     {
       "test_id": "TEST_REGRESSION",
@@ -130,7 +130,7 @@
       "error_message": "go test failed in isolated workspace",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 2498
+      "duration_ms": 43432
     },
     {
       "test_id": "DIAGNOSTIC_REGRESSION",
@@ -143,7 +143,7 @@
       "error_message": "New diagnostic defects introduced: 1",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 37
+      "duration_ms": 264
     },
     {
       "test_id": "EXECUTION_TIMEOUT",
@@ -182,7 +182,7 @@
       "error_message": "Zero race conditions or file locking conflicts detected",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 92
+      "duration_ms": 153
     },
     {
       "test_id": "WORKSPACE_POLLUTION",
@@ -195,7 +195,7 @@
       "error_message": "Zero residual files persisted after destruction",
       "safe_failure": true,
       "source_untouched": true,
-      "duration_ms": 42
+      "duration_ms": 55
     },
     {
       "test_id": "MALFORMED_PLAN",
@@ -224,6 +224,6 @@
       "duration_ms": 0
     }
   ],
-  "timestamp": "2026-11-23T13:42:58.2283972+05:30",
+  "timestamp": "2026-11-24T22:15:33.7686511+05:30",
   "total_tests": 17
 }

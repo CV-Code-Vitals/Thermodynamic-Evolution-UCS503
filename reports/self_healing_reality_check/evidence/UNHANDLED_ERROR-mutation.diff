@@ -1,0 +1,10 @@
+--- clean/defect.go
++++ mutated/defect.go
+@@ -2,5 +2,6 @@
+ import "encoding/json"
+ func Decode(data []byte) error {
+  var value map[string]interface{}
+- return json.Unmarshal(data,&value)
++ json.Unmarshal(data,&value)
++ return nil
+ }

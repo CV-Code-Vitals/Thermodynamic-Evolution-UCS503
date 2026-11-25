@@ -1,0 +1,50 @@
+[
+  {
+    "category": "RESOURCE_LEAK",
+    "upstream": "Zylus08/mlsc-timetable",
+    "commit": "cbd082eafd24b290391145cb0399e81c6b41303c",
+    "kind": "added isolated controlled fixture package",
+    "original_source_sha256": "96cc017b2b96fe999fecea40cb8c1ae4e14fc8f32917670bd7a7d413eadbe311",
+    "mutated_source_sha256": "b966c4fa3ae0eb3fe8effca372a9adfb0dc80747124918250eac293350f9993a",
+    "mutation_patch": "RESOURCE_LEAK-mutation.diff",
+    "original_reproducer_status": "NOT_RUN_DOCKER_UNAVAILABLE",
+    "post_patch_status": "NOT_RUN",
+    "expected_action": "REPAIR_OR_SUPPORTED_ABSTENTION"
+  },
+  {
+    "category": "SQL_INJECTION",
+    "upstream": "Zylus08/mlsc-timetable",
+    "commit": "cbd082eafd24b290391145cb0399e81c6b41303c",
+    "kind": "added isolated controlled fixture package",
+    "original_source_sha256": "baf2b431ead97782aa658684c83d0d84e4afaa521bc77dc440f39630f6e009bb",
+    "mutated_source_sha256": "62d42041a53a7176aaba496bfd650547dbb6c34da970260597778a86089bcaac",
+    "mutation_patch": "SQL_INJECTION-mutation.diff",
+    "original_reproducer_status": "NOT_RUN_DOCKER_UNAVAILABLE",
+    "post_patch_status": "NOT_RUN",
+    "expected_action": "REPAIR_OR_SUPPORTED_ABSTENTION"
+  },
+  {
+    "category": "UNHANDLED_ERROR",
+    "upstream": "Zylus08/mlsc-timetable",
+    "commit": "cbd082eafd24b290391145cb0399e81c6b41303c",
+    "kind": "added isolated controlled fixture package",
+    "original_source_sha256": "9b6b1c1c16ceaf8c32708c0cbf06e5505a4d85f81e7f3606ee2dd4efea7513a2",
+    "mutated_source_sha256": "e4481adced50f33e72f2e642614380bc3f8464a76e16b54ab098f19c4cadccdd",
+    "mutation_patch": "UNHANDLED_ERROR-mutation.diff",
+    "original_reproducer_status": "NOT_RUN_DOCKER_UNAVAILABLE",
+    "post_patch_status": "NOT_RUN",
+    "expected_action": "REPAIR_OR_SUPPORTED_ABSTENTION"
+  },
+  {
+    "category": "COMMAND_INJECTION",
+    "upstream": "Zylus08/mlsc-timetable",
+    "commit": "cbd082eafd24b290391145cb0399e81c6b41303c",
+    "kind": "added isolated controlled fixture package",
+    "original_source_sha256": "92e684092f31602ef624311bf701d861ba848c5a149e2036409cb701f6bcbd62",
+    "mutated_source_sha256": "60e7305bb039f2a1fedca67b136b8a83aaa79b125ebbbfc5484f751cc9bc0a33",
+    "mutation_patch": "COMMAND_INJECTION-mutation.diff",
+    "original_reproducer_status": "NOT_RUN_DOCKER_UNAVAILABLE",
+    "post_patch_status": "NOT_RUN",
+    "expected_action": "ABSTAIN"
+  }
+]

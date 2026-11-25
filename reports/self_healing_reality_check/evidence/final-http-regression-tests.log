@@ -1,0 +1,22 @@
+=== RUN   TestRealityLiveRoutesRejectAbsentSourceAndDemo
+--- PASS: TestRealityLiveRoutesRejectAbsentSourceAndDemo (0.00s)
+=== RUN   TestRemediationHttpWorkflow
+--- PASS: TestRemediationHttpWorkflow (0.13s)
+=== RUN   TestRemediationRoutesRequireToken
+--- PASS: TestRemediationRoutesRequireToken (0.00s)
+=== RUN   TestRemediationDemoRunsRepairCandidateAndAbstention
+--- PASS: TestRemediationDemoRunsRepairCandidateAndAbstention (0.07s)
+=== RUN   TestRemediationHttpWorkflow_WithScannedWorkspace
+--- PASS: TestRemediationHttpWorkflow_WithScannedWorkspace (0.82s)
+=== RUN   TestEndToEndScanToRepairWorkflow_OfflineFixture
+    scan_to_repair_e2e_test.go:290: Failed to create workspace: workspace capacity reached; wait for an existing workspace to expire
+--- FAIL: TestEndToEndScanToRepairWorkflow_OfflineFixture (0.00s)
+=== RUN   TestUntrustedExecution_CredentialStripping
+--- PASS: TestUntrustedExecution_CredentialStripping (0.00s)
+=== RUN   TestUntrustedExecution_ArbitraryCommandBlocked
+--- PASS: TestUntrustedExecution_ArbitraryCommandBlocked (0.01s)
+=== RUN   TestSnapshotAuthorization_StaleWorkspaceRejected
+--- PASS: TestSnapshotAuthorization_StaleWorkspaceRejected (0.57s)
+FAIL
+FAIL	github.com/saksham/self-healing-pipeline	3.679s
+FAIL

@@ -1,0 +1,22 @@
+- generic [ref=f2e5]:
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]: UCS503 // PROJECT WORKSPACE
+    - generic [ref=f2e10]: "AUTHORIZED : ADMIN"
+    - button "LOG OUT" [ref=f2e27] [cursor=pointer]
+  - generic [ref=f2e12]:
+    - button "OVERVIEW" [ref=f2e28] [cursor=pointer]
+    - button "SCAN & OPTIMIZE" [ref=f2e34] [cursor=pointer]
+    - button "AUTONOMOUS REPAIR" [ref=f2e39] [cursor=pointer]
+    - button "GRAPH" [ref=f2e42] [cursor=pointer]
+    - button "UPLOAD" [ref=f2e48] [cursor=pointer]
+    - button "VIEW ARCHIVE" [ref=f2e52] [cursor=pointer]
+  - generic [ref=f2e131]:
+    - heading "Analyze a repository" [level=2] [ref=f2e132]
+    - paragraph [ref=f2e133]: Scan a public GitHub repository and explore its files and functions in the graph.
+    - paragraph [ref=f2e134]: Function analysis supports Go, Python, JavaScript / JSX, TypeScript / TSX, Rust, Java, C, C++, C#, Ruby, PHP, Swift and shell. Other text files appear with their language and line count. Optimization supports Go modules with tests and dependencies available in the offline sandbox. The score measures code structure; runtime performance needs a separate benchmark.
+    - generic [ref=f2e135]:
+      - generic [ref=f2e136]: GitHub repository URL
+      - textbox "GitHub repository URL" [disabled] [ref=f2e137]:
+        - /placeholder: https://github.com/owner/repository
+        - text: https://github.com/Zylus08/mlsc-timetable
+      - button "SCANNING REPOSITORY…" [disabled] [ref=f2e139]

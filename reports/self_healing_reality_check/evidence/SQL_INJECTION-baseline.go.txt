@@ -1,0 +1,6 @@
+package realityfixture
+import("context";"database/sql")
+func Find(ctx context.Context, db *sql.DB, name string)(*sql.Rows,error){
+ query := "SELECT name FROM users WHERE name = ?"
+ return db.QueryContext(ctx,query,name)
+}

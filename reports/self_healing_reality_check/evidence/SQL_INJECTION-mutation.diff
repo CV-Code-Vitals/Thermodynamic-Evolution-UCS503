@@ -1,0 +1,12 @@
+--- clean/defect.go
++++ mutated/defect.go
+@@ -1,6 +1,6 @@
+ package realityfixture
+-import("context";"database/sql")
++import("context";"database/sql";"fmt")
+ func Find(ctx context.Context, db *sql.DB, name string)(*sql.Rows,error){
+- query := "SELECT name FROM users WHERE name = ?"
+- return db.QueryContext(ctx,query,name)
++ query := fmt.Sprintf("SELECT name FROM users WHERE name = '%s'",name)
++ return db.QueryContext(ctx,query)
+ }

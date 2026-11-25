@@ -126,6 +126,8 @@ type MVPExecutionResult struct {
 	OriginalRepoPreDigest  string                      `json:"original_repo_pre_digest"`
 	OriginalRepoPostDigest string                      `json:"original_repo_post_digest"`
 	OriginalRepoImmutable  bool                        `json:"original_repo_immutable"`
+	CleanupOperation       string                      `json:"cleanup_operation"`
+	CleanupStatus          string                      `json:"cleanup_status,omitempty"`
 	RollbackAvailable      bool                        `json:"rollback_available"`
 	DurationMs             int64                       `json:"duration_ms"`
 	Timestamp              string                      `json:"timestamp"`
@@ -1131,6 +1133,7 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		OriginalRepoPostDigest: postDigest,
 		OriginalRepoImmutable:  repoImmutable,
 		RollbackAvailable:      true,
+		CleanupOperation:       "DISCARD_SANDBOX",
 		DurationMs:             time.Since(start).Milliseconds(),
 		Timestamp:              time.Now().UTC().Format(time.RFC3339),
 	}
@@ -1194,9 +1197,27 @@ func (s *MVPService) RollbackSandbox(executionID string) (bool, error) {
 	if !exists {
 		return false, fmt.Errorf("execution record %q not found", executionID)
 	}
-	if exec.SandboxDir != "" {
-		_ = os.RemoveAll(exec.SandboxDir)
+	if exec.SandboxDir == "" {
+		return false, fmt.Errorf("DISCARD_SANDBOX: missing sandbox path")
 	}
+	root, err := EnsureTmpDir(s.WorkspaceRoot)
+	if err != nil {
+		return false, err
+	}
+	rel, err := filepath.Rel(root, exec.SandboxDir)
+	if err != nil || filepath.IsAbs(rel) || strings.HasPrefix(rel, "..") || filepath.Dir(rel) != "." || !strings.HasPrefix(filepath.Base(rel), "mvp-sandbox-") {
+		return false, fmt.Errorf("DISCARD_SANDBOX: path is outside managed sandbox root")
+	}
+	exec.CleanupOperation = "DISCARD_SANDBOX"
+	if err := os.RemoveAll(exec.SandboxDir); err != nil {
+		exec.CleanupStatus = "FAILED"
+		return false, fmt.Errorf("DISCARD_SANDBOX: %w", err)
+	}
+	if _, err := os.Lstat(exec.SandboxDir); !os.IsNotExist(err) {
+		exec.CleanupStatus = "FAILED"
+		return false, fmt.Errorf("DISCARD_SANDBOX: deletion not verified: %v", err)
+	}
+	exec.CleanupStatus = "PASSED"
 	exec.RollbackAvailable = false
 	return true, nil
 }

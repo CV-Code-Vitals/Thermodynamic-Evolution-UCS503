@@ -1,0 +1,17 @@
+[
+  {
+    "path": ".gitattributes",
+    "sha256": "d8fb0de4792538f93822b2c0d235604921299d5e54a3d6ec7a6cb34536e8bf1e",
+    "bytes": 68
+  },
+  {
+    "path": "finger detector.py",
+    "sha256": "00a8c82170cdc265b004474b0c3319e34b978c85ed7ca1d1062a9d698ddaada6",
+    "bytes": 2724
+  },
+  {
+    "path": "Hand_Sign_Recognition_README.md",
+    "sha256": "6872393b3e342ac36f319b93e4b641184dac9ec30d092fe028ef66de3e158f58",
+    "bytes": 2398
+  }
+]

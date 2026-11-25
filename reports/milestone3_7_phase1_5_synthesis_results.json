@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-11-23T17:53:19.3154024Z",
+  "timestamp": "2026-11-24T16:45:48.9985226Z",
   "total_cases": 9,
   "synthesized_count": 4,
   "abstained_count": 5,
   "failed_count": 0,
-  "verified_count": 4,
+  "verified_count": 0,
   "synthesis_rate": 0.4444444444444444,
   "abstention_rate": 0.5555555555555556,
-  "oracle_success_rate": 1,
+  "oracle_success_rate": 0,
   "records": [
     {
       "case_id": "SYNTH-RES-01",
@@ -25,8 +25,8 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "duration_ms": 8
+      "all_oracles_passed": false,
+      "duration_ms": 2
     },
     {
       "case_id": "SYNTH-RES-02",
@@ -44,7 +44,7 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
+      "all_oracles_passed": false,
       "duration_ms": 0
     },
     {
@@ -63,8 +63,8 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "duration_ms": 0
+      "all_oracles_passed": false,
+      "duration_ms": 3
     },
     {
       "case_id": "SYNTH-SQL-01",
@@ -82,7 +82,7 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
+      "all_oracles_passed": false,
       "duration_ms": 0
     },
     {
@@ -105,7 +105,7 @@
       "abstain_reason": "LOOP_DEFERRED_CLEANUP_ACCUMULATION: Resource allocated inside loop body; deferred cleanup would cause handle accumulation",
       "patch_generated": false,
       "all_oracles_passed": false,
-      "duration_ms": 63
+      "duration_ms": 0
     },
     {
       "case_id": "SYNTH-ESCAPE-ABSTAIN",
@@ -116,7 +116,7 @@
       "abstain_reason": "CONCURRENT_OWNERSHIP_ESCAPE: Resource handle escapes to concurrent goroutine",
       "patch_generated": false,
       "all_oracles_passed": false,
-      "duration_ms": 39
+      "duration_ms": 35
     },
     {
       "case_id": "SYNTH-RETURN-ABSTAIN",
@@ -127,7 +127,7 @@
       "abstain_reason": "AMBIGUOUS_RETURN_SIGNATURE: Function does not return an error; cannot synthesize error propagation without altering public signature",
       "patch_generated": false,
       "all_oracles_passed": false,
-      "duration_ms": 0
+      "duration_ms": 110
     },
     {
       "case_id": "SYNTH-ESCAPING-RETURN-ABSTAIN",
@@ -138,7 +138,7 @@
       "abstain_reason": "RESOURCE_ESCAPES_VIA_RETURN: Resource \"resp\" escapes function scope via return signature; callee cannot safely synthesize lifecycle cleanup",
       "patch_generated": false,
       "all_oracles_passed": false,
-      "duration_ms": 12
+      "duration_ms": 0
     }
   ]
 }

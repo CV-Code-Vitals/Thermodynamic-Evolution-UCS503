@@ -1,0 +1,5 @@
+package realityfixture
+import "os/exec"
+func Run(value string) error {
+ return exec.Command("echo",value).Run()
+}

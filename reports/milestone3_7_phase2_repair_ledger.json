@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-23T17:55:30.1853231Z",
+  "timestamp": "2026-11-24T16:45:45.6275089Z",
   "baseline_commit": "d3e0f69c3dd869db2ad792c56f27c61eeb5f8886",
   "total_targets_assessed": 27,
   "natural_defect_targets": 4,
@@ -7,11 +7,12 @@
   "clean_control_targets": 8,
   "eligible_defects": 16,
   "attempted_repairs": 9,
-  "verified_repairs": 9,
+  "verified_repairs": 0,
   "abstained_repairs": 7,
+  "unverified_repairs": 9,
   "failed_repairs": 0,
   "original_repos_immutable": true,
-  "verified_repair_rate": 0.5625,
+  "verified_repair_rate": 0,
   "abstention_rate": 0.4375,
   "records": [
     {
@@ -32,7 +33,7 @@
       "original_repo_unchanged": true,
       "all_oracles_passed": false,
       "verification_verdict": "EXPLICITLY_ABSTAINED",
-      "duration_ms": 78
+      "duration_ms": 304
     },
     {
       "case_id": "NAT-01",
@@ -96,7 +97,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "786181a1884d1deaf7eef76aafd66eb5",
+      "token_id": "943322a01724493c96c40aa0f90f5f94",
       "patch_generated": true,
       "unified_diff": "--- a/file_printer.go\n+++ b/file_printer.go\n@@ -26,9 +26,11 @@\n-\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n-\tdata, err := io.ReadAll(f)\n-\tif err != nil {\n-\t\treturn err\n-\t}\n-\tfmt.Printf(\"Profile loaded: %d bytes\\n\", len(data))\n-\treturn nil\n-}\n-\n+\tdefer\n+\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n+\tf.Close()\n+\n+\tdata, err := io.ReadAll(f)\n+\tif err != nil {\n+\t\treturn err\n+\t}\n+\tfmt.Printf(\"Profile loaded: %d bytes\\n\", len(data))\n+\treturn nil\n+}\n",
       "diff_hash": "f54bc2787918df0c47b14e5d6dcc7e330bd86b5bd2a1e0b9c6d7f15309a64c9f",
@@ -109,9 +110,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 70
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 2678
     },
     {
       "case_id": "INJ-EXT2-RES-03",
@@ -124,7 +125,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "930d3b2a4ce88772b9b4d77ace9fa451",
+      "token_id": "d27e2a4ff91a3dbc09adc8fdfe8d4910",
       "patch_generated": true,
       "unified_diff": "--- a/trace_conn.go\n+++ b/trace_conn.go\n@@ -24,5 +24,7 @@\n-\t// Missing defer conn.Close() -\u003e RESOURCE_LEAK\n-\t_ = conn\n-\treturn nil\n-}\n-\n+\tdefer\n+\t// Missing defer conn.Close() -\u003e RESOURCE_LEAK\n+\tconn.Close()\n+\n+\t_ = conn\n+\treturn nil\n+}\n",
       "diff_hash": "db9a7b29912db5f8ad32a9b3c840702c00d9c53fa6d84a37ebdc50a884ed842e",
@@ -137,9 +138,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 100
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 1852
     },
     {
       "case_id": "INJ-EXT2-SQL-01",
@@ -152,7 +153,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "72c88a63ccbd0724ee7951d9a0f94fd0",
+      "token_id": "f58d53bc7db5da4df6ef807965218ccb",
       "patch_generated": true,
       "unified_diff": "--- a/sql_helper.go\n+++ b/sql_helper.go\n@@ -6,1 +6,0 @@\n-\t\"fmt\"\n@@ -26,10 +25,9 @@\n-\tquery := fmt.Sprintf(\"SELECT id, payload FROM data_store WHERE role = '%s'\", role)\n-\treturn e.db.QueryContext(ctx, query)\n-}\n-\n-// INJ-EXT2-SQL-02: Dynamic SQL string concatenation\n-func (e *SQLQueryExecutor) SearchByTagRaw(ctx context.Context, tag string) (*sql.Rows, error) {\n-\tquery := \"SELECT id, payload FROM data_store WHERE tag = '\" + tag + \"'\"\n-\treturn e.db.Query(query)\n-}\n-\n+\tquery := \"SELECT id, payload FROM data_store WHERE role = ?\"\n+\treturn e.db.QueryContext(ctx, query, role)\n+}\n+\n+// INJ-EXT2-SQL-02: Dynamic SQL string concatenation\n+func (e *SQLQueryExecutor) SearchByTagRaw(ctx context.Context, tag string) (*sql.Rows, error) {\n+\tquery := \"SELECT id, payload FROM data_store WHERE tag = '\" + tag + \"'\"\n+\treturn e.db.Query(query)\n+}\n",
       "diff_hash": "0efdc435c52581b087d639cf333fe5dc966a3f60f15eea54eb4ccf2750a1bfd1",
@@ -165,9 +166,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 160
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 662
     },
     {
       "case_id": "INJ-EXT2-SQL-02",
@@ -180,7 +181,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "1858d62408c962635834841c9efe3aaf",
+      "token_id": "fb02b78fc5ae5db59d134c0ab9edb3f8",
       "patch_generated": true,
       "unified_diff": "--- a/sql_helper.go\n+++ b/sql_helper.go\n@@ -6,1 +6,0 @@\n-\t\"fmt\"\n@@ -26,10 +25,9 @@\n-\tquery := fmt.Sprintf(\"SELECT id, payload FROM data_store WHERE role = '%s'\", role)\n-\treturn e.db.QueryContext(ctx, query)\n-}\n-\n-// INJ-EXT2-SQL-02: Dynamic SQL string concatenation\n-func (e *SQLQueryExecutor) SearchByTagRaw(ctx context.Context, tag string) (*sql.Rows, error) {\n-\tquery := \"SELECT id, payload FROM data_store WHERE tag = '\" + tag + \"'\"\n-\treturn e.db.Query(query)\n-}\n-\n+\tquery := \"SELECT id, payload FROM data_store WHERE role = ?\"\n+\treturn e.db.QueryContext(ctx, query, role)\n+}\n+\n+// INJ-EXT2-SQL-02: Dynamic SQL string concatenation\n+func (e *SQLQueryExecutor) SearchByTagRaw(ctx context.Context, tag string) (*sql.Rows, error) {\n+\tquery := \"SELECT id, payload FROM data_store WHERE tag = '\" + tag + \"'\"\n+\treturn e.db.Query(query)\n+}\n",
       "diff_hash": "0efdc435c52581b087d639cf333fe5dc966a3f60f15eea54eb4ccf2750a1bfd1",
@@ -193,9 +194,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 161
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 618
     },
     {
       "case_id": "DEF-HOLD-02",
@@ -208,7 +209,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "a2df12f88c80bd3ede7b371480cd0071",
+      "token_id": "f73fce976bccd041b778e25227effb96",
       "patch_generated": true,
       "unified_diff": "--- a/storage/repo.go\n+++ b/storage/repo.go\n@@ -6,1 +6,0 @@\n-\t\"fmt\"\n@@ -25,4 +24,3 @@\n-\tquery := fmt.Sprintf(\"SELECT id, name FROM users WHERE role = '%s'\", role)\n-\treturn r.db.QueryContext(ctx, query)\n-}\n-\n+\tquery := \"SELECT id, name FROM users WHERE role = ?\"\n+\treturn r.db.QueryContext(ctx, query, role)\n+}\n",
       "diff_hash": "2bf6dde11a9161028806a36cee39eaa8107468b556b41e5e254790f93323d62c",
@@ -221,9 +222,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 31
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 158
     },
     {
       "case_id": "DEF-HOLD-03",
@@ -236,7 +237,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "a9a358b2ce5cc7cb1aafbbc6bb898481",
+      "token_id": "ee31f39d79c37d4364a584ee629bbaf4",
       "patch_generated": true,
       "unified_diff": "--- a/api/handler.go\n+++ b/api/handler.go\n@@ -27,18 +27,21 @@\n-\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n-\tdata, err := io.ReadAll(f)\n-\tif err != nil {\n-\t\thttp.Error(w, err.Error(), http.StatusInternalServerError)\n-\t\treturn\n-\t}\n-\tfmt.Fprintf(w, \"%s\", string(data))\n-}\n-\n-// Neg_Control_ClientCall verifies HTTP body release\n-func FetchExternalMetadata(url string) ([]byte, error) {\n-\tresp, err := http.Get(url)\n-\tif err != nil {\n-\t\treturn nil, err\n-\t}\n-\tdefer resp.Body.Close()\n-\treturn io.ReadAll(resp.Body)\n-}\n+\tdefer\n+\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n+\tf.Close()\n+\n+\tdata, err := io.ReadAll(f)\n+\tif err != nil {\n+\t\thttp.Error(w, err.Error(), http.StatusInternalServerError)\n+\t\treturn\n+\t}\n+\tfmt.Fprintf(w, \"%s\", string(data))\n+}\n+\n+// Neg_Control_ClientCall verifies HTTP body release\n+func FetchExternalMetadata(url string) ([]byte, error) {\n+\tresp, err := http.Get(url)\n+\tif err != nil {\n+\t\treturn nil, err\n+\t}\n+\tdefer resp.Body.Close()\n+\treturn io.ReadAll(resp.Body)\n+}\n",
       "diff_hash": "e76726228189fe879254e8b905b200d92ed89bd2ea884dad7d8c2b611ff87bb4",
@@ -249,9 +250,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 30
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 133
     },
     {
       "case_id": "DEF-HOLD-05",
@@ -264,7 +265,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "7d63e8087c7f200f33f9dc54b9137b33",
+      "token_id": "073ea41b444156488f8c41729526154c",
       "patch_generated": true,
       "unified_diff": "--- a/ingest/fetcher.go\n+++ b/ingest/fetcher.go\n@@ -24,4 +24,6 @@\n-\t// Missing defer resp.Body.Close() -\u003e RESOURCE_LEAK\n-\treturn io.ReadAll(resp.Body)\n-}\n-\n+\tdefer\n+\t// Missing defer resp.Body.Close() -\u003e RESOURCE_LEAK\n+\tresp.Body.Close()\n+\n+\treturn io.ReadAll(resp.Body)\n+}\n",
       "diff_hash": "50f51d162f0ac937d9baec8bf44722ad8224a8dcc1bbe5ff137f0eed3327739e",
@@ -277,9 +278,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 37
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 140
     },
     {
       "case_id": "DEF-HOLD-08",
@@ -292,7 +293,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "416f73a94d40985aa8fee33265bc8065",
+      "token_id": "3bc326ae9698ac161f25560fb83f33e0",
       "patch_generated": true,
       "unified_diff": "--- a/session/store.go\n+++ b/session/store.go\n@@ -33,4 +33,3 @@\n-\tquery := \"SELECT id, user_id FROM sessions WHERE token = '\" + rawToken + \"'\"\n-\treturn s.db.Query(query)\n-}\n-\n+\tquery := \"SELECT id, user_id FROM sessions WHERE token =  = ?\"\n+\treturn s.db.Query(query, rawToken)\n+}\n",
       "diff_hash": "336d80c0fc51988242b58a67296d4e46e0d74e245ca2f01e88d1ba4090a1b687",
@@ -305,9 +306,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 33
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 265
     },
     {
       "case_id": "DEF-HOLD-09",
@@ -320,7 +321,7 @@
       "synthesis_status": "PROPOSED",
       "token_issued": true,
       "token_consumed": true,
-      "token_id": "2dbb72276153da4bfe2961f2a8746945",
+      "token_id": "5c12a63b35c7cc655e311405c83985c6",
       "patch_generated": true,
       "unified_diff": "--- a/audit/logger.go\n+++ b/audit/logger.go\n@@ -25,5 +25,7 @@\n-\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n-\t_ = archivePath\n-\treturn nil\n-}\n-\n+\tdefer\n+\t// Missing defer f.Close() -\u003e RESOURCE_LEAK\n+\tf.Close()\n+\n+\t_ = archivePath\n+\treturn nil\n+}\n",
       "diff_hash": "5770f10bdc6b1e94bfd4930266396c899a903807e0a6f839b22d6f195241251d",
@@ -333,9 +334,9 @@
         "REGRESSION_TEST": false,
         "SYNTAX_AND_COMPILATION": true
       },
-      "all_oracles_passed": true,
-      "verification_verdict": "INDEPENDENTLY_VERIFIED",
-      "duration_ms": 35
+      "all_oracles_passed": false,
+      "verification_verdict": "UNVERIFIED",
+      "duration_ms": 200
     },
     {
       "case_id": "INJ-EXT2-CMD-01",
@@ -355,7 +356,7 @@
       "original_repo_unchanged": true,
       "all_oracles_passed": false,
       "verification_verdict": "EXPLICITLY_ABSTAINED",
-      "duration_ms": 27
+      "duration_ms": 129
     },
     {
       "case_id": "DEF-HOLD-04",
@@ -375,7 +376,7 @@
       "original_repo_unchanged": true,
       "all_oracles_passed": false,
       "verification_verdict": "EXPLICITLY_ABSTAINED",
-      "duration_ms": 6
+      "duration_ms": 17
     },
     {
       "case_id": "INJ-EXT2-ERR-04",
@@ -395,7 +396,7 @@
       "original_repo_unchanged": true,
       "all_oracles_passed": false,
       "verification_verdict": "EXPLICITLY_ABSTAINED",
-      "duration_ms": 16
+      "duration_ms": 49
     },
     {
       "case_id": "DEF-HOLD-01",
@@ -415,7 +416,7 @@
       "original_repo_unchanged": true,
       "all_oracles_passed": false,
       "verification_verdict": "EXPLICITLY_ABSTAINED",
-      "duration_ms": 12
+      "duration_ms": 15
     },
     {
       "case_id": "DEF-HOLD-06",
@@ -435,7 +436,7 @@
       "original_repo_unchanged": true,
       "all_oracles_passed": false,
       "verification_verdict": "EXPLICITLY_ABSTAINED",
-      "duration_ms": 6
+      "duration_ms": 16
     },
     {
       "case_id": "DEF-HOLD-07",
@@ -455,7 +456,7 @@
       "original_repo_unchanged": true,
       "all_oracles_passed": false,
       "verification_verdict": "EXPLICITLY_ABSTAINED",
-      "duration_ms": 9
+      "duration_ms": 16
     },
     {
       "case_id": "CTL-EXT2-12",

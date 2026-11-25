@@ -1,0 +1,17 @@
+=== RUN   TestRealityNoRepository
+    reality_check_test.go:15: workspace "": no source but 5 targets returned
+    reality_check_test.go:15: workspace "missing-workspace": no source but 5 targets returned
+--- FAIL: TestRealityNoRepository (0.01s)
+=== RUN   TestRealitySourceFailures
+=== RUN   TestRealitySourceFailures/empty
+=== RUN   TestRealitySourceFailures/broken-parser
+    reality_check_test.go:31: invalid source accepted: 0 findings
+=== RUN   TestRealitySourceFailures/clean-closed-resource
+    reality_check_test.go:33: expected no defects; got [{TargetID:SCAN-SEMANTIC_UNHANDLED_ERROR-1-497c4572391dda49603b4614-0 Repository:002 RelativeSource:source.go TargetFile:source.go DefectCategory:UNHANDLED_ERROR Stratum:SCANNED_REPOSITORY ExpectedAction:REPAIR Description:Unhandled Error Return (os.Open) in source.go:3 UpstreamCommit: UpstreamURL: VerifiedBy:Unified Semantic Diagnostic Engine WorkspaceID:reality LineNumber:3 IsDemoTarget:false SnapshotID:SNAP-497c4572391dda49603b46149688bfa59d1c4b69f0eb65973195587d1136eae8 SourceFileHash:1c726a40c6be1af0b1b1f280124dd2bdaeb6822ad572cbfa4631dcc893a03436}]
+--- FAIL: TestRealitySourceFailures (0.07s)
+    --- PASS: TestRealitySourceFailures/empty (0.02s)
+    --- FAIL: TestRealitySourceFailures/broken-parser (0.02s)
+    --- FAIL: TestRealitySourceFailures/clean-closed-resource (0.02s)
+FAIL
+FAIL	github.com/saksham/self-healing-pipeline/agent/repo_intel/execution	1.063s
+FAIL

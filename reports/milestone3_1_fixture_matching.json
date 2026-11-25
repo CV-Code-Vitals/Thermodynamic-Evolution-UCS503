@@ -536,9 +536,9 @@
     "category": "ARCHITECTURE",
     "match_outcome": "TRUE_POSITIVE",
     "matched_finding_ids": [
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceBeta4-ServiceAlpha4",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceBeta4-ServiceAlpha4",
-      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceBeta4-ServiceAlpha4"
+      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4",
+      "CTX-ARC-MUTUAL-CYCLE-architecture-cycle_4_go-ServiceAlpha4-ServiceBeta4"
     ],
     "matching_rule": "CATEGORY_AND_PATH_ALIGNMENT",
     "rationale": "Matched 3 diagnostic findings on target file architecture/cycle_4.go"

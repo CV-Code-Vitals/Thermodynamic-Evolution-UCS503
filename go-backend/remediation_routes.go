@@ -136,7 +136,7 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, work
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"success": ok})
+		c.JSON(http.StatusOK, gin.H{"success": ok, "operation": "DISCARD_SANDBOX", "revision_restored": false})
 	}
 
 	auditHandler := func(c *gin.Context) {

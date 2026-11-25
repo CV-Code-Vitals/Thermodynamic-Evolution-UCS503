@@ -1,0 +1,9 @@
+
+> admin-portal@0.0.0 dev
+> vite --host 127.0.0.1 --port 15173
+
+
+  VITE v8.3.5  ready in 290 ms
+
+  ➜  Local:   http://127.0.0.1:15173/
+12:29:48 am [vite] (client) hmr update /src/components/RemediationPortal.jsx

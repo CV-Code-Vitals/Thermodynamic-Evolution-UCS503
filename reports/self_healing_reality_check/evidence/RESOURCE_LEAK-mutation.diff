@@ -1,0 +1,9 @@
+--- clean/defect.go
++++ mutated/defect.go
+@@ -3,6 +3,5 @@
+ func Read(path string)([]byte,error){
+  f,err:=os.Open(path)
+  if err!=nil{return nil,err}
+- defer f.Close()
+  return io.ReadAll(f)
+ }

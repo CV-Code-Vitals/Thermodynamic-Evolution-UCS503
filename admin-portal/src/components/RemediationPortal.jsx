@@ -164,7 +164,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
     setLoading(true);
     try {
       await rollbackRemediationSandbox(apiBase, token, execution.execution_id);
-      setRollbackStatus('Sandbox successfully discarded. Original repository is 100% immutable.');
+      setRollbackStatus('Sandbox deletion verified. No persisted repository revision was restored.');
     } catch (err) {
       setError(`Rollback failed: ${err.message}`);
     } finally {

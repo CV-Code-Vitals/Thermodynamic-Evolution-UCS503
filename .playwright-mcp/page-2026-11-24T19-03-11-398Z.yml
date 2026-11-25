@@ -1,0 +1,40 @@
+- generic [ref=f2e5]:
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]: UCS503 // PROJECT WORKSPACE
+    - generic [ref=f2e10]: "AUTHORIZED : ADMIN"
+    - button "LOG OUT" [ref=f2e27] [cursor=pointer]
+  - generic [ref=f2e12]:
+    - button "OVERVIEW" [active] [ref=f2e28] [cursor=pointer]
+    - button "SCAN & OPTIMIZE" [ref=f2e34] [cursor=pointer]
+    - button "AUTONOMOUS REPAIR" [ref=f2e39] [cursor=pointer]
+    - button "GRAPH" [ref=f2e42] [cursor=pointer]
+    - button "UPLOAD" [ref=f2e48] [cursor=pointer]
+    - button "VIEW ARCHIVE" [ref=f2e52] [cursor=pointer]
+  - generic [ref=f2e159]:
+    - generic [ref=f2e160]:
+      - generic [ref=f2e161]:
+        - text: THERMODYNAMIC EVOLUTION · UCS503
+        - heading "Project workspace" [level=1] [ref=f2e162]
+        - paragraph [ref=f2e163]: Scan repositories and explore graphs publicly. Use this administrator workspace to optimize Go functions and manage deliverables.
+      - generic [ref=f2e164]: AUTHENTICATED
+    - generic [ref=f2e172]:
+      - text: REPOSITORY ANALYSIS
+      - heading "Latest repository scan is ready." [level=2] [ref=f2e173]
+      - paragraph [ref=f2e174]: 8 files analyzed · 29 hotspots found
+    - generic [ref=f2e175]:
+      - generic [ref=f2e176]:
+        - generic [ref=f2e177]: ANALYZED FILES
+        - strong [ref=f2e178]: "8"
+      - generic [ref=f2e179]:
+        - generic [ref=f2e180]: HOTSPOTS
+        - strong [ref=f2e181]: "29"
+      - generic [ref=f2e182]:
+        - generic [ref=f2e183]: ANALYSIS ENGINE
+        - strong [ref=f2e184]: 2.0.0
+    - paragraph [ref=f2e185]: "Scanned repository: E:\\SWE\\go-backend\\uploads\\workspace_0e697306-49aa-4f8f-840f-4c6c01a8539a"
+    - generic [ref=f2e186]:
+      - button "SCAN & OPTIMIZE" [ref=f2e187] [cursor=pointer]
+      - button "OPEN GRAPH" [ref=f2e194] [cursor=pointer]
+      - button "UPLOAD DELIVERABLE" [ref=f2e200] [cursor=pointer]
+      - button "VIEW ARCHIVE" [ref=f2e204] [cursor=pointer]
+    - paragraph [ref=f2e209]: Optimization runs require the server sandbox to be available. Public scanning and graph exploration are also available without an administrator session.

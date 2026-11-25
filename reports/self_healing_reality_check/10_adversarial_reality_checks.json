@@ -1,0 +1,27 @@
+{
+  "evidence": [
+    "evidence/final-security-tests.log",
+    "evidence/final-security-and-trials.log",
+    "evidence/latest-validation.log"
+  ],
+  "checked": [
+    "missing source",
+    "source deletion/restoration sensitivity",
+    "expired snapshot",
+    "wrong workspace",
+    "forged approval",
+    "expired token",
+    "replay",
+    "cross-workspace token",
+    "patch tampering",
+    "concurrent execution",
+    "source mutation",
+    "malformed path",
+    "missing offline dependencies",
+    "unconfigured oracle",
+    "repository report poisoning"
+  ],
+  "live_Docker": "UNAVAILABLE",
+  "demo_definition_mutation": "UNVERIFIED",
+  "full_faulty_patch_dynamic_execution": "UNVERIFIED"
+}

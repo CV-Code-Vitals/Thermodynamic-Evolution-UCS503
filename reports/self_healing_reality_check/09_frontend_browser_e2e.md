@@ -1,0 +1,6 @@
+# Browser validation — PARTIAL / full E2E UNVERIFIED
+Real Vite portal, portal API, and analysis backend launched. Playwright performed real administrator login, no-repository repair view, URL submission for mlsc-timetable, navigation retaining workspace, re-scan of google/uuid, changed target selection, and source-linked analysis.
+
+No-repository view disabled live analysis and showed no selected demo. Initial false Gin findings were reproduced in the browser against an earlier running build; preserved in browser-initial-false-positives.yml. The file browser-clean-repo.yml is a historical snapshot containing those false positives, NOT evidence of a clean final scan. Re-scanning uuid updated the actual workspace and displayed two subsequently corrected hash.Write false positives.
+
+The proposal click was not executed: automatic approval review failed due to a usage limit. browser-abstention.yml therefore does NOT demonstrate a completed abstention. Approval, execution, oracle review, audit download, and rollback were not completed through the browser. Screenshots and accessibility snapshots are under evidence/. Browser console logs are in .playwright-mcp/. No full browser success is claimed.
