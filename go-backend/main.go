@@ -683,7 +683,7 @@ func setupEngineWithSnapshots(enginePath string, engineTimeout time.Duration, ma
 	workspaces := newWorkspaceStore()
 	scanH := scanRepoHandler(enginePath, engineTimeout, workspaces)
 	if snapshots != nil {
-		scanH = snapshotScanRepoHandler(enginePath, engineTimeout, snapshots, NewPublicScanController(time.Minute, 1))
+		scanH = snapshotScanRepoHandler(enginePath, engineTimeout, snapshots, NewPublicScanController(time.Minute, 1), workspaces)
 	}
 	r.POST("/api/scan", tokenMiddleware(analysisToken), scanH)
 	r.POST("/scan", tokenMiddleware(analysisToken), scanH)

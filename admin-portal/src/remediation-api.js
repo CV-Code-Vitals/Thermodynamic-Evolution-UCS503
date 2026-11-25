@@ -29,7 +29,10 @@ async function request(url, options, operation) {
     if (res.status >= 500) {
       throw new Error(`${operation} failed because the repair service returned HTTP ${res.status}. Try again.`);
     }
-    throw new Error((typeof data?.error === 'string' && data.error.trim()) || `${operation} failed (HTTP ${res.status}).`);
+    const failure = new Error((typeof data?.error === 'string' && data.error.trim()) || `${operation} failed (HTTP ${res.status}).`);
+    failure.execution = data?.execution;
+    failure.verdict = data?.verification_verdict;
+    throw failure;
   }
   if (data === null) {
     throw new Error(`${operation} returned an invalid response from the repair service.`);
@@ -85,7 +88,7 @@ export async function rollbackRemediationSandbox(apiBase = '/api', token = '', e
     method: 'POST',
     headers: authHeaders(token),
     body: JSON.stringify({ execution_id: executionId }),
-  }, 'Rollback');
+  }, 'Discard sandbox');
 }
 
 export async function fetchRemediationAuditReport(apiBase = '/api', token = '') {

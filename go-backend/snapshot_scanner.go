@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/saksham/self-healing-pipeline/agent/repo_intel/execution"
 )
 
 type SnapshotScanRequest struct {
@@ -25,8 +26,9 @@ func snapshotScanRepoHandler(
 	engineTimeout time.Duration,
 	snapshots SnapshotWorkspaceProvider,
 	controller *PublicScanController,
+	retained ...*workspaceStore,
 ) gin.HandlerFunc {
-	return scanRepoHandlerWithRunner(enginePath, engineTimeout, snapshots, controller, runEngine)
+	return scanRepoHandlerWithRunner(enginePath, engineTimeout, snapshots, controller, runEngine, retained...)
 }
 
 func scanRepoHandlerWithRunner(
@@ -35,6 +37,7 @@ func scanRepoHandlerWithRunner(
 	snapshots SnapshotWorkspaceProvider,
 	controller *PublicScanController,
 	run scanEngineRunner,
+	retained ...*workspaceStore,
 ) gin.HandlerFunc {
 	if engineTimeout <= 0 {
 		engineTimeout = 5 * time.Minute
@@ -140,7 +143,22 @@ func scanRepoHandlerWithRunner(
 
 		log.Printf("scan completed (snapshot_id=%s, files=%d, hotspots=%d)", snapshotID, report.FilesAnalyzed, report.TotalHotspots)
 		if req.RetainWorkspace {
-			c.JSON(http.StatusOK, gin.H{"report": report, "workspace_id": snapshotID, "targets": workspaceScanTargets(report, workspace)})
+			retainedID := snapshotID
+			if len(retained) > 0 && retained[0] != nil {
+				id, dir, err := retained[0].create()
+				if err != nil {
+					c.JSON(http.StatusServiceUnavailable, ErrorResponse{Error: "workspace_unavailable"})
+					return
+				}
+				copyErr := execution.CopyDirectory(workspace, dir)
+				retained[0].finishScan(id, copyErr == nil)
+				if copyErr != nil {
+					c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "workspace_copy_failed"})
+					return
+				}
+				retainedID = id
+			}
+			c.JSON(http.StatusOK, gin.H{"report": report, "workspace_id": retainedID, "targets": workspaceScanTargets(report, workspace)})
 			return
 		}
 		c.JSON(http.StatusOK, report)
