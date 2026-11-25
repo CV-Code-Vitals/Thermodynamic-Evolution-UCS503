@@ -1,0 +1,756 @@
+{
+  "approval": {
+    "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+    "token_id": "b5a05f25b242146418f61958cfd45f53",
+    "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+    "principal": "authenticated-analysis-client",
+    "role": "analysis-operator",
+    "diff_hash": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+    "risk_tier": "TIER_2_CONTROLLED",
+    "expires_at": "2026-11-25T09:35:52Z",
+    "signature": "8d97860de3e02d9498ffbdcfdb5a654c94b739d72886d06ea57225da6dc30a8e",
+    "valid": true,
+    "issued_at": "2026-11-25T09:05:52Z"
+  },
+  "audit": {
+    "baseline_commit": "de06b6e568e0cce07d20b319d6618c15a9d3c899",
+    "export_timestamp": "2026-11-25T09:05:52Z",
+    "total_sessions_recorded": 2,
+    "verified_repairs_count": 0,
+    "abstained_repairs_count": 0,
+    "failed_repairs_count": 2,
+    "source_immutability_100_percent": true,
+    "audit_records": [
+      {
+        "record_id": "AUDIT-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-309600",
+        "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+        "repository": "workspace_a2fca5f3-d67e-4228-8494-b020be26dc7c",
+        "defect_category": "RESOURCE_LEAK",
+        "analysis": {
+          "analysis_id": "ANALYSIS-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-457300",
+          "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+          "repository": "workspace_a2fca5f3-d67e-4228-8494-b020be26dc7c",
+          "target_file": "healproof/reader.go",
+          "defect_category": "RESOURCE_LEAK",
+          "severity": "HIGH",
+          "line_number": 10,
+          "code_snippet": "     7 | \n     8 | // Controlled defect: the opened descriptor is not closed.\n     9 | func Read(path string) ([]byte, error) {\n\u003e   10 |  f, err := os.Open(path)\n    11 |  if err != nil { return nil, err }\n    12 |  return io.ReadAll(f)\n    13 | }",
+          "semantic_evidence": [
+            "Reaching Definitions: Resource handle allocated at healproof/reader.go:10.",
+            "Intra-procedural Sink: Resource handle does not escape enclosing function.",
+            "AST Mutator: Candidate for deterministic deferred Close() insertion following acquisition check."
+          ],
+          "uncertainty_score": 0.05,
+          "automatic_eligibility": true,
+          "eligibility_rationale": "Supported deterministic AST mutation: Single-file intra-procedural deferred cleanup.",
+          "requires_human_review": true,
+          "finding_id": "FIND-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+          "timestamp": "2026-11-25T09:05:52Z",
+          "snapshot_id": "SNAP-bd8ad8b0938f9a78e7d35b4e33052debf03c094dd80ae1577897a50332da2150",
+          "source_file_hash": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2"
+        },
+        "proposal": {
+          "verification_plan": {
+            "module_dir": "healproof",
+            "repository": "content-sha256:87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+            "revision": "sha256:87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+            "workspace": "a2fca5f3-d67e-4228-8494-b020be26dc7c",
+            "snapshot": "SNAP-bd8ad8b0938f9a78e7d35b4e33052debf03c094dd80ae1577897a50332da2150",
+            "root_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+            "source_hash": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+            "patch_digest": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+            "candidate_hash": "493ebb7d01dade236c503ccf1193e05dc17eecdfb04bea5cf6d3ec9fe6685604",
+            "reproducer": {
+              "package": ".",
+              "test": "TestIndependentDescriptorLeak"
+            },
+            "regression": [
+              {
+                "package": ".",
+                "test": "TestApprovedRegression"
+              }
+            ],
+            "behavioral": {
+              "package": ".",
+              "test": "TestBehaviorUnchanged"
+            },
+            "test_files": {
+              "healproof/independent_test.go": "4212e3463ac3ae3358370a7a78a02efbf75b65451c63f03b88395ed0f105a3c7"
+            },
+            "failure_assertion": "HEALPROOF_DESCRIPTOR_LEAK",
+            "before_exit": 1,
+            "after_exit": 0,
+            "negative_properties": "AST_SAFETY_V1",
+            "issuer": "healproof-reviewed-fixture",
+            "provenance": "testdata/healproof independent descriptor-count and behavior assertions; controlled fixture, not natural defect",
+            "limits": {
+              "timeout": 30000000000,
+              "max_memory_mb": 1024,
+              "max_cpus": 2,
+              "max_pids": 128,
+              "max_output_bytes": 65536
+            }
+          },
+          "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+          "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+          "analysis_id": "ANALYSIS-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-457300",
+          "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+          "status": "PROPOSED",
+          "intent_type": "RESOURCE_CLEANUP",
+          "unified_diff": "--- a/healproof/reader.go\n+++ b/healproof/reader.go\n@@ -13,0 +14,2 @@\n+\n+// HEALPROOF incorrect candidate: defect deliberately retained.\n",
+          "diff_hash": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+          "modified_source": "package healproof\n\nimport (\n \"io\"\n \"os\"\n)\n\n// Controlled defect: the opened descriptor is not closed.\nfunc Read(path string) ([]byte, error) {\n f, err := os.Open(path)\n if err != nil { return nil, err }\n return io.ReadAll(f)\n}\n\n// HEALPROOF incorrect candidate: defect deliberately retained.\n",
+          "requires_human_approval": true,
+          "execution_class": "HUMAN_APPROVAL_REQUIRED",
+          "file_hash": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+          "workspace_id": "a2fca5f3-d67e-4228-8494-b020be26dc7c",
+          "target_abs_path": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof\\reader.go",
+          "sandbox_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753",
+          "duration_ms": 10,
+          "snapshot_id": "SNAP-bd8ad8b0938f9a78e7d35b4e33052debf03c094dd80ae1577897a50332da2150"
+        },
+        "approval": {
+          "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+          "token_id": "b5a05f25b242146418f61958cfd45f53",
+          "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+          "principal": "authenticated-analysis-client",
+          "role": "analysis-operator",
+          "diff_hash": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+          "risk_tier": "TIER_2_CONTROLLED",
+          "expires_at": "2026-11-25T09:35:52Z",
+          "signature": "8d97860de3e02d9498ffbdcfdb5a654c94b739d72886d06ea57225da6dc30a8e",
+          "valid": true,
+          "issued_at": "2026-11-25T09:05:52Z"
+        },
+        "execution": {
+          "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+          "before_reproduction": {
+            "source_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+            "command": "go test -count=1 -v -run ^TestIndependentDescriptorLeak$ .",
+            "result": {
+              "ExitCode": 1,
+              "Output": "--- FAIL: TestIndependentDescriptorLeak (0.00s)\nHEALPROOF_DESCRIPTOR_LEAK",
+              "Duration": 0,
+              "Evidence": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go test -count=1 -v -run ^TestIndependentDescriptorLeak$ .",
+                "exit_status": 1,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-baseline-1262682808\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            },
+            "status": "PASSED",
+            "behavioral_baseline": {
+              "ExitCode": 0,
+              "Output": "--- PASS: TestBehaviorUnchanged (0.00s)\nPASS",
+              "Duration": 0,
+              "Evidence": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go test -count=1 -v -run ^TestBehaviorUnchanged$ .",
+                "exit_status": 0,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-baseline-1262682808\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            },
+            "cleanup_status": "VERIFIED_REMOVAL"
+          },
+          "candidate_digest": "0c92d807d750616d34800b95f89821828a65a733e2fc8f5be146a797305adbb4",
+          "evidence_class": "TESTED_WITH_MOCK — NOT_DYNAMICALLY_VERIFIED",
+          "oracle_executions": [
+            {
+              "ExitCode": 0,
+              "Output": "",
+              "Duration": 0,
+              "Evidence": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go vet .",
+                "exit_status": 0,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            },
+            {
+              "ExitCode": 0,
+              "Output": "--- PASS: TestApprovedRegression (0.00s)\nPASS",
+              "Duration": 0,
+              "Evidence": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go test -count=1 -v -run ^TestApprovedRegression$ .",
+                "exit_status": 0,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            },
+            {
+              "ExitCode": 1,
+              "Output": "--- FAIL: TestIndependentDescriptorLeak (0.00s)\nHEALPROOF_DESCRIPTOR_LEAK",
+              "Duration": 0,
+              "Evidence": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go test -count=1 -v -run ^TestIndependentDescriptorLeak$ .",
+                "exit_status": 1,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            },
+            {
+              "ExitCode": 0,
+              "Output": "--- PASS: TestBehaviorUnchanged (0.00s)\nPASS",
+              "Duration": 0,
+              "Evidence": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go test -count=1 -v -run ^TestBehaviorUnchanged$ .",
+                "exit_status": 0,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            }
+          ],
+          "execution_id": "EXEC-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-309600",
+          "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+          "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+          "token_id": "b5a05f25b242146418f61958cfd45f53",
+          "sandbox_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753",
+          "applied_in_sandbox": true,
+          "token_consumed": true,
+          "oracles": {
+            "BEHAVIORAL_INVARIANCE": {
+              "oracle_type": "BEHAVIORAL_INVARIANCE",
+              "status": "PASSED",
+              "description": "Non-defective execution paths produce identical invariant behavior in container",
+              "passed": true,
+              "details": "",
+              "container_info": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go test -count=1 -v -run ^TestBehaviorUnchanged$ .",
+                "exit_status": 0,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            },
+            "DEFECT_REPRODUCER": {
+              "oracle_type": "DEFECT_REPRODUCER",
+              "status": "FAILED",
+              "description": "",
+              "passed": false,
+              "details": "Defect reproducer failed in container (exit 1): --- FAIL: TestIndependentDescriptorLeak (0.00s)\nHEALPROOF_DESCRIPTOR_LEAK",
+              "container_info": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go test -count=1 -v -run ^TestIndependentDescriptorLeak$ .",
+                "exit_status": 1,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            },
+            "NEGATIVE_PROPERTIES": {
+              "oracle_type": "NEGATIVE_PROPERTIES",
+              "status": "PASSED",
+              "description": "Zero shadowed variables, nil-dereference risk, or ownership violations detected",
+              "passed": true,
+              "details": ""
+            },
+            "REGRESSION_TEST": {
+              "oracle_type": "REGRESSION_TEST",
+              "status": "PASSED",
+              "description": "All 1 validation commands executed successfully in isolated container",
+              "passed": true,
+              "details": "",
+              "container_info": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go test -count=1 -v -run ^TestApprovedRegression$ .",
+                "exit_status": 0,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            },
+            "SYNTAX_AND_COMPILATION": {
+              "oracle_type": "SYNTAX_AND_COMPILATION",
+              "status": "PASSED",
+              "description": "Syntax valid and container go vet passed with 0 warnings",
+              "passed": true,
+              "details": "",
+              "container_info": {
+                "container_id": "TEST_DOUBLE",
+                "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+                "command": "go vet .",
+                "exit_status": 0,
+                "memory_limit_mb": 1024,
+                "cpu_limit": 2,
+                "network_policy": "DISABLED (--network none)",
+                "root_fs_policy": "READ_ONLY (--read-only)",
+                "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+                "image_digest": "sha256:TEST_DOUBLE",
+                "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+              }
+            }
+          },
+          "all_oracles_passed": false,
+          "verification_verdict": "EXECUTION_FAILED",
+          "original_repo_pre_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+          "original_repo_post_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+          "original_repo_immutable": true,
+          "cleanup_operation": "DISCARD_SANDBOX",
+          "cleanup_status": "PASSED",
+          "rollback_available": false,
+          "duration_ms": 54,
+          "timestamp": "2026-11-25T09:05:52Z"
+        },
+        "final_status": "EXECUTION_FAILED",
+        "timestamp": "2026-11-25T09:05:52Z"
+      },
+      {
+        "record_id": "EXEC-REJECT-1795597552732894200",
+        "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+        "repository": "",
+        "defect_category": "",
+        "analysis": null,
+        "proposal": {
+          "verification_plan": {
+            "module_dir": "healproof",
+            "repository": "content-sha256:87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+            "revision": "sha256:87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+            "workspace": "a2fca5f3-d67e-4228-8494-b020be26dc7c",
+            "snapshot": "SNAP-bd8ad8b0938f9a78e7d35b4e33052debf03c094dd80ae1577897a50332da2150",
+            "root_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+            "source_hash": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+            "patch_digest": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+            "candidate_hash": "493ebb7d01dade236c503ccf1193e05dc17eecdfb04bea5cf6d3ec9fe6685604",
+            "reproducer": {
+              "package": ".",
+              "test": "TestIndependentDescriptorLeak"
+            },
+            "regression": [
+              {
+                "package": ".",
+                "test": "TestApprovedRegression"
+              }
+            ],
+            "behavioral": {
+              "package": ".",
+              "test": "TestBehaviorUnchanged"
+            },
+            "test_files": {
+              "healproof/independent_test.go": "4212e3463ac3ae3358370a7a78a02efbf75b65451c63f03b88395ed0f105a3c7"
+            },
+            "failure_assertion": "HEALPROOF_DESCRIPTOR_LEAK",
+            "before_exit": 1,
+            "after_exit": 0,
+            "negative_properties": "AST_SAFETY_V1",
+            "issuer": "healproof-reviewed-fixture",
+            "provenance": "testdata/healproof independent descriptor-count and behavior assertions; controlled fixture, not natural defect",
+            "limits": {
+              "timeout": 30000000000,
+              "max_memory_mb": 1024,
+              "max_cpus": 2,
+              "max_pids": 128,
+              "max_output_bytes": 65536
+            }
+          },
+          "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+          "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+          "analysis_id": "ANALYSIS-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-457300",
+          "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+          "status": "PROPOSED",
+          "intent_type": "RESOURCE_CLEANUP",
+          "unified_diff": "--- a/healproof/reader.go\n+++ b/healproof/reader.go\n@@ -13,0 +14,2 @@\n+\n+// HEALPROOF incorrect candidate: defect deliberately retained.\n",
+          "diff_hash": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+          "modified_source": "package healproof\n\nimport (\n \"io\"\n \"os\"\n)\n\n// Controlled defect: the opened descriptor is not closed.\nfunc Read(path string) ([]byte, error) {\n f, err := os.Open(path)\n if err != nil { return nil, err }\n return io.ReadAll(f)\n}\n\n// HEALPROOF incorrect candidate: defect deliberately retained.\n",
+          "requires_human_approval": true,
+          "execution_class": "HUMAN_APPROVAL_REQUIRED",
+          "file_hash": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+          "workspace_id": "a2fca5f3-d67e-4228-8494-b020be26dc7c",
+          "target_abs_path": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof\\reader.go",
+          "sandbox_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753",
+          "duration_ms": 10,
+          "snapshot_id": "SNAP-bd8ad8b0938f9a78e7d35b4e33052debf03c094dd80ae1577897a50332da2150"
+        },
+        "approval": {
+          "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+          "token_id": "b5a05f25b242146418f61958cfd45f53",
+          "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+          "principal": "authenticated-analysis-client",
+          "role": "analysis-operator",
+          "diff_hash": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+          "risk_tier": "TIER_2_CONTROLLED",
+          "expires_at": "2026-11-25T09:35:52Z",
+          "signature": "8d97860de3e02d9498ffbdcfdb5a654c94b739d72886d06ea57225da6dc30a8e",
+          "valid": true,
+          "issued_at": "2026-11-25T09:05:52Z"
+        },
+        "execution": {
+          "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+          "candidate_digest": "0c92d807d750616d34800b95f89821828a65a733e2fc8f5be146a797305adbb4",
+          "evidence_class": "NOT_DYNAMICALLY_VERIFIED",
+          "failure_reason": "STALE_WORKSPACE: approved sandbox file was modified on disk",
+          "execution_id": "EXEC-REJECT-1795597552732894200",
+          "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+          "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+          "token_id": "b5a05f25b242146418f61958cfd45f53",
+          "sandbox_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753",
+          "applied_in_sandbox": false,
+          "token_consumed": false,
+          "oracles": null,
+          "all_oracles_passed": false,
+          "verification_verdict": "SECURITY_REJECTION",
+          "original_repo_pre_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+          "original_repo_post_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+          "original_repo_immutable": true,
+          "cleanup_operation": "DISCARD_SANDBOX",
+          "rollback_available": true,
+          "duration_ms": 0,
+          "timestamp": "2026-11-25T09:05:52Z"
+        },
+        "final_status": "SECURITY_REJECTION",
+        "timestamp": "2026-11-25T09:05:52Z"
+      }
+    ]
+  },
+  "disposal": {
+    "operation": "DISCARD_SANDBOX",
+    "revision_restored": false
+  },
+  "evidence_class": "TESTED_WITH_MOCK — NOT_DYNAMICALLY_VERIFIED",
+  "execution": {
+    "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+    "before_reproduction": {
+      "source_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+      "command": "go test -count=1 -v -run ^TestIndependentDescriptorLeak$ .",
+      "result": {
+        "ExitCode": 1,
+        "Output": "--- FAIL: TestIndependentDescriptorLeak (0.00s)\nHEALPROOF_DESCRIPTOR_LEAK",
+        "Duration": 0,
+        "Evidence": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go test -count=1 -v -run ^TestIndependentDescriptorLeak$ .",
+          "exit_status": 1,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-baseline-1262682808\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      },
+      "status": "PASSED",
+      "behavioral_baseline": {
+        "ExitCode": 0,
+        "Output": "--- PASS: TestBehaviorUnchanged (0.00s)\nPASS",
+        "Duration": 0,
+        "Evidence": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go test -count=1 -v -run ^TestBehaviorUnchanged$ .",
+          "exit_status": 0,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-baseline-1262682808\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      },
+      "cleanup_status": "VERIFIED_REMOVAL"
+    },
+    "candidate_digest": "0c92d807d750616d34800b95f89821828a65a733e2fc8f5be146a797305adbb4",
+    "evidence_class": "TESTED_WITH_MOCK — NOT_DYNAMICALLY_VERIFIED",
+    "oracle_executions": [
+      {
+        "ExitCode": 0,
+        "Output": "",
+        "Duration": 0,
+        "Evidence": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go vet .",
+          "exit_status": 0,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      },
+      {
+        "ExitCode": 0,
+        "Output": "--- PASS: TestApprovedRegression (0.00s)\nPASS",
+        "Duration": 0,
+        "Evidence": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go test -count=1 -v -run ^TestApprovedRegression$ .",
+          "exit_status": 0,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      },
+      {
+        "ExitCode": 1,
+        "Output": "--- FAIL: TestIndependentDescriptorLeak (0.00s)\nHEALPROOF_DESCRIPTOR_LEAK",
+        "Duration": 0,
+        "Evidence": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go test -count=1 -v -run ^TestIndependentDescriptorLeak$ .",
+          "exit_status": 1,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      },
+      {
+        "ExitCode": 0,
+        "Output": "--- PASS: TestBehaviorUnchanged (0.00s)\nPASS",
+        "Duration": 0,
+        "Evidence": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go test -count=1 -v -run ^TestBehaviorUnchanged$ .",
+          "exit_status": 0,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      }
+    ],
+    "execution_id": "EXEC-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-309600",
+    "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+    "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+    "token_id": "b5a05f25b242146418f61958cfd45f53",
+    "sandbox_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753",
+    "applied_in_sandbox": true,
+    "token_consumed": true,
+    "oracles": {
+      "BEHAVIORAL_INVARIANCE": {
+        "oracle_type": "BEHAVIORAL_INVARIANCE",
+        "status": "PASSED",
+        "description": "Non-defective execution paths produce identical invariant behavior in container",
+        "passed": true,
+        "details": "",
+        "container_info": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go test -count=1 -v -run ^TestBehaviorUnchanged$ .",
+          "exit_status": 0,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      },
+      "DEFECT_REPRODUCER": {
+        "oracle_type": "DEFECT_REPRODUCER",
+        "status": "FAILED",
+        "description": "",
+        "passed": false,
+        "details": "Defect reproducer failed in container (exit 1): --- FAIL: TestIndependentDescriptorLeak (0.00s)\nHEALPROOF_DESCRIPTOR_LEAK",
+        "container_info": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go test -count=1 -v -run ^TestIndependentDescriptorLeak$ .",
+          "exit_status": 1,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      },
+      "NEGATIVE_PROPERTIES": {
+        "oracle_type": "NEGATIVE_PROPERTIES",
+        "status": "PASSED",
+        "description": "Zero shadowed variables, nil-dereference risk, or ownership violations detected",
+        "passed": true,
+        "details": ""
+      },
+      "REGRESSION_TEST": {
+        "oracle_type": "REGRESSION_TEST",
+        "status": "PASSED",
+        "description": "All 1 validation commands executed successfully in isolated container",
+        "passed": true,
+        "details": "",
+        "container_info": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go test -count=1 -v -run ^TestApprovedRegression$ .",
+          "exit_status": 0,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      },
+      "SYNTAX_AND_COMPILATION": {
+        "oracle_type": "SYNTAX_AND_COMPILATION",
+        "status": "PASSED",
+        "description": "Syntax valid and container go vet passed with 0 warnings",
+        "passed": true,
+        "details": "",
+        "container_info": {
+          "container_id": "TEST_DOUBLE",
+          "isolation_policy": "DOCKER_HARDENED_CONTAINER TEST_DOUBLE",
+          "command": "go vet .",
+          "exit_status": 0,
+          "memory_limit_mb": 1024,
+          "cpu_limit": 2,
+          "network_policy": "DISABLED (--network none)",
+          "root_fs_policy": "READ_ONLY (--read-only)",
+          "workspace_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof",
+          "image_digest": "sha256:TEST_DOUBLE",
+          "cleanup_result": "VERIFIED_REMOVAL: TEST_DOUBLE"
+        }
+      }
+    },
+    "all_oracles_passed": false,
+    "verification_verdict": "EXECUTION_FAILED",
+    "original_repo_pre_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "original_repo_post_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "original_repo_immutable": true,
+    "cleanup_operation": "DISCARD_SANDBOX",
+    "cleanup_status": "PASSED",
+    "rollback_available": false,
+    "duration_ms": 54,
+    "timestamp": "2026-11-25T09:05:52Z"
+  },
+  "proposal": {
+    "verification_plan": {
+      "module_dir": "healproof",
+      "repository": "content-sha256:87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+      "revision": "sha256:87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+      "workspace": "a2fca5f3-d67e-4228-8494-b020be26dc7c",
+      "snapshot": "SNAP-bd8ad8b0938f9a78e7d35b4e33052debf03c094dd80ae1577897a50332da2150",
+      "root_digest": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+      "source_hash": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+      "patch_digest": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+      "candidate_hash": "493ebb7d01dade236c503ccf1193e05dc17eecdfb04bea5cf6d3ec9fe6685604",
+      "reproducer": {
+        "package": ".",
+        "test": "TestIndependentDescriptorLeak"
+      },
+      "regression": [
+        {
+          "package": ".",
+          "test": "TestApprovedRegression"
+        }
+      ],
+      "behavioral": {
+        "package": ".",
+        "test": "TestBehaviorUnchanged"
+      },
+      "test_files": {
+        "healproof/independent_test.go": "4212e3463ac3ae3358370a7a78a02efbf75b65451c63f03b88395ed0f105a3c7"
+      },
+      "failure_assertion": "HEALPROOF_DESCRIPTOR_LEAK",
+      "before_exit": 1,
+      "after_exit": 0,
+      "negative_properties": "AST_SAFETY_V1",
+      "issuer": "healproof-reviewed-fixture",
+      "provenance": "testdata/healproof independent descriptor-count and behavior assertions; controlled fixture, not natural defect",
+      "limits": {
+        "timeout": 30000000000,
+        "max_memory_mb": 1024,
+        "max_cpus": 2,
+        "max_pids": 128,
+        "max_output_bytes": 65536
+      }
+    },
+    "verification_plan_digest": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+    "proposal_id": "PROP-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-711900",
+    "analysis_id": "ANALYSIS-SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0-457300",
+    "target_id": "SCAN-SEMANTIC_RESOURCE_LEAK-1-bd8ad8b0938f9a78e7d35b4e-0",
+    "status": "PROPOSED",
+    "intent_type": "RESOURCE_CLEANUP",
+    "unified_diff": "--- a/healproof/reader.go\n+++ b/healproof/reader.go\n@@ -13,0 +14,2 @@\n+\n+// HEALPROOF incorrect candidate: defect deliberately retained.\n",
+    "diff_hash": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+    "modified_source": "package healproof\n\nimport (\n \"io\"\n \"os\"\n)\n\n// Controlled defect: the opened descriptor is not closed.\nfunc Read(path string) ([]byte, error) {\n f, err := os.Open(path)\n if err != nil { return nil, err }\n return io.ReadAll(f)\n}\n\n// HEALPROOF incorrect candidate: defect deliberately retained.\n",
+    "requires_human_approval": true,
+    "execution_class": "HUMAN_APPROVAL_REQUIRED",
+    "file_hash": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+    "workspace_id": "a2fca5f3-d67e-4228-8494-b020be26dc7c",
+    "target_abs_path": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753\\healproof\\reader.go",
+    "sandbox_dir": "E:\\SWE\\.tmp\\reality-testtemp\\TestHealproofPublicContractwrong_patch1232851106\\001\\.tmp\\mvp-sandbox-3157008753",
+    "duration_ms": 10,
+    "snapshot_id": "SNAP-bd8ad8b0938f9a78e7d35b4e33052debf03c094dd80ae1577897a50332da2150"
+  },
+  "source_post": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+  "source_pre": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256"
+}

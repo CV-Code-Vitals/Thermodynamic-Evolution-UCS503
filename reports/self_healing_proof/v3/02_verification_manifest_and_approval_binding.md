@@ -1,0 +1,13 @@
+# Verification manifest and approval binding
+
+Implementation commit: `5d1f97c4637e846a39b9cd776b9dcc2fd3574d0b`. Branch: `codex/healproof-preservation`. Date: 2026-11-25 (Asia/Calcutta).
+
+`VerificationPlan` in `go-backend/agent/repo_intel/execution/verification_plan.go` carries repository/revision, workspace/snapshot IDs, root/source/patch/candidate SHA-256 digests, approved module directory, typed reproducer/regression/behavior checks, independent test content hashes, the expected baseline assertion and exit 1 / candidate exit 0, AST_SAFETY_V1 negative-property requirements, issuer/provenance and bounded container limits.
+
+Plans are deep-copied from operator configuration and frozen after approval. Plan digest is SHA-256 over deterministic Go JSON serialization (including sorted string-map keys). `approvalScope` adds `@verification/manifest` to the existing signed file-hash map. HMAC-SHA256 approval therefore transitively binds repository, revision, complete source snapshot, independent test bytes, commands, expected behavior, limits, generated patch and candidate source. Existing signatures also bind human principal, role, workspace, expiration and nonce. Test recomputation of an altered plan digest still fails the original signature's scope check.
+
+Checks are structured package/test-name pairs. Executable is fixed to `go`, subcommand `test`, flags to `-count=1 -v -run ^TestName$`, and package syntax is restricted to local paths without traversal or shell syntax. Module paths must be contained, have an existing approved go.mod, and contain the patch target. The existing hardened runner parses these into executable arguments; no shell is used. go vet and the static negative-property oracle are fixed implementation operations. The plan cannot override executable, flags, environment, runtime limits, or negative-property policy.
+
+Operator trust is explicit: issuer text alone is not authorization, and syntactic validity does not prove test independence. Only operator-installed configuration or the trusted in-process attachment API can establish a plan. Operators must review the independent tests and their expectations before provisioning. General automatic oracle authoring is not implemented; unmatched repositories get REPRODUCER_NOT_AVAILABLE.
+
+Consumed approvals are durably persisted using the existing atomic ledger protections. Outstanding approval/proposal/key state is process-local; restart rejects missing state rather than reconstructing authority. The tests exercise authentic expired signatures, replay, tampered plan/test/command/patch/candidate, stale original source, cross-workspace substitution, modified digest, failed ledger persistence, and restart consumption retention.

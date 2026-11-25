@@ -1,0 +1,12 @@
+
+> admin-portal@0.0.0 build
+> vite build
+
+failed to load config from E:\SWE\admin-portal\vite.config.js
+error during build:
+Error: VITE_API_BASE must be an absolute HTTPS URL, not a relative path such as /api.
+    at file:///E:/SWE/admin-portal/node_modules/.vite-temp/vite.config.js.timestamp-1795597438860-46dd94bb7a295.mjs:63:11
+    at loadConfigFromFile (file:///E:/SWE/admin-portal/node_modules/vite/dist/node/chunks/node.js:38068:62)
+    at async resolveConfig (file:///E:/SWE/admin-portal/node_modules/vite/dist/node/chunks/node.js:37668:22)
+    at async createBuilder (file:///E:/SWE/admin-portal/node_modules/vite/dist/node/chunks/node.js:35245:17)
+    at async CAC.<anonymous> (file:///E:/SWE/admin-portal/node_modules/vite/dist/node/cli.js:779:19)

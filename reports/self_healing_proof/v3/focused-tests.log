@@ -1,0 +1,90 @@
+# github.com/saksham/self-healing-pipeline [github.com/saksham/self-healing-pipeline.test]
+.\remediation_routes.go:124:31: mvpService.ApproveVerifiedRepair undefined (type *execution.MVPService has no field or method ApproveVerifiedRepair)
+.\remediation_routes.go:126:105: undefined: execution.VerificationFailureVerdict
+.\scan_to_repair_e2e_test.go:279:6: declared and not used: abstainTarget
+FAIL	github.com/saksham/self-healing-pipeline [build failed]
+=== RUN   TestDiscardSandboxContract
+--- PASS: TestDiscardSandboxContract (0.01s)
+=== RUN   TestExecuteRepairRejectsFileChangedAfterApproval
+--- PASS: TestExecuteRepairRejectsFileChangedAfterApproval (0.01s)
+=== RUN   TestActiveProposalRejectsConcurrentExecution
+--- PASS: TestActiveProposalRejectsConcurrentExecution (0.00s)
+=== RUN   TestScanToRepairWorkflow_Success
+    scan_repair_test.go:61: Found target: ID=SCAN-SEMANTIC_RESOURCE_LEAK-1-4091bc9f308d425caa685c45-0 Stratum=SCANNED_REPOSITORY Desc=Unclosed System Resource Leak (os.File) in server/logger.go:9
+--- PASS: TestScanToRepairWorkflow_Success (0.03s)
+=== RUN   TestScanToRepairWorkflow_UnsupportedCommandInjection
+--- PASS: TestScanToRepairWorkflow_UnsupportedCommandInjection (0.02s)
+=== RUN   TestScanToRepairWorkflow_EscapingResourceAbstention
+--- PASS: TestScanToRepairWorkflow_EscapingResourceAbstention (0.01s)
+=== RUN   TestScanToRepairWorkflow_VerificationFailure_FailClosed
+--- PASS: TestScanToRepairWorkflow_VerificationFailure_FailClosed (0.02s)
+=== RUN   TestScanToRepairWorkflow_MissingWorkspace_FailClosed
+--- PASS: TestScanToRepairWorkflow_MissingWorkspace_FailClosed (0.00s)
+=== RUN   TestVerificationContractControlFlow
+    verification_plan_test.go:107: TESTED_WITH_MOCK -- NOT_DYNAMICALLY_VERIFIED
+=== RUN   TestVerificationContractControlFlow/ok
+=== RUN   TestVerificationContractControlFlow/wrong_patch
+=== RUN   TestVerificationContractControlFlow/regression
+=== RUN   TestVerificationContractControlFlow/behavior
+=== RUN   TestVerificationContractControlFlow/baseline_pass
+=== RUN   TestVerificationContractControlFlow/compile
+=== RUN   TestVerificationContractControlFlow/unavailable
+=== RUN   TestVerificationContractControlFlow/no_test
+--- PASS: TestVerificationContractControlFlow (0.38s)
+    --- PASS: TestVerificationContractControlFlow/ok (0.06s)
+    --- PASS: TestVerificationContractControlFlow/wrong_patch (0.05s)
+    --- PASS: TestVerificationContractControlFlow/regression (0.06s)
+    --- PASS: TestVerificationContractControlFlow/behavior (0.06s)
+    --- PASS: TestVerificationContractControlFlow/baseline_pass (0.05s)
+    --- PASS: TestVerificationContractControlFlow/compile (0.03s)
+    --- PASS: TestVerificationContractControlFlow/unavailable (0.04s)
+    --- PASS: TestVerificationContractControlFlow/no_test (0.04s)
+=== RUN   TestVerificationContractSecurity
+=== RUN   TestVerificationContractSecurity/plan
+=== RUN   TestVerificationContractSecurity/command
+=== RUN   TestVerificationContractSecurity/test
+=== RUN   TestVerificationContractSecurity/patch
+=== RUN   TestVerificationContractSecurity/candidate
+=== RUN   TestVerificationContractSecurity/source
+=== RUN   TestVerificationContractSecurity/workspace
+=== RUN   TestVerificationContractSecurity/expiry
+=== RUN   TestVerificationContractSecurity/missing
+=== RUN   TestVerificationContractSecurity/restart
+=== RUN   TestVerificationContractSecurity/redigest
+--- PASS: TestVerificationContractSecurity (0.35s)
+    --- PASS: TestVerificationContractSecurity/plan (0.02s)
+    --- PASS: TestVerificationContractSecurity/command (0.04s)
+    --- PASS: TestVerificationContractSecurity/test (0.03s)
+    --- PASS: TestVerificationContractSecurity/patch (0.02s)
+    --- PASS: TestVerificationContractSecurity/candidate (0.03s)
+    --- PASS: TestVerificationContractSecurity/source (0.03s)
+    --- PASS: TestVerificationContractSecurity/workspace (0.03s)
+    --- PASS: TestVerificationContractSecurity/expiry (0.04s)
+    --- PASS: TestVerificationContractSecurity/missing (0.04s)
+    --- PASS: TestVerificationContractSecurity/restart (0.03s)
+    --- PASS: TestVerificationContractSecurity/redigest (0.03s)
+=== RUN   TestVerificationCommandPolicy
+--- PASS: TestVerificationCommandPolicy (0.00s)
+=== RUN   TestVerificationPlanFrozen
+--- PASS: TestVerificationPlanFrozen (0.03s)
+=== RUN   TestVerificationAuditAndLedgerRestart
+--- PASS: TestVerificationAuditAndLedgerRestart (0.05s)
+=== RUN   TestVerificationBaselineCleanupFailure
+--- FAIL: TestVerificationBaselineCleanupFailure (0.03s)
+panic: assignment to entry in nil map [recovered, repanicked]
+
+goroutine 87 [running]:
+testing.tRunner.func1.2({0x7ff67d253c60, 0x7ff67d5e6cb0})
+	D:/src/testing/testing.go:1872 +0x239
+testing.tRunner.func1()
+	D:/src/testing/testing.go:1875 +0x35b
+panic({0x7ff67d253c60?, 0x7ff67d5e6cb0?})
+	D:/src/runtime/panic.go:783 +0x132
+github.com/saksham/self-healing-pipeline/agent/repo_intel/execution.TestVerificationBaselineCleanupFailure(0xc000106700)
+	E:/SWE/go-backend/agent/repo_intel/execution/verification_plan_test.go:251 +0x119
+testing.tRunner(0xc000106700, 0x7ff67d2fa0d0)
+	D:/src/testing/testing.go:1934 +0xc3
+created by testing.(*T).Run in goroutine 1
+	D:/src/testing/testing.go:1997 +0x44b
+FAIL	github.com/saksham/self-healing-pipeline/agent/repo_intel/execution	2.295s
+FAIL

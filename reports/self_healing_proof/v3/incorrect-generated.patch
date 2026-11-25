@@ -1,0 +1,5 @@
+--- a/healproof/reader.go
++++ b/healproof/reader.go
+@@ -13,0 +14,2 @@
++
++// HEALPROOF incorrect candidate: defect deliberately retained.

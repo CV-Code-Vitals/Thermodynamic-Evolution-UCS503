@@ -1,0 +1,108 @@
+=== RUN   TestHealproofPublicContract
+    healproof_contract_test.go:248: TESTED_WITH_MOCK -- NOT_DYNAMICALLY_VERIFIED
+=== RUN   TestHealproofPublicContract/wired
+2026/11/25 14:31:14 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=1, hotspots=0)
+=== RUN   TestHealproofPublicContract/wrong_patch
+2026/11/25 14:31:14 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=1, hotspots=0)
+=== RUN   TestHealproofPublicContract/unavailable
+2026/11/25 14:31:14 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=1, hotspots=0)
+=== RUN   TestHealproofPublicContract/missing_plan
+2026/11/25 14:31:14 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=1, hotspots=0)
+--- PASS: TestHealproofPublicContract (0.35s)
+    --- PASS: TestHealproofPublicContract/wired (0.09s)
+    --- PASS: TestHealproofPublicContract/wrong_patch (0.11s)
+    --- PASS: TestHealproofPublicContract/unavailable (0.09s)
+    --- PASS: TestHealproofPublicContract/missing_plan (0.06s)
+=== RUN   TestHealproofDockerPublicLifecycle
+    healproof_contract_test.go:261: DYNAMIC GATE BLOCKED / NOT RUN: opt in on Docker host with RUN_HEALPROOF_DOCKER=1
+--- SKIP: TestHealproofDockerPublicLifecycle (0.00s)
+=== RUN   TestRemediationHttpWorkflow
+--- PASS: TestRemediationHttpWorkflow (0.02s)
+=== RUN   TestRemediationRoutesRequireToken
+--- PASS: TestRemediationRoutesRequireToken (0.00s)
+=== RUN   TestRemediationDemoRunsRepairCandidateAndAbstention
+--- PASS: TestRemediationDemoRunsRepairCandidateAndAbstention (0.07s)
+=== RUN   TestRemediationHttpWorkflow_WithScannedWorkspace
+--- PASS: TestRemediationHttpWorkflow_WithScannedWorkspace (0.02s)
+=== RUN   TestEndToEndScanToRepairWorkflow_OfflineFixture
+--- PASS: TestEndToEndScanToRepairWorkflow_OfflineFixture (0.03s)
+PASS
+ok  	github.com/saksham/self-healing-pipeline	2.292s
+=== RUN   TestDiscardSandboxContract
+--- PASS: TestDiscardSandboxContract (0.01s)
+=== RUN   TestExecuteRepairRejectsFileChangedAfterApproval
+--- PASS: TestExecuteRepairRejectsFileChangedAfterApproval (0.01s)
+=== RUN   TestActiveProposalRejectsConcurrentExecution
+--- PASS: TestActiveProposalRejectsConcurrentExecution (0.00s)
+=== RUN   TestScanToRepairWorkflow_Success
+    scan_repair_test.go:61: Found target: ID=SCAN-SEMANTIC_RESOURCE_LEAK-1-4091bc9f308d425caa685c45-0 Stratum=SCANNED_REPOSITORY Desc=Unclosed System Resource Leak (os.File) in server/logger.go:9
+--- PASS: TestScanToRepairWorkflow_Success (0.03s)
+=== RUN   TestScanToRepairWorkflow_UnsupportedCommandInjection
+--- PASS: TestScanToRepairWorkflow_UnsupportedCommandInjection (0.01s)
+=== RUN   TestScanToRepairWorkflow_EscapingResourceAbstention
+--- PASS: TestScanToRepairWorkflow_EscapingResourceAbstention (0.01s)
+=== RUN   TestScanToRepairWorkflow_VerificationFailure_FailClosed
+--- PASS: TestScanToRepairWorkflow_VerificationFailure_FailClosed (0.02s)
+=== RUN   TestScanToRepairWorkflow_MissingWorkspace_FailClosed
+--- PASS: TestScanToRepairWorkflow_MissingWorkspace_FailClosed (0.00s)
+=== RUN   TestVerificationContractControlFlow
+    verification_plan_test.go:107: TESTED_WITH_MOCK -- NOT_DYNAMICALLY_VERIFIED
+=== RUN   TestVerificationContractControlFlow/ok
+=== RUN   TestVerificationContractControlFlow/wrong_patch
+=== RUN   TestVerificationContractControlFlow/regression
+=== RUN   TestVerificationContractControlFlow/behavior
+=== RUN   TestVerificationContractControlFlow/baseline_pass
+=== RUN   TestVerificationContractControlFlow/compile
+=== RUN   TestVerificationContractControlFlow/unavailable
+=== RUN   TestVerificationContractControlFlow/no_test
+--- PASS: TestVerificationContractControlFlow (0.31s)
+    --- PASS: TestVerificationContractControlFlow/ok (0.04s)
+    --- PASS: TestVerificationContractControlFlow/wrong_patch (0.04s)
+    --- PASS: TestVerificationContractControlFlow/regression (0.04s)
+    --- PASS: TestVerificationContractControlFlow/behavior (0.04s)
+    --- PASS: TestVerificationContractControlFlow/baseline_pass (0.04s)
+    --- PASS: TestVerificationContractControlFlow/compile (0.04s)
+    --- PASS: TestVerificationContractControlFlow/unavailable (0.03s)
+    --- PASS: TestVerificationContractControlFlow/no_test (0.04s)
+=== RUN   TestVerificationContractSecurity
+=== RUN   TestVerificationContractSecurity/plan
+=== RUN   TestVerificationContractSecurity/command
+=== RUN   TestVerificationContractSecurity/test
+=== RUN   TestVerificationContractSecurity/patch
+=== RUN   TestVerificationContractSecurity/candidate
+=== RUN   TestVerificationContractSecurity/source
+=== RUN   TestVerificationContractSecurity/workspace
+=== RUN   TestVerificationContractSecurity/expiry
+=== RUN   TestVerificationContractSecurity/missing
+=== RUN   TestVerificationContractSecurity/restart
+=== RUN   TestVerificationContractSecurity/redigest
+--- PASS: TestVerificationContractSecurity (0.24s)
+    --- PASS: TestVerificationContractSecurity/plan (0.02s)
+    --- PASS: TestVerificationContractSecurity/command (0.02s)
+    --- PASS: TestVerificationContractSecurity/test (0.02s)
+    --- PASS: TestVerificationContractSecurity/patch (0.02s)
+    --- PASS: TestVerificationContractSecurity/candidate (0.03s)
+    --- PASS: TestVerificationContractSecurity/source (0.02s)
+    --- PASS: TestVerificationContractSecurity/workspace (0.02s)
+    --- PASS: TestVerificationContractSecurity/expiry (0.02s)
+    --- PASS: TestVerificationContractSecurity/missing (0.02s)
+    --- PASS: TestVerificationContractSecurity/restart (0.02s)
+    --- PASS: TestVerificationContractSecurity/redigest (0.02s)
+=== RUN   TestVerificationCommandPolicy
+--- PASS: TestVerificationCommandPolicy (0.00s)
+=== RUN   TestVerificationPlanFrozen
+--- PASS: TestVerificationPlanFrozen (0.02s)
+=== RUN   TestVerificationAuditAndLedgerRestart
+--- PASS: TestVerificationAuditAndLedgerRestart (0.03s)
+=== RUN   TestVerificationBaselineCleanupFailure
+--- PASS: TestVerificationBaselineCleanupFailure (0.02s)
+=== RUN   TestVerificationDiscardErrors
+=== RUN   TestVerificationDiscardErrors/delete_error
+=== RUN   TestVerificationDiscardErrors/deletion_not_performed
+--- PASS: TestVerificationDiscardErrors (0.05s)
+    --- PASS: TestVerificationDiscardErrors/delete_error (0.02s)
+    --- PASS: TestVerificationDiscardErrors/deletion_not_performed (0.02s)
+=== RUN   TestVerificationPublicApprovalRequiresPlan
+--- PASS: TestVerificationPublicApprovalRequiresPlan (0.02s)
+PASS
+ok  	github.com/saksham/self-healing-pipeline/agent/repo_intel/execution	1.830s
