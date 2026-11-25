@@ -1,0 +1,45 @@
+{
+  "implementation_commit": "5d1f97c4637e846a39b9cd776b9dcc2fd3574d0b",
+  "preservation_commit": "b431104e4e67df925564de86958244d7ee717541",
+  "initial_session_head": "cbb3b1780ff7614c23c3d83a54447ccde4190646",
+  "classification": "GATE 2 CODE COMPLETE; DYNAMIC GATE BLOCKED; E2E REPAIR NOT PROVEN",
+  "broad_go": {
+    "top_level_pass": 63,
+    "subtest_pass": 76,
+    "top_level_skip": 1,
+    "failures": 0
+  },
+  "final_contract_go": {
+    "top_level_pass": 10,
+    "subtest_pass": 25,
+    "top_level_skip": 1,
+    "failures": 0
+  },
+  "frontend_tests": {
+    "passed": 57,
+    "failed": 0
+  },
+  "frontend_build": "PASS with VITE_API_BASE=https://healproof.invalid; local build only",
+  "real_docker_e2e": "NOT_RUN (opt-in test skipped)",
+  "dynamic_verified_repairs": 0,
+  "revalidation": "Existing v1/revalidation.log completed PASS (12.103s); source scanning, not repair proof",
+  "changed_files": [
+    "admin-portal/src/components/RemediationPortal.jsx",
+    "admin-portal/src/remediation-api.js",
+    "admin-portal/tests/remediation-api.test.js",
+    "go-backend/agent/repo_intel/execution/mvp_scanner.go",
+    "go-backend/agent/repo_intel/execution/mvp_service.go",
+    "go-backend/agent/repo_intel/execution/scan_repair_test.go",
+    "go-backend/agent/repo_intel/execution/verification_plan.go",
+    "go-backend/agent/repo_intel/execution/verification_plan_test.go",
+    "go-backend/healproof_contract_test.go",
+    "go-backend/main.go",
+    "go-backend/remediation_routes.go",
+    "go-backend/remediation_routes_test.go",
+    "go-backend/scan_to_repair_e2e_test.go",
+    "go-backend/snapshot_scanner.go",
+    "go-backend/testdata/healproof/go.mod",
+    "go-backend/testdata/healproof/independent_test.go",
+    "go-backend/testdata/healproof/reader.go"
+  ]
+}

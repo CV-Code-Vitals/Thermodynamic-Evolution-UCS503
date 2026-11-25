@@ -198,3 +198,14 @@ describe('Autonomous Remediation API Client', () => {
     assert.strictEqual(res.repair_candidate.target, 'INJ-EXT2-RES-02 (fatih/color)');
   });
 });
+
+
+it('preserves failed execution verdict and disposal reference from HTTP 422', async () => {
+  const execution = { execution_id: 'rejected', verification_verdict: 'DYNAMIC_VERIFICATION_UNAVAILABLE', applied_in_sandbox: false };
+  globalThis.fetch = async () => Response.json({ error: 'DYNAMIC_VERIFICATION_UNAVAILABLE', verification_verdict: execution.verification_verdict, execution }, { status: 422 });
+  await assert.rejects(executeRemediationRepair('/api', 'operator', 'approval'), error => {
+    assert.deepStrictEqual(error.execution, execution);
+    assert.strictEqual(error.verdict, execution.verification_verdict);
+    return true;
+  });
+});

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -67,38 +68,41 @@ type MVPAnalysisResult struct {
 
 // MVPProposalResult contains the synthesized patch diff or explicit abstention reason.
 type MVPProposalResult struct {
-	ProposalID            string `json:"proposal_id"`
-	AnalysisID            string `json:"analysis_id"`
-	TargetID              string `json:"target_id"`
-	Status                string `json:"status"` // "PROPOSED", "ABSTAINED"
-	IntentType            string `json:"intent_type,omitempty"`
-	UnifiedDiff           string `json:"unified_diff,omitempty"`
-	DiffHash              string `json:"diff_hash,omitempty"`
-	ModifiedSource        string `json:"modified_source,omitempty"`
-	AbstainCategory       string `json:"abstain_category,omitempty"`
-	AbstainReason         string `json:"abstain_reason,omitempty"`
-	RequiresHumanApproval bool   `json:"requires_human_approval"`
-	ExecutionClass        string `json:"execution_class"`
-	FileHash              string `json:"file_hash"`
-	WorkspaceID           string `json:"workspace_id"`
-	TargetAbsPath         string `json:"target_abs_path"`
-	SandboxDir            string `json:"sandbox_dir"`
-	DurationMs            int64  `json:"duration_ms"`
-	SnapshotID            string `json:"snapshot_id,omitempty"`
+	VerificationPlan       *VerificationPlan `json:"verification_plan,omitempty"`
+	VerificationPlanDigest string            `json:"verification_plan_digest,omitempty"`
+	ProposalID             string            `json:"proposal_id"`
+	AnalysisID             string            `json:"analysis_id"`
+	TargetID               string            `json:"target_id"`
+	Status                 string            `json:"status"` // "PROPOSED", "ABSTAINED"
+	IntentType             string            `json:"intent_type,omitempty"`
+	UnifiedDiff            string            `json:"unified_diff,omitempty"`
+	DiffHash               string            `json:"diff_hash,omitempty"`
+	ModifiedSource         string            `json:"modified_source,omitempty"`
+	AbstainCategory        string            `json:"abstain_category,omitempty"`
+	AbstainReason          string            `json:"abstain_reason,omitempty"`
+	RequiresHumanApproval  bool              `json:"requires_human_approval"`
+	ExecutionClass         string            `json:"execution_class"`
+	FileHash               string            `json:"file_hash"`
+	WorkspaceID            string            `json:"workspace_id"`
+	TargetAbsPath          string            `json:"target_abs_path"`
+	SandboxDir             string            `json:"sandbox_dir"`
+	DurationMs             int64             `json:"duration_ms"`
+	SnapshotID             string            `json:"snapshot_id,omitempty"`
 }
 
 // MVPApprovalResult contains the issued cryptographic authorization token.
 type MVPApprovalResult struct {
-	TokenID    string `json:"token_id"`
-	ProposalID string `json:"proposal_id"`
-	Principal  string `json:"principal"`
-	Role       string `json:"role"`
-	DiffHash   string `json:"diff_hash"`
-	RiskTier   string `json:"risk_tier"`
-	ExpiresAt  string `json:"expires_at"`
-	Signature  string `json:"signature"`
-	Valid      bool   `json:"valid"`
-	IssuedAt   string `json:"issued_at"`
+	VerificationPlanDigest string `json:"verification_plan_digest"`
+	TokenID                string `json:"token_id"`
+	ProposalID             string `json:"proposal_id"`
+	Principal              string `json:"principal"`
+	Role                   string `json:"role"`
+	DiffHash               string `json:"diff_hash"`
+	RiskTier               string `json:"risk_tier"`
+	ExpiresAt              string `json:"expires_at"`
+	Signature              string `json:"signature"`
+	Valid                  bool   `json:"valid"`
+	IssuedAt               string `json:"issued_at"`
 }
 
 // MVPOracleOutcome records single-oracle verification details.
@@ -113,6 +117,12 @@ type MVPOracleOutcome struct {
 
 // MVPExecutionResult compiles sandbox execution, multi-oracle checks, and source immutability.
 type MVPExecutionResult struct {
+	VerificationPlanDigest string                      `json:"verification_plan_digest,omitempty"`
+	BeforeReproduction     *ReproductionEvidence       `json:"before_reproduction,omitempty"`
+	CandidateDigest        string                      `json:"candidate_digest,omitempty"`
+	EvidenceClass          string                      `json:"evidence_class"`
+	OracleExecutions       []*ContainerRunResult       `json:"oracle_executions,omitempty"`
+	FailureReason          string                      `json:"failure_reason,omitempty"`
 	ExecutionID            string                      `json:"execution_id"`
 	ProposalID             string                      `json:"proposal_id"`
 	TargetID               string                      `json:"target_id"`
@@ -161,6 +171,7 @@ type MVPAuditReport struct {
 
 // WorkspaceSnapshot stores immutable snapshot metadata bound to a scanned workspace.
 type WorkspaceSnapshot struct {
+	Repository   string            `json:"repository"`
 	SnapshotID   string            `json:"snapshot_id"`
 	WorkspaceID  string            `json:"workspace_id"`
 	OwnerID      string            `json:"owner_id"`
@@ -229,16 +240,22 @@ func ValidateSnapshotID(snapshotID string) error {
 const MVPAnalysisOperator = "authenticated-analysis-client"
 
 // MVPService provides the unified business logic for the Autonomous Repair MVP.
+type RepairSynthesizer interface {
+	Synthesize(string, *planning.RemediationTask, *repo_intel.Finding) *SynthesisDecision
+}
+
 type MVPService struct {
 	WorkspaceRoot     string
 	Authority         *ApprovalAuthority
 	Registry          *ApprovalConsumptionRegistry
-	Synthesizer       *AutonomousPatchSynthesizer
+	Synthesizer       RepairSynthesizer
 	Oracles           *IndependentOracleSuite
 	BaselineSHA       string
 	WorkspaceResolver func(workspaceID string) (string, error)
 	Runner            ContainerRunner
 
+	trustedPlans    []VerificationPlan
+	removeSandbox   func(string) error // nil uses os.RemoveAll; test injection never exposed over REST
 	mu              sync.Mutex
 	snapshots       map[string]*WorkspaceSnapshot
 	dynamicTargets  map[string]*MVPTarget
@@ -722,6 +739,11 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 		return nil, fmt.Errorf("failed to clone repo to sandbox: %w", err)
 	}
 
+	if err := prepareContainerSnapshot(tmpSandbox); err != nil {
+		_ = os.RemoveAll(tmpSandbox)
+		return nil, err
+	}
+
 	task := &planning.RemediationTask{
 		TaskID:                fmt.Sprintf("TASK-MVP-%s", target.TargetID),
 		Title:                 fmt.Sprintf("Remediate %s in %s", target.DefectCategory, target.TargetFile),
@@ -828,6 +850,10 @@ func (s *MVPService) ProposeRepair(analysisID string) (*MVPProposalResult, error
 	}
 
 	s.proposals[proposalID] = res
+	if err := s.provisionPlanLocked(res); err != nil {
+		delete(s.proposals, proposalID)
+		return nil, err
+	}
 	return res, nil
 }
 
@@ -869,9 +895,12 @@ func (s *MVPService) ApproveRepair(proposalID, principal, role string) (*MVPAppr
 		}
 	}
 
-	fileHashes := map[string]string{
-		filepath.Base(proposal.TargetAbsPath): proposal.FileHash,
+	if proposal.VerificationPlan != nil {
+		if err := validateProposalPlan(proposal); err != nil {
+			return nil, err
+		}
 	}
+	fileHashes := approvalScope(proposal, proposal.FileHash)
 
 	token, err := s.Authority.IssueToken(
 		principal,
@@ -893,16 +922,17 @@ func (s *MVPService) ApproveRepair(proposalID, principal, role string) (*MVPAppr
 	s.tokenObjs[token.TokenID] = token
 
 	res := &MVPApprovalResult{
-		TokenID:    token.TokenID,
-		ProposalID: proposalID,
-		Principal:  token.ApproverID,
-		Role:       token.ApproverRole,
-		DiffHash:   token.PatchDiffHash,
-		RiskTier:   token.RiskTier,
-		ExpiresAt:  token.ExpiresAt.Format(time.RFC3339),
-		Signature:  token.HMACSignature,
-		Valid:      true,
-		IssuedAt:   token.IssuedAt.Format(time.RFC3339),
+		VerificationPlanDigest: proposal.VerificationPlanDigest,
+		TokenID:                token.TokenID,
+		ProposalID:             proposalID,
+		Principal:              token.ApproverID,
+		Role:                   token.ApproverRole,
+		DiffHash:               token.PatchDiffHash,
+		RiskTier:               token.RiskTier,
+		ExpiresAt:              token.ExpiresAt.Format(time.RFC3339),
+		Signature:              token.HMACSignature,
+		Valid:                  true,
+		IssuedAt:               token.IssuedAt.Format(time.RFC3339),
 	}
 
 	s.approvals[token.TokenID] = res
@@ -910,7 +940,14 @@ func (s *MVPService) ApproveRepair(proposalID, principal, role string) (*MVPAppr
 }
 
 // ExecuteRepair applies the patch in sandbox, consumes the token atomically, and runs 5 independent oracles.
-func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) {
+func (s *MVPService) ExecuteRepair(tokenID string) (result *MVPExecutionResult, execErr error) {
+	var before *ReproductionEvidence
+	consumed, applied := false, false
+	defer func() {
+		if execErr != nil {
+			result = s.recordExecutionFailure(tokenID, execErr, before, consumed, applied)
+		}
+	}()
 	s.mu.Lock()
 
 	start := time.Now()
@@ -1040,7 +1077,15 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	if approvedFileHash != proposal.FileHash {
 		return nil, fmt.Errorf("STALE_WORKSPACE: approved sandbox file was modified on disk")
 	}
-	fileHashes := map[string]string{filepath.Base(proposal.TargetAbsPath): approvedFileHash}
+	if proposal.VerificationPlan != nil {
+		if err := validateProposalPlan(proposal); err != nil {
+			return nil, err
+		}
+		if snap == nil || proposal.VerificationPlan.RootDigest != preDigest || proposal.VerificationPlan.Revision != snap.SourceCommit {
+			return nil, fmt.Errorf("SECURITY_REJECTION: plan snapshot changed")
+		}
+	}
+	fileHashes := approvalScope(proposal, approvedFileHash)
 	eligible, _, rejectReason := CheckTaskEligibilitySecure(
 		task,
 		tokenObj,
@@ -1056,11 +1101,26 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 
 	// 2. Token is atomically verified and consumed via CheckTaskEligibilitySecure -> Authority.VerifyAndConsumeToken.
 
+	consumed = true
+	if err := validateProposalPlan(proposal); err != nil {
+		return nil, err
+	}
+	before, err = s.reproduceBefore(proposal)
+	if err != nil {
+		return nil, err
+	}
+	for _, check := range proposal.VerificationPlan.Regression {
+		cmd, _ := check.Command()
+		task.ValidationCommands = append(task.ValidationCommands, cmd)
+	}
+	reproducerCmd, _ := proposal.VerificationPlan.Reproducer.Command()
+	invarianceCmd, _ := proposal.VerificationPlan.Behavioral.Command()
 	// Apply patch inside sandbox ONLY
 	if err := agent.AtomicWriteFileWithConflictDetection(proposal.TargetAbsPath, []byte(proposal.ModifiedSource), proposal.FileHash, 0644); err != nil {
 		return nil, fmt.Errorf("failed to write patched file to sandbox: %w", err)
 	}
 
+	applied = true
 	// Evaluate 5 Independent Oracles
 	patchObj := &CandidatePatch{
 		UnifiedDiff:    proposal.UnifiedDiff,
@@ -1069,7 +1129,33 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		TargetFile:     target.TargetFile,
 	}
 
-	oracleReport := s.Oracles.VerifyAll(proposal.SandboxDir, task, patchObj, "", "")
+	moduleDir, err := proposal.VerificationPlan.modulePath(proposal.SandboxDir)
+	if err != nil {
+		return nil, err
+	}
+	moduleTarget, err := filepath.Rel(moduleDir, proposal.TargetAbsPath)
+	if err != nil || strings.HasPrefix(moduleTarget, "..") {
+		return nil, fmt.Errorf("SECURITY_REJECTION: target outside approved module")
+	}
+	patchObj.TargetFile = filepath.ToSlash(moduleTarget)
+	expectedCandidateDigest, err := ComputeRepoDigest(proposal.SandboxDir)
+	if err != nil {
+		return nil, err
+	}
+	recorder := &proofRunner{ContainerRunner: s.Runner}
+	suite := *s.Oracles
+	suite.Runner = recorder
+	oracleReport := suite.VerifyAll(moduleDir, task, patchObj, reproducerCmd, invarianceCmd)
+	if err := proposal.VerificationPlan.validate(proposal.SandboxDir); err != nil {
+		return nil, err
+	}
+	candidateDigest, err := ComputeRepoDigest(proposal.SandboxDir)
+	if candidateDigest != expectedCandidateDigest {
+		return nil, fmt.Errorf("SECURITY_REJECTION: candidate changed during verification")
+	}
+	if err != nil {
+		return nil, err
+	}
 
 	oracleOutcomes := make(map[string]MVPOracleOutcome)
 	hasFailure := false
@@ -1103,22 +1189,29 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 	}
 
 	executionID := fmt.Sprintf("EXEC-%s-%d", proposal.TargetID, time.Now().UnixNano()%1000000)
-	verdict := "FAILED"
-
-	if hasFailure {
-		verdict = "FAILED"
-	} else {
-		defectRep, hasRep := oracleReport.OracleResults[OracleDefectReproducer]
-		dynamicReproduced := hasRep && defectRep.Status == OracleStatusPassed && strings.Contains(defectRep.Details, "isolated container")
-
-		if dynamicReproduced && oracleReport.AllPassed && !hasUnavailable {
-			verdict = "INDEPENDENTLY_VERIFIED"
-		} else {
-			verdict = "SYNTAX_ONLY_VERIFIED"
+	verdict := "EXECUTION_FAILED"
+	if hasUnavailable {
+		verdict = "DYNAMIC_VERIFICATION_UNAVAILABLE"
+	} else if hasFailure {
+		if r := oracleReport.OracleResults[OracleRegressionTest]; r != nil && !r.Passed {
+			verdict = "REGRESSION_FAILED"
+		} else if r := oracleReport.OracleResults[OracleBehavioralInvariance]; r != nil && !r.Passed {
+			verdict = "BEHAVIORAL_INVARIANCE_FAILED"
 		}
+	} else if completeDynamicProof(s.Runner, proposal, before, oracleReport) {
+		verdict = "INDEPENDENTLY_VERIFIED"
+	}
+	evidenceClass := "REAL_CONTAINER_EXECUTION"
+	if !genuineDocker(s.Runner) {
+		evidenceClass = "TESTED_WITH_MOCK \u2014 NOT_DYNAMICALLY_VERIFIED"
 	}
 
 	res := &MVPExecutionResult{
+		VerificationPlanDigest: proposal.VerificationPlanDigest,
+		BeforeReproduction:     before,
+		CandidateDigest:        candidateDigest,
+		EvidenceClass:          evidenceClass,
+		OracleExecutions:       recorder.Records,
 		ExecutionID:            executionID,
 		ProposalID:             proposal.ProposalID,
 		TargetID:               proposal.TargetID,
@@ -1127,7 +1220,7 @@ func (s *MVPService) ExecuteRepair(tokenID string) (*MVPExecutionResult, error) 
 		AppliedInSandbox:       true,
 		TokenConsumed:          true,
 		Oracles:                oracleOutcomes,
-		AllOraclesPassed:       oracleReport.AllPassed,
+		AllOraclesPassed:       verdict == "INDEPENDENTLY_VERIFIED",
 		VerificationVerdict:    verdict,
 		OriginalRepoPreDigest:  preDigest,
 		OriginalRepoPostDigest: postDigest,
@@ -1197,6 +1290,9 @@ func (s *MVPService) RollbackSandbox(executionID string) (bool, error) {
 	if !exists {
 		return false, fmt.Errorf("execution record %q not found", executionID)
 	}
+	if s.activeProposals[exec.ProposalID] {
+		return false, fmt.Errorf("DISCARD_SANDBOX: proposal is executing")
+	}
 	if exec.SandboxDir == "" {
 		return false, fmt.Errorf("DISCARD_SANDBOX: missing sandbox path")
 	}
@@ -1209,7 +1305,14 @@ func (s *MVPService) RollbackSandbox(executionID string) (bool, error) {
 		return false, fmt.Errorf("DISCARD_SANDBOX: path is outside managed sandbox root")
 	}
 	exec.CleanupOperation = "DISCARD_SANDBOX"
-	if err := os.RemoveAll(exec.SandboxDir); err != nil {
+	if info, e := os.Lstat(root); e != nil || info.Mode()&os.ModeSymlink != 0 {
+		return false, fmt.Errorf("DISCARD_SANDBOX: unsafe managed root")
+	}
+	remove := s.removeSandbox
+	if remove == nil {
+		remove = os.RemoveAll
+	}
+	if err := remove(exec.SandboxDir); err != nil {
 		exec.CleanupStatus = "FAILED"
 		return false, fmt.Errorf("DISCARD_SANDBOX: %w", err)
 	}
@@ -1230,8 +1333,16 @@ func (s *MVPService) ExportAuditReport() *MVPAuditReport {
 	verifiedCount := 0
 	abstainedCount := 0
 	failedCount := 0
+	allImmutable := true
+	checkedExecutions := 0
 
 	for _, rec := range s.auditTrail {
+		if rec.Execution != nil {
+			checkedExecutions++
+		}
+		if rec.Execution != nil && !rec.Execution.OriginalRepoImmutable {
+			allImmutable = false
+		}
 		if rec.FinalStatus == "INDEPENDENTLY_VERIFIED" {
 			verifiedCount++
 		} else if rec.FinalStatus == "EXPLICITLY_ABSTAINED" || (rec.Proposal != nil && rec.Proposal.Status == "ABSTAINED") {
@@ -1241,16 +1352,20 @@ func (s *MVPService) ExportAuditReport() *MVPAuditReport {
 		}
 	}
 
-	return &MVPAuditReport{
+	report := &MVPAuditReport{
 		BaselineCommit:        s.BaselineSHA,
 		ExportTimestamp:       time.Now().UTC().Format(time.RFC3339),
 		TotalSessionsRecorded: len(s.auditTrail),
 		VerifiedRepairsCount:  verifiedCount,
 		AbstainedRepairsCount: abstainedCount,
 		FailedRepairsCount:    failedCount,
-		SourceImmutability100: true,
+		SourceImmutability100: allImmutable && checkedExecutions > 0,
 		AuditRecords:          s.auditTrail,
 	}
+	data, _ := json.Marshal(report)
+	var frozen MVPAuditReport
+	_ = json.Unmarshal(data, &frozen)
+	return &frozen
 }
 
 // RunDeterministicDemo runs a repair candidate and an abstention case.
@@ -1272,7 +1387,7 @@ func (s *MVPService) RunDeterministicDemo() (map[string]interface{}, error) {
 	}
 
 	exec1, err := s.ExecuteRepair(appr1.TokenID)
-	if err != nil {
+	if err != nil && (exec1 == nil || exec1.VerificationVerdict != "REPRODUCER_NOT_AVAILABLE") {
 		return nil, fmt.Errorf("demo execution failed: %w", err)
 	}
 

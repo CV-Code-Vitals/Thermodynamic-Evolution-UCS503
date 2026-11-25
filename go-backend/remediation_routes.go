@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -23,6 +25,26 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, work
 		log.Printf("remediation routes unavailable: %v", err)
 		return
 	}
+
+	if config := os.Getenv("HEALPROOF_TRUSTED_PLANS"); config != "" {
+		data, readErr := os.ReadFile(config)
+		var plans []execution.VerificationPlan
+		if readErr != nil {
+			log.Printf("trusted plan configuration unavailable: %v", readErr)
+			return
+		}
+		if err := json.Unmarshal(data, &plans); err != nil {
+			log.Printf("trusted plan configuration invalid: %v", err)
+			return
+		}
+		if err := mvpService.ConfigureTrustedVerificationPlans(plans); err != nil {
+			log.Printf("trusted plan configuration rejected: %v", err)
+			return
+		}
+	}
+	setupRemediationRoutesWithService(r, tokenMiddleware, workspaces, mvpService)
+}
+func setupRemediationRoutesWithService(r *gin.Engine, tokenMiddleware gin.HandlerFunc, workspaces *workspaceStore, mvpService *execution.MVPService) {
 
 	if workspaces != nil {
 		mvpService.SetWorkspaceResolver(workspaces.get)
@@ -99,9 +121,9 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, work
 			c.JSON(http.StatusBadRequest, gin.H{"error": "proposal_id is required"})
 			return
 		}
-		approval, err := mvpService.ApproveRepair(req.ProposalID, execution.MVPAnalysisOperator, "analysis-operator")
+		approval, err := mvpService.ApproveVerifiedRepair(req.ProposalID, execution.MVPAnalysisOperator, "analysis-operator")
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "verification_verdict": execution.VerificationFailureVerdict(err)})
 			return
 		}
 		c.JSON(http.StatusOK, approval)
@@ -117,7 +139,7 @@ func setupRemediationRoutes(r *gin.Engine, tokenMiddleware gin.HandlerFunc, work
 		}
 		executionRes, err := mvpService.ExecuteRepair(req.TokenID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error(), "verification_verdict": executionRes.VerificationVerdict, "execution": executionRes})
 			return
 		}
 		c.JSON(http.StatusOK, executionRes)

@@ -123,11 +123,11 @@ func DumpLogs(p string) ([]byte, error) {
 
 	// 5. Execute Repair in Sandbox
 	execRes, err := svc.ExecuteRepair(approval.TokenID)
-	if err != nil {
-		t.Fatalf("ExecuteRepair failed: %v", err)
+	if err == nil || execRes == nil || execRes.VerificationVerdict != "REPRODUCER_NOT_AVAILABLE" {
+		t.Fatalf("missing plan must fail closed: %+v %v", execRes, err)
 	}
-	if !execRes.AppliedInSandbox {
-		t.Errorf("Expected applied in sandbox true")
+	if execRes.AppliedInSandbox {
+		t.Errorf("missing reproducer must prevent patch application")
 	}
 	if !execRes.TokenConsumed {
 		t.Errorf("Expected token consumed true")
@@ -346,15 +346,15 @@ func ReadConfig(p string) ([]byte, error) {
 	}
 
 	execRes, err := svc.ExecuteRepair(approval.TokenID)
-	if err != nil {
-		t.Fatalf("ExecuteRepair returned error instead of fail-closed verdict: %v", err)
+	if err == nil || execRes == nil {
+		t.Fatalf("missing verification plan must reject execution: %v", err)
 	}
 
 	if execRes.AllOraclesPassed {
 		t.Errorf("Expected verification failure for broken syntax, but oracles reported passed")
 	}
-	if execRes.VerificationVerdict != "FAILED" {
-		t.Errorf("Expected verdict 'FAILED', got %s", execRes.VerificationVerdict)
+	if execRes.VerificationVerdict != "REPRODUCER_NOT_AVAILABLE" {
+		t.Errorf("Expected verdict 'REPRODUCER_NOT_AVAILABLE', got %s", execRes.VerificationVerdict)
 	}
 	if !execRes.OriginalRepoImmutable {
 		t.Fatalf("CRITICAL: Original repository modified during failing verification!")

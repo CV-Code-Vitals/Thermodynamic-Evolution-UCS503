@@ -1,0 +1,50 @@
+[
+  {
+    "trace": "public-trace-real-false-unavailable-false-incorrect-false.json",
+    "classification": "TESTED_WITH_MOCK — NOT_DYNAMICALLY_VERIFIED",
+    "source_file_sha256": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+    "candidate_source_sha256": "97982a5aef1c59c571b5d66b42107ca62853a92b9ff4073dd8a51d84c6330cb3",
+    "generated_patch_sha256": "874c802e5d40dd9b32918de913e280f2dcb37bf52743f94dd7649b250bcb7bd0",
+    "verification_plan_sha256": "8857e440f84b1c8f6152743017277ce6e942b9efc55c41e726745c47d6d4fc5d",
+    "original_tree_before": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "original_tree_after": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "candidate_tree": "47ccfcc828d625953597774fb47286a2705fa1a3b59c4dfca12ca513d8873694",
+    "approval_token_id": "0cdff003e88b91b51e2c47af9f88578c",
+    "approval_consumed": true,
+    "verdict": "EXECUTION_FAILED",
+    "cleanup": "PASSED",
+    "real_oracle_runs": 0
+  },
+  {
+    "trace": "public-trace-real-false-unavailable-false-incorrect-true.json",
+    "classification": "TESTED_WITH_MOCK — NOT_DYNAMICALLY_VERIFIED",
+    "source_file_sha256": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+    "candidate_source_sha256": "493ebb7d01dade236c503ccf1193e05dc17eecdfb04bea5cf6d3ec9fe6685604",
+    "generated_patch_sha256": "0b1809ecfa6b7e4f99b5861609c06d63d59971fba7f3bf985848a73cda61ad32",
+    "verification_plan_sha256": "e4033b4ca8b9f718b87ba3d289b7a85329797790994c2ee409740cb594b07eb5",
+    "original_tree_before": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "original_tree_after": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "candidate_tree": "0c92d807d750616d34800b95f89821828a65a733e2fc8f5be146a797305adbb4",
+    "approval_token_id": "b5a05f25b242146418f61958cfd45f53",
+    "approval_consumed": true,
+    "verdict": "EXECUTION_FAILED",
+    "cleanup": "PASSED",
+    "real_oracle_runs": 0
+  },
+  {
+    "trace": "public-trace-real-false-unavailable-true-incorrect-false.json",
+    "classification": "TESTED_WITH_MOCK — NOT_DYNAMICALLY_VERIFIED",
+    "source_file_sha256": "12861318d40272945629a6997cae4dcc3e4bc5aeacf1dd9e437df83cd3495ac2",
+    "candidate_source_sha256": "97982a5aef1c59c571b5d66b42107ca62853a92b9ff4073dd8a51d84c6330cb3",
+    "generated_patch_sha256": "874c802e5d40dd9b32918de913e280f2dcb37bf52743f94dd7649b250bcb7bd0",
+    "verification_plan_sha256": "4182279cad80f9f7f56455f733deab1dadca4444337e97f8521d9ffc9d8c9625",
+    "original_tree_before": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "original_tree_after": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "candidate_tree": "87eb1bf3aaff686da79efb47b6e7b27d60b3f9cb07230585184827c5f6573256",
+    "approval_token_id": "ec8cbd677d41e2abdc1c7604c7a59deb",
+    "approval_consumed": true,
+    "verdict": "DYNAMIC_VERIFICATION_UNAVAILABLE",
+    "cleanup": "PASSED",
+    "real_oracle_runs": 0
+  }
+]

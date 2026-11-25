@@ -28,6 +28,13 @@ function renderVerdictBadge(verdict) {
     case 'GROUND_TRUTH_UNVERIFIED':
     case 'GROUND_TRUTH_DISQUALIFIED':
       return <span className="remediation-badge badge-unverified">GROUND_TRUTH_UNVERIFIED</span>;
+    case 'REPRODUCER_NOT_AVAILABLE':
+    case 'DYNAMIC_VERIFICATION_UNAVAILABLE':
+    case 'REGRESSION_FAILED':
+    case 'BEHAVIORAL_INVARIANCE_FAILED':
+    case 'SECURITY_REJECTION':
+    case 'EXECUTION_FAILED':
+      return <span className="remediation-badge badge-unverified">{verdict}</span>;
     case 'FAILED':
       return <span className="remediation-badge badge-false-positive">FAILED</span>;
     default:
@@ -154,6 +161,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
       setAuditReport(audit);
     } catch (err) {
       setError(err.message);
+      if (err.execution) setExecution(err.execution);
     } finally {
       setLoading(false);
     }
@@ -166,7 +174,7 @@ export default function RemediationPortal({ apiBase = '/api', token = '', latest
       await rollbackRemediationSandbox(apiBase, token, execution.execution_id);
       setRollbackStatus('Sandbox deletion verified. No persisted repository revision was restored.');
     } catch (err) {
-      setError(`Rollback failed: ${err.message}`);
+      setError(`Sandbox disposal failed: ${err.message}`);
     } finally {
       setLoading(false);
     }

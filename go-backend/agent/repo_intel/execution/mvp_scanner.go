@@ -107,6 +107,9 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 	discovered := []MVPTarget{}
 	repoName := filepath.Base(wsDir)
 	gitValue := func(args ...string) string {
+		if _, err := os.Lstat(filepath.Join(wsDir, ".git")); err != nil {
+			return ""
+		}
 		cmd := exec.Command("git", append([]string{"-C", wsDir}, args...)...)
 		out, err := cmd.Output()
 		if err != nil {
@@ -119,6 +122,12 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 	rootDigest, err := ComputeRepoDigest(wsDir)
 	if err != nil || rootDigest == "" {
 		return nil, fmt.Errorf("SNAPSHOT_DIGEST_FAILED: failed to compute repository digest for workspace %s: %w", workspaceID, err)
+	}
+	if commit == "" {
+		commit = "sha256:" + rootDigest
+	}
+	if repoURL == "" {
+		repoURL = "content-sha256:" + rootDigest
 	}
 	snapshotKey := sha256.Sum256([]byte(workspaceID + "\x00" + rootDigest))
 	snapshotID := fmt.Sprintf("SNAP-%x", snapshotKey)
@@ -263,6 +272,7 @@ func (s *MVPService) discoverWorkspaceTargetsLocked(workspaceID string, ownerID 
 		WorkspaceID:  workspaceID,
 		OwnerID:      owner,
 		SourceCommit: commit,
+		Repository:   repoURL,
 		RootDigest:   rootDigest,
 		FileHashes:   fileHashes,
 		TargetCount:  len(discovered),

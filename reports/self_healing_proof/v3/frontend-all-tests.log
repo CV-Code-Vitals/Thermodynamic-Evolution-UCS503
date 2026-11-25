@@ -1,0 +1,71 @@
+
+> admin-portal@0.0.0 test
+> node --test tests/*.test.js
+
+✔ personal account operations use a separate bearer and never send browser cookies (40.564ms)
+✔ personal account client reports expired sessions and repository limits (2.2193ms)
+✔ login accepts only an authenticated response with a bearer token (43.7988ms)
+✔ refresh sends the active bearer and validates the rotated session response (1.303ms)
+✔ session refresh delay uses server-reported lifetime, independent of client clock skew (0.426ms)
+✔ upload posts the presigned form before completing with bearer authentication (1.9429ms)
+✔ failed S3 form upload never finalizes the archive record (1.0295ms)
+✔ local upload returns its ID so finalization can be retried separately (1.4532ms)
+✔ finalization errors are reported rather than returning upload success (1.2974ms)
+✔ completion can be retried with the original upload ID without starting another upload (1.3211ms)
+✔ upload returns its ID after transfer without attempting finalization (0.5998ms)
+✔ completion errors distinguish an unavailable original upload ID (0.5178ms)
+✔ list, download URL creation, and deletion use the authenticated archive contract (2.0458ms)
+✔ archive API rejects malformed successful responses and reports server errors (0.8803ms)
+✔ downloads signed archive bytes without sending the API bearer token to S3 (2.2474ms)
+✔ sends the bearer token only when downloading through the local API (0.6235ms)
+✔ rejects signed download failures with the API error message (1.0762ms)
+✔ evolution handles split event names, data, Unicode, CRLF, and multiple events (42.44ms)
+✔ evolution reports HTTP, server event, malformed JSON, and truncated stream errors (5.0634ms)
+✔ scan and evolution explain when the analysis service is offline (3.1131ms)
+✔ cloud scans use the separate streaming gateway and retain selectable targets (0.86ms)
+✔ scans can show a report when the service does not return an optimization workspace (0.8458ms)
+✔ scan rejects malformed reports and ignores targets without a workspace (2.201ms)
+✔ graph preserves full paths and same-named functions at distinct source locations (26.4301ms)
+✔ overview collapses functions; search, language filters and focus show the relevant graph (2.3585ms)
+✔ large graphs have deterministic non-overlapping cards and valid membership links (818.407ms)
+✔ file focus includes connected imports and resolves calls by byte location (3.053ms)
+✔ folder overview preserves file counts and aggregates cross-folder imports (3.3577ms)
+✔ arrows route around intervening cards and stay clear in both directions (1.6151ms)
+✔ membership and call arrows avoid other functions across multiple rows and files (25.4653ms)
+✔ repository measurements exclude text-only scores and show partial coverage (3.5034ms)
+✔ empty and text-only reports have unavailable energy rather than a perfect zero (0.4565ms)
+✔ score bands share exact boundaries and contributions match the engine formula (2.3594ms)
+✔ evolution preserves the best tested energy during uphill moves and skipped or failed evaluations (2.3243ms)
+✔ public scanning works without credentials through the local proxy or cloud gateway (41.8818ms)
+✔ public scanning reports unavailable services, rate limits, and invalid reports (4.2825ms)
+▶ Autonomous Remediation API Client
+  ✔ reports an unavailable repair service when the response has no status text (3.9244ms)
+  ✔ shows the gateway status for a target-loading failure with a non-JSON response (35.4683ms)
+  ✔ prompts the administrator to sign in again when the session is rejected (0.5238ms)
+  ✔ reports a network failure for the affected operation (0.3479ms)
+  ✔ rejects a malformed target list returned with HTTP 200 (1.3147ms)
+  ✔ fetchRemediationTargets calls /remediation/targets and returns targets array (0.5636ms)
+  ✔ fetchRemediationTargets includes workspace_id query parameter when provided (0.4743ms)
+  ✔ analyzeRemediationTarget sends target_id in POST body (0.5688ms)
+  ✔ proposeRemediationRepair calls /remediation/propose with analysis_id (0.5716ms)
+  ✔ approveRemediationRepair sends the proposal ID (1.7883ms)
+  ✔ executeRemediationRepair sends token_id and returns oracle results (0.4915ms)
+  ✔ rollbackRemediationSandbox calls /remediation/rollback (0.4067ms)
+  ✔ fetchRemediationAuditReport returns machine-readable audit report (0.3103ms)
+  ✔ runRemediationDemo calls /remediation/demo and returns demo outcome (0.2881ms)
+✔ Autonomous Remediation API Client (49.4982ms)
+✔ preserves failed execution verdict and disposal reference from HTTP 422 (0.8436ms)
+✔ production build rejects a missing API URL (5.1741ms)
+✔ production build rejects a relative API path (4.7831ms)
+✔ production build accepts a public HTTPS API URL (3.3855ms)
+✔ local static build accepts the same-origin API proxy explicitly (2.718ms)
+✔ production validates the optional separate analysis gateway (7.6988ms)
+✔ built public graph assets use the same configured API addresses as the portal (7.7687ms)
+ℹ tests 57
+ℹ suites 1
+ℹ pass 57
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1253.4396

@@ -1,0 +1,305 @@
+=== RUN   TestHealproofPublicContract
+    healproof_contract_test.go:248: TESTED_WITH_MOCK — NOT_DYNAMICALLY_VERIFIED
+=== RUN   TestHealproofPublicContract/wired
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=1, hotspots=0)
+=== RUN   TestHealproofPublicContract/wrong_patch
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=1, hotspots=0)
+=== RUN   TestHealproofPublicContract/unavailable
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=1, hotspots=0)
+=== RUN   TestHealproofPublicContract/missing_plan
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=1, hotspots=0)
+--- PASS: TestHealproofPublicContract (0.32s)
+    --- PASS: TestHealproofPublicContract/wired (0.12s)
+    --- PASS: TestHealproofPublicContract/wrong_patch (0.08s)
+    --- PASS: TestHealproofPublicContract/unavailable (0.09s)
+    --- PASS: TestHealproofPublicContract/missing_plan (0.04s)
+=== RUN   TestHealproofDockerPublicLifecycle
+    healproof_contract_test.go:261: DYNAMIC GATE BLOCKED / NOT RUN: opt in on Docker host with RUN_HEALPROOF_DOCKER=1
+--- SKIP: TestHealproofDockerPublicLifecycle (0.00s)
+=== RUN   TestRemediationHttpWorkflow
+--- PASS: TestRemediationHttpWorkflow (0.02s)
+=== RUN   TestRemediationRoutesRequireToken
+--- PASS: TestRemediationRoutesRequireToken (0.00s)
+=== RUN   TestRemediationDemoRunsRepairCandidateAndAbstention
+--- PASS: TestRemediationDemoRunsRepairCandidateAndAbstention (0.06s)
+=== RUN   TestRemediationHttpWorkflow_WithScannedWorkspace
+--- PASS: TestRemediationHttpWorkflow_WithScannedWorkspace (0.02s)
+=== RUN   TestScanRepoHandler_UsesStagedSnapshot
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=0, hotspots=0)
+--- PASS: TestScanRepoHandler_UsesStagedSnapshot (0.00s)
+=== RUN   TestPublicScanController_RateLimitsClient
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=0, hotspots=0)
+--- PASS: TestPublicScanController_RateLimitsClient (0.00s)
+=== RUN   TestPublicScanController_RejectsConcurrentScan
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=0, hotspots=0)
+--- PASS: TestPublicScanController_RejectsConcurrentScan (0.00s)
+=== RUN   TestScanRepoHandler_IgnoresClientForwardedIP
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=0, hotspots=0)
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=0, hotspots=0)
+--- PASS: TestScanRepoHandler_IgnoresClientForwardedIP (0.00s)
+=== RUN   TestScanRepoHandler_CleansTemporaryWorkspace
+=== RUN   TestScanRepoHandler_CleansTemporaryWorkspace/success
+2026/11/25 14:34:01 scan completed (snapshot_id=0123456789abcdef0123456789abcdef, files=0, hotspots=0)
+=== RUN   TestScanRepoHandler_CleansTemporaryWorkspace/failure
+2026/11/25 14:34:01 scan engine failed (snapshot_id=0123456789abcdef0123456789abcdef, error=engine failed)
+=== RUN   TestScanRepoHandler_CleansTemporaryWorkspace/timeout
+2026/11/25 14:34:01 scan engine failed (snapshot_id=0123456789abcdef0123456789abcdef, error=context deadline exceeded)
+=== RUN   TestScanRepoHandler_CleansTemporaryWorkspace/cancellation
+2026/11/25 14:34:01 scan engine failed (snapshot_id=0123456789abcdef0123456789abcdef, error=context canceled)
+--- PASS: TestScanRepoHandler_CleansTemporaryWorkspace (0.03s)
+    --- PASS: TestScanRepoHandler_CleansTemporaryWorkspace/success (0.00s)
+    --- PASS: TestScanRepoHandler_CleansTemporaryWorkspace/failure (0.00s)
+    --- PASS: TestScanRepoHandler_CleansTemporaryWorkspace/timeout (0.01s)
+    --- PASS: TestScanRepoHandler_CleansTemporaryWorkspace/cancellation (0.01s)
+=== RUN   TestEndToEndScanToRepairWorkflow_OfflineFixture
+--- PASS: TestEndToEndScanToRepairWorkflow_OfflineFixture (0.02s)
+=== RUN   TestSnapshotStore_RejectsInvalidID
+--- PASS: TestSnapshotStore_RejectsInvalidID (0.00s)
+=== RUN   TestSnapshotStore_RejectsMissingObject
+--- PASS: TestSnapshotStore_RejectsMissingObject (0.00s)
+=== RUN   TestSnapshotStore_ExtractsWorkspaceAndCleansIt
+--- PASS: TestSnapshotStore_ExtractsWorkspaceAndCleansIt (0.00s)
+PASS
+ok  	github.com/saksham/self-healing-pipeline	2.820s
+=== RUN   TestAdversarial_1_HostSentinelFileAccessPrevented
+--- PASS: TestAdversarial_1_HostSentinelFileAccessPrevented (0.00s)
+=== RUN   TestAdversarial_2_ExternalNetworkEgressBlocked
+--- PASS: TestAdversarial_2_ExternalNetworkEgressBlocked (0.08s)
+=== RUN   TestAdversarial_3_UnauthorizedSubprocessExecutionBlocked
+--- PASS: TestAdversarial_3_UnauthorizedSubprocessExecutionBlocked (0.00s)
+=== RUN   TestAdversarial_4_HostCredentialsAccessRejected
+--- PASS: TestAdversarial_4_HostCredentialsAccessRejected (0.00s)
+=== RUN   TestAdversarial_5_ResourceQuotaExhaustionEnforced
+--- PASS: TestAdversarial_5_ResourceQuotaExhaustionEnforced (0.07s)
+=== RUN   TestAdversarial_6_MalformedWorkspaceAndSnapshotIDsRejected
+--- PASS: TestAdversarial_6_MalformedWorkspaceAndSnapshotIDsRejected (0.00s)
+=== RUN   TestAdversarial_7_ApprovalTokenReplayAcrossWorkspacesRejected
+--- PASS: TestAdversarial_7_ApprovalTokenReplayAcrossWorkspacesRejected (0.03s)
+=== RUN   TestAdversarial_8_PostApprovalSourceFileMutationRejected
+--- PASS: TestAdversarial_8_PostApprovalSourceFileMutationRejected (0.01s)
+=== RUN   TestAdversarial_9_SymlinkEscapeDetectedAndRejected
+--- PASS: TestAdversarial_9_SymlinkEscapeDetectedAndRejected (0.01s)
+=== RUN   TestAdversarial_10_MissingOfflineDependenciesReportedAsUnavailable
+--- PASS: TestAdversarial_10_MissingOfflineDependenciesReportedAsUnavailable (0.00s)
+=== RUN   TestAdversarial_11_ContainerExecutionTimeoutReportedAsUnavailable
+--- PASS: TestAdversarial_11_ContainerExecutionTimeoutReportedAsUnavailable (0.00s)
+=== RUN   TestAdversarial_12_ContainerTelemetryAndDependencyInventory
+--- PASS: TestAdversarial_12_ContainerTelemetryAndDependencyInventory (0.00s)
+=== RUN   TestContainerCleanup_NormalCompletionVerifiedRemoval
+--- PASS: TestContainerCleanup_NormalCompletionVerifiedRemoval (0.00s)
+=== RUN   TestContainerCleanup_CancellationAndTimeout
+=== RUN   TestContainerCleanup_CancellationAndTimeout/ContextCancellation
+=== RUN   TestContainerCleanup_CancellationAndTimeout/CommandExecutionTimeout
+=== RUN   TestContainerCleanup_CancellationAndTimeout/CleanupOperationTimeout
+--- PASS: TestContainerCleanup_CancellationAndTimeout (0.00s)
+    --- PASS: TestContainerCleanup_CancellationAndTimeout/ContextCancellation (0.00s)
+    --- PASS: TestContainerCleanup_CancellationAndTimeout/CommandExecutionTimeout (0.00s)
+    --- PASS: TestContainerCleanup_CancellationAndTimeout/CleanupOperationTimeout (0.00s)
+=== RUN   TestContainerCleanup_DockerDaemonFailure
+=== RUN   TestContainerCleanup_DockerDaemonFailure/DaemonUnavailableDuringCleanup
+=== RUN   TestContainerCleanup_DockerDaemonFailure/ContainerStillExistsAfterRemoval
+--- PASS: TestContainerCleanup_DockerDaemonFailure (0.00s)
+    --- PASS: TestContainerCleanup_DockerDaemonFailure/DaemonUnavailableDuringCleanup (0.00s)
+    --- PASS: TestContainerCleanup_DockerDaemonFailure/ContainerStillExistsAfterRemoval (0.00s)
+=== RUN   TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache
+=== RUN   TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/MissingGoSumFailsClosed
+=== RUN   TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/UnsafeReplaceDirectiveRejected
+=== RUN   TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/MissingModuleInApprovedCacheFailsClosedWithoutDownload
+=== RUN   TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/StandardLibraryWorkspaceRequiresZeroCacheMounts
+=== RUN   TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/MinimalCacheStagesOnlyRequiredModuleAndCleansUp
+--- PASS: TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache (0.04s)
+    --- PASS: TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/MissingGoSumFailsClosed (0.00s)
+    --- PASS: TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/UnsafeReplaceDirectiveRejected (0.00s)
+    --- PASS: TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/MissingModuleInApprovedCacheFailsClosedWithoutDownload (0.01s)
+    --- PASS: TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/StandardLibraryWorkspaceRequiresZeroCacheMounts (0.00s)
+    --- PASS: TestDependencyStaging_ProhibitsArbitraryHostDownloadsAndEnforcesMinimalCache/MinimalCacheStagesOnlyRequiredModuleAndCleansUp (0.03s)
+=== RUN   TestApprovalSecurityAdversarialVectors
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector1_ValidTokenAccepted
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector2_ForgedSignatureRejected
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector3_ExpiredTokenRejected
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector4_TamperedPatchDiffRejected
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector5_SequentialReplayRejected
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector6_ConcurrentReplayRaceCondition
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector7_RestartReplayPersistence
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector8_ScopeEscalationRejected
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector9_CorruptedLedgerRejectionAndRecovery
+=== RUN   TestApprovalSecurityAdversarialVectors/Vector10_ProtectedInfrastructureModificationRejected
+--- PASS: TestApprovalSecurityAdversarialVectors (0.05s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector1_ValidTokenAccepted (0.01s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector2_ForgedSignatureRejected (0.00s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector3_ExpiredTokenRejected (0.00s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector4_TamperedPatchDiffRejected (0.00s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector5_SequentialReplayRejected (0.02s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector6_ConcurrentReplayRaceCondition (0.01s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector7_RestartReplayPersistence (0.01s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector8_ScopeEscalationRejected (0.00s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector9_CorruptedLedgerRejectionAndRecovery (0.00s)
+    --- PASS: TestApprovalSecurityAdversarialVectors/Vector10_ProtectedInfrastructureModificationRejected (0.00s)
+=== RUN   TestDiscardSandboxContract
+--- PASS: TestDiscardSandboxContract (0.00s)
+=== RUN   TestPlanLoader
+--- PASS: TestPlanLoader (0.04s)
+=== RUN   TestProvenanceVerification
+--- PASS: TestProvenanceVerification (0.76s)
+=== RUN   TestEligibilityAndHumanApprovalGate
+--- PASS: TestEligibilityAndHumanApprovalGate (0.00s)
+=== RUN   TestScheduler
+--- PASS: TestScheduler (0.00s)
+=== RUN   TestWorkspacePathTraversalProtection
+=== RUN   TestWorkspacePathTraversalProtection/Windows_Drive_Absolute_Backslash
+=== RUN   TestWorkspacePathTraversalProtection/Windows_Drive_Absolute_Slash
+=== RUN   TestWorkspacePathTraversalProtection/Windows_Drive_Lowercase
+=== RUN   TestWorkspacePathTraversalProtection/Windows_Drive_Relative
+=== RUN   TestWorkspacePathTraversalProtection/Windows_Drive_Relative_Lowercase
+=== RUN   TestWorkspacePathTraversalProtection/Windows_UNC_Backslash
+=== RUN   TestWorkspacePathTraversalProtection/Windows_UNC_Forward_Slash
+=== RUN   TestWorkspacePathTraversalProtection/Windows_Device_Namespace_Backslash
+=== RUN   TestWorkspacePathTraversalProtection/Windows_Device_Namespace_Slash
+=== RUN   TestWorkspacePathTraversalProtection/POSIX_Absolute_Root
+=== RUN   TestWorkspacePathTraversalProtection/Root_Relative_Backslash
+=== RUN   TestWorkspacePathTraversalProtection/Relative_Outside_Slash
+=== RUN   TestWorkspacePathTraversalProtection/Relative_Outside_Backslash
+=== RUN   TestWorkspacePathTraversalProtection/Mixed_Separator_Escape
+=== RUN   TestWorkspacePathTraversalProtection/Mixed_Separator_Inverted_Escape
+=== RUN   TestWorkspacePathTraversalProtection/Complex_Redundant_Traversal
+=== RUN   TestWorkspacePathTraversalProtection/Target_Workspace_Root
+=== RUN   TestWorkspacePathTraversalProtection/Target_Empty_String
+=== RUN   TestWorkspacePathTraversalProtection/Target_Sibling_Prefix_Path
+=== RUN   TestWorkspacePathTraversalProtection/Workspace-Evil_Sibling_and_Base_Dir_Deletion_Defense
+=== RUN   TestWorkspacePathTraversalProtection/Symlink_Escape_Defense
+--- PASS: TestWorkspacePathTraversalProtection (0.01s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_Drive_Absolute_Backslash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_Drive_Absolute_Slash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_Drive_Lowercase (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_Drive_Relative (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_Drive_Relative_Lowercase (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_UNC_Backslash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_UNC_Forward_Slash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_Device_Namespace_Backslash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Windows_Device_Namespace_Slash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/POSIX_Absolute_Root (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Root_Relative_Backslash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Relative_Outside_Slash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Relative_Outside_Backslash (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Mixed_Separator_Escape (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Mixed_Separator_Inverted_Escape (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Complex_Redundant_Traversal (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Target_Workspace_Root (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Target_Empty_String (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Target_Sibling_Prefix_Path (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Workspace-Evil_Sibling_and_Base_Dir_Deletion_Defense (0.00s)
+    --- PASS: TestWorkspacePathTraversalProtection/Symlink_Escape_Defense (0.01s)
+=== RUN   TestPatchGenerationAndScope
+--- PASS: TestPatchGenerationAndScope (0.00s)
+=== RUN   TestExecuteRepairRejectsFileChangedAfterApproval
+--- PASS: TestExecuteRepairRejectsFileChangedAfterApproval (0.01s)
+=== RUN   TestOracleLimitsContainerOutput
+--- PASS: TestOracleLimitsContainerOutput (0.00s)
+=== RUN   TestActiveProposalRejectsConcurrentExecution
+--- PASS: TestActiveProposalRejectsConcurrentExecution (0.00s)
+=== RUN   TestMissingVerificationCommandsDoNotPass
+--- PASS: TestMissingVerificationCommandsDoNotPass (0.00s)
+=== RUN   TestHardenedOraclesRejectFlawedNAT03Patch
+    oracles_test.go:114: CONFIRMED: OracleNegativeProperties correctly rejected flawed NAT-03 patch: Negative property check failed: candidate patch introduces callee cleanup on escaping resource "resp" returned to caller; violates ownership transfer and panics on error returns
+    oracles_test.go:124: CONFIRMED: OracleDefectReproducer correctly rejected flawed NAT-03 patch: Defect reproducer check failed: function returns resource to caller; callee cleanup violates interface contract
+--- PASS: TestHardenedOraclesRejectFlawedNAT03Patch (0.07s)
+=== RUN   TestHardenedOraclesRejectPreErrorCheckCleanup
+    oracles_test.go:184: CONFIRMED: OracleNegativeProperties correctly rejected pre-error-check placement: Negative property check failed: resource cleanup for "f" placed prior to error check; triggers nil pointer dereference panic when allocation fails
+--- PASS: TestHardenedOraclesRejectPreErrorCheckCleanup (0.06s)
+=== RUN   TestHardenedOraclesRejectMultipleCloseCalls
+    oracles_test.go:244: CONFIRMED: OracleNegativeProperties correctly rejected redundant close: Negative property check failed: multiple Close() calls detected on resource "f" without reassignment
+--- PASS: TestHardenedOraclesRejectMultipleCloseCalls (0.06s)
+=== RUN   TestRealityNoRepository
+--- PASS: TestRealityNoRepository (0.00s)
+=== RUN   TestRealityApprovalPersistenceFailure
+--- PASS: TestRealityApprovalPersistenceFailure (0.00s)
+=== RUN   TestRealityUnconfiguredReproducerNeverPasses
+--- PASS: TestRealityUnconfiguredReproducerNeverPasses (0.00s)
+=== RUN   TestRealityRepositoryReportPoisoning
+--- PASS: TestRealityRepositoryReportPoisoning (0.00s)
+=== RUN   TestRealitySourceFailures
+=== RUN   TestRealitySourceFailures/empty
+=== RUN   TestRealitySourceFailures/broken-parser
+=== RUN   TestRealitySourceFailures/non-sql-query
+=== RUN   TestRealitySourceFailures/non-error-encode
+=== RUN   TestRealitySourceFailures/hash-contract
+=== RUN   TestRealitySourceFailures/clean-closed-resource
+--- PASS: TestRealitySourceFailures (0.03s)
+    --- PASS: TestRealitySourceFailures/empty (0.00s)
+    --- PASS: TestRealitySourceFailures/broken-parser (0.00s)
+    --- PASS: TestRealitySourceFailures/non-sql-query (0.00s)
+    --- PASS: TestRealitySourceFailures/non-error-encode (0.01s)
+    --- PASS: TestRealitySourceFailures/hash-contract (0.01s)
+    --- PASS: TestRealitySourceFailures/clean-closed-resource (0.01s)
+=== RUN   TestScanToRepairWorkflow_Success
+    scan_repair_test.go:61: Found target: ID=SCAN-SEMANTIC_RESOURCE_LEAK-1-4091bc9f308d425caa685c45-0 Stratum=SCANNED_REPOSITORY Desc=Unclosed System Resource Leak (os.File) in server/logger.go:9
+--- PASS: TestScanToRepairWorkflow_Success (0.03s)
+=== RUN   TestScanToRepairWorkflow_UnsupportedCommandInjection
+--- PASS: TestScanToRepairWorkflow_UnsupportedCommandInjection (0.02s)
+=== RUN   TestScanToRepairWorkflow_EscapingResourceAbstention
+--- PASS: TestScanToRepairWorkflow_EscapingResourceAbstention (0.01s)
+=== RUN   TestScanToRepairWorkflow_VerificationFailure_FailClosed
+--- PASS: TestScanToRepairWorkflow_VerificationFailure_FailClosed (0.04s)
+=== RUN   TestScanToRepairWorkflow_MissingWorkspace_FailClosed
+--- PASS: TestScanToRepairWorkflow_MissingWorkspace_FailClosed (0.01s)
+=== RUN   TestVerificationContractControlFlow
+    verification_plan_test.go:107: TESTED_WITH_MOCK — NOT_DYNAMICALLY_VERIFIED
+=== RUN   TestVerificationContractControlFlow/ok
+=== RUN   TestVerificationContractControlFlow/wrong_patch
+=== RUN   TestVerificationContractControlFlow/regression
+=== RUN   TestVerificationContractControlFlow/behavior
+=== RUN   TestVerificationContractControlFlow/baseline_pass
+=== RUN   TestVerificationContractControlFlow/compile
+=== RUN   TestVerificationContractControlFlow/unavailable
+=== RUN   TestVerificationContractControlFlow/no_test
+--- PASS: TestVerificationContractControlFlow (0.45s)
+    --- PASS: TestVerificationContractControlFlow/ok (0.09s)
+    --- PASS: TestVerificationContractControlFlow/wrong_patch (0.07s)
+    --- PASS: TestVerificationContractControlFlow/regression (0.04s)
+    --- PASS: TestVerificationContractControlFlow/behavior (0.05s)
+    --- PASS: TestVerificationContractControlFlow/baseline_pass (0.04s)
+    --- PASS: TestVerificationContractControlFlow/compile (0.05s)
+    --- PASS: TestVerificationContractControlFlow/unavailable (0.05s)
+    --- PASS: TestVerificationContractControlFlow/no_test (0.06s)
+=== RUN   TestVerificationContractSecurity
+=== RUN   TestVerificationContractSecurity/plan
+=== RUN   TestVerificationContractSecurity/command
+=== RUN   TestVerificationContractSecurity/test
+=== RUN   TestVerificationContractSecurity/patch
+=== RUN   TestVerificationContractSecurity/candidate
+=== RUN   TestVerificationContractSecurity/source
+=== RUN   TestVerificationContractSecurity/workspace
+=== RUN   TestVerificationContractSecurity/expiry
+=== RUN   TestVerificationContractSecurity/missing
+=== RUN   TestVerificationContractSecurity/restart
+=== RUN   TestVerificationContractSecurity/redigest
+--- PASS: TestVerificationContractSecurity (0.37s)
+    --- PASS: TestVerificationContractSecurity/plan (0.03s)
+    --- PASS: TestVerificationContractSecurity/command (0.04s)
+    --- PASS: TestVerificationContractSecurity/test (0.04s)
+    --- PASS: TestVerificationContractSecurity/patch (0.03s)
+    --- PASS: TestVerificationContractSecurity/candidate (0.03s)
+    --- PASS: TestVerificationContractSecurity/source (0.03s)
+    --- PASS: TestVerificationContractSecurity/workspace (0.04s)
+    --- PASS: TestVerificationContractSecurity/expiry (0.03s)
+    --- PASS: TestVerificationContractSecurity/missing (0.04s)
+    --- PASS: TestVerificationContractSecurity/restart (0.03s)
+    --- PASS: TestVerificationContractSecurity/redigest (0.04s)
+=== RUN   TestVerificationCommandPolicy
+--- PASS: TestVerificationCommandPolicy (0.00s)
+=== RUN   TestVerificationPlanFrozen
+--- PASS: TestVerificationPlanFrozen (0.04s)
+=== RUN   TestVerificationAuditAndLedgerRestart
+--- PASS: TestVerificationAuditAndLedgerRestart (0.04s)
+=== RUN   TestVerificationActiveSandboxCannotBeDiscarded
+--- PASS: TestVerificationActiveSandboxCannotBeDiscarded (0.02s)
+=== RUN   TestVerificationDiscardErrors
+=== RUN   TestVerificationDiscardErrors/delete_error
+=== RUN   TestVerificationDiscardErrors/deletion_not_performed
+--- PASS: TestVerificationDiscardErrors (0.06s)
+    --- PASS: TestVerificationDiscardErrors/delete_error (0.03s)
+    --- PASS: TestVerificationDiscardErrors/deletion_not_performed (0.03s)
+=== RUN   TestVerificationPublicApprovalRequiresPlan
+--- PASS: TestVerificationPublicApprovalRequiresPlan (0.03s)
+PASS
+ok  	github.com/saksham/self-healing-pipeline/agent/repo_intel/execution	3.995s

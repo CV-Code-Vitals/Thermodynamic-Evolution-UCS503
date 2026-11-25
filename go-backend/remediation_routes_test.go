@@ -81,76 +81,8 @@ func TestRemediationHttpWorkflow(t *testing.T) {
 	req4, _ := http.NewRequest(http.MethodPost, "/api/remediation/approve", bytes.NewReader(apprBody))
 	req4.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w4, req4)
-	if w4.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/approve returned %d: %s", w4.Code, w4.Body.String())
-	}
-	var apprResp struct {
-		TokenID   string `json:"token_id"`
-		Valid     bool   `json:"valid"`
-		Principal string `json:"principal"`
-		Role      string `json:"role"`
-	}
-	if err := json.Unmarshal(w4.Body.Bytes(), &apprResp); err != nil || !apprResp.Valid {
-		t.Fatalf("Approval failed: %v", err)
-	}
-	if apprResp.Principal != "authenticated-analysis-client" || apprResp.Role != "analysis-operator" {
-		t.Fatalf("caller supplied approval identity: %+v", apprResp)
-	}
-
-	// 5. POST /api/remediation/execute
-	execBody, _ := json.Marshal(map[string]string{"token_id": apprResp.TokenID})
-	w5 := httptest.NewRecorder()
-	req5, _ := http.NewRequest(http.MethodPost, "/api/remediation/execute", bytes.NewReader(execBody))
-	req5.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w5, req5)
-	if w5.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/execute returned %d: %s", w5.Code, w5.Body.String())
-	}
-	var execResp struct {
-		ExecutionID         string `json:"execution_id"`
-		AllOraclesPassed    bool   `json:"all_oracles_passed"`
-		VerificationVerdict string `json:"verification_verdict"`
-	}
-	if err := json.Unmarshal(w5.Body.Bytes(), &execResp); err != nil || execResp.AllOraclesPassed || execResp.VerificationVerdict == "INDEPENDENTLY_VERIFIED" {
-		t.Fatalf("Missing checks must prevent verification: %v (verdict: %s)", err, execResp.VerificationVerdict)
-	}
-
-	// 6. GET /api/remediation/audit
-	w6 := httptest.NewRecorder()
-	req6, _ := http.NewRequest(http.MethodGet, "/api/remediation/audit", nil)
-	r.ServeHTTP(w6, req6)
-	if w6.Code != http.StatusOK {
-		t.Fatalf("GET /api/remediation/audit returned %d: %s", w6.Code, w6.Body.String())
-	}
-
-	// 7. Test Abstention via Analyze & Propose for INJ-EXT2-CMD-01
-	absAnalyzeBody, _ := json.Marshal(map[string]string{"target_id": "INJ-EXT2-CMD-01"})
-	w7 := httptest.NewRecorder()
-	req7, _ := http.NewRequest(http.MethodPost, "/api/remediation/demo/analyze", bytes.NewReader(absAnalyzeBody))
-	req7.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w7, req7)
-	if w7.Code != http.StatusOK {
-		t.Fatalf("Analyze abstention returned %d", w7.Code)
-	}
-	var absAnalysis struct {
-		AnalysisID string `json:"analysis_id"`
-	}
-	_ = json.Unmarshal(w7.Body.Bytes(), &absAnalysis)
-
-	absPropBody, _ := json.Marshal(map[string]string{"analysis_id": absAnalysis.AnalysisID})
-	w8 := httptest.NewRecorder()
-	req8, _ := http.NewRequest(http.MethodPost, "/api/remediation/propose", bytes.NewReader(absPropBody))
-	req8.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w8, req8)
-	if w8.Code != http.StatusOK {
-		t.Fatalf("Propose abstention returned %d", w8.Code)
-	}
-	var absProp struct {
-		Status string `json:"status"`
-	}
-	_ = json.Unmarshal(w8.Body.Bytes(), &absProp)
-	if absProp.Status != "ABSTAINED" {
-		t.Fatalf("Expected ABSTAINED, got %s", absProp.Status)
+	if w4.Code != http.StatusUnprocessableEntity || !strings.Contains(w4.Body.String(), "REPRODUCER_NOT_AVAILABLE") {
+		t.Fatalf("unplanned public approval must reject: %d %s", w4.Code, w4.Body.String())
 	}
 }
 
@@ -327,36 +259,7 @@ func LoadConfig(p string) ([]byte, error) {
 	req4, _ := http.NewRequest(http.MethodPost, "/api/remediation/approve", bytes.NewReader(apBody))
 	req4.Header.Set("Content-Type", "application/json")
 	r.ServeHTTP(w4, req4)
-	if w4.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/approve returned %d: %s", w4.Code, w4.Body.String())
-	}
-	var apResp struct {
-		TokenID string `json:"token_id"`
-		Valid   bool   `json:"valid"`
-	}
-	if err := json.Unmarshal(w4.Body.Bytes(), &apResp); err != nil || !apResp.Valid {
-		t.Fatalf("Failed to parse approval: %v", err)
-	}
-
-	// 6. Execute repair
-	exBody, _ := json.Marshal(map[string]string{"token_id": apResp.TokenID})
-	w5 := httptest.NewRecorder()
-	req5, _ := http.NewRequest(http.MethodPost, "/api/remediation/execute", bytes.NewReader(exBody))
-	req5.Header.Set("Content-Type", "application/json")
-	r.ServeHTTP(w5, req5)
-	if w5.Code != http.StatusOK {
-		t.Fatalf("POST /api/remediation/execute returned %d: %s", w5.Code, w5.Body.String())
-	}
-	var exResp struct {
-		ExecutionID           string `json:"execution_id"`
-		AppliedInSandbox      bool   `json:"applied_in_sandbox"`
-		OriginalRepoImmutable bool   `json:"original_repo_immutable"`
-		AllOraclesPassed      bool   `json:"all_oracles_passed"`
-	}
-	if err := json.Unmarshal(w5.Body.Bytes(), &exResp); err != nil {
-		t.Fatalf("Failed to parse execution: %v", err)
-	}
-	if !exResp.AppliedInSandbox || !exResp.OriginalRepoImmutable || exResp.AllOraclesPassed {
-		t.Errorf("Unexpected execution outcome: %+v", exResp)
+	if w4.Code != http.StatusUnprocessableEntity || !strings.Contains(w4.Body.String(), "REPRODUCER_NOT_AVAILABLE") {
+		t.Fatalf("unplanned public approval must reject: %d %s", w4.Code, w4.Body.String())
 	}
 }

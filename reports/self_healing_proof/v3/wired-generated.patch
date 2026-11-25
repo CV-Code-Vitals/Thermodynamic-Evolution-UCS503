@@ -1,0 +1,26 @@
+--- a/healproof/reader.go
++++ b/healproof/reader.go
+@@ -4,10 +4,13 @@
+- "io"
+- "os"
+-)
+-
+-// Controlled defect: the opened descriptor is not closed.
+-func Read(path string) ([]byte, error) {
+- f, err := os.Open(path)
+- if err != nil { return nil, err }
+- return io.ReadAll(f)
+-}
++	"io"
++	"os"
++)
++
++// Controlled defect: the opened descriptor is not closed.
++func Read(path string) ([]byte, error) {
++	f, err := os.Open(path)
++	if err != nil {
++		return nil, err
++	}
++	defer f.Close()
++	return io.ReadAll(f)
++}

@@ -1,0 +1,25 @@
+▶ Autonomous Remediation API Client
+  ✔ reports an unavailable repair service when the response has no status text (4.1952ms)
+  ✔ shows the gateway status for a target-loading failure with a non-JSON response (30.4195ms)
+  ✔ prompts the administrator to sign in again when the session is rejected (0.5054ms)
+  ✔ reports a network failure for the affected operation (0.3477ms)
+  ✔ rejects a malformed target list returned with HTTP 200 (0.7776ms)
+  ✔ fetchRemediationTargets calls /remediation/targets and returns targets array (0.3203ms)
+  ✔ fetchRemediationTargets includes workspace_id query parameter when provided (0.6835ms)
+  ✔ analyzeRemediationTarget sends target_id in POST body (0.5685ms)
+  ✔ proposeRemediationRepair calls /remediation/propose with analysis_id (0.4228ms)
+  ✔ approveRemediationRepair sends the proposal ID (2.2194ms)
+  ✔ executeRemediationRepair sends token_id and returns oracle results (0.3094ms)
+  ✔ rollbackRemediationSandbox calls /remediation/rollback (0.2224ms)
+  ✔ fetchRemediationAuditReport returns machine-readable audit report (0.164ms)
+  ✔ runRemediationDemo calls /remediation/demo and returns demo outcome (0.1665ms)
+✔ Autonomous Remediation API Client (43.4778ms)
+✔ preserves failed execution verdict and disposal reference from HTTP 422 (0.5086ms)
+ℹ tests 15
+ℹ suites 1
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 173.7543
