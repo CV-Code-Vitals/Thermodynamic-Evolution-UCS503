@@ -4,7 +4,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -441,19 +440,31 @@ func DialServer(url string) (*http.Response, error) {
 			}
 			record.AllOraclesPassed = oracleReport.AllPassed
 
-			if oracleReport.AllPassed {
-				t.Fatal("missing regression and invariance checks must prevent verification")
+			// These fixtures have no dynamic verification commands. The static
+			// checks must still pass, and each omitted check must report NOT_RUN.
+			expectedOracles := []struct {
+				kind   OracleType
+				status OracleStatus
+			}{
+				{OracleSyntaxCompilation, OracleStatusPassed},
+				{OracleNegativeProperties, OracleStatusPassed},
+				{OracleRegressionTest, OracleStatusNotRun},
+				{OracleDefectReproducer, OracleStatusNotRun},
+				{OracleBehavioralInvariance, OracleStatusNotRun},
 			}
-			{
-				var failed []string
-				for oType, oRes := range oracleReport.OracleResults {
-					if !oRes.Passed && oType != OracleRegressionTest && oType != OracleBehavioralInvariance {
-						failed = append(failed, fmt.Sprintf("%s: %s", oType, oRes.FailureReason))
-					}
+			for _, expectation := range expectedOracles {
+				result := oracleReport.OracleResults[expectation.kind]
+				if result == nil {
+					t.Errorf("Missing oracle result for %s", expectation.kind)
+					continue
 				}
-				if len(failed) > 0 {
-					t.Fatalf("[%s] Oracle verification failed: %s", tc.caseID, strings.Join(failed, "; "))
+				if result.Status != expectation.status || result.Passed != (expectation.status == OracleStatusPassed) {
+					t.Errorf("%s: expected %s, got %s (passed=%t): %s %s",
+						expectation.kind, expectation.status, result.Status, result.Passed, result.FailureReason, result.Details)
 				}
+			}
+			if oracleReport.AllPassed {
+				t.Error("missing dynamic checks must prevent independent verification")
 			}
 
 			records = append(records, record)
